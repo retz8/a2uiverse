@@ -110,6 +110,8 @@ The registry command printed "installed github over the one installed" for any i
 
 A press on Linear's row in a canvas drawn before Linear was uninstalled failed `uninstalled`; Linear installed again, Retry on its tile painted Linear's list — the slot's request from the turn — not the issue the press had opened. A press inside a fragment that fails is kept on its slot, and the slot's Retry sends that press again; a Retry that fails again keeps it for the next, and a press or a Retry that completes lets it go. A slot whose failure was its turn's dispatch retries the plan's request as before. SPEC §8.3's Retry, "re-dispatches that slot alone", is amended in 11.9. Replaced: Retry sending the plan's request whatever had failed.
 
+*Amended by task 15.11 decision 41.* A press kept on a slot, made on a surface drawn in a catalog the app no longer holds after its update, is not sent again: the slot's Retry, Show it here and Update's resend send the plan's request, and the app paints afresh in what it now holds.
+
 ## Evidence
 
 ### Before the live run

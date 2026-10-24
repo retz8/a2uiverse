@@ -224,6 +224,8 @@ The two numbers are fitted with the platform's embedding model on 47 labelled se
 
 The labelled searches and a live test holding the cut sit beside the marketplace's tests. The Router is untouched. Replaced: the search answering every published app ranked, the Store listing each one as a best match — 276 unexpected apps across the same set.
 
+*Amended by task 15.11 decision 51.* The live search test reads the Store's captures recorded from the cards as published, in the second person. CircleCI, at the floor for "continuous integration", is the model's known miss there, and the cut may show 19 unexpected apps across the labelled searches. The cut itself is unchanged.
+
 ### 28. Back returns from an app's view to its list
 
 Opening an app's view from its list — the Store's results or apps, the App Library's "Your apps" — pushes the view onto the browser's history, so browser Back returns to that list, as the view's own way back does, and that way back goes back over the view's entry. Tabs, searches, Publish and a view opened with no list behind it still replace the entry on screen, so Back from a list closes the page. Closing the page goes back over every entry it pushed. Replaced: every move inside the page replacing its one entry, Back from an app's view closing the page — phase-14 decision 11 and task 14.6's history rule amended for that move.
@@ -281,6 +283,8 @@ Every write the page makes gets 60 s to answer, a publish 190 s: above the orche
 - A publish is done when the publisher's listing carries the builds it handed and is no longer ahead of the Store; an unpublish, when the listing is gone.
 
 What only the lost answer knew stays unsaid: the apps that followed an update, whether an account's access was cancelled at its app. A read-back that cannot reach the orchestrator either answers as not reached. Replaced: a write with no time limit, the page saying "Updating" until reloaded when the tunnel left the request unanswered.
+
+*Amended by task 15.11 decision 28.* An install or an update whose read-back finds it not done says "That didn't go through, so nothing was installed." with Try again.
 
 ### 41. The Planner writes every update state into its sentence
 

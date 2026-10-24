@@ -43,6 +43,8 @@ An uninstall from the App Library reads the catalog table again, as an install a
 
 From the press until the consent card opens, while the app's entry is read again, the press is held — the pressed button and every other hold of decision 1 — its words unchanged. A read that cannot reach the Store is a refusal on the row, in the Store's words for the Store unreached.
 
+*Amended by task 15.11 decisions 44 and 45.* A read finding the app no longer in the Store refuses as such: "Shop B isn't in the Store anymore, so nothing was installed.", with nothing to press. A refusal before the card leaves Try again asking on the consent card; Try again goes with no second card only after a press that passed the card, or needed none.
+
 ### 8. Proof
 
 Unit tests over the client's half. A check by hand through the tunnel of the install side, on the mock tier published with Shop B uninstalled: Install in the slot with the consent card over it, the key's connect as the second step, the merged view taking Shop B in; "More in the Store" from a second canvas's slot, the install on the page and the slot filling beneath it; a third canvas's row turning to "Show it here". The update tile is covered by the unit tests, and live by the integration run (15.11).

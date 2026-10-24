@@ -21,6 +21,8 @@ The canvas draws every state a person can land on, beyond the phase spec's list:
 
 One line in the shell's words heads the offer, the same every time. Draft, settled on the canvas: "None of your apps can do this. From the Store:"
 
+*Amended by task 15.11 decisions 32 and 36.* Once an app the offer offered is installed, here or elsewhere, the line reads "From the Store:" alone above its rows; so does an offer whose plan asks nothing of the apps it offers, an install asked for and nothing else. An offer asking something of its apps, none of them installed, keeps the full line.
+
 ### 3. What each offered app shows
 
 Each offered app shows its name, its publisher, its short description from the marketplace's entry held to one or two lines, and Install.
@@ -32,6 +34,8 @@ The offer shows every app the Planner offered, as one list, nothing hidden, in t
 ### 5. The offer has no box
 
 The fixed line heads the offer and the apps follow as rows in the Store's result-row style, set apart by spacing or a hairline. No box is drawn around the offer.
+
+*Amended by task 15.11 decision 46.* The offer — its line, its rows and More in the Store — is at most 880px wide, the Store page's column, at the slot's leading edge.
 
 ### 6. An offered app's name opens its view in the Store
 
@@ -57,6 +61,8 @@ An install refused in the slot shows on that app's row: one line in the Store's 
 
 In a slot offering several apps, an app installed elsewhere turns its own row: Install becomes "Show it here", with a quiet "Installed" beside it. The other rows keep Install. A slot waiting on an update that lands elsewhere turns its Update to "Show it here".
 
+*Amended by task 15.11 decisions 32 and 40.* The turned row sits under "From the Store:" alone. A slot waiting on an update that lands elsewhere reads "Shop B is updated." with Show it here.
+
 ### 12. The merged view says nothing of an offered app
 
 The merged view says nothing about an offered app until its answer arrives, then takes it in as any source arriving on a Retry. No new words on the merged view.
@@ -77,9 +83,13 @@ The update tile is one line at the quiet line's size, in every slot and every ti
 
 The update tile takes the quiet-line form: a glyph, the gray sentence, a dot, then Update as a link; the waiting line carries no dot and no press. Update for an update that asks for more opens the Store's update consent card floating over the slot, anchored to the press. While it runs, the press reads Updating, then Updated with Loading…, and the slot changes once when the answer arrives. A refused update shows on the line in the Store's words, with the press the Store gives that cause.
 
+*Amended by task 15.11 decisions 39 and 40.* The waiting line carries a dot and Check again, the slot's Retry. While Update runs, the press reads Updating, then the line reads "Shop B is updated." with Loading….
+
 ### 17. The update tile's step on the progress line
 
 The update tile's step reads like the sign-in's: the tile's glyph with "Shop B needs an update" or "Shop B waiting on its publisher", "Shop B updating" while the update runs, then the bare name, ticked once it answers.
+
+*Amended by task 15.11 decisions 40 and 43.* Once updated, the step reads "Shop B updated" until the answer lands. While an app's resend runs — a Retry, or the resend after a sign-in or an update — its step spins, even while the answer it showed before is still on the canvas under its tile.
 
 ### 18. The install ask's installed line
 

@@ -32,6 +32,8 @@ A slot's account is judged against the card as installed, taking the sign-in til
 
 A paint refused outside the entitlement has the app's live card fetched again, given five seconds. A fetched card naming a catalog id beyond the entitlement takes the update tile. A fetched card naming none, or a fetch that does not answer, leaves today's tile — "This app sent something that can't be shown here." — with no Retry. A fetched card replaces the live card held for the run.
 
+*Amended by task 15.11 decision 5.* A call that ends with no surface also has the app's live card fetched again, given five seconds, and a fetched card naming a catalog id beyond the entitlement and none in it takes the update tile, as a paint refused outside the entitlement does. A card naming neither, or a fetch that does not answer, leaves the call completed.
+
 ### 5. What the Store holds is read fresh
 
 The tile's line is chosen from the app's Store entry read at the check, within the orchestrator's limit for each request to the Store, the slot pending until it answers; first paint never waits on it. The check before the call and the catch after it share this path.
@@ -45,6 +47,8 @@ The read runs the update check's own state computation for that one app, over th
 - unknown, the Store unreached: "Shop B has changed, and the Store couldn't be reached.", with Retry;
 - no longer published, or installed from your computer: "Shop B has changed, and the Store has no update for it.", with no press.
 
+*Amended by task 15.11 decisions 39 and 40.* The waiting line carries Check again, the slot's Retry: the app is judged afresh, its Store entry read again — "Shop B needs an update to show this." with Update once the Store has the update, the same line if not. Once the page holds the app past the version a line was drawn from, the tile reads "Shop B is updated." with Show it here, and Loading… while its request goes again.
+
 ### 7. An update that asks for more
 
 Every updatable state — the installed line retired, a major update, a card update — carries the new card's new permissions, and any of them naming one asks for more: its Update passes the consent card, in the slot, the App Library and the Store alike.
@@ -56,6 +60,8 @@ The update-tile slot carries the update state its line was computed from — the
 ### 9. Update ends in the slot's Retry
 
 Update is the orchestrator's existing install by app id, then the slot's Retry: the check before dispatch runs again and the slot sends again what failed — the press kept from inside the fragment, otherwise the plan's request. "Show it here" on a slot waiting on the same update is the same Retry. A Retry while the app still cannot paint lands on the update tile again.
+
+*Amended by task 15.11 decision 41.* A press kept on a slot, made on a surface drawn in a catalog the app no longer holds after its update, is not sent again: Update's resend, Show it here and the slot's Retry send the plan's request, and the app paints afresh in what it now holds. A press on a surface the update kept is sent again as before.
 
 ### 10. The update tile in the merge
 

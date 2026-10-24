@@ -29,6 +29,8 @@ When the reader sends a new utterance, the client aborts every open press stream
 
 When a vendor slot is painted failed, on whichever stream carries the repaint, the client deletes that source's surfaces from the live processor and clears its placement: refs into it go absent, its cells stop navigating, a Retry press shows the pending slot, and a retried answer lands fresh. The fragment-failure report's answer is routed by the stamp, as a press stream is.
 
+*Amended by task 15.12 decision 11.* The fragment leaves as a copy. Once a Retry makes the slot pending again, an answer the app gives on that surface rather than a fresh one brings it back from the copy into its slot, the answer landing on it; while the slot stands failed, a message for it is still dropped.
+
 ### 4. The press lines sit in a row above the merged view's label
 
 Over a landed merged view, the shell draws its lines in a 24px row of its own directly above the view's label row, in the collapse line's geometry: caption size, the quiet register, the button inline at its end. The view moves down one row when a line appears and back when it clears.
