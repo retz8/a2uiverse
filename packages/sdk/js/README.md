@@ -8,12 +8,12 @@ The contracts themselves are JSON in [`../contracts/`](../contracts/): [`a2uiver
 
 ## Used by
 
-- **`apps/orchestrator`**: stamps what it relays, namespaces surface ids, narrows the shell catalog for each model call and validates what the model writes, resolves refs.
+- **`apps/orchestrator`**: stamps what it relays, each catalog's build included, reads the presses the client sends back, `useApp` among them, namespaces surface ids, narrows the shell catalog for each model call and validates what the model writes, resolves refs.
 - **`apps/client`**: reads the stamps to place each fragment, and checks and evaluates the merged view's wiring.
-- **`packages/shell-catalog`**: narrows its catalog to what each model is shown, and types the presses its components send.
+- **`packages/shell-catalog`**: narrows its catalog to what each model is shown, types the presses its components send, and words a slot's refused install or update with `refusalOf`.
 - **`apps/orchestrator`'s registry**: checks an app at install — its id, its card's catalog ids, coverage, each artifact's descriptor, files, schema and host interface — tells each app its entitlement, and keeps each installed catalog's declared options for the credential check at the paint.
 - **`apps/client`'s loader**: registers the host-module interface, and checks each artifact's host interface and its module's exports at load.
-- **`apps/client`'s trusted page**: the Store's entries and samples, each update state in its words and whether it asks for more, why an install was refused, and the publish body.
+- **`apps/client`'s trusted page and slots**: the Store's entries and samples, each update state in its words and whether it asks for more, why an install or an update was refused, and the publish body; a slot's Install and Update read the same refusals.
 - **`packages/stellify`**: classifies the imports it bundles, writes the descriptor and gates its own output with the same checks as install; speaks the marketplace's routes and bodies, and runs the smoke test's checks for `preview`.
 - **`apps/marketplace`**: the index entry and the preview it serves, the publisher's token, the publish body it reads, the gate, the additive-evolution check, the retirement rule, the smoke test's checks and ahead-of-the-Store detection.
 - **`apps/orchestrator`'s update check**: the eight update states it computes and serves, the drift and retirement functions it decides them with; the Planner's reader says each state in the App Library's words, and Publish's listings run the drift function over each live card.

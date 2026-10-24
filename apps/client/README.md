@@ -15,7 +15,7 @@ pnpm dev:client                                    # from the repo root: Vite on
 pnpm --filter @a2uiverse/client build | typecheck | test | lint
 pnpm --filter @a2uiverse/client preview:snapshot   # built against the registry snapshot, served on 4173, no orchestrator
 pnpm --filter @a2uiverse/client test:e2e           # Playwright over preview:snapshot, compares screenshots
-pnpm --filter @a2uiverse/client test:e2e:live      # the Store, an update, the accounts, Publish and a sign-in, on a real stack of its own
+pnpm --filter @a2uiverse/client test:e2e:live      # the Store, an update, the accounts, Publish, a sign-in and the store loop, on a real stack of its own
 ```
 
 It sends to `VITE_ORCHESTRATOR_URL`, `http://localhost:10001` by default (see `.env.example`); when the orchestrator is somewhere else, set it in an uncommitted `.env.local`. It needs the orchestrator and the apps running too — `pnpm dev:all` from the root starts everything in order.
@@ -25,16 +25,16 @@ Playwright's browser installs separately (`pnpm exec playwright install chromium
 `test:e2e:live` runs on a stack of its own on `localhost`, never touching yours. Everything it writes sits in a scratch folder, `a2uiverse-e2e-live` in the system's temp directory, wiped at each start but the two embedding models:
 
 - its own marketplace on port 10082 and orchestrator on 10081, each on a scratch state directory;
-- the launcher, in `deterministic` mode from the sibling `a2uiverse-apps` checkout, publishing GitHub, Gmail and Shop A under `--publish` and installing them from that marketplace — the dev publisher's file kept in the scratch folder (`--publisher-file`), each agent's sign-in store too (`--agent-state`) — and Shop B running, neither published nor installed;
+- the launcher, in `deterministic` mode from the sibling `a2uiverse-apps` checkout, publishing GitHub, Gmail, Shop A and Google Calendar under `--publish` and installing all but Calendar from that marketplace, Calendar left in the Store for a slot to offer (`--leave-uninstalled calendar`) — the dev publisher's file kept in the scratch folder (`--publisher-file`), each agent's sign-in store too (`--agent-state`) — and Shop B running, neither published nor installed;
 - the client on 5183.
 
-Its stories, each leaving the stack as it found it: Shop A found in the Store, installed and composed without a reload; a newer build of Shop A installed by the update check and drawn on the next canvas; Gmail's accounts signed in, renamed, a second added, each signed out; a name claimed on Publish publishing Shop B, refused a breaking schema and unpublishing; and one sign-in through the real window. What a story publishes is packed at run time from copies of the checkout's built catalogs, the checkout untouched. The Planner runs live on the orchestrator's `.env` key, and its ports and the four apps' must be free. It isn't part of `pnpm verify`.
+Its stories, each leaving the stack as it found it: Shop A found in the Store, installed and composed without a reload; a newer build of Shop A installed by the update check and drawn on the next canvas; Gmail's accounts signed in, renamed, a second added, each signed out; a name claimed on Publish publishing Shop B, refused a breaking schema and unpublishing; one sign-in through the real window; Calendar offered beside a merged view, installed in its slot, signed in, the slot filling and the merge taking it in; and Calendar installed on the Store page opened from a slot, filling that slot beneath the page, while another canvas's offer turns to Show it here. What a story publishes is packed at run time from copies of the checkout's built catalogs, the checkout untouched. The Planner runs live on the orchestrator's `.env` key, and its ports and the five apps' must be free. It isn't part of `pnpm verify`.
 
 ## Working without a model
 
-`?beat=<name>` replays a recorded or hand-built session through the whole canvas, with no model call and no app; `&instant` skips the recorded pacing. The catalogs it draws in still come from a registry: the live orchestrator's, or the registry snapshot with `preview:snapshot` and no orchestrator at all. `?beat=27&instant` is the answer above, `?beat=9&instant` the entity join, `?beat=trail` the trail, `?beat=26&instant` the way back. A beat's presses fire through the same handler the buttons call, answered from the beat itself; the tests and the screenshots in this README come from beats.
+`?beat=<name>` replays a recorded or hand-built session through the whole canvas, with no model call and no app; `&instant` skips the recorded pacing. The catalogs it draws in still come from a registry: the live orchestrator's, or the registry snapshot with `preview:snapshot` and no orchestrator at all. `?beat=27&instant` is the answer above, `?beat=9&instant` the entity join, `?beat=trail` the trail, `?beat=26&instant` the way back, `?beat=31&instant` an app offered from the Store. A beat's presses fire through the same handler the buttons call, answered from the beat itself; `&byhand` leaves them to you, each press you make answered by the beat's recorded press of the same kind, sources and gap; the tests and the screenshots in this README come from beats.
 
-Under `preview:snapshot` the page over the canvas reads a fixed world shipped with the registry snapshot — the seven apps in the Store with their samples, six installed in six update states, a publisher signed in — so `?page=store`, `?page=library` and `?page=publish` open with content and no orchestrator; only the e2e tests answer its writes.
+Under `preview:snapshot` the page over the canvas reads a fixed world shipped with the registry snapshot — the seven apps in the Store with their samples, six installed in six update states, a publisher signed in — so `?page=store`, `?page=library` and `?page=publish` open with content and no orchestrator; only the e2e tests answer its writes. Shop B is installed in that world, so the store loop's beats offer it as Show it here; the e2e tests take the apps a case needs out of the world for that test.
 
 <details>
 <summary><b>Recorded beats</b></summary>
@@ -47,7 +47,7 @@ Real output, captured through the orchestrator and kept as the stream it arrived
 | `4`          | Side by side: inbox and calendar in two slots, no merged view                                                                                                                                                |
 | `5`          | The temporal merge: Google Calendar, Gmail, GitHub and Linear with the merged view                                                                                                                           |
 | `6`          | A question about A2UIVerse itself, answered by the shell                                                                                                                                                     |
-| `7`          | A capability gap: nothing installed can answer                                                                                                                                                               |
+| `7`          | Nothing installed can answer, and nothing in the Store either: "Nothing in the Store can do this yet."                                                                                                       |
 | `8`          | One app's slot and the shell's own words in one layout                                                                                                                                                       |
 | `9`          | The entity join: Linear, GitHub and CircleCI merged, one row per issue                                                                                                                                       |
 | `10` to `18` | Late answers and failures: Retry, Include, the home source straggling or failing, a broken stream, a paint the canvas can't draw, too few answers                                                            |
@@ -57,8 +57,12 @@ Real output, captured through the orchestrator and kept as the stream it arrived
 | `28`         | "Is anything out of date?", answered from each installed app's update state, with a button into the App Library                                                                                              |
 | `29`         | "How do I publish my app?", with a button landing on Publish                                                                                                                                                 |
 | `30`         | Managing GitHub's accounts: a button opening the App Library on GitHub                                                                                                                                       |
+| `31`         | "Compare camera prices at Shop A and Shop B.": Shop B offered beside Shop A, installed in its slot, its key connected, the slot filling and the merge taking it in                                           |
+| `32`         | Both shops offered, neither installed                                                                                                                                                                        |
+| `33`         | "Install Shop B.": the installed line, nothing asked of it                                                                                                                                                   |
+| `34`         | An install asked for with a request: installed, its key connected, the slot filling                                                                                                                          |
 
-Hand-built beats live in `src/beats/`: `syntheticBeats.ts`, `lateFailureBeats.ts` for late answers and failures, and `durableBeats.ts` for kept answers and the way back.
+Hand-built beats live in `src/beats/`: `syntheticBeats.ts`, `lateFailureBeats.ts` for late answers and failures, `durableBeats.ts` for kept answers and the way back, and `storeLoopBeats.ts` for what the store loop's recordings don't show: `?beat=gap-unreached` ("Couldn't reach the Store."), `update-needed`, `update-waiting`, `update-asks-more`, `update-uninstalled`, and `per-paint-builds:<first>:<second>`.
 
 </details>
 
@@ -125,6 +129,12 @@ Apps, under Back and Trail, opens one page over the canvas, which stays mounted 
 
 The page lives in the address — `?page=store&q=<words>`, `?page=library&app=<id>`, `?page=publish` — so a link opens it, a reload lands on it over a fresh session, and browser Back goes back over it: from an app's view to its list, from a list to the canvas. The Planner opens it too, from a button in its answer. Every read it makes gets 10 seconds and is asked once more; a write left unanswered is never sent again — the page reads back what it was changing and says what happened.
 
+### Apps from the Store, in the slot that needs them
+
+A question no installed app can answer gets an offer in the slot that needs it: "None of your apps can do this. From the Store:", each app the Planner found by name, publisher and description with Install, and More in the Store. Install passes the Store's consent card, floating over the slot, and the slot fills with the app's answer, nothing else moving; an app that needs sign-in asks as the second step. The same app offered on another canvas turns to Show it here, one press with no second consent. With nothing to offer, the slot is one quiet line, "Nothing in the Store can do this yet." or "Couldn't reach the Store.", with Search the Store.
+
+An app that can't paint in what it's installed with takes the update tile, one line: "Shop A needs an update to show this." with Update, "…and the Store is waiting on its publisher" with Check again, "…and the Store couldn't be reached." with Retry, or "…and the Store has no update for it."; once updated, "Shop A is updated." with Show it here. One install or update of an app runs at a time, anywhere: from a slot, the Store or the App Library. The rest is in [`docs/design/store-loop.md`](../../docs/design/store-loop.md).
+
 ## Catalogs
 
 The client compiles no app's catalog in. It holds two of its own, the shell catalog and the standard basic catalog; every other catalog is loaded at runtime from the orchestrator's registry, as the artifact Stellify packed, inside the catalog's own Provider — an app's design system, Primer for GitHub, comes inside its artifact.
@@ -132,7 +142,7 @@ The client compiles no app's catalog in. It holds two of its own, the shell cata
 - At startup it registers the host-module interface — the one object an artifact reaches React, react-dom, `@a2ui/react`, `@a2ui/web_core` and zod through — and starts loading every catalog the registry lists, without waiting for it to render.
 - A fragment in a catalog it doesn't hold yet waits, its slot loading, while that catalog loads; an app installed while the page is open is found without a reload.
 - Every request of a load is bounded — no answer in 10 seconds, 30 for the artifact's entry — and asked once more, so a request lost in transit fails rather than leaving the slot loading for good. A catalog that won't load fails its slot: "Something went wrong loading this.", with Retry.
-- Each build is loaded once per page, and its stylesheets are held to the surfaces drawn in it. A canvas keeps the builds it drew in; one opened after an update moved a catalog to a new build loads the new one, with no reload, and a catalog under a new id loads as its first paint arrives.
+- Each build is loaded once per page, and its stylesheets are held to the surfaces drawn in it. A paint is drawn in the build the orchestrator's stamp names, the one the registry held when the paint was relayed, so an update's new build draws the next paint with no reload; a surface on screen keeps the build it was drawn in until its app changes its components, and a paint the way back returns to keeps its own. A catalog under a new id loads as its first paint arrives.
 - A Store sample loads its builds through the same loader, from the marketplace's artifacts when the registry doesn't hold them.
 
 The code is in `src/catalogs/`. The tests and e2e load the **registry snapshot**, generated by `packages/registry-snapshot` from the seven catalog packages at one pinned commit of the apps repo: the vitest suite through the real loader from disk, and Playwright from `preview:snapshot`, whose page is built against the preview's own origin and whose server serves the snapshot under `/registry`, and the page's fixed world beside it. Moving the snapshot to a newer apps commit is that package's job.
@@ -151,11 +161,12 @@ None of these are part of `pnpm verify`; each needs live processes.
 ```bash
 pnpm --filter @a2uiverse/client record:beats --model <model> --beats 1-9,27-30
 pnpm --filter @a2uiverse/client record:beats --model <model> --beats 10-26 [--fault-port 10091]
+pnpm --filter @a2uiverse/client record:beats --model <model> --beats 31-34 [--fault-port 10091]
 ```
 
 Every orchestrator a beat runs through is signed in first, through the real sign-in: a canvas opened with a question about the platform, then each app that asks sign-in signed in from it as the fake account the agent's sign-in page offers it, named on its address instead of chosen — so the apps must be in `deterministic` or `stub` mode. A beat may name its own accounts; an account the orchestrator already holds is left as it is.
 
-Beats 1 to 9 and 27 to 30 run against the apps you have running, 28 to 30 with the marketplace up. Beats 10 to 26 need the apps in `deterministic` mode (`pnpm dev:all`) and port 10091 free: the recorder starts its own orchestrator there for each, on a state directory of its own, with the case's faults and time limits and the Gemini key in the orchestrator's `.env`. It installs into it every app the orchestrator at `--url` has installed, reads the take's journal lines from its own journal, and retakes a take that doesn't show its case, up to three times. The orchestrator you run is left as it was.
+Beats 1 to 9 and 27 to 30 run against the apps you have running, 7 and 28 to 30 with the marketplace up. Beats 10 to 26 need the apps in `deterministic` mode (`pnpm dev:all`) and port 10091 free: the recorder starts its own orchestrator there for each, on a state directory of its own, with the case's faults and time limits and the Gemini key in the orchestrator's `.env`. It installs into it every app the orchestrator at `--url` has installed, reads the take's journal lines from its own journal, and retakes a take that doesn't show its case, up to three times. The orchestrator you run is left as it was. Beats 31 to 34 run the same way with the marketplace up, the orchestrator you run launched on the mock roster with `--publish --leave-uninstalled shop-b`: each of the recorder's orchestrators gets only the apps the beat names, installs from the offer by id, connects Shop B's demo key and sends the slot's resume press.
 
 > [!IMPORTANT]
 > Start the Gmail agent with `A2UI_RECORD_DIR` set when recording. That's what makes it swap real mail for stand-ins, and the recorder can't tell whether that happened.
@@ -209,3 +220,4 @@ recordings/          the recorded beats, and the Store's captures
 - [`docs/design/authority.md`](../../docs/design/authority.md) — sign-in, end to end.
 - [`docs/design/app-install.md`](../../docs/design/app-install.md) — one artifact from Stellify's pack to its first paint.
 - [`docs/design/trusted-page.md`](../../docs/design/trusted-page.md) — the Store, the App Library and Publish, end to end.
+- [`docs/design/store-loop.md`](../../docs/design/store-loop.md) — an app offered, installed and updated in the slot that needs it.

@@ -10,7 +10,9 @@ The seven catalog packages are this package's dependencies, all pinned to one co
 
 An artifact packed here can differ from the one its publisher packs in the apps checkout, in `index.js` alone: esbuild writes each bundled module's path into the entry, and a dependency installed here sits at another path. GitHub's and Linear's differ this way; the other five are the same artifact, hash for hash.
 
-`REGISTRY_SNAPSHOT_DIR` is the snapshot's root.
+Beside them it packs a second build of Shop A's catalog: the same package with its accent changed in light and dark, filed under its id but never in the table. `second-build.json` names the catalog and both builds (`{catalogId, first, second}`), for the replay suite's per-paint builds test to move a canvas onto.
+
+`REGISTRY_SNAPSHOT_DIR` is the snapshot's root, `SECOND_BUILD_FILE` the second build's file.
 
 To move the snapshot to a newer commit of the apps repo, re-point every dependency to that commit, and each catalog's `allowBuilds` line in `pnpm-workspace.yaml` with it: pnpm builds each catalog on install and allows it by the tarball it resolved. Delete any line pnpm appends there with the value `set this to true or false`: it's pnpm asking about a tarball no entry allows yet, and one left behind for the old commit allows nothing.
 
