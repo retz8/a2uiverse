@@ -74,3 +74,11 @@ Every README in `a2uiverse` and `a2uiverse-apps` is checked against the code as 
 A fault the fresh run or the check against the code finds is fixed on `main` with its test, and added to this spec as a numbered decision with what it replaced. A point asking for something a later phase builds is recorded in that phase's notes in `_dev/TODO.md`.
 
 The work is done directly on `main` in both repos, with no worktree.
+
+### 10. A step back restores the merge made over its paints
+
+The orchestrator's memory of the merged view, filed per combination of the paints on screen, keeps a copy of the merge's set: a source leaving the merge afterwards — its press failed, its slot taking a tile — leaves the entry filed before as it was. Replaced: the entry holding the composition's own set, which the failed press emptied of Shop A, so a step back to the paint the press had failed on, after Show it here repainted Shop A, said "Only Shop B answered, so there's nothing to combine." with Retry Shop A beside Shop A's answer.
+
+### 11. A Retry answered on the surface its failure took down shows on it
+
+A failed slot's fragment leaves the canvas as a copy. Once a Retry makes the slot pending again, an answer the app gives on that surface rather than a fresh one brings it back from the copy into its slot, the answer landing on it, and the way back returns to it again. While the slot stands failed, a message for it is still dropped. Replaced: the answer dropped as a late message, Shop A's slot on "Loading…" for good after its Retry sent "open camera" again and Shop A answered on its list's surface, the merged view's Shop A cells absent (task-8.5 decision 3's "a retried answer lands fresh").
