@@ -1,6 +1,6 @@
 {
   "name": "@a2uiverse/stellify",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Stellify — turns a catalog package into the A2UIVerse catalog artifact and takes it to the marketplace: pack and check, claim, preview, publish, unpublish and list, with the host and stylesheet imports rewritten so the vendor's source is untouched.",
   "license": "MIT",
   "repository": {
@@ -38,11 +38,13 @@
   },
   "dependencies": {
     "@a2a-js/sdk": "0.3.14",
-    "esbuild": "^0.28.2"
+    "@a2ui/web_core": "0.14.0",
+    "ajv": "^8.20.0",
+    "esbuild": "^0.28.2",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@a2ui/react": "^0.10.2",
-    "@a2ui/web_core": "^0.10.6",
+    "@a2ui/react": "0.14.0",
     "@a2uiverse/sdk": "workspace:*",
     "@types/express": "^5.0.6",
     "@types/node": "^22.19.0",
@@ -50,7 +52,6 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.9",
-    "zod": "^3.25.76"
+    "vitest": "^4.1.9"
   }
 }

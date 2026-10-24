@@ -55,17 +55,10 @@ describe('packing the fixture catalog', () => {
   test('host imports become reads from the interface, stylesheet imports loads through it', async () => {
     const result = await stellify(copyFixture());
     const entry = decode(result.files.get('index.js')!);
-    for (const specifier of [
-      'react',
-      'react/jsx-runtime',
-      'react-dom',
-      'react-dom/client',
-      'zod',
-    ]) {
+    expect(HOST_SPECIFIERS).toContain('@a2ui/web_core/v0_9/basic_catalog');
+    for (const specifier of HOST_SPECIFIERS) {
       expect(entry).toContain(`__a2uiverse_host__.modules[${JSON.stringify(specifier)}]`);
     }
-    expect(entry).toContain('__a2uiverse_host__.modules["@a2ui/web_core/v0_9"]');
-    expect(entry).toContain('__a2uiverse_host__.modules["@a2ui/react/v0_9"]');
     expect(entry).not.toMatch(/^import /m);
     expect(entry).toContain('loadStylesheet(new URL("lib/theme.css", import.meta.url).href)');
     expect(entry).toContain(

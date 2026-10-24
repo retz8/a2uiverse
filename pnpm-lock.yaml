@@ -354,16 +354,22 @@ importers:
       '@a2a-js/sdk':
         specifier: 0.3.14
         version: 0.3.14(express@5.2.1(supports-color@7.2.0))
+      '@a2ui/web_core':
+        specifier: 0.14.0
+        version: 0.14.0
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
     devDependencies:
       '@a2ui/react':
-        specifier: ^0.10.2
-        version: 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
-      '@a2ui/web_core':
-        specifier: ^0.10.6
-        version: 0.10.6
+        specifier: 0.14.0
+        version: 0.14.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2uiverse/sdk':
         specifier: workspace:*
         version: link:../sdk/js
@@ -388,9 +394,6 @@ importers:
       vitest:
         specifier: ^4.1.9
         version: 4.1.11(@types/node@22.20.1)(jsdom@29.1.1)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(tsx@4.23.12)(yaml@2.9.1))
-      zod:
-        specifier: ^3.25.76
-        version: 3.25.76
 
 packages:
 
@@ -414,12 +417,25 @@ packages:
     peerDependencies:
       '@a2ui/web_core': ^0.10.6
 
+  '@a2ui/markdown-it@0.2.2':
+    resolution: {integrity: sha512-oj58ybxIPwnRzN2NpvgxrOOwDlZuBKoEtW5U6wRs6SOq1dDjk/zAAkRtb0U52WPSu01gHJOFSGEkuE+Xe09dcQ==}
+    peerDependencies:
+      '@a2ui/web_core': ^0.14.0
+
   '@a2ui/react@0.10.2':
     resolution: {integrity: sha512-QDVs97a/sihcjE3DMnWbwB8bJKv1z2tn291m6+0w6+lXi8dfwnSiZilAgoQmLWjW4Oikv8OFh532NiQMqL/+nw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^19.2.7
       react-dom: ^19.2.7
+      zod: ^3.25.76
+
+  '@a2ui/react@0.14.0':
+    resolution: {integrity: sha512-kew3gVx4/U4qZ41FwyanDndCuBsx3s+5kPzjBt5N9w8E6UKSfwJpOmWD3Vy5WN5bxuiQKmorN+Ozh59ZLrwkMA==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
       zod: ^3.25.76
 
   '@a2ui/web_core@0.10.6':
@@ -3664,10 +3680,26 @@ snapshots:
       dompurify: 3.4.11
       markdown-it: 14.3.0
 
+  '@a2ui/markdown-it@0.2.2(@a2ui/web_core@0.14.0)':
+    dependencies:
+      '@a2ui/web_core': 0.14.0
+      dompurify: 3.4.11
+      markdown-it: 14.3.0
+
   '@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)':
     dependencies:
       '@a2ui/markdown-it': 0.1.1(@a2ui/web_core@0.10.6)
       '@a2ui/web_core': 0.10.6
+      clsx: 2.1.1
+      markdown-it: 14.3.0
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      zod: 3.25.76
+
+  '@a2ui/react@0.14.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)':
+    dependencies:
+      '@a2ui/markdown-it': 0.2.2(@a2ui/web_core@0.14.0)
+      '@a2ui/web_core': 0.14.0
       clsx: 2.1.1
       markdown-it: 14.3.0
       react: 19.2.8
