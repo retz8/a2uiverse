@@ -177,7 +177,7 @@ test('S5 · an app’s view: what it does, the questions to try, the sample the 
   await samplesDrawn(page, 1);
   const sample = page.getByTestId('store-sample');
   await expect(sample).toContainText('“What cameras do you have?”');
-  await expect(sample).toContainText('Made by the Store when Shop A was published, Oct 13');
+  await expect(sample).toContainText('Made by the Store when Shop A was published, Oct 24');
   await expect(page).toHaveScreenshot('store-s5-app-view.png');
 });
 
@@ -193,7 +193,7 @@ test('S6 · a sign-in app: what it will be able to do, the sample its publisher 
   await expect(view.locator('.store-scopes__list li')).toHaveText(['See your issues']);
   await samplesDrawn(page, 1);
   await expect(page.getByTestId('store-sample')).toContainText(
-    'Made by the publisher with their own account, Oct 13',
+    'Made by the publisher with their own account, Oct 24',
   );
   await expect(page).toHaveScreenshot('store-s6-signin-app.png');
 });

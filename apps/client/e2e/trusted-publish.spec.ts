@@ -318,7 +318,7 @@ test('P6 · an update’s form: the id and the address filled in, the folder and
   );
   await expect(form.getByRole('list', {name: 'Packed folders'})).toContainText('5 files');
   await expect(form.getByRole('list', {name: 'Sample answer file'})).toContainText(
-    'captured Oct 13',
+    'captured Oct 24',
   );
   await expect(form).toContainText(
     'Needed because Linear asks people to sign in: the Store can’t ask it a question without your account.',

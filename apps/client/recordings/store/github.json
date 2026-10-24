@@ -26,7 +26,7 @@
         "text",
         "text/plain"
       ],
-      "description": "Reads and acts on the user's GitHub: finds the pull requests that need them, opens one to its discussion and reviews, and posts, reviews, merges, and manages things for them — content-bearing actions drafted as a proposal and fired on their confirmation.",
+      "description": "Reads and acts on your GitHub: finds the pull requests that need you, opens one to its discussion and reviews, and posts, reviews, merges and manages things for you — anything written for you is drafted first and sent once you confirm.",
       "documentationUrl": "https://github.com/retz8/a2uiverse-apps/blob/main/github/agent/README.md",
       "name": "GitHub",
       "preferredTransport": "JSONRPC",
@@ -46,7 +46,7 @@
         "signIn": {
           "flows": {
             "authorizationCode": {
-              "authorizationUrl": "http://localhost:11001/oauth/authorize",
+              "authorizationUrl": "https://vnw20xbg-11001.asse.devtunnels.ms/oauth/authorize",
               "refreshUrl": "http://localhost:11001/oauth/token",
               "scopes": {
                 "github.read": "See your repositories, pull requests, issues and notifications",
@@ -61,7 +61,7 @@
       },
       "skills": [
         {
-          "description": "Finds the pull requests that need the user: the ones waiting on their review, what changed recently, and what is still open.",
+          "description": "Finds the pull requests that need you: the ones waiting on your review, what changed recently, and what's still open.",
           "examples": [
             "What needs my attention today?",
             "What's on my plate?",
@@ -98,7 +98,7 @@
           ]
         },
         {
-          "description": "Helps write review feedback on a pull request: drafts the review with the user, then submits it on their confirmation.",
+          "description": "Helps write review feedback on a pull request: drafts the review with you, then submits it once you confirm.",
           "examples": [
             "Help me review that PR",
             "Draft my review comments for #58",
@@ -116,7 +116,7 @@
           ]
         },
         {
-          "description": "Performs GitHub actions as the user: comments on issues and pull requests, opens issues and pull requests, merges, edits files, and manages notifications. Content-bearing actions are drafted as a proposal showing where they will land and fire on the user's confirmation; quick toggles fire directly.",
+          "description": "Acts on GitHub for you: comments on issues and pull requests, opens issues and pull requests, merges, edits files, and manages notifications. Anything written for you is drafted first, showing where it will land, and sent once you confirm; quick toggles happen right away.",
           "examples": [
             "Comment on that issue that I'll pick it up tomorrow",
             "Open an issue about the flaky beat test",
@@ -146,7 +146,7 @@
     "versions": [
       "0.1.0"
     ],
-    "publishedAt": "2026-10-13T11:21:14.602Z",
+    "publishedAt": "2026-10-24T01:09:43.085Z",
     "retired": []
   },
   "preview": {
@@ -1576,6 +1576,6 @@
       }
     ],
     "capturedBy": "publisher",
-    "capturedAt": "2026-10-13T11:21:13.868Z"
+    "capturedAt": "2026-10-24T01:09:42.711Z"
   }
 }

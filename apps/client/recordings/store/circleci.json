@@ -26,7 +26,7 @@
         "text",
         "text/plain"
       ],
-      "description": "Shows the user's CircleCI pipelines: recent runs by branch and commit with their outcome, each run's workflows and jobs, and why a job failed from its logs. Reruns or cancels a workflow once the user confirms.",
+      "description": "Shows your CircleCI pipelines: recent runs by branch and commit with their outcome, each run's workflows and jobs, and why a job failed from its logs. Reruns or cancels a workflow once you confirm.",
       "documentationUrl": "https://github.com/retz8/a2uiverse-apps/blob/main/circleci/agent/README.md",
       "name": "CircleCI",
       "preferredTransport": "JSONRPC",
@@ -46,7 +46,7 @@
         "signIn": {
           "flows": {
             "authorizationCode": {
-              "authorizationUrl": "http://localhost:11004/oauth/authorize",
+              "authorizationUrl": "https://vnw20xbg-11004.asse.devtunnels.ms/oauth/authorize",
               "refreshUrl": "http://localhost:11004/oauth/token",
               "scopes": {
                 "pipelines.read": "See your projects, pipelines and their runs",
@@ -61,7 +61,7 @@
       },
       "skills": [
         {
-          "description": "Shows recent pipeline runs across the user's projects: which branch and commit each ran on, whether it passed, failed or is still running, and its workflows.",
+          "description": "Shows recent pipeline runs across your projects: which branch and commit each ran on, whether it passed, failed or is still running, and its workflows.",
           "examples": [
             "How are my builds doing?",
             "Is CI green on main?",
@@ -117,7 +117,7 @@
           ]
         },
         {
-          "description": "Reruns a workflow — every job, or only the failed ones — or cancels one that is still running, after the user confirms.",
+          "description": "Reruns a workflow — every job, or only the failed ones — or cancels one that's still running, once you confirm.",
           "examples": [
             "Rerun the failed workflow",
             "Rerun only the failed jobs",
@@ -144,7 +144,7 @@
     "versions": [
       "0.1.0"
     ],
-    "publishedAt": "2026-10-13T11:21:14.338Z",
+    "publishedAt": "2026-10-24T01:09:42.849Z",
     "retired": []
   },
   "preview": {
@@ -3695,6 +3695,6 @@
       }
     ],
     "capturedBy": "publisher",
-    "capturedAt": "2026-10-13T11:21:13.811Z"
+    "capturedAt": "2026-10-24T01:09:42.763Z"
   }
 }

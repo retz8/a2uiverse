@@ -26,7 +26,7 @@
         "text",
         "text/plain"
       ],
-      "description": "Reads and acts on the user's Gmail mailbox: finds the threads that need them, opens a conversation, drafts a reply for them to finish, and files mail with labels.",
+      "description": "Reads and acts on your Gmail: finds the threads that need you, opens a conversation, drafts a reply for you to finish, and files mail with labels.",
       "documentationUrl": "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/agent/README.md",
       "name": "Gmail",
       "preferredTransport": "JSONRPC",
@@ -46,7 +46,7 @@
         "signIn": {
           "flows": {
             "authorizationCode": {
-              "authorizationUrl": "http://localhost:11002/oauth/authorize",
+              "authorizationUrl": "https://vnw20xbg-11002.asse.devtunnels.ms/oauth/authorize",
               "refreshUrl": "http://localhost:11002/oauth/token",
               "scopes": {
                 "inbox": "See your inbox",
@@ -62,7 +62,7 @@
       },
       "skills": [
         {
-          "description": "Finds the mail that needs the user: threads where someone is waiting on a reply, what arrived recently, what is still unread.",
+          "description": "Finds the mail that needs you: threads where someone is waiting on your reply, what arrived recently, what's still unread.",
           "examples": [
             "What needs my attention today?",
             "What's on my plate?",
@@ -99,7 +99,7 @@
           ]
         },
         {
-          "description": "Composes a reply to a thread and saves it as a draft for the user to review and finish themselves.",
+          "description": "Writes a reply to a thread and saves it as a draft for you to review and finish yourself.",
           "examples": [
             "Draft a reply saying I can make Thursday",
             "Write back and say I'll have it by Friday",
@@ -144,7 +144,7 @@
     "versions": [
       "0.1.0"
     ],
-    "publishedAt": "2026-10-13T11:21:14.097Z",
+    "publishedAt": "2026-10-24T01:09:42.563Z",
     "retired": []
   },
   "preview": {
@@ -741,6 +741,6 @@
       }
     ],
     "capturedBy": "publisher",
-    "capturedAt": "2026-10-13T11:21:13.733Z"
+    "capturedAt": "2026-10-24T01:09:42.472Z"
   }
 }

@@ -24,7 +24,7 @@
   {"words": "agenda", "expected": ["calendar"]},
   {"words": "failing builds", "expected": ["circleci"]},
   {"words": "ci", "expected": ["circleci"]},
-  {"words": "continuous integration", "expected": ["circleci"]},
+  {"words": "continuous integration", "expected": ["circleci"], "modelMisses": ["circleci"]},
   {"words": "build logs", "expected": ["circleci"]},
   {"words": "rerun a workflow", "expected": ["circleci"]},
   {"words": "my issues", "expected": ["linear"], "allowed": ["github"]},

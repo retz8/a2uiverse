@@ -22,8 +22,11 @@ interface LabelledSearch {
   modelMisses?: string[];
 }
 
-/** The unexpected apps the cut shows across the whole set when it was fitted. */
-const UNEXPECTED_AT_FIT = 16;
+/**
+ * The unexpected apps the cut shows across the whole set, on the cards as last recorded: 16 when it
+ * was fitted, 19 on the cards published in the second person (task-15.11 decision 51).
+ */
+const UNEXPECTED_AT_FIT = 19;
 
 const live = process.env.A2UIVERSE_EMBEDDER_LIVE === '1';
 const cacheDir = mkdtempSync(join(tmpdir(), 'a2uiverse-search-'));

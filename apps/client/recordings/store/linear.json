@@ -26,7 +26,7 @@
         "text",
         "text/plain"
       ],
-      "description": "Shows the user's Linear issues: what is assigned to them or in a team's queue, by status and priority; an issue's description, comments and linked pull requests. Creates an issue, updates its status, priority, assignee or labels, or comments on it once the user confirms.",
+      "description": "Shows your Linear issues: what's assigned to you or in your team's queue, by status and priority; an issue's description, comments and linked pull requests. Creates an issue, updates its status, priority, assignee or labels, or comments on it once you confirm.",
       "documentationUrl": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/agent/README.md",
       "name": "Linear",
       "preferredTransport": "JSONRPC",
@@ -46,7 +46,7 @@
         "signIn": {
           "flows": {
             "authorizationCode": {
-              "authorizationUrl": "http://localhost:11005/oauth/authorize",
+              "authorizationUrl": "https://vnw20xbg-11005.asse.devtunnels.ms/oauth/authorize",
               "refreshUrl": "http://localhost:11005/oauth/token",
               "scopes": {
                 "issues.read": "See your issues",
@@ -61,7 +61,7 @@
       },
       "skills": [
         {
-          "description": "Lists the user's Linear issues or a team's, with each issue's identifier, title, status and priority — what is in progress, what is up next, what is urgent.",
+          "description": "Lists your Linear issues or your team's, with each issue's identifier, title, status and priority — what's in progress, what's up next, what's urgent.",
           "examples": [
             "What's assigned to me in Linear?",
             "What am I working on?",
@@ -98,7 +98,7 @@
           ]
         },
         {
-          "description": "Changes an issue's status, priority, assignee or labels, after the user confirms.",
+          "description": "Changes an issue's status, priority, assignee or labels, once you confirm.",
           "examples": [
             "Move A2U-5 to In Progress",
             "Mark it done",
@@ -116,7 +116,7 @@
           ]
         },
         {
-          "description": "Files a new issue in a team, or adds a comment to an issue, after the user confirms.",
+          "description": "Files a new issue in a team, or adds a comment to an issue, once you confirm.",
           "examples": [
             "File an issue for the flaky test",
             "Create a bug: the sort order is wrong",
@@ -142,7 +142,7 @@
     "versions": [
       "0.1.0"
     ],
-    "publishedAt": "2026-10-13T11:21:14.261Z",
+    "publishedAt": "2026-10-24T01:09:43.161Z",
     "retired": []
   },
   "preview": {
@@ -652,6 +652,6 @@
       }
     ],
     "capturedBy": "publisher",
-    "capturedAt": "2026-10-13T11:21:13.785Z"
+    "capturedAt": "2026-10-24T01:09:42.875Z"
   }
 }
