@@ -287,6 +287,22 @@ A slot's Try again goes with no second card only after a press that passed the c
 
 A slot's offer — its line, its rows and More in the Store — is at most 880px wide, the Store page's column, at the slot's leading edge. Replaced: an offer across the whole canvas, Install at its far edge.
 
+### 47. The consent card's access box shows in dark
+
+The box over what an app will ask, on the consent card and the account's permissions, sits one step up the gray scale in dark, gray-3 on the panel's gray-2, as gray-2 sits on white in light. Replaced: in dark, the box the card's own gray-2, "This version asks for more…" and its list loose in the card.
+
+### 48. An install answer the page cannot read says it didn't go through
+
+An install or update whose answer names no cause the page knows — an error page on the way, a route not there — says "That didn't go through, so nothing changed.", with Try again. Replaced: "Shop B can't be updated. Its files didn't pass the checks on this computer, so nothing changed.", for a 404 with no cause.
+
+### 49. The snapshot's second Shop A build draws apart in dark
+
+The registry snapshot's second build of Shop A's catalog changes its dark accent beside its light one, `#77aabe`, the light `#2b6a8a` shifted by the steps Shop A's own pair takes from `#8a5a2b` to `#d69a5f`; the per-paint test holds both appearances. Replaced: the dark accent unchanged, both builds drawing `#d69a5f` in dark.
+
+### 50. The waiting line's replay answers Check again
+
+The update tile's waiting-line replay answers Check again as the orchestrator does: the slot pending with its line kept, then the same line, the Store still waiting; its test presses it. Replaced: a replay with no answer for the press, its test asserting no press on the line.
+
 ## Write-up
 
 ### Before the sitting
@@ -335,6 +351,8 @@ A slot's offer — its line, its rows and More in the Store — is at most 880px
 **Case 9, the install refused.** Google Calendar uninstalled from the App Library: "Google Calendar is uninstalled and its account is signed out." "What's on my calendar today?" offered it under "None of your apps can do this. From the Store:", with Install and More in the Store. The dev publisher unpublished Calendar, and Install gave "The Store can't be reached right now, so nothing was installed." with Try again (decision 44). Calendar published again; Try again installed it with no consent card, the card never having been shown (decision 45), and the slot took Calendar's sign-in, "See your calendar". The reader found the offer too wide across the full canvas, Install at its far edge (decision 46). The journal: the uninstall by the page and the account signed out, the question, the install by the page, the gap's `useApp` stopped for sign-in. The refused press never reached the orchestrator and is not journaled. Calendar left installed, not signed in. Seen again after the fixes, on the rebuilt client and the orchestrator restarted: Calendar uninstalled, "What's on my calendar today?" offered it at the Store column's width, Install beside its description (decision 46); with the marketplace stopped, Install gave "The Store can't be reached right now, so nothing was installed." with Try again, and once it was restarted, Try again opened the consent card (decision 45), cancelled; Calendar's view opened in the Store from its name, the dev publisher unpublished Calendar, and Install there through the page's card gave "Google Calendar isn't in the Store anymore, so nothing was installed.", Install disabled; back on the canvas, Install on the offer gave the same line, Install disabled (decision 44). Calendar published again and installed by id. The journal: the uninstall, the question, the Store opened from the offer, the page's install refused as not published.
 
 **Case 10, the no-update line.** Made for the run in `a2uiverse-apps`: Shop B's catalog copied to a new id, `catalogs/v2`, the agent holding it alone, restarted. The App Library, opened while Shop B was still published, read Shop B "A newer version is on its way from the publisher", its live card fetched again; the dev publisher then unpublished Shop B. "Compare camera prices at Shop A and Shop B." gave Shop B's slot "Shop B has changed, and the Store has no update for it.", with no press, the progress line "Shop B no update available", Shop A in crimson and "Only Shop A answered, so there's nothing to combine."; Shop B's agent not called, the update check before the key. The journal: the question, Shop B's dispatch stopped on the catalogs with the no-update line and the state not published, Shop A completed. No points.
+
+**The dark walk.** The stack stopped; the client built against the registry snapshot with its orchestrator address on port 5173's tunnel address, `preview:snapshot` naming `localhost:4173`, and served on 5173; the reader switched the browser to dark. Each store-loop beat opened with `&byhand`: beat 31, Shop B installed in the snapshot's world, "From the Store:" with Installed and Show it here, its press answered by Shop B's key tile; beat 32, both shops offered at the Store column's width, its recording holding no press; beats 33 and 34, Show it here answered by the installed line and by Shop B's key tile; beat 7, "Nothing in the Store can do this yet." and the Store page's search; the Store unreached, "Couldn't reach the Store."; needs an update, Update refused by the snapshot's 404 in the checks' words (decision 48); waiting, Check again unanswered (decision 50); the slot Shop B was uninstalled from; CircleCI's update card, its access box lost in the card (decision 47); and the per-paint builds, the two builds alike in dark (decision 49). Every line, press and tile read in dark but those. Seen again after the fixes, on the rebuilt client and snapshot: Check again took the slot to pending with its line kept and back to the same line; the access box drawn on the card; "That didn't go through, so nothing changed." with Try again; the second build's Price `rgb(119, 170, 190)` and the first canvas's `rgb(214, 154, 95)`.
 
 ### Findings
 
