@@ -9,7 +9,7 @@
 import {createContext, useContext, useMemo, useSyncExternalStore, type ReactNode} from 'react';
 import type {SurfaceModel} from '@a2ui/web_core/v0_9';
 import {A2uiSurface} from '@a2ui/react/v0_9';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {resolvedOf, type ResolvedCatalog} from './clientCatalogs';
 import {BUILD_ATTRIBUTE} from './host';
 import type {CatalogLoader, HeldCatalogSet} from './loader';
@@ -60,9 +60,10 @@ const MARK_STYLE = {display: 'contents'} as const;
  * build's surface is marked with the build, the root its stylesheets are scoped to (task-14.11
  * decision 39), so a surface keeps its own build's look beside another build of the same catalog.
  */
-export function SurfaceFrame({surface}: {surface: SurfaceModel<ReactComponentImplementation>}) {
-  const held = useContext(CatalogContext).get(surface.catalog.id);
-  const resolved = resolvedOf(surface.catalog) ?? held;
+export function SurfaceFrame({surface}: {surface: SurfaceModel<ReactCatalogComponent>}) {
+  const catalog = surface.defaultCatalog;
+  const held = useContext(CatalogContext).get(catalog?.id ?? '');
+  const resolved = (catalog && resolvedOf(catalog)) ?? held;
   const content = <A2uiSurface surface={surface} />;
   if (!resolved) return content;
   const framed = <resolved.Provider>{content}</resolved.Provider>;

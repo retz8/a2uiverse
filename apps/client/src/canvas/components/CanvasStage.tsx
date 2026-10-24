@@ -6,14 +6,14 @@
  * applied batch rather than staying dead.
  */
 import type {MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {SurfaceFrame} from '../../catalogs/CatalogContext';
 import {SurfaceErrorBoundary} from '../../shared/SurfaceErrorBoundary';
 import {slotCountOf} from '../composition/slotCount';
 import type {CanvasState} from '../canvasStore';
 
 export interface CanvasStageProps {
-  processor: MessageProcessor<ReactComponentImplementation>;
+  processor: MessageProcessor<ReactCatalogComponent>;
   state: CanvasState;
 }
 

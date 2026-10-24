@@ -9,6 +9,7 @@
 import {describe, expect, it} from 'vitest';
 import {screen} from '@testing-library/react';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {OPERATORS, RELATIONS, SlotContentContext} from '@a2uiverse/shell-catalog';
 import type {CellObject} from '@a2uiverse/shell-catalog';
@@ -38,7 +39,7 @@ const catalogs = CATALOGS.map(c => c.catalog);
 type Row = Record<'name' | 'priceA' | 'priceB' | 'best', CellObject>;
 
 function setup() {
-  const processor = new MessageProcessor(catalogs);
+  const processor = new MessageProcessor<ReactCatalogComponent>(catalogs);
   const store = createCanvasStore();
   const failures: SynthesisFailure[] = [];
   const shell = catalogs.find(c => c.id === SHELL_CATALOG_ID)!;
@@ -52,7 +53,7 @@ function setup() {
   const runner = createTurnRunner({
     processor,
     store,
-    createStaging: () => new MessageProcessor(catalogs),
+    createStaging: () => new MessageProcessor<ReactCatalogComponent>(catalogs),
     synthesis,
   });
   const model = () =>

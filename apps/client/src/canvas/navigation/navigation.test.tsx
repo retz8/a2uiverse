@@ -1,25 +1,39 @@
 /**
- * Navigation from a merged cell (task-7.7 decisions 2–6): a storefront fragment rendered through
- * its decorated catalog, the binding index filled by what mounted, and landing resolved against
- * it — the exact binding, the row by degradation, the list, the boundary, the slot.
+ * Navigation from a merged cell (task-7.7 decisions 2–6; task-16.7 decision 3): a storefront
+ * fragment in a themed catalog — upstream's basic components beside a React component of its own —
+ * its boundary registered in the binding index, and landing resolved against what the page holds —
+ * the exact binding, the row by degradation, the list, the boundary, the slot.
  */
 import {afterEach, describe, expect, test, vi} from 'vitest';
-import {act, cleanup, render} from '@testing-library/react';
-import {flushSync} from 'react-dom';
-import {MessageProcessor} from '@a2ui/web_core/v0_9';
+import {z} from 'zod';
+import {act, cleanup, render, waitFor} from '@testing-library/react';
+import {Catalog, DynamicStringSchema, MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
+import {createComponentImplementation, type ReactCatalogComponent} from '@a2ui/react/v0_9';
 import type {CellTarget} from '@a2uiverse/shell-catalog';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
+import {clientCatalogs, resolveCatalog} from '../../catalogs/clientCatalogs';
 import {FragmentBoundary} from '../composition/FragmentBoundary';
-import {createBindingIndex, NODE_ATTR, NODE_END_ATTR} from './bindingIndex';
-import {BindingIndexContext} from './decorateCatalog';
+import {BindingIndexContext, createBindingIndex} from './bindingIndex';
 import {createNavigator, resolveLanding, RING_CLASS, RING_MS, SCROLL_SETTLE_MS} from './landing';
-import {snapshotCatalogId, snapshotCatalogs} from '../../../tests/snapshot';
 
-const SHOP_A_CATALOG_ID = snapshotCatalogId('shop-a-catalog');
-
-const CATALOGS = await snapshotCatalogs();
+/** The storefront's own component: a React one, beside the basic catalog's custom elements. */
+const PriceTag = createComponentImplementation(
+  {name: 'PriceTag', schema: z.object({amount: DynamicStringSchema})},
+  ({props}) => <strong className="price-tag">{String(props.amount)}</strong>,
+);
+const SHOP_A = resolveCatalog(
+  new Catalog<ReactCatalogComponent>(
+    'urn:catalog:shop-a',
+    basicCatalog.protocolVersion,
+    [...basicCatalog.components.values(), PriceTag],
+    [...basicCatalog.functions.values()],
+  ),
+  undefined,
+  'sha256-shop-a',
+);
+const CATALOGS = [...clientCatalogs(), SHOP_A];
 const SURFACE = 'shop-a:list';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
@@ -30,12 +44,10 @@ const ITEMS = [
   {id: 'verity-a7', name: 'Verity A7', price: 1849, stock: 0},
 ];
 
-function mountStorefront({boundary = true} = {}) {
-  const processor = new MessageProcessor<ReactComponentImplementation>(
-    CATALOGS.map(c => c.catalog),
-  );
+async function mountStorefront({boundary = true} = {}) {
+  const processor = new MessageProcessor<ReactCatalogComponent>(CATALOGS.map(c => c.catalog));
   processor.processMessages([
-    msg({createSurface: {surfaceId: SURFACE, catalogId: SHOP_A_CATALOG_ID}}),
+    msg({createSurface: {surfaceId: SURFACE, catalogId: SHOP_A.id}}),
     msg({
       updateComponents: {
         surfaceId: SURFACE,
@@ -45,14 +57,14 @@ function mountStorefront({boundary = true} = {}) {
           {id: 'list', component: 'Column', children: {path: '/items', componentId: 'row'}},
           {id: 'row', component: 'Row', children: ['row-name', 'row-price', 'row-again']},
           {id: 'row-name', component: 'Text', text: {path: 'name'}},
-          {id: 'row-price', component: 'Text', text: {path: 'price'}},
+          {id: 'row-price', component: 'PriceTag', amount: {path: 'price'}},
           {id: 'row-again', component: 'Text', text: {path: 'name'}},
         ],
       },
     }),
     msg({updateDataModel: {surfaceId: SURFACE, value: {items: ITEMS, shop: {name: 'Aperture'}}}}),
   ]);
-  const index = createBindingIndex(flushSync);
+  const index = createBindingIndex();
   const surface = processor.model.getSurface(SURFACE)!;
   const frame = <SurfaceFrame surface={surface} />;
   const view = render(
@@ -68,6 +80,9 @@ function mountStorefront({boundary = true} = {}) {
       </BindingIndexContext.Provider>
     </CatalogProvider>,
   );
+  // The basic catalog's custom elements draw after they are connected.
+  if (boundary)
+    await waitFor(() => expect(view.container.querySelectorAll('.price-tag')).toHaveLength(2));
   return {index, processor, ...view};
 }
 
@@ -79,14 +94,11 @@ afterEach(() => {
 });
 
 describe('the binding index', () => {
-  test('a property binding lands on the element that renders it, the first in document order', () => {
-    const {index} = mountStorefront();
+  test('a basic component bound to the path is landed on, the first in document order', async () => {
+    const {index} = await mountStorefront();
     const landing = resolveLanding(index, target('/items[id="verity-a7"]/name'));
     expect(landing?.kind).toBe('bound');
-    expect(landing?.element).toHaveTextContent('Verity A7');
-    expect(landing?.element.hasAttribute(NODE_ATTR)).toBe(false);
-    // At rest a vendor's DOM is the vendor's alone: the markers lasted one synchronous read.
-    expect(document.querySelectorAll(`[${NODE_ATTR}], [${NODE_END_ATTR}]`)).toHaveLength(0);
+    expect(landing?.element).toHaveTextContent(/^Verity A7$/);
     const names = [...document.querySelectorAll('*')].filter(
       el => el.textContent === 'Verity A7' && el.children.length === 0,
     );
@@ -94,15 +106,23 @@ describe('the binding index', () => {
     expect(landing?.element.contains(names[0]!)).toBe(true);
   });
 
-  test('a field the fragment does not render lands on its row, the template instance', () => {
-    const {index} = mountStorefront();
+  test('a React component bound to the path is landed on, on the element it draws', async () => {
+    const {index} = await mountStorefront();
+    const landing = resolveLanding(index, target('/items[id="verity-a7"]/price'));
+    expect(landing?.kind).toBe('bound');
+    expect(landing?.element).toHaveClass('price-tag');
+    expect(landing?.element).toHaveTextContent('1849');
+  });
+
+  test('a field the fragment does not render lands on its row, the template instance', async () => {
+    const {index} = await mountStorefront();
     const landing = resolveLanding(index, target('/items[id="verity-a7"]/stock'));
     expect(landing?.kind).toBe('bound');
     expect(landing?.element).toHaveTextContent('Verity A71849Verity A7');
   });
 
-  test('an element that left the partition lands on the list that owns the template', () => {
-    const {index} = mountStorefront();
+  test('an element that left the partition lands on the list that owns the template', async () => {
+    const {index} = await mountStorefront();
     const landing = resolveLanding(index, target('/items[id="gone"]/name'));
     expect(landing?.kind).toBe('bound');
     expect(landing?.element).toHaveTextContent('Lumen X100');
@@ -110,15 +130,15 @@ describe('the binding index', () => {
     expect(landing?.element).not.toHaveTextContent('Aperture & Co');
   });
 
-  test('nothing bound under any prefix lands on the fragment boundary', () => {
-    const {index} = mountStorefront();
+  test('nothing bound under any prefix lands on the fragment boundary', async () => {
+    const {index} = await mountStorefront();
     const landing = resolveLanding(index, target('/shop/name'));
     expect(landing?.kind).toBe('boundary');
     expect(landing?.element).toHaveAttribute('data-surface', SURFACE);
   });
 
-  test('no fragment mounted lands on the source’s slot; no slot lands nowhere', () => {
-    const {index} = mountStorefront({boundary: false});
+  test('no fragment mounted lands on the source’s slot; no slot lands nowhere', async () => {
+    const {index} = await mountStorefront({boundary: false});
     expect(resolveLanding(index, target('/items[id="verity-a7"]/name'))).toMatchObject({
       kind: 'slot',
     });
@@ -127,28 +147,30 @@ describe('the binding index', () => {
     );
   });
 
-  test('a repaint that reorders under the key lands on the element where it is now', () => {
-    const {index, processor} = mountStorefront();
-    act(() => {
+  test('a repaint that reorders under the key lands on the element where it is now', async () => {
+    const {index, processor, container} = await mountStorefront();
+    await act(async () => {
       processor.processMessages([
         msg({updateDataModel: {surfaceId: SURFACE, value: {items: [...ITEMS].reverse()}}}),
       ]);
     });
+    await waitFor(() => expect(container.querySelector('.price-tag')).toHaveTextContent('1849'));
     const landing = resolveLanding(index, target('/items[id="verity-a7"]/price'));
     expect(landing?.element).toHaveTextContent('1849');
   });
 
-  test('a component that unmounts leaves the index', () => {
-    const {index, unmount} = mountStorefront();
+  test('a boundary that unmounts leaves the index', async () => {
+    const {index, unmount} = await mountStorefront();
+    expect(index.modelOf(SURFACE)).toMatchObject({shop: {name: 'Aperture'}});
     unmount();
     expect(index.modelOf(SURFACE)).toBeUndefined();
   });
 });
 
 describe('landing', () => {
-  test('focus moves to the element itself through a tabindex it sheds on blur, under a ring', () => {
+  test('focus moves to the element itself through a tabindex it sheds on blur, under a ring', async () => {
+    const {index} = await mountStorefront();
     vi.useFakeTimers();
-    const {index} = mountStorefront();
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const navigator = createNavigator(index);
 

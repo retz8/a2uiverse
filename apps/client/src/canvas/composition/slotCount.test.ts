@@ -5,7 +5,7 @@
 import {describe, it, expect} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {CATALOG_ID as SHELL_CATALOG_ID, createCatalog} from '@a2uiverse/shell-catalog';
 import {slotCountOf} from './slotCount';
 
@@ -15,7 +15,7 @@ const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
 
 function shell(slots: string[]) {
-  const processor = new MessageProcessor<ReactComponentImplementation>([SHELL_CATALOG]);
+  const processor = new MessageProcessor<ReactCatalogComponent>([SHELL_CATALOG]);
   processor.processMessages([
     msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
     msg({
@@ -38,7 +38,7 @@ describe('slotCountOf', () => {
   });
 
   it('is zero for an uncomposed paint and for no surface at all', () => {
-    const processor = new MessageProcessor<ReactComponentImplementation>([SHELL_CATALOG]);
+    const processor = new MessageProcessor<ReactCatalogComponent>([SHELL_CATALOG]);
     processor.processMessages([
       msg({createSurface: {surfaceId: 'plain', catalogId: SHELL_CATALOG_ID}}),
       msg({

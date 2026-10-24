@@ -1,0 +1,56 @@
+diff --git a/src/processing/message-processor.d.ts b/src/processing/message-processor.d.ts
+index 6770a12c12716bacd7a464cb296a95f45486245e..63b19d7edd264d10ce71ff90ccfbea9116a7ba3e 100644
+--- a/src/processing/message-processor.d.ts
++++ b/src/processing/message-processor.d.ts
+@@ -89,6 +89,20 @@ export declare class MessageProcessor<T extends ComponentApi = ComponentApi> {
+      * @param options Configuration options for the processor.
+      */
+     constructor(catalogs: Catalog<any>[], actionHandler?: ActionListener | undefined, options?: MessageProcessorOptions);
++    /**
++     * Adds a catalog to the ones this processor holds.
++     *
++     * The processor links the new catalog and the catalogs it holds to each
++     * other, as the constructor does (see `linkCatalogs`); the catalog passed in
++     * is not changed. `createSurface` messages, renderer function calls and
++     * `getRendererCapabilities` see the catalog from this call on. Surfaces
++     * created before the call keep the catalogs they were created with.
++     *
++     * @param catalog The catalog to add.
++     * @throws {A2uiCatalogError} If the processor already holds a catalog with
++     *     the same id.
++     */
++    addCatalog(catalog: Catalog<any>): void;
+     /**
+      * Invokes a remote function on the server agent using an options bag.
+      *
+diff --git a/src/processing/message-processor.js b/src/processing/message-processor.js
+index bcaabdfc61d71ba50229be5f46707de5af335dcc..0f6845a306d812b34feca2588bacbae33e93670e 100644
+--- a/src/processing/message-processor.js
++++ b/src/processing/message-processor.js
+@@ -76,6 +76,26 @@ export class MessageProcessor {
+             this.model.onAction.subscribe(this.actionHandler);
+         }
+     }
++    /**
++     * Adds a catalog to the ones this processor holds.
++     *
++     * The processor links the new catalog and the catalogs it holds to each
++     * other, as the constructor does (see `linkCatalogs`); the catalog passed in
++     * is not changed. `createSurface` messages, renderer function calls and
++     * `getRendererCapabilities` see the catalog from this call on. Surfaces
++     * created before the call keep the catalogs they were created with.
++     *
++     * @param catalog The catalog to add.
++     * @throws {A2uiCatalogError} If the processor already holds a catalog with
++     *     the same id.
++     */
++    addCatalog(catalog) {
++        if (this.catalogs.some(c => c.id === catalog.id)) {
++            throw new A2uiCatalogError(`Catalog already registered: ${catalog.id}`);
++        }
++        // The RPC handler holds this same array, so it is updated in place.
++        this.catalogs.splice(0, this.catalogs.length, ...linkCatalogs([...this.catalogs, catalog]));
++    }
+     /**
+      * Invokes a remote function on the server agent using an options bag.
+      *

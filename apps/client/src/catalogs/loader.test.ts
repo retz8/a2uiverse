@@ -8,7 +8,7 @@
  */
 import {describe, expect, it, vi} from 'vitest';
 import {Catalog} from '@a2ui/web_core/v0_9';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {BASIC_CATALOG_ID} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {CatalogRow} from '../orchestratorApi';
@@ -25,7 +25,7 @@ const CLIENT_ROWS: CatalogRow[] = [
 ];
 
 const demoModule = (catalogId = DEMO): Record<string, unknown> => ({
-  CATALOG: new Catalog<ReactComponentImplementation>(catalogId, [], []),
+  CATALOG: new Catalog<ReactCatalogComponent>(catalogId, 'v0.9.1', [], []),
   Provider: ({children}: {children: unknown}) => children,
 });
 

@@ -256,19 +256,25 @@ describe('a build’s stylesheet held to its own surfaces (task-14.11 decision 3
   });
 });
 
-describe('web_core and a catalog loaded after the processor was built (task-11.5 decision 3)', () => {
-  it('finds a catalog pushed into the array the processor was built over', () => {
-    // web_core keeps the array it was given and looks a catalog up when a surface is created; it
-    // has no API to add one. The loader relies on this; a web_core that copies the array fails here.
-    const catalogs: Catalog<A2uiWebCore.ComponentApi>[] = [];
-    const processor = new MessageProcessor(catalogs);
-    catalogs.push(new Catalog('urn:catalog:late', [], []));
+describe('web_core and a catalog loaded after the processor was built (task-16.7 decision 2)', () => {
+  const late = () => new Catalog('urn:catalog:late', 'v0.9.1', [], []);
+
+  it('takes a catalog through the patched addCatalog, from the next surface on', () => {
+    // web_core 0.14.0 links copies of the catalogs it is built over; `addCatalog` is upstream's
+    // PR #3304, carried as a patch. A web_core without it fails here.
+    const processor = new MessageProcessor<A2uiWebCore.ComponentApi>([]);
+    processor.addCatalog(late());
     processor.processMessages([
       {
         version: 'v0.9',
         createSurface: {surfaceId: 's1', catalogId: 'urn:catalog:late'},
       } as unknown as A2uiMessage,
     ]);
-    expect(processor.model.getSurface('s1')?.catalog.id).toBe('urn:catalog:late');
+    expect(processor.model.getSurface('s1')?.defaultCatalog?.id).toBe('urn:catalog:late');
+  });
+
+  it('refuses a catalog whose id the processor holds', () => {
+    const processor = new MessageProcessor<A2uiWebCore.ComponentApi>([late()]);
+    expect(() => processor.addCatalog(late())).toThrow(A2uiWebCore.A2uiCatalogError);
   });
 });

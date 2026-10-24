@@ -12,7 +12,7 @@ import {describe, it, expect} from 'vitest';
 import {render} from '@testing-library/react';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
 import {BASIC_CATALOG_ID} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
@@ -35,9 +35,7 @@ const msg = (m: Record<string, unknown>): A2uiMessage =>
 
 /** One trivial surface per installed catalog — every design system on the page at once. */
 function everyCatalogMounted() {
-  const processor = new MessageProcessor<ReactComponentImplementation>(
-    CATALOGS.map(c => c.catalog),
-  );
+  const processor = new MessageProcessor<ReactCatalogComponent>(CATALOGS.map(c => c.catalog));
   for (const record of RECORDS) {
     const surfaceId = `${record.appId}:probe`;
     processor.processMessages([

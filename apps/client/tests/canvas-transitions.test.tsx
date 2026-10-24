@@ -4,6 +4,7 @@
  */
 import {describe, it, expect, vi, afterEach} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {createCanvasStore} from '../src/canvas/canvasStore';
 import {createTurnRunner} from '../src/canvas/turn/canvasTurn';
 import {replayBeatOnCanvas} from '../src/canvas/replayBeat';
@@ -17,12 +18,12 @@ import {snapshotCatalog} from './snapshot';
 const {catalog: CATALOG} = await snapshotCatalog('github-catalog');
 
 function setup() {
-  const processor = new MessageProcessor([CATALOG]);
+  const processor = new MessageProcessor<ReactCatalogComponent>([CATALOG]);
   const store = createCanvasStore();
   const runner = createTurnRunner({
     processor,
     store,
-    createStaging: () => new MessageProcessor([CATALOG]),
+    createStaging: () => new MessageProcessor<ReactCatalogComponent>([CATALOG]),
   });
   return {processor, store, runner};
 }

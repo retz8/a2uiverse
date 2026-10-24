@@ -5,6 +5,7 @@
 import {describe, it, expect} from 'vitest';
 import {screen} from '@testing-library/react';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {renderWithShell} from '../../../tests/helpers';
 import {createCanvasStore} from '../canvasStore';
@@ -28,12 +29,12 @@ function paint(surfaceId: string, text: string): A2uiMessage[] {
 }
 
 function setup() {
-  const processor = new MessageProcessor([CATALOG]);
+  const processor = new MessageProcessor<ReactCatalogComponent>([CATALOG]);
   const store = createCanvasStore();
   const runner = createTurnRunner({
     processor,
     store,
-    createStaging: () => new MessageProcessor([CATALOG]),
+    createStaging: () => new MessageProcessor<ReactCatalogComponent>([CATALOG]),
   });
   const apply = (messages: A2uiMessage[]) => {
     const turn = runner.begin({kind: 'utterance', payload: {text: 'paint'}});

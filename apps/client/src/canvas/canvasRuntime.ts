@@ -20,10 +20,11 @@ import type {CompositionOperation, CompositionStamp, PaintMeta} from '@a2uiverse
 import type {
   ActionListener,
   A2uiClientAction,
+  A2uiClientDataModel,
   Catalog,
   MessageProcessor,
 } from '@a2ui/web_core/v0_9';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {OPERATORS, RELATIONS, type ShellAction} from '@a2uiverse/shell-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2AMessageSender, GetSender} from '../a2a/client';
@@ -47,7 +48,6 @@ import type {FragmentFailure, TurnRunner} from './turn/canvasTurn';
 import {createTurnRunner} from './turn/canvasTurn';
 import type {PaintCause} from './turn/cause';
 import {rosterOfSurface, SHELL_MAIN_SURFACE, SHELL_SOURCE} from './composition/roster';
-import {flushSync} from 'react-dom';
 import {createBindingIndex, type BindingIndex} from './navigation/bindingIndex';
 import {createNavigator, type Navigator} from './navigation/landing';
 import type {SynthesisSession} from './synthesis/synthesisSession';
@@ -70,7 +70,7 @@ export interface CanvasRuntime {
   /** The trail's key for this canvas, client-minted (task-9.6 decision 3). */
   readonly id: string;
   store: CanvasStore;
-  processor: MessageProcessor<ReactComponentImplementation>;
+  processor: MessageProcessor<ReactCatalogComponent>;
   runner: TurnRunner;
   /** The composition's synthesis: the evaluator's driver over this canvas's processor. */
   synthesis: SynthesisSession;
@@ -112,7 +112,7 @@ export interface CanvasRuntimeOptions {
    * The catalogs the canvas's processors are built over — the canvas's own array, each build a
    * paint is drawn in put in it at its create (task 15.6).
    */
-  catalogs: Catalog<ReactComponentImplementation>[];
+  catalogs: Catalog<ReactCatalogComponent>[];
   /**
    * Where the build each paint is drawn in is found, and loaded when it is not held (task 15.6);
    * without one, a paint is drawn in what `catalogs` holds and no catalog is loaded.
@@ -194,7 +194,10 @@ export function createCanvasRuntime({
     ...(onAuthority ? {onAuthority} : {}),
   });
   const runner = gateRunner(ungated, gate);
-  const getClientDataModel = () => processor.getClientDataModel();
+  // In v0.9's form, as the message carries it: web_core names each surface by its catalog's own
+  // version, the shell catalog's `v0.9.1`.
+  const getClientDataModel = () =>
+    processor.getRendererDataModel('v0.9') as A2uiClientDataModel | undefined;
 
   /**
    * Agent prose streams as chunks — a sentence splits mid-word across events — so it is
@@ -530,7 +533,7 @@ export function createCanvasRuntime({
    * Navigation (SPEC §7; task-7.7): a tap on a merged cell lands in the vendor's fragment by the
    * index of what is mounted of this canvas. Client-local: nothing is sent, nothing is journaled.
    */
-  const bindingIndex = createBindingIndex(flushSync);
+  const bindingIndex = createBindingIndex();
   const navigator = createNavigator(bindingIndex);
 
   /**
@@ -620,9 +623,9 @@ export type {A2AMessageSender};
  * The builds of a canvas with no loader: the catalogs it was handed, each its only build, and none
  * loaded.
  */
-function fixedBuilds(catalogs: readonly Catalog<ReactComponentImplementation>[]): BuildSource {
+function fixedBuilds(catalogs: readonly Catalog<ReactCatalogComponent>[]): BuildSource {
   const resolved = new WeakMap<object, ResolvedCatalog>();
-  const of = (catalog: Catalog<ReactComponentImplementation>) => {
+  const of = (catalog: Catalog<ReactCatalogComponent>) => {
     if (!resolved.has(catalog))
       resolved.set(catalog, {id: catalog.id, catalog, Provider: ({children}) => children});
     return resolved.get(catalog)!;

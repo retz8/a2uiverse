@@ -5,7 +5,6 @@
  * the box ends. One exists at a time; the rail tears it down on leave.
  */
 import {useMemo, useState, useSyncExternalStore, type CSSProperties} from 'react';
-import {flushSync} from 'react-dom';
 import {
   type PressState,
   PressStateContext,
@@ -19,9 +18,8 @@ import type {CanvasRuntime} from '../canvasRuntime';
 import {columnState} from '../composition/columnState';
 import {slotCountOf} from '../composition/slotCount';
 import {useSlotContent} from '../composition/slotContent';
-import {createBindingIndex} from '../navigation/bindingIndex';
+import {BindingIndexContext, createBindingIndex} from '../navigation/bindingIndex';
 import {useInstalledApps} from '../installedApps';
-import {BindingIndexContext} from '../navigation/decorateCatalog';
 import {turnProgress} from '../turnProgress';
 import {ProgressLine} from './ProgressLine';
 
@@ -61,7 +59,7 @@ export function TrailPreview({runtime, label, top, railColumn}: TrailPreviewProp
   const signingInOf = useMemo(() => (source: string) => signingIn.has(source), [signingIn]);
   // The second mount registers in an index of its own: navigation must land in the canvas on
   // screen, never in a scaled copy.
-  const [index] = useState(() => createBindingIndex(flushSync));
+  const [index] = useState(() => createBindingIndex());
   const surface = state.stageId
     ? runtime.processor.model.surfacesMap.get(state.stageId)
     : undefined;

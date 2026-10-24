@@ -6,18 +6,18 @@
  */
 import {Fragment, type ComponentType, type ReactNode} from 'react';
 import type {Catalog} from '@a2ui/web_core/v0_9';
-import {basicCatalog, type ReactComponentImplementation} from '@a2ui/react/v0_9';
+import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {
   CATALOG_ID as SHELL_CATALOG_ID,
   createCatalog as createShellCatalog,
   Provider as ShellProvider,
   type CreateCatalogOptions,
 } from '@a2uiverse/shell-catalog';
-import {decorateCatalog} from '../canvas/navigation/decorateCatalog';
 
 export interface ResolvedCatalog {
   id: string;
-  catalog: Catalog<ReactComponentImplementation>;
+  catalog: Catalog<ReactCatalogComponent>;
   /** Wraps every surface of this catalog: the vendor design system's own provider + styles. */
   Provider: ComponentType<{children: ReactNode}>;
   /** The build it was loaded from, its artifact id; none for a catalog the client provides. */
@@ -51,18 +51,15 @@ function remember(resolved: ResolvedCatalog): ResolvedCatalog {
   return resolved;
 }
 
-/**
- * A catalog other than the shell's, as the render layer takes it: its components inside the
- * markers navigation lands by (task-7.7 decision 2), under its Provider when it has one.
- */
+/** A catalog other than the shell's, as the render layer takes it: under its Provider when it has one. */
 export function resolveCatalog(
-  catalog: Catalog<ReactComponentImplementation>,
+  catalog: Catalog<ReactCatalogComponent>,
   Provider?: ComponentType<{children: ReactNode}>,
   build?: string,
 ): ResolvedCatalog {
   return remember({
     id: catalog.id,
-    catalog: decorateCatalog(catalog),
+    catalog,
     Provider: Provider ?? BARE,
     ...(build ? {build} : {}),
   });

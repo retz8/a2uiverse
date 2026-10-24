@@ -25,7 +25,7 @@ import {useInstalledApps} from '../installedApps';
 import {slotActState} from '../slotActs';
 import {columnState, sourceBusy} from '../composition/columnState';
 import {useSlotContent} from '../composition/slotContent';
-import {BindingIndexContext} from '../navigation/decorateCatalog';
+import {BindingIndexContext} from '../navigation/bindingIndex';
 import {AmbientNotice} from './AmbientNotice';
 import {CanvasStage} from './CanvasStage';
 import {CompactHead} from './CompactHead';

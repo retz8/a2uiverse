@@ -1,35 +1,31 @@
 /**
- * The reverse index (SPEC §7; task-7.7 decisions 2, 4, 5): from a data path of a partition to the
- * component that renders it, built from what the renderer binds. Every vendor component registers
- * here while it is mounted — its surface, its component model and its data context — so the index
- * holds what is on screen, the live canvas or a parked composition alike.
+ * The reverse index (SPEC §7; task-7.7 decisions 2, 4, 5; task-16.7 decision 3): from a data path
+ * of a partition to the component that renders it, read from the page at the moment of a tap.
+ * Every fragment's boundary registers here while it is mounted, so the index holds what is on
+ * screen, the live canvas or a parked composition alike. Inside a boundary the renderer hosts each
+ * component in an element of its own and sets the component's resolved node on it — web_core's
+ * `A2uiWebComponentElement` contract — so a component of a React implementation and one of a
+ * custom element, the basic catalog's, are read alike, and nothing of the shell's stands in a
+ * vendor's DOM.
  *
  * A component is bound to a path when one of its properties binds exactly that path, a `{path}`
  * inside a function call's arguments included; or it is the root of a template instance whose
  * base path is that path; or it owns a template child list over it. What a component binds is
  * read when it is asked, never kept: a repaint changes properties under a mounted component.
- *
- * Which element a component put on the page is asked only at the moment of a tap. A vendor's
- * stylesheet is written against the vendor's own DOM — child selectors, `:first-child`,
- * `:only-child` — and any element of the shell's standing in it changes what it matches. So the
- * components asked about render a pair of hidden markers around their output for the length of
- * one synchronous read, and the markers are gone before the browser paints.
  */
-import type {ComponentContext} from '@a2ui/web_core/v0_9';
+import {createContext} from 'react';
+import {ComponentContext} from '@a2ui/web_core/v0_9';
+import type {A2uiWebComponentElement} from '@a2ui/web_core/v0_9/universal';
 
-/** The attribute a component's opening marker carries while it is being located: its id. */
-export const NODE_ATTR = 'data-a2ui-node';
-/** Its closing marker's. */
-export const NODE_END_ATTR = 'data-a2ui-node-end';
+/** The index the mounted canvas owns; with none provided, boundaries register nowhere. */
+export const BindingIndexContext = createContext<BindingIndex | null>(null);
 
 export interface IndexedComponent {
-  /** The namespaced surface id the component renders in. */
-  surfaceId: string;
   context: ComponentContext;
   /** It is the root of a template instance: its base path is not its parent's. */
   instanceRoot: boolean;
-  /** The opening marker, mounted while the component is being located. */
-  marker: {readonly current: HTMLElement | null};
+  /** The element the renderer hosts it in. */
+  element: Element;
 }
 
 /** A data path as the renderer spells it, without a trailing slash; the root is `''`. */
@@ -58,29 +54,52 @@ export function isBoundTo(component: IndexedComponent, path: string): boolean {
   return propertyPaths(component.context).has(path);
 }
 
+/** The context of the component an element hosts; none for an element hosting no component. */
+function contextOf(element: Element): ComponentContext | undefined {
+  const host = element as Partial<A2uiWebComponentElement>;
+  const context = host.node?.context ?? host.context;
+  return context instanceof ComponentContext ? context : undefined;
+}
+
+/** The components hosted inside a boundary, in document order. */
+export function componentsIn(boundary: Element): IndexedComponent[] {
+  const components: IndexedComponent[] = [];
+  /** Each component element's base path, for the components hosted inside it. */
+  const basePaths = new Map<Element, string>();
+  for (const element of boundary.querySelectorAll('*')) {
+    const context = contextOf(element);
+    if (!context) continue;
+    const basePath = context.dataContext.path;
+    basePaths.set(element, basePath);
+    let parent = element.parentElement;
+    while (parent && parent !== boundary && !basePaths.has(parent)) parent = parent.parentElement;
+    const parentPath = parent ? basePaths.get(parent) : undefined;
+    components.push({
+      context,
+      element,
+      instanceRoot: parentPath !== undefined && parentPath !== basePath,
+    });
+  }
+  return components;
+}
+
 /**
- * The element a component put on the page: the first one between its markers that is not a
- * marker — its own, or a child's where it renders none of its own. Undefined when it rendered no
- * element at all.
+ * Where a component is on the page: its element when that draws a box, else the first element
+ * inside it that does — a child's, where it draws none of its own. Undefined when nothing does.
  */
-export function elementOf(marker: Element): HTMLElement | undefined {
-  let depth = 0;
-  for (let at = marker.nextElementSibling; at; at = at.nextElementSibling) {
-    if (at.hasAttribute(NODE_ATTR)) depth += 1;
-    else if (at.hasAttribute(NODE_END_ATTR)) {
-      if (depth === 0) return undefined;
-      depth -= 1;
-    } else if (at instanceof HTMLElement) return at;
+export function boxOf(element: Element): HTMLElement | undefined {
+  if (!(element instanceof HTMLElement)) return undefined;
+  if (getComputedStyle(element).display !== 'contents') return element;
+  for (const child of element.children) {
+    const box = boxOf(child);
+    if (box) return box;
   }
   return undefined;
 }
 
 export interface BindingIndex {
-  /** A component mounted; the returned function is its unmount. */
-  register(component: IndexedComponent): () => void;
-  /** Whether the component is being located now: it renders its markers while it is. */
-  isLocating(component: IndexedComponent): boolean;
-  subscribe(listener: () => void): () => void;
+  /** A fragment's boundary mounted, holding the surface's components; the returned function is its unmount. */
+  register(surfaceId: string, boundary: Element): () => void;
   /** The root data model of a surface some mounted component renders; undefined when none does. */
   modelOf(surfaceId: string): unknown;
   /**
@@ -91,50 +110,29 @@ export interface BindingIndex {
   nearest(surfaceId: string, path: string): HTMLElement | undefined;
 }
 
-/** Runs a state change and renders it before returning — `flushSync`, given by the host. */
-export type RenderNow = (change: () => void) => void;
+export function createBindingIndex(): BindingIndex {
+  const boundaries = new Map<Element, string>();
 
-export function createBindingIndex(renderNow: RenderNow): BindingIndex {
-  const components = new Set<IndexedComponent>();
-  const listeners = new Set<() => void>();
-  let locating: ReadonlySet<IndexedComponent> = new Set();
-
-  const locate = (next: ReadonlySet<IndexedComponent>) =>
-    renderNow(() => {
-      locating = next;
-      listeners.forEach(listener => listener());
-    });
-
-  /** The candidates' elements, read between two synchronous renders: markers in, markers out. */
-  const elementsOf = (candidates: IndexedComponent[]): HTMLElement[] => {
-    locate(new Set(candidates));
-    const elements = candidates.flatMap(c =>
-      c.marker.current ? (elementOf(c.marker.current) ?? []) : [],
-    );
-    locate(new Set());
-    return elements;
-  };
-
-  const mounted = (surfaceId: string) => [...components].filter(c => c.surfaceId === surfaceId);
+  const mounted = (surfaceId: string) =>
+    [...boundaries]
+      .filter(([, id]) => id === surfaceId)
+      .flatMap(([boundary]) => componentsIn(boundary));
 
   return {
-    register: component => {
-      components.add(component);
-      return () => components.delete(component);
-    },
-    isLocating: component => locating.has(component),
-    subscribe: listener => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
+    register: (surfaceId, boundary) => {
+      boundaries.set(boundary, surfaceId);
+      return () => boundaries.delete(boundary);
     },
     modelOf: surfaceId => mounted(surfaceId)[0]?.context.dataContext.dataModel.get('/'),
     nearest: (surfaceId, path) => {
+      const components = mounted(surfaceId);
       for (let at = normalize(path); at !== ''; at = at.slice(0, at.lastIndexOf('/'))) {
-        const candidates = mounted(surfaceId).filter(component => isBoundTo(component, at));
-        if (candidates.length === 0) continue;
-        const [first] = elementsOf(candidates).sort((a, b) =>
-          a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
-        );
+        const bound = components.filter(component => isBoundTo(component, at));
+        const [first] = bound
+          .flatMap(component => boxOf(component.element) ?? [])
+          .sort((a, b) =>
+            a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1,
+          );
         if (first) return first;
       }
       return undefined;
