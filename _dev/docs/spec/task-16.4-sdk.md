@@ -16,13 +16,15 @@ The sdk brought onto the upstream releases Phase 16 pins: its A2UI validator on 
 
 The sdk's validator is `@a2ui/web_core` 0.14.0's validation — `Catalog.fromJson`, `PayloadValidator`, and `MessageProcessor` under `STRICT_VALIDATION` — behind the sdk's own API: `createA2uiValidator`, its findings, `formatA2uiFinding` and `compileErrors` stay as they are for every caller. The validator ported by hand from upstream's checks and its component-graph code go. `@a2ui/web_core` and zod are runtime dependencies of the sdk.
 
+The catalog gate's compile check stays A2UIVerse's own: a catalog schema is a valid A2UI catalog when each of its components' schemas compiles against the spec's common types, as phase-11 decision 13's install gate has it, at pack, at publish and at install.
+
 ### 2. Every bad component, the first topology failure
 
 The sdk collects findings across web_core's checks: each component is checked on its own, one finding per bad component, and the envelope and topology checks add the first failure they report. Topology findings narrow from every problem in a payload to the first problem per attempt.
 
 ### 3. The spec copy holds what something reads
 
-The spec copy syncs to `upstream/main`'s head at the time this sub-task runs, the commit recorded as before. It holds `server_capabilities.json`, `client_capabilities.json` and the basic catalog at v0.9.1, the v0.9 validator conformance suite `validator_v0_9.yaml`, and the v0.9 basic catalog the suite reads. `server_to_client.json`, `common_types.json`, the three simplified fixtures and the two files upstream deleted leave it.
+The spec copy syncs to `upstream/main`'s head at the time this sub-task runs, the commit recorded as before. It holds `server_capabilities.json`, `client_capabilities.json`, `common_types.json` and the basic catalog at v0.9.1, the v0.9 validator conformance suite `validator_v0_9.yaml`, and the v0.9 basic catalog the suite reads. `server_to_client.json`, the three simplified fixtures and the two files upstream deleted leave it.
 
 ### 4. The interface is named by the A2UI runtime release it lends
 
