@@ -7,6 +7,7 @@ The shell catalog brought onto the upstream releases Phase 16 pins, its parity t
 - The shell catalog's dependencies on the pinned runtime, at exact versions, and what the move changes in it: the catalog's constructor, its child references, the components the renderer now hosts each in an element of its own, the workarounds tied to `_dev/a2ui-findings.md`.
 - Its parity tests and its render test.
 - The design-check page on the pinned runtime.
+- What its typecheck covers.
 - The orchestrator's relation call, which names web_core's `DataContext`.
 - The upstream findings the move found.
 - Out: the README and the design record, which 16.12 carries; the client's and the orchestrator's own moves, 16.7's and 16.8's.
@@ -54,10 +55,14 @@ For every component and every value of each enum prop, the render test requires 
 
 16.6's done commit on `main` records in `_dev/a2ui-findings.md`: a prop declared as a plain array of strings typed as a child list; the element each React component now renders in breaking HTML that ties a parent to its child — a table's rows, a list's items; and finding 9 restated against 0.14.0 — a component reading its model does not re-render after a repaint that only removes props. The protocol delta register does not change.
 
-### 10. What proves it
+### 10. The typecheck covers the tests and the design-check page
 
-- The shell catalog's typecheck, tests and build green on `0.14.0`, with the tests of decisions 3, 5 and 6.
+The shell catalog's typecheck covers its tests and its design-check page beside its source. The type errors standing in them are fixed: the design-check page names sources through `sourceName`, and its way-back example draws its arrows.
+
+### 11. What proves it
+
+- The shell catalog's typecheck, tests and build green on `0.14.0`, with the tests of decisions 3, 5 and 6 and the typecheck of decision 10.
 - `Table` rendering with no console error.
 - The orchestrator's typecheck and tests green with decision 2's relation call.
-- The design-check page, through the tunnel, looking as it did in light, in dark and with no host theme: the merged view's table, an `Attribution` drawing its slot, `DataList`'s values, the layout of rows and columns.
+- The design-check page, through the tunnel, looking as it did in light, in dark and with no host theme: the merged view's table, an `Attribution` drawing its slot, `DataList`'s values, the layout of rows and columns; its way-back example drawing its arrows.
 - The platform's `pnpm verify` green over 16.6 and 16.7 together before either lands on `main`.
