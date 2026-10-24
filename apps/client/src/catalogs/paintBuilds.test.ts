@@ -6,7 +6,8 @@
  */
 import {describe, expect, it, vi} from 'vitest';
 import {Catalog, type A2uiMessage} from '@a2ui/web_core/v0_9';
-import {basicCatalog, type ReactComponentImplementation} from '@a2ui/react/v0_9';
+import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {capturePaint} from '../canvas/history/paintCopy';
 import {resolveCatalog} from './clientCatalogs';
 import {BuildProcessor, createPaintBuilds} from './paintBuilds';
@@ -30,8 +31,9 @@ const data = (surfaceId: string, greeting: string) =>
 
 const buildOf = (artifact: string) =>
   resolveCatalog(
-    new Catalog<ReactComponentImplementation>(
+    new Catalog<ReactCatalogComponent>(
       DEMO,
+      basicCatalog.protocolVersion,
       [...basicCatalog.components.values()],
       [...basicCatalog.functions.values()],
     ),
@@ -58,8 +60,21 @@ describe('a paint drawn in its build', () => {
     const {first, second, processor, deliver} = canvas();
     deliver(first, create('a'), tree('a', 'one'));
     deliver(second, create('b'), tree('b', 'two'));
-    expect(processor.model.getSurface('a')!.catalog).toBe(first.catalog);
-    expect(processor.model.getSurface('b')!.catalog).toBe(second.catalog);
+    expect(processor.model.getSurface('a')!.defaultCatalog).toBe(first.catalog);
+    expect(processor.model.getSurface('b')!.defaultCatalog).toBe(second.catalog);
+  });
+
+  it('takes a catalog it does not hold through addCatalog, another build of it in that one’s place (task-16.7 decision 2)', () => {
+    const {first, second, processor, deliver} = canvas();
+    const added = vi.spyOn(processor, 'addCatalog');
+    deliver(first, create('a'), tree('a', 'one'));
+    expect(added).toHaveBeenCalledExactlyOnceWith(first.catalog);
+    // `addCatalog` refuses an id the processor holds: the second build takes the first one's place.
+    deliver(second, create('b'), tree('b', 'two'));
+    expect(added).toHaveBeenCalledOnce();
+    deliver(first, create('c'), tree('c', 'three'));
+    expect(processor.model.getSurface('c')!.defaultCatalog).toBe(first.catalog);
+    expect(processor.model.getSurface('b')!.defaultCatalog).toBe(second.catalog);
   });
 
   it('moves a surface to the newer build a change to its components is assigned, its tree and data kept', () => {
@@ -77,7 +92,7 @@ describe('a paint drawn in its build', () => {
       }),
     );
     const moved = processor.model.getSurface('a')!;
-    expect(moved.catalog).toBe(second.catalog);
+    expect(moved.defaultCatalog).toBe(second.catalog);
     expect(moved.componentsModel.get('root')).toBeDefined();
     expect(moved.componentsModel.get('note')!.properties.text).toBe('two');
     expect(moved.dataModel.get('/greeting')).toBe('hi');
@@ -101,7 +116,7 @@ describe('a paint drawn in its build', () => {
     const {first, second, processor, deliver} = canvas();
     deliver(first, create('a'), tree('a', 'one'));
     deliver(second, data('a', 'hi'));
-    expect(processor.model.getSurface('a')!.catalog).toBe(first.catalog);
+    expect(processor.model.getSurface('a')!.defaultCatalog).toBe(first.catalog);
   });
 });
 
@@ -114,7 +129,7 @@ describe('a paint the way back returns to', () => {
     processor.model.deleteSurface('a');
     deliver(second, create('b'), tree('b', 'two'));
     processor.processMessages(book.rebuild(copy));
-    expect(processor.model.getSurface('a')!.catalog).toBe(first.catalog);
+    expect(processor.model.getSurface('a')!.defaultCatalog).toBe(first.catalog);
   });
 
   it('a copy of a catalog the client provides names no build', () => {

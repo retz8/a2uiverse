@@ -8,12 +8,13 @@
  * here. A change to the data alone moves nothing. A paint the way back returns to is restored in
  * the build it was drawn in.
  *
- * The processor resolves a create's catalog by id from the array it was built over, which web_core
- * holds by reference (SPEC §14): the build assigned is put in that array just before its create.
+ * The processor resolves a create's catalog by id from its own list, so the build assigned is put
+ * there just before its create (task-16.7 decision 2): a catalog the processor does not hold comes
+ * in through `addCatalog`; another build of one it holds takes the held one's place.
  */
-import {MessageProcessor} from '@a2ui/web_core/v0_9';
+import {linkCatalogs, MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage, A2uiMessageListWrapper, Catalog} from '@a2ui/web_core/v0_9';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {capturePaint, rebuildMessages} from '../canvas/history/paintCopy';
 import type {PaintCopy} from '../canvas/history/fragmentHistory';
 import type {ResolvedCatalog} from './clientCatalogs';
@@ -44,20 +45,25 @@ export function createPaintBuilds(
   };
 }
 
-type Catalogs = Catalog<ReactComponentImplementation>[];
+type Catalogs = Catalog<ReactCatalogComponent>[];
+
+/**
+ * The list a processor resolves catalogs from, which its type keeps private: `addCatalog` (PR
+ * #3304, carried as a patch) refuses an id the processor holds, and nothing else changes the list.
+ */
+const catalogsOf = (processor: MessageProcessor<ReactCatalogComponent>) =>
+  (processor as unknown as {catalogs: Catalogs}).catalogs;
 
 /** A canvas's processor: each surface drawn in the build its messages were assigned. */
-export class BuildProcessor extends MessageProcessor<ReactComponentImplementation> {
-  readonly #catalogs: Catalogs;
+export class BuildProcessor extends MessageProcessor<ReactCatalogComponent> {
   readonly #builds: PaintBuilds;
 
   constructor(
     catalogs: Catalogs,
     builds: PaintBuilds,
-    actionHandler?: ConstructorParameters<typeof MessageProcessor<ReactComponentImplementation>>[1],
+    actionHandler?: ConstructorParameters<typeof MessageProcessor<ReactCatalogComponent>>[1],
   ) {
     super(catalogs, actionHandler);
-    this.#catalogs = catalogs;
     this.#builds = builds;
   }
 
@@ -73,16 +79,20 @@ export class BuildProcessor extends MessageProcessor<ReactComponentImplementatio
 
   /** The build a create resolves its catalog in. */
   #hold(build: ResolvedCatalog) {
-    const at = this.#catalogs.findIndex(catalog => catalog.id === build.id);
-    if (at === -1) this.#catalogs.push(build.catalog);
-    else this.#catalogs[at] = build.catalog;
+    const held = catalogsOf(this);
+    const at = held.findIndex(catalog => catalog.id === build.id);
+    if (at === -1) return this.addCatalog(build.catalog);
+    if (held[at] === build.catalog) return;
+    // In the held one's place, linked to the others as `addCatalog` links a catalog; changed in
+    // place, since the processor's RPC handler holds the same list.
+    held.splice(0, held.length, ...linkCatalogs(held.with(at, build.catalog)));
   }
 
   /** A surface on screen in another build of the same catalog, re-created in `build` as it stands. */
   #move(message: A2uiMessage & {updateComponents: {surfaceId: string}}, build: ResolvedCatalog) {
     const {surfaceId} = message.updateComponents;
-    const surface = this.model.getSurface(surfaceId);
-    if (!surface || surface.catalog.id !== build.id || surface.catalog === build.catalog) return;
+    const catalog = this.model.getSurface(surfaceId)?.defaultCatalog;
+    if (!catalog || catalog.id !== build.id || catalog === build.catalog) return;
     const copy = capturePaint(this, surfaceId);
     if (!copy) return;
     this.model.deleteSurface(surfaceId);

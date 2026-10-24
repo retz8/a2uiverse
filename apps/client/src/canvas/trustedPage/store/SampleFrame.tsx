@@ -15,7 +15,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {Button, Dialog} from '@radix-ui/themes';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {BASIC_CATALOG_ID, type PreviewDocument} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {applyA2uiMessages} from '../../../a2ui/applyMessages';
@@ -38,7 +38,7 @@ type Sample =
       status: 'ready';
       preview: PreviewDocument;
       catalogs: readonly ResolvedCatalog[];
-      processor: MessageProcessor<ReactComponentImplementation>;
+      processor: MessageProcessor<ReactCatalogComponent>;
     };
 
 /** The client's own catalogs, as the page holds them: what every sample may paint in beside its builds. */
@@ -88,7 +88,7 @@ function useSample(listing: StoreListing, catalogs: PageCatalogs, orchestrator: 
         ]);
         if (!read.ok) throw new Error(`the preview could not be read: ${read.reason}`);
         const held = [...ownCatalogs(catalogs), ...loaded];
-        const processor = new MessageProcessor(held.map(c => c.catalog));
+        const processor = new MessageProcessor<ReactCatalogComponent>(held.map(c => c.catalog));
         let failed = false;
         applyA2uiMessages(processor, read.value.messages as unknown as A2uiMessage[], {
           onMessageError: () => (failed = true),

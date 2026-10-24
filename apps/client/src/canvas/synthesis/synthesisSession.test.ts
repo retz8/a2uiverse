@@ -6,7 +6,7 @@
 import {beforeEach, describe, expect, test, vi} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {CATALOG_ID, createCatalog, OPERATORS, RELATIONS} from '@a2uiverse/shell-catalog';
 import type {CellObject} from '@a2uiverse/shell-catalog';
 import type {SynthesisPayload} from '@a2uiverse/sdk';
@@ -48,7 +48,7 @@ const settled = () => Promise.resolve();
 
 type Row = Record<'name' | 'priceA' | 'priceB' | 'best', CellObject>;
 
-let processor: MessageProcessor<ReactComponentImplementation>;
+let processor: MessageProcessor<ReactCatalogComponent>;
 let failures: SynthesisFailure[];
 let session: ReturnType<typeof createSynthesisSession>;
 
@@ -75,7 +75,7 @@ function paintSynthesis(
 }
 
 beforeEach(() => {
-  processor = new MessageProcessor([CATALOG]);
+  processor = new MessageProcessor<ReactCatalogComponent>([CATALOG]);
   failures = [];
   session = createSynthesisSession({
     processor,

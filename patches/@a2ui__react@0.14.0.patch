@@ -1,0 +1,114 @@
+diff --git a/chunk-QAAGXJWH.js b/chunk-QAAGXJWH.js
+index 7eb864dedba7403be1bd95bdbe2bc2f1fcc46fe5..f76d1d7faa57781f38d909f26f61ffac241b1e16 100644
+--- a/chunk-QAAGXJWH.js
++++ b/chunk-QAAGXJWH.js
+@@ -221,11 +221,20 @@ function contextOf(node) {
+   }
+   return node.context;
+ }
+-var LoadingPlaceholder = ({ componentId }) => /* @__PURE__ */ jsxs("div", { style: { color: "gray", padding: "4px" }, children: [
+-  "[Loading ",
+-  componentId,
+-  "...]"
+-] });
++// A2UIVerse: the stand-ins say nothing a person would read; what went wrong is the surface's error.
++var QUIET_STAND_IN = {
++  padding: "var(--a2ui-spacing-s, 8px)",
++  color: "var(--a2ui-color-on-surface, #6b7280)",
++  font: "inherit",
++  fontSize: "var(--a2ui-font-size-s, 13px)",
++  opacity: 0.55
++};
++var MARKED_STAND_IN = {
++  ...QUIET_STAND_IN,
++  border: "1px dashed var(--a2ui-color-border, #d9d9e0)",
++  borderRadius: "var(--a2ui-border-radius, 6px)"
++};
++var LoadingPlaceholder = ({ componentId }) => /* @__PURE__ */ jsx("div", { "data-a2ui-placeholder": "loading", style: QUIET_STAND_IN, children: "…" });
+ var reportedUnresolved = /* @__PURE__ */ new WeakMap();
+ var UnresolvedChildReference = ({ surface, id, requestedPath, detail }) => {
+   const message = `Unresolved child reference '${id}' at '${requestedPath}': ${detail}`;
+@@ -241,7 +250,7 @@ var UnresolvedChildReference = ({ surface, id, requestedPath, detail }) => {
+       void surface.dispatchError({ code: "UNRESOLVED_CHILD_REFERENCE", message });
+     }
+   }, [surface, id, requestedPath, message]);
+-  return /* @__PURE__ */ jsx("div", { style: { color: "red" }, children: message });
++  return /* @__PURE__ */ jsx("div", { "data-a2ui-placeholder": "unresolved", title: message, style: MARKED_STAND_IN, children: "—" });
+ };
+ function useSignalValue(signal) {
+   const subscribe = useCallback(
+@@ -347,10 +356,13 @@ var RenderFallback = ({ node, impl, buildChild }) => {
+ var ChildElement = memo(({ node }) => {
+   const owner = useMemo(() => new HostOwner(), []);
+   if (node.state === "unknown-type") {
+-    return /* @__PURE__ */ jsxs("div", { style: { color: "red" }, children: [
+-      "Unknown component type: ",
+-      node.type
+-    ] });
++    return /* @__PURE__ */ jsx("div", {
++      "data-a2ui-placeholder": "unknown",
++      "data-a2ui-component": node.type,
++      title: `Unknown component: ${node.type}`,
++      style: MARKED_STAND_IN,
++      children: "—"
++    });
+   }
+   if (node.isPlaceholder || !node.impl || !node.context) {
+     return /* @__PURE__ */ jsx(LoadingPlaceholder, { componentId: node.componentId });
+diff --git a/chunk-ZKLSRTW6.cjs b/chunk-ZKLSRTW6.cjs
+index 3d40a24ba4858306123537b0ec06d17aee505b5a..ae5099388268ae848d9ef47d96c3bb8b9ecb8c91 100644
+--- a/chunk-ZKLSRTW6.cjs
++++ b/chunk-ZKLSRTW6.cjs
+@@ -227,11 +227,20 @@ function contextOf(node) {
+   }
+   return node.context;
+ }
+-var LoadingPlaceholder = ({ componentId }) => /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { color: "gray", padding: "4px" }, children: [
+-  "[Loading ",
+-  componentId,
+-  "...]"
+-] });
++// A2UIVerse: the stand-ins say nothing a person would read; what went wrong is the surface's error.
++var QUIET_STAND_IN = {
++  padding: "var(--a2ui-spacing-s, 8px)",
++  color: "var(--a2ui-color-on-surface, #6b7280)",
++  font: "inherit",
++  fontSize: "var(--a2ui-font-size-s, 13px)",
++  opacity: 0.55
++};
++var MARKED_STAND_IN = {
++  ...QUIET_STAND_IN,
++  border: "1px dashed var(--a2ui-color-border, #d9d9e0)",
++  borderRadius: "var(--a2ui-border-radius, 6px)"
++};
++var LoadingPlaceholder = ({ componentId }) => /* @__PURE__ */ jsxRuntime.jsx("div", { "data-a2ui-placeholder": "loading", style: QUIET_STAND_IN, children: "…" });
+ var reportedUnresolved = /* @__PURE__ */ new WeakMap();
+ var UnresolvedChildReference = ({ surface, id, requestedPath, detail }) => {
+   const message = `Unresolved child reference '${id}' at '${requestedPath}': ${detail}`;
+@@ -247,7 +256,7 @@ var UnresolvedChildReference = ({ surface, id, requestedPath, detail }) => {
+       void surface.dispatchError({ code: "UNRESOLVED_CHILD_REFERENCE", message });
+     }
+   }, [surface, id, requestedPath, message]);
+-  return /* @__PURE__ */ jsxRuntime.jsx("div", { style: { color: "red" }, children: message });
++  return /* @__PURE__ */ jsxRuntime.jsx("div", { "data-a2ui-placeholder": "unresolved", title: message, style: MARKED_STAND_IN, children: "—" });
+ };
+ function useSignalValue(signal) {
+   const subscribe = React.useCallback(
+@@ -353,10 +362,13 @@ var RenderFallback = ({ node, impl, buildChild }) => {
+ var ChildElement = React.memo(({ node }) => {
+   const owner = React.useMemo(() => new HostOwner(), []);
+   if (node.state === "unknown-type") {
+-    return /* @__PURE__ */ jsxRuntime.jsxs("div", { style: { color: "red" }, children: [
+-      "Unknown component type: ",
+-      node.type
+-    ] });
++    return /* @__PURE__ */ jsxRuntime.jsx("div", {
++      "data-a2ui-placeholder": "unknown",
++      "data-a2ui-component": node.type,
++      title: `Unknown component: ${node.type}`,
++      style: MARKED_STAND_IN,
++      children: "—"
++    });
+   }
+   if (node.isPlaceholder || !node.impl || !node.context) {
+     return /* @__PURE__ */ jsxRuntime.jsx(LoadingPlaceholder, { componentId: node.componentId });

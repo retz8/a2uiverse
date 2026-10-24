@@ -11,7 +11,8 @@ import type {PaintCopy} from './fragmentHistory';
 
 /** The slice of SurfaceModel a copy reads; SurfaceModel satisfies it structurally. */
 export interface CopiableSurface {
-  readonly catalog: {readonly id: string};
+  /** Every v0.9 surface names its catalog; only from v1.0 can a surface have none. */
+  readonly defaultCatalog: {readonly id: string} | undefined;
   readonly sendDataModel: boolean;
   componentsModel: {
     readonly entries: IterableIterator<
@@ -38,7 +39,8 @@ function jsonCopy(value: unknown): unknown {
 /** The surface as it stands now, or undefined when it is not live. */
 export function capturePaint(processor: CopySource, surfaceId: string): PaintCopy | undefined {
   const surface = processor.model.getSurface(surfaceId);
-  if (!surface) return undefined;
+  const catalog = surface?.defaultCatalog;
+  if (!surface || !catalog) return undefined;
   const tree: Record<string, unknown> = {};
   // Read from the model's type and properties, not its `componentTree`: that spreads the
   // properties over the type, so a component with a prop of its own named `type` (Linear's
@@ -46,10 +48,10 @@ export function capturePaint(processor: CopySource, surfaceId: string): PaintCop
   for (const [id, component] of surface.componentsModel.entries) {
     tree[id] = jsonCopy({...component.properties, id, component: component.type});
   }
-  const build = resolvedOf(surface.catalog)?.build;
+  const build = resolvedOf(catalog)?.build;
   return {
     surfaceId,
-    catalogId: surface.catalog.id,
+    catalogId: catalog.id,
     sendDataModel: surface.sendDataModel,
     tree,
     dataModel: jsonCopy(surface.dataModel.get('/')) ?? {},

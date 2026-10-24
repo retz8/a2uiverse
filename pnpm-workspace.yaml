@@ -20,4 +20,5 @@ allowBuilds:
   sharp: false
 
 patchedDependencies:
-  "@a2ui/react@0.10.2": patches/@a2ui__react@0.10.2.patch
+  "@a2ui/react@0.14.0": patches/@a2ui__react@0.14.0.patch
+  "@a2ui/web_core@0.14.0": patches/@a2ui__web_core@0.14.0.patch

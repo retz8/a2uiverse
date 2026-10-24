@@ -12,8 +12,12 @@
  * is the machine-readable half: the source, and a region name. The marker announces the app's
  * display name and its account when one is in play; the region names itself by the source id,
  * so a screen reader gets one region and one provenance statement rather than a sentence twice.
+ *
+ * It is also where navigation reads a fragment's components from: while mounted it is registered
+ * in the canvas's binding index under its surface (task-16.7 decision 3).
  */
-import type {ReactNode} from 'react';
+import {useContext, useEffect, useRef, type ReactNode} from 'react';
+import {BindingIndexContext} from '../navigation/bindingIndex';
 
 /** The detector's anchor and the isolation hook; its value is the painting source's id. */
 export const FRAGMENT_BOUNDARY_ATTR = 'data-a2ui-fragment';
@@ -27,8 +31,15 @@ export interface FragmentBoundaryProps {
 }
 
 export function FragmentBoundary({source, surfaceId, children}: FragmentBoundaryProps) {
+  const index = useContext(BindingIndexContext);
+  const boundary = useRef<HTMLDivElement>(null);
+  useEffect(
+    () => (index && boundary.current ? index.register(surfaceId, boundary.current) : undefined),
+    [index, surfaceId],
+  );
   return (
     <div
+      ref={boundary}
       className="fragment-boundary"
       role="group"
       aria-label={source}

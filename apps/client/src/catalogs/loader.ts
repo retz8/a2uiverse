@@ -22,7 +22,7 @@
  * table once before it fails.
  */
 import type {Catalog} from '@a2ui/web_core/v0_9';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {checkCatalogExports, checkHostInterface} from '@a2uiverse/sdk';
 import type {ComponentType, ReactNode} from 'react';
 import {artifactUrl, fetchJson as fetchJsonOverHttp, type CatalogRow} from '../orchestratorApi';
@@ -81,7 +81,7 @@ const NO_ANSWER = Symbol('no answer');
  */
 export interface HeldCatalogSet {
   /** The array a processor is built over: the client's own catalogs, then each one loaded. */
-  readonly catalogs: Catalog<ReactComponentImplementation>[];
+  readonly catalogs: Catalog<ReactCatalogComponent>[];
   /** Every held catalog by id, for the render layer's Provider lookup; a new map on each load. */
   resolved(): ReadonlyMap<string, ResolvedCatalog>;
   subscribe(listener: () => void): () => void;
@@ -237,7 +237,7 @@ export function createCatalogLoader({
     const exportErrors = checkCatalogExports(module, catalogId);
     if (exportErrors.length > 0) throw new Error(exportErrors.join('; '));
     return resolveCatalog(
-      module.CATALOG as Catalog<ReactComponentImplementation>,
+      module.CATALOG as Catalog<ReactCatalogComponent>,
       module.Provider as ComponentType<{children: ReactNode}> | undefined,
       artifactId,
     );

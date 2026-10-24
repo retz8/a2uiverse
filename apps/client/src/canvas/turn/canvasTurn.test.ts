@@ -5,6 +5,7 @@
  */
 import {describe, it, expect, vi} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CATALOG_ID as SHELL_CATALOG_ID, createCatalog} from '@a2uiverse/shell-catalog';
 import type {CompositionStamp} from '@a2uiverse/sdk';
@@ -104,12 +105,12 @@ const surfaceAction = (name: string): PaintCause => ({
 });
 
 function setup() {
-  const processor = new MessageProcessor([CATALOG]);
+  const processor = new MessageProcessor<ReactCatalogComponent>([CATALOG]);
   const store = createCanvasStore();
   const runner = createTurnRunner({
     processor,
     store,
-    createStaging: () => new MessageProcessor([CATALOG]),
+    createStaging: () => new MessageProcessor<ReactCatalogComponent>([CATALOG]),
   });
   return {processor, store, runner};
 }
@@ -511,12 +512,12 @@ describe('composed turns (the hub stamps its events)', () => {
 
   function composedSetup() {
     const catalogs = [CATALOG, SHELL_CATALOG];
-    const processor = new MessageProcessor(catalogs);
+    const processor = new MessageProcessor<ReactCatalogComponent>(catalogs);
     const store = createCanvasStore();
     const runner = createTurnRunner({
       processor,
       store,
-      createStaging: () => new MessageProcessor(catalogs),
+      createStaging: () => new MessageProcessor<ReactCatalogComponent>(catalogs),
     });
     return {processor, store, runner};
   }
@@ -672,13 +673,13 @@ describe('fragment failure reporting', () => {
 
   function failureSetup() {
     const catalogs = [CATALOG, SHELL_CATALOG];
-    const processor = new MessageProcessor(catalogs);
+    const processor = new MessageProcessor<ReactCatalogComponent>(catalogs);
     const store = createCanvasStore();
     const failures: FragmentFailure[] = [];
     const runner = createTurnRunner({
       processor,
       store,
-      createStaging: () => new MessageProcessor(catalogs),
+      createStaging: () => new MessageProcessor<ReactCatalogComponent>(catalogs),
       onFragmentFailure: failure => failures.push(failure),
     });
     return {processor, store, runner, failures};
@@ -872,12 +873,12 @@ describe('a fragment that asks (task-12.13 decision 37)', () => {
 
   function askingSetup() {
     const catalogs = [CATALOG, SHELL_CATALOG];
-    const processor = new MessageProcessor(catalogs);
+    const processor = new MessageProcessor<ReactCatalogComponent>(catalogs);
     const store = createCanvasStore();
     const runner = createTurnRunner({
       processor,
       store,
-      createStaging: () => new MessageProcessor(catalogs),
+      createStaging: () => new MessageProcessor<ReactCatalogComponent>(catalogs),
     });
     return {processor, store, runner};
   }
@@ -1008,13 +1009,13 @@ describe('streams beside the turn (task 8.5)', () => {
   /** A composition over GitHub and Gmail, the turn over, Gmail's fragment on the canvas. */
   function composed(failures: FragmentFailure[] = []) {
     const catalogs = [CATALOG, SHELL_CATALOG];
-    const processor = new MessageProcessor(catalogs);
+    const processor = new MessageProcessor<ReactCatalogComponent>(catalogs);
     const store = createCanvasStore();
     const synthesis = {accept: vi.fn(), retire: vi.fn()};
     const runner = createTurnRunner({
       processor,
       store,
-      createStaging: () => new MessageProcessor(catalogs),
+      createStaging: () => new MessageProcessor<ReactCatalogComponent>(catalogs),
       onFragmentFailure: failure => failures.push(failure),
       synthesis: synthesis as never,
     });
@@ -1161,7 +1162,7 @@ describe("the fragment's history (task 9.7)", () => {
   /** A composition over GitHub and Gmail with GitHub's list on the canvas, titled and updated. */
   function historied(accepted = true) {
     const catalogs = [CATALOG, SHELL_CATALOG];
-    const processor = new MessageProcessor(catalogs);
+    const processor = new MessageProcessor<ReactCatalogComponent>(catalogs);
     const store = createCanvasStore();
     const history = createFragmentHistory({
       capture: source => {
@@ -1178,7 +1179,7 @@ describe("the fragment's history (task 9.7)", () => {
     const runner = createTurnRunner({
       processor,
       store,
-      createStaging: () => new MessageProcessor(catalogs),
+      createStaging: () => new MessageProcessor<ReactCatalogComponent>(catalogs),
       synthesis: synthesis as never,
       history,
     });
@@ -1217,7 +1218,7 @@ describe("the fragment's history (task 9.7)", () => {
 
   it('a refused paint streamed onto an empty slot is taken down, and the way back never returns to it (task-12.7 decisions 2, 7)', () => {
     const catalogs = [CATALOG, SHELL_CATALOG];
-    const processor = new MessageProcessor(catalogs);
+    const processor = new MessageProcessor<ReactCatalogComponent>(catalogs);
     const store = createCanvasStore();
     const history = createFragmentHistory({
       capture: source => {
@@ -1228,7 +1229,7 @@ describe("the fragment's history (task 9.7)", () => {
     const runner = createTurnRunner({
       processor,
       store,
-      createStaging: () => new MessageProcessor(catalogs),
+      createStaging: () => new MessageProcessor<ReactCatalogComponent>(catalogs),
       history,
     });
     const turn = runner.begin(utterance('pay my bill'));

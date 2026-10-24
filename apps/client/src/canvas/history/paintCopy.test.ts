@@ -1,11 +1,14 @@
 import {describe, expect, it} from 'vitest';
-import {ComponentModel} from '@a2ui/web_core/v0_9';
+import {Catalog, ComponentModel} from '@a2ui/web_core/v0_9';
 import {capturePaint, rebuildMessages, type CopySource} from './paintCopy';
+
+/** The catalog the surface's components were drawn in. */
+const CATALOG = new Catalog('https://example.test/catalog.json', 'v0.9.1', [], []);
 
 /** A live surface of real component models, as the processor holds them. */
 function sourceOf(components: ComponentModel[]): CopySource {
   const surface = {
-    catalog: {id: 'https://example.test/catalog.json'},
+    defaultCatalog: CATALOG,
     sendDataModel: false,
     componentsModel: {
       get entries() {
@@ -21,10 +24,12 @@ describe('a paint copy', () => {
   it('keeps a component whose own prop is named type as the component it is', () => {
     // web_core's componentTree spreads the properties over the type, so this prop replaced the
     // component's name and the restored status icon drew as an unknown component.
-    const icon = new ComponentModel('row-status', 'StatusIcon', {
-      status: {path: 'status'},
-      type: {path: 'statusType'},
-    });
+    const icon = new ComponentModel(
+      'row-status',
+      'StatusIcon',
+      {status: {path: 'status'}, type: {path: 'statusType'}},
+      CATALOG,
+    );
     const copy = capturePaint(sourceOf([icon]), 'linear:linear-1')!;
     const [, update] = rebuildMessages(copy) as unknown as [
       unknown,
@@ -41,7 +46,7 @@ describe('a paint copy', () => {
   });
 
   it('is detached from the live models it was taken from', () => {
-    const text = new ComponentModel('title', 'Text', {text: {path: 'title'}});
+    const text = new ComponentModel('title', 'Text', {text: {path: 'title'}}, CATALOG);
     const copy = capturePaint(sourceOf([text]), 'linear:linear-1')!;
     text.properties = {text: 'changed'};
     expect(copy.tree['title']).toEqual({id: 'title', component: 'Text', text: {path: 'title'}});

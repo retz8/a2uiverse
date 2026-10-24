@@ -12,7 +12,7 @@ import {
   createCatalog,
   SlotContentContext,
 } from '@a2uiverse/shell-catalog';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
 import type {PlacedFragment} from '../canvasStore';
 import {FRAGMENT_BOUNDARY_ATTR} from './FragmentBoundary';
@@ -30,7 +30,7 @@ const msg = (m: Record<string, unknown>): A2uiMessage =>
 
 /** The shell as the orchestrator paints it: one slot, wrapped in the attribution naming it. */
 function composedProcessor(slotState: 'pending' | 'failed' | 'collapsed' = 'pending') {
-  const processor = new MessageProcessor<ReactComponentImplementation>([CATALOG, SHELL_CATALOG]);
+  const processor = new MessageProcessor<ReactCatalogComponent>([CATALOG, SHELL_CATALOG]);
   processor.processMessages([
     msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
     msg({

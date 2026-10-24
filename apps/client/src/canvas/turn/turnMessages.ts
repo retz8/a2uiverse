@@ -16,10 +16,16 @@ export interface CanvasSurface {
   };
   dataModel: {get(path: string): unknown};
   readonly sendDataModel: boolean;
-  catalog: {
-    readonly id: string;
-    readonly components: ReadonlyMap<string, {schema: {safeParse(v: unknown): {success: boolean}}}>;
-  };
+  /** Every v0.9 surface names its catalog; only from v1.0 can a surface have none. */
+  readonly defaultCatalog:
+    | {
+        readonly id: string;
+        readonly components: ReadonlyMap<
+          string,
+          {schema: {safeParse(v: unknown): {success: boolean}}}
+        >;
+      }
+    | undefined;
 }
 
 export interface CanvasComponent {
@@ -68,7 +74,7 @@ export function targetOf(message: A2uiMessage): MessageTarget {
 export function invalidComponentsOf(surface: CanvasSurface): string[] {
   const invalid: string[] = [];
   for (const [id, component] of surface.componentsModel.entries) {
-    const api = surface.catalog.components.get(component.type);
+    const api = surface.defaultCatalog?.components.get(component.type);
     if (api && !api.schema.safeParse(component.properties).success) invalid.push(id);
   }
   return invalid;

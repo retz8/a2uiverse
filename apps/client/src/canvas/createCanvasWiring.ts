@@ -13,7 +13,7 @@
  */
 import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {Catalog} from '@a2ui/web_core/v0_9';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import type {PressHandler, ShellAction, SignInHandler} from '@a2uiverse/shell-catalog';
 import type {A2AMessageSender, A2ASenderOptions} from '../a2a/client';
 import {createSenderResolver} from '../a2a/client';
@@ -68,7 +68,7 @@ export interface CanvasWiring {
 
 export interface CanvasWiringOptions extends A2ASenderOptions {
   /** The held catalogs: each canvas's processors are built over an array of its own copied from them. */
-  catalogs: Catalog<ReactComponentImplementation>[];
+  catalogs: Catalog<ReactCatalogComponent>[];
   /**
    * Where the build each paint is drawn in is found, and loaded when the canvas does not hold it
    * (task 11.5, task 15.6): the page's loader. Without one, a canvas draws in `catalogs` alone.

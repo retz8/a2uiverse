@@ -5,7 +5,8 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  '@a2ui/react@0.10.2': 99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea
+  '@a2ui/react@0.14.0': c6371f25887ca1ab41a5ef8b0378b9243ff9949a443f05ead5eec1c4911b94cf
+  '@a2ui/web_core@0.14.0': 42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc
 
 importers:
 
@@ -48,11 +49,11 @@ importers:
         specifier: ^0.3.14
         version: 0.3.14(express@5.2.1(supports-color@7.2.0))
       '@a2ui/react':
-        specifier: ^0.10.2
-        version: 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+        specifier: 0.14.0
+        version: 0.14.0(patch_hash=c6371f25887ca1ab41a5ef8b0378b9243ff9949a443f05ead5eec1c4911b94cf)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2ui/web_core':
-        specifier: ^0.10.6
-        version: 0.10.6
+        specifier: 0.14.0
+        version: 0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc)
       '@a2uiverse/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk/js
@@ -236,25 +237,25 @@ importers:
     dependencies:
       calendar-catalog:
         specifier: github:retz8/a2uiverse-apps#42cd2c69cba86c9f8ae128908aeb61b688b3e424&path:calendar/calendar-catalog
-        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:calendar/calendar-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:calendar/calendar-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       circleci-catalog:
         specifier: github:retz8/a2uiverse-apps#42cd2c69cba86c9f8ae128908aeb61b688b3e424&path:circleci/circleci-catalog
-        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:circleci/circleci-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:circleci/circleci-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       github-catalog:
         specifier: github:retz8/a2uiverse-apps#42cd2c69cba86c9f8ae128908aeb61b688b3e424&path:github/github-catalog
-        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:github/github-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@19.3.0)(react@19.2.8)(zod@3.25.76)
+        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:github/github-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@19.3.0)(react@19.2.8)(zod@3.25.76)
       gmail-catalog:
         specifier: github:retz8/a2uiverse-apps#42cd2c69cba86c9f8ae128908aeb61b688b3e424&path:gmail/gmail-catalog
-        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:gmail/gmail-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:gmail/gmail-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       linear-catalog:
         specifier: github:retz8/a2uiverse-apps#42cd2c69cba86c9f8ae128908aeb61b688b3e424&path:linear/linear-catalog
-        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:linear/linear-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:linear/linear-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       shop-a-catalog:
         specifier: github:retz8/a2uiverse-apps#42cd2c69cba86c9f8ae128908aeb61b688b3e424&path:mocks/shop-a/shop-a-catalog
-        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:mocks/shop-a/shop-a-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:mocks/shop-a/shop-a-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       shop-b-catalog:
         specifier: github:retz8/a2uiverse-apps#42cd2c69cba86c9f8ae128908aeb61b688b3e424&path:mocks/shop-b/shop-b-catalog
-        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:mocks/shop-b/shop-b-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:mocks/shop-b/shop-b-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
     devDependencies:
       '@a2uiverse/sdk':
         specifier: workspace:*
@@ -270,7 +271,7 @@ importers:
     dependencies:
       '@a2ui/web_core':
         specifier: 0.14.0
-        version: 0.14.0
+        version: 0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc)
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -305,10 +306,10 @@ importers:
     devDependencies:
       '@a2ui/react':
         specifier: 0.14.0
-        version: 0.14.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+        version: 0.14.0(patch_hash=c6371f25887ca1ab41a5ef8b0378b9243ff9949a443f05ead5eec1c4911b94cf)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2ui/web_core':
         specifier: 0.14.0
-        version: 0.14.0
+        version: 0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc)
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.10.0(@testing-library/dom@10.4.1)
@@ -356,7 +357,7 @@ importers:
         version: 0.3.14(express@5.2.1(supports-color@7.2.0))
       '@a2ui/web_core':
         specifier: 0.14.0
-        version: 0.14.0
+        version: 0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc)
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -369,7 +370,7 @@ importers:
     devDependencies:
       '@a2ui/react':
         specifier: 0.14.0
-        version: 0.14.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+        version: 0.14.0(patch_hash=c6371f25887ca1ab41a5ef8b0378b9243ff9949a443f05ead5eec1c4911b94cf)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2uiverse/sdk':
         specifier: workspace:*
         version: link:../sdk/js
@@ -411,11 +412,6 @@ packages:
         optional: true
       express:
         optional: true
-
-  '@a2ui/markdown-it@0.1.1':
-    resolution: {integrity: sha512-ZqHLdzwtIQk6J04SiUW0GXiCt/vThL3wtAf5rXT7MKT4zNRd+pZ/TrIFpqMwdTvFNor1oAjCRQbm41E3ZE0MyA==}
-    peerDependencies:
-      '@a2ui/web_core': ^0.10.6
 
   '@a2ui/markdown-it@0.2.2':
     resolution: {integrity: sha512-oj58ybxIPwnRzN2NpvgxrOOwDlZuBKoEtW5U6wRs6SOq1dDjk/zAAkRtb0U52WPSu01gHJOFSGEkuE+Xe09dcQ==}
@@ -3674,21 +3670,21 @@ snapshots:
     optionalDependencies:
       express: 5.2.1(supports-color@7.2.0)
 
-  '@a2ui/markdown-it@0.1.1(@a2ui/web_core@0.10.6)':
+  '@a2ui/markdown-it@0.2.2(@a2ui/web_core@0.10.6)':
     dependencies:
       '@a2ui/web_core': 0.10.6
       dompurify: 3.4.11
       markdown-it: 14.3.0
 
-  '@a2ui/markdown-it@0.2.2(@a2ui/web_core@0.14.0)':
+  '@a2ui/markdown-it@0.2.2(@a2ui/web_core@0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc))':
     dependencies:
-      '@a2ui/web_core': 0.14.0
+      '@a2ui/web_core': 0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc)
       dompurify: 3.4.11
       markdown-it: 14.3.0
 
-  '@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)':
+  '@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)':
     dependencies:
-      '@a2ui/markdown-it': 0.1.1(@a2ui/web_core@0.10.6)
+      '@a2ui/markdown-it': 0.2.2(@a2ui/web_core@0.10.6)
       '@a2ui/web_core': 0.10.6
       clsx: 2.1.1
       markdown-it: 14.3.0
@@ -3696,10 +3692,10 @@ snapshots:
       react-dom: 19.2.8(react@19.2.8)
       zod: 3.25.76
 
-  '@a2ui/react@0.14.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)':
+  '@a2ui/react@0.14.0(patch_hash=c6371f25887ca1ab41a5ef8b0378b9243ff9949a443f05ead5eec1c4911b94cf)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)':
     dependencies:
-      '@a2ui/markdown-it': 0.2.2(@a2ui/web_core@0.14.0)
-      '@a2ui/web_core': 0.14.0
+      '@a2ui/markdown-it': 0.2.2(@a2ui/web_core@0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc))
+      '@a2ui/web_core': 0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc)
       clsx: 2.1.1
       markdown-it: 14.3.0
       react: 19.2.8
@@ -3713,7 +3709,7 @@ snapshots:
       zod: 3.25.76
       zod-to-json-schema: 3.25.2(zod@3.25.76)
 
-  '@a2ui/web_core@0.14.0':
+  '@a2ui/web_core@0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc)':
     dependencies:
       '@lit/context': 1.1.6
       '@preact/signals-core': 1.14.4
@@ -5463,9 +5459,9 @@ snapshots:
 
   bytes@3.1.2: {}
 
-  calendar-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:calendar/calendar-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
+  calendar-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:calendar/calendar-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
     dependencies:
-      '@a2ui/react': 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+      '@a2ui/react': 0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2ui/web_core': 0.10.6
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
@@ -5492,9 +5488,9 @@ snapshots:
       ansi-styles: 4.3.0
       supports-color: 7.2.0
 
-  circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:circleci/circleci-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
+  circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:circleci/circleci-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
     dependencies:
-      '@a2ui/react': 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+      '@a2ui/react': 0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2ui/web_core': 0.10.6
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
@@ -5863,9 +5859,9 @@ snapshots:
       dunder-proto: 1.0.1
       es-object-atoms: 1.1.2
 
-  github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:github/github-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@19.3.0)(react@19.2.8)(zod@3.25.76):
+  github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:github/github-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@19.3.0)(react@19.2.8)(zod@3.25.76):
     dependencies:
-      '@a2ui/react': 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+      '@a2ui/react': 0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2ui/web_core': 0.10.6
       '@primer/octicons-react': 19.28.1(react@19.2.8)
       '@primer/primitives': 11.10.0
@@ -5901,9 +5897,9 @@ snapshots:
       define-properties: 1.2.1
       gopd: 1.2.0
 
-  gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:gmail/gmail-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
+  gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:gmail/gmail-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
     dependencies:
-      '@a2ui/react': 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+      '@a2ui/react': 0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2ui/web_core': 0.10.6
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
@@ -6095,9 +6091,9 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.33.0
       lightningcss-win32-x64-msvc: 1.33.0
 
-  linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:linear/linear-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
+  linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:linear/linear-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
     dependencies:
-      '@a2ui/react': 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+      '@a2ui/react': 0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2ui/web_core': 0.10.6
       markdown-it: 14.3.0
       react: 19.2.8
@@ -6586,17 +6582,17 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
-  shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:mocks/shop-a/shop-a-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
+  shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:mocks/shop-a/shop-a-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
     dependencies:
-      '@a2ui/react': 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+      '@a2ui/react': 0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2ui/web_core': 0.10.6
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
       zod: 3.25.76
 
-  shop-b-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:mocks/shop-b/shop-b-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
+  shop-b-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:mocks/shop-b/shop-b-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
     dependencies:
-      '@a2ui/react': 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+      '@a2ui/react': 0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2ui/web_core': 0.10.6
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)

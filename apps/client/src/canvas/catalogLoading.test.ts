@@ -10,7 +10,8 @@
 import {describe, expect, it, vi} from 'vitest';
 import type {MessageSendParams, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {Catalog, type A2uiMessage} from '@a2ui/web_core/v0_9';
-import {basicCatalog, type ReactComponentImplementation} from '@a2ui/react/v0_9';
+import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {BASIC_CATALOG_ID, CATALOG_LOAD_FAILED} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2AMessageSender} from '../a2a/client';
@@ -63,8 +64,9 @@ const GMAIL_FRAGMENT = [
 /** A build of the late catalog, the basic components under its id. */
 const lateBuild = (artifact: string) =>
   resolveCatalog(
-    new Catalog<ReactComponentImplementation>(
+    new Catalog<ReactCatalogComponent>(
       LATE,
+      basicCatalog.protocolVersion,
       [...basicCatalog.components.values()],
       [...basicCatalog.functions.values()],
     ),
@@ -139,7 +141,7 @@ describe('a fragment in a catalog the canvas does not hold yet', () => {
     await vi.waitFor(() =>
       expect(runtime.store.getState().placement.get('gmail')?.surfaceId).toBe('gmail:inbox'),
     );
-    expect(runtime.processor.model.getSurface('gmail:inbox')?.catalog.id).toBe(LATE);
+    expect(runtime.processor.model.getSurface('gmail:inbox')?.defaultCatalog?.id).toBe(LATE);
   });
 
   it('reports a catalog that does not load as a catalog load failure, and never claims the slot', async () => {

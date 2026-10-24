@@ -10,7 +10,7 @@
 import {useCallback} from 'react';
 import type {ReactNode} from 'react';
 import type {SlotContentResolver} from '@a2uiverse/shell-catalog';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import type {SurfaceModel} from '@a2ui/web_core/v0_9';
 import {SurfaceFrame} from '../../catalogs/CatalogContext';
 import {SurfaceErrorBoundary} from '../../shared/SurfaceErrorBoundary';
@@ -33,7 +33,7 @@ function restingProse(text: string) {
 /** The slice of a processor a resolver reads — the live one and a parked sandbox both satisfy it. */
 export interface SurfaceSource {
   readonly model: {
-    readonly surfacesMap: ReadonlyMap<string, SurfaceModel<ReactComponentImplementation>>;
+    readonly surfacesMap: ReadonlyMap<string, SurfaceModel<ReactCatalogComponent>>;
   };
 }
 
