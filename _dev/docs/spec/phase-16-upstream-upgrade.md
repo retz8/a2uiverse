@@ -61,6 +61,6 @@ The platform runtime: the sdk's contracts first, the spec copy early, then the c
 
 Task-level, left to the sub-task that owns each:
 
-- Whether the agent kit keeps its prompt text over upstream's prompt generator.
-- What replaces the hand-ported validator, measured against the synced v0.9 conformance suite.
-- How the host-module interface's version is named now that the runtime can change under one protocol version.
+- Whether the agent kit keeps its prompt text over upstream's prompt generator — decided in task 16.2 (decision 2): the kit assembles the prompt itself, in today's order, around the base rules and the schema block upstream's generator writes and the examples upstream's `load_examples` reads.
+- What replaces the hand-ported validator, measured against the synced v0.9 conformance suite — decided in task 16.4 (decisions 1 and 2): `@a2ui/web_core`'s validation behind the sdk's own API, each bad component a finding and the first topology failure beside them.
+- How the host-module interface's version is named now that the runtime can change under one protocol version — decided in task 16.4 (decision 4): by the A2UI runtime release it lends, `0.14.0`.

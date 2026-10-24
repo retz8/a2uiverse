@@ -18,9 +18,9 @@ Sub-task 11.2 of Phase 11 (`_dev/docs/spec/phase-11-app-bundle-registry.md`, dec
 
 A catalog package's entry exports `CATALOG`, a `Catalog` from `@a2ui/web_core` built for `@a2ui/react`'s React catalog model. `Provider` is optional: absent, a passthrough wraps the catalog's fragments; present, it is the one Provider of SPEC §9.2, written by a catalog whose CSS or design system needs a scope or a context. No `CATALOG_ID` export: the id is `CATALOG.id`. Where it is checked (amended by task 11.3): at pack, Stellify evaluates nothing and reads the id from the schema file's `catalogId`, the config's, when set, agreeing with it; at load, the client checks `CATALOG.id` against the registry's. Extra exports are ignored. A catalog that replaces the renderer is not a catalog and is out.
 
-### 2. Host-module interface: versioned by the A2UI version it lends
+### 2. Host-module interface: versioned by the A2UI runtime release it lends
 
-The interface's version is the A2UI protocol version, `0.9.1`. Under it the host lends exactly seven specifiers — `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `zod` — and `loadStylesheet`. `react-dom/client` was added by task 11.3: React 19 keeps `createRoot` there alone and `@primer/react` reaches it statically. Stellify externalizes exactly those; any other specifier under a host package is refused at pack with the list of what the host lends. Adding a specifier is a change to the interface.
+The interface's version is the release of `@a2ui/react` and `@a2ui/web_core` the host lends, `0.14.0` (amended by task 16.4 decision 4). Under it the host lends exactly eight specifiers — `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `@a2ui/web_core/v0_9/basic_catalog`, `zod` — and `loadStylesheet` (amended by task 16.4 decision 5). `react-dom/client` was added by task 11.3: React 19 keeps `createRoot` there alone and `@primer/react` reaches it statically. Stellify externalizes exactly those; any other specifier under a host package is refused at pack with the list of what the host lends. Adding a specifier is a change to the interface.
 
 ### 3. Contract form: terms as descriptive JSON, the descriptor as a JSON Schema
 
