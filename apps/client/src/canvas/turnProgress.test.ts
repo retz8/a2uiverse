@@ -600,6 +600,13 @@ describe('the update tile (task-15.3 decision 17, task-15.8 decision 4)', () => 
     expect(step({'shop-b': '2.0.0'})).toMatchObject({status: 'update', text: 'Shop B updated'});
   });
 
+  it('its resend spins the step, its earlier answer still placed under the line (task-15.11 decision 43)', () => {
+    const store = onUpdate();
+    store.placeFragment('shop-b', {surfaceId: 'shop-b:s', source: 'shop-b'});
+    store.addPress({kind: 'retry', sources: ['shop-b']});
+    expect(shopB(store)).toMatchObject({status: 'working', text: 'Shop B'});
+  });
+
   it('a press asking — the entry read again, the consent card open — leaves the step as it was', () => {
     const store = onUpdate();
     store.setAppAct({source: 'shop-b'}, {appId: 'shop-b', status: 'asking'});

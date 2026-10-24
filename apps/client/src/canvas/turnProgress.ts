@@ -166,12 +166,13 @@ const sourceStatus = (
   const painted = state.slotStates.get(source);
   if (painted === 'failed' && !retried) return 'failed';
   // An action inside its fragment is that source working again, until its stream ends (task-9.9
-  // decision 25): the line names no action, only the source it went to.
-  if (pressRunning(state, source)) return 'working';
+  // decision 25): the line names no action, only the source it went to. So is its resend, over an
+  // answer it showed before (task-15.11 decision 43).
+  if (pressRunning(state, source) || retried) return 'working';
   // A source that answered in prose without painting still answered.
   if (state.placement.has(source) || state.prose.has(source)) return 'done';
   if (painted === 'collapsed') return 'done';
-  return busy || retried ? 'working' : 'idle';
+  return busy ? 'working' : 'idle';
 };
 
 export function turnProgress(state: CanvasState, installed?: InstalledVersion): TurnProgress {
