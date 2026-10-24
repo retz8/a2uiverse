@@ -1,7 +1,8 @@
 import {fireEvent, screen} from '@testing-library/react';
+import {DataContext, DataModel} from '@a2ui/web_core/v0_9';
 import {expect, test} from 'vitest';
 import {renderTree, SURFACE_ID, type TreeComponent} from '../testing/render';
-import type {ShellAction} from './shell-actions';
+import {shellActionFunctions, type ShellAction} from './shell-actions';
 
 const button = (action: Record<string, unknown>): TreeComponent[] => [
   {id: 'root', component: 'Button', child: 'label', action},
@@ -71,4 +72,11 @@ test('an offer with nothing in it searches the Store for the missing capability,
   expect(shell).toEqual([
     {name: 'openStore', surfaceId: SURFACE_ID, componentId: 'root', query: 'flight booking'},
   ]);
+});
+
+test('a shell action run where no surface is held raises nothing (task-16.6 decision 8)', () => {
+  const shell: ShellAction[] = [];
+  const context = new DataContext(new DataModel(), '/');
+  for (const fn of shellActionFunctions(action => shell.push(action))) fn.execute({}, context);
+  expect(shell).toEqual([]);
 });

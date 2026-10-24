@@ -1,4 +1,4 @@
-import {fireEvent, screen} from '@testing-library/react';
+import {act, fireEvent, screen} from '@testing-library/react';
 import {expect, test} from 'vitest';
 import {normalizeDateTimeValue} from './date-time-input';
 import {renderTree, renderedElements} from '../../testing/render';
@@ -47,6 +47,28 @@ test('date and time together is a datetime-local input; time alone a time input'
 test('with neither date nor time enabled nothing renders, as upstream', () => {
   const {container} = renderTree([{id: 'root', component: 'DateTimeInput', value: ''}]);
   expect(renderedElements(container)).toEqual([]);
+});
+
+test('a bound min and max reach the input and follow the data', () => {
+  const {surface} = renderTree(
+    [
+      {
+        id: 'root',
+        component: 'DateTimeInput',
+        label: 'When',
+        enableDate: true,
+        value: '',
+        min: {path: '/min'},
+        max: {path: '/max'},
+      },
+    ],
+    {data: {min: '2026-01-01', max: '2026-12-31'}},
+  );
+  const input = screen.getByLabelText('When');
+  expect(input).toHaveAttribute('min', '2026-01-01');
+  expect(input).toHaveAttribute('max', '2026-12-31');
+  act(() => surface.dataModel.set('/min', '2026-03-01'));
+  expect(input).toHaveAttribute('min', '2026-03-01');
 });
 
 test('renders the native input through Radix TextField', () => {

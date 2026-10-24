@@ -1,3 +1,4 @@
+import {componentId} from '@a2ui/web_core/v0_9';
 import {z} from 'zod';
 
 /**
@@ -32,7 +33,7 @@ export const AttributionApi = {
         .object({scopes: z.array(z.string()).min(1)})
         .strict()
         .optional(),
-      child: z.string().optional(),
+      child: componentId().optional(),
       weight: z.number().optional(),
       fromOffer: z.boolean().optional(),
     })

@@ -1,4 +1,3 @@
-import type {DataContext} from '@a2ui/web_core/v0_9';
 import type {Formula, Ref, Resolution} from '@a2uiverse/sdk';
 import {relationFunctions, relationKind, type RelationOp} from '@a2uiverse/shell-catalog/schema';
 
@@ -22,6 +21,7 @@ export function runFact(
   const resolved = formula.args.map(ref => partitions.resolve(ref));
   if (!resolved.every(r => r.found)) return {state: 'absent'};
   const values = resolved.map(r => (r as {value: unknown}).value);
-  const holds = fn.execute({values}, undefined as unknown as DataContext) === true;
+  // A relation reads only its arguments, so it runs with no data context (task-16.6 decision 2).
+  const holds = fn.execute({values}, undefined as never) === true;
   return {state: holds ? 'holds' : 'fails', values};
 }

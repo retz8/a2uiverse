@@ -278,14 +278,15 @@ export interface DerivedValueHost {
 
 /**
  * Catalog entry, built for one host: the generic binder resolves `cell` to the evaluator's
- * object, then renders it with the host's names and navigation.
+ * object, then renders it with the host's names and navigation. `danger` is a plain list of words,
+ * which upstream types as a child list (`_dev/a2ui-findings.md` §17).
  */
 export function createDerivedValueComponent({onNavigate, sourceName}: DerivedValueHost = {}) {
   return createComponentImplementation(DerivedValueApi, ({props}) => (
     <DerivedValueView
       cell={props.cell as CellObject | undefined}
       format={props.format}
-      danger={props.danger}
+      danger={props.danger as string[] | undefined}
       sourceName={sourceName}
       onNavigate={onNavigate}
     />

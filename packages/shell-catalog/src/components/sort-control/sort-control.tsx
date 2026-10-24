@@ -57,13 +57,11 @@ export function SortControlView({
 
 /**
  * Catalog entry: `sort` resolves to the runtime's declaration; `setSort` is the binder's
- * two-way write to the same path. Upstream types a setter by the prop union's literal
- * branches, and a binding-only prop has none — so `setSort` arrives typed `(value: never)`
- * although at runtime it writes whatever it is given (`_dev/a2ui-findings.md` §4).
+ * two-way write to the same path.
  */
 export const SortControlComponent = createComponentImplementation(SortControlApi, ({props}) => (
   <SortControlView
     sort={props.sort as SortDeclaration | undefined}
-    onChange={(next: SortDeclaration) => props.setSort(next as never)}
+    onChange={(next: SortDeclaration) => props.setSort(next)}
   />
 ));

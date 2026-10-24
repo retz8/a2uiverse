@@ -36,7 +36,8 @@ test('a template child list expands one child per element, each in its own data 
     ],
     {data: {rows: [{name: 'one'}, {name: 'two'}, {name: 'three'}]}},
   );
-  expect([...container.querySelectorAll('.rt-Flex > .rt-Text')].map(el => el.textContent)).toEqual([
+  // Each child sits in the element the renderer hosts it in, which draws no box of its own.
+  expect([...container.querySelectorAll('.rt-Flex .rt-Text')].map(el => el.textContent)).toEqual([
     'one',
     'two',
     'three',
@@ -49,7 +50,7 @@ test('weight becomes the flex share, as upstream applies it', () => {
     {id: 'a', component: 'Text', text: 'A', weight: 2},
     {id: 'b', component: 'Text', text: 'B', weight: 1},
   ]);
-  const [a, b] = [...container.querySelectorAll('.rt-Flex > .rt-Text')] as HTMLElement[];
+  const [a, b] = [...container.querySelectorAll('.rt-Flex .rt-Text')] as HTMLElement[];
   expect(a.style.flexGrow).toBe('2');
   expect(b.style.flexGrow).toBe('1');
 });

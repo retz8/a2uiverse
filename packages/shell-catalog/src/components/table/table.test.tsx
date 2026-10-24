@@ -29,9 +29,10 @@ test('a Table is a real table: headings across the top, one row per child, one c
     'Camera',
     'Price',
   ]);
-  const rows = [...table.querySelectorAll('tbody tr')];
+  // Each row sits directly in the body, each cell directly in its row: a valid table.
+  const rows = [...table.querySelectorAll('tbody > tr')];
   expect(rows).toHaveLength(2);
-  expect([...rows[0]!.querySelectorAll('td')].map(td => td.textContent)).toEqual([
+  expect([...rows[0]!.querySelectorAll(':scope > td')].map(td => td.textContent)).toEqual([
     'Lumen X100',
     '1,299',
   ]);
@@ -61,7 +62,7 @@ test('a template child list expands one row per element, each cell in the elemen
       },
     },
   );
-  expect([...container.querySelectorAll('tbody tr')].map(tr => tr.textContent)).toEqual([
+  expect([...container.querySelectorAll('tbody > tr')].map(tr => tr.textContent)).toEqual([
     'one1',
     'two2',
     'three3',

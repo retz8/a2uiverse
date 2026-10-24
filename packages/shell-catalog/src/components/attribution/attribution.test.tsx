@@ -113,6 +113,7 @@ import type {CompositionOperation} from '@a2uiverse/sdk';
 import {FragmentHistoryContext, type FragmentHistory} from '../../fragment-history';
 import {PressStateContext} from '../../press-state';
 import {renderTree, surfaceFor, SURFACE_ID} from '../../testing/render';
+import type {PressHandler} from '../slot/slot';
 import {A2uiSurface} from '@a2ui/react/v0_9';
 import {Provider} from '../../provider';
 
@@ -259,7 +260,7 @@ test('the arrows draw disabled while the source is busy — its repaint in fligh
 
 test("through the catalog: the history read from the host's context by the painted appId, the press carrying the surface and component that raised it", async () => {
   const user = userEvent.setup();
-  const presses: Parameters<NonNullable<Parameters<typeof renderTree>[1]['onPress']>>[0][] = [];
+  const presses: Parameters<PressHandler>[0][] = [];
   renderTree(
     [
       {id: 'root', component: 'Attribution', displayName: 'GitHub', source: 'github', child: 'c1'},
@@ -483,7 +484,8 @@ test('a repaint that drops the request takes the chip and its card away (_dev/a2
     </Provider>,
   );
   expect(screen.getByRole('button', {name: 'Needs access'})).toBeInTheDocument();
-  act(() =>
+  // The model tells its listeners in turn, so the marker hears of the repaint after a microtask.
+  await act(async () =>
     processor.processMessages([
       {
         version: 'v0.9',
