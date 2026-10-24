@@ -303,6 +303,10 @@ The registry snapshot's second build of Shop A's catalog changes its dark accent
 
 The update tile's waiting-line replay answers Check again as the orchestrator does: the slot pending with its line kept, then the same line, the Store still waiting; its test presses it. Replaced: a replay with no answer for the press, its test asserting no press on the line.
 
+### 51. The live search test reads the cards as published
+
+The Store's captures are recorded again from the closing launch, the cards in the second person, and the live search test scores them: CircleCI, at the floor for "continuous integration" — 0.145 to 0.164 across runs — is the model's known miss there, and the cut may show 19 apps it should not, as it does on these cards. The cut itself is unchanged. Replaced: captures older than decision 26's descriptions, and 16 allowed, the count when the cut was fitted (task-14.11 decision 27).
+
 ## Write-up
 
 ### Before the sitting
@@ -354,10 +358,27 @@ The update tile's waiting-line replay answers Check again as the orchestrator do
 
 **The dark walk.** The stack stopped; the client built against the registry snapshot with its orchestrator address on port 5173's tunnel address, `preview:snapshot` naming `localhost:4173`, and served on 5173; the reader switched the browser to dark. Each store-loop beat opened with `&byhand`: beat 31, Shop B installed in the snapshot's world, "From the Store:" with Installed and Show it here, its press answered by Shop B's key tile; beat 32, both shops offered at the Store column's width, its recording holding no press; beats 33 and 34, Show it here answered by the installed line and by Shop B's key tile; beat 7, "Nothing in the Store can do this yet." and the Store page's search; the Store unreached, "Couldn't reach the Store."; needs an update, Update refused by the snapshot's 404 in the checks' words (decision 48); waiting, Check again unanswered (decision 50); the slot Shop B was uninstalled from; CircleCI's update card, its access box lost in the card (decision 47); and the per-paint builds, the two builds alike in dark (decision 49). Every line, press and tile read in dark but those. Seen again after the fixes, on the rebuilt client and snapshot: Check again took the slot to pending with its line kept and back to the same line; the access box drawn on the card; "That didn't go through, so nothing changed." with Try again; the second build's Price `rgb(119, 170, 190)` and the first canvas's `rgb(214, 154, 95)`.
 
+### After the sitting
+
+**The state left.** Every temporary edit in `a2uiverse-apps` reverted — Shop A's two extra lines and versions, CircleCI's new permission and version, Linear's palette, Shop B's new line — the checkout clean at `b85bbfa`, the three catalogs rebuilt. The marketplace's state wiped, its embedding model kept; the `STATE_DIR` line naming the sitting's folder taken out of the orchestrator's `.env`; the sitting's folder removed.
+
+**The regression pass after**, all green:
+- The platform's `pnpm verify`: 22 of 22.
+- `a2uiverse-apps`' `pnpm verify`, at `b85bbfa`: 31 of 31.
+- The Python suites: the kit 350, GitHub 144, Gmail 131, Calendar 123, CircleCI 82, Linear 77, Shop A 98, Shop B 99.
+- The Store's captures recorded again from the closing launch's marketplace (decision 51); the live search test on them, three runs.
+- The replay suite: 134 passed. Before the baselines were taken again, 21 screenshots differed, each by a decision of the sitting — the collapse line (decision 25), the second-person descriptions (decision 26), "Closest matches" (decision 38), Check again (decision 39), the updated line (decision 40) — and 3 checks on the captures' date. The baselines are each machine's own, not in the repo.
+- The live suite: 7 passed — accounts, publish, sign-in, the loop on Calendar, More in the Store, store, update.
+
+**The closing launch.** Under the publish with both tiers, all seven apps published as `a2uiverse-apps` and installed by id, none left uninstalled.
+
 ### Findings
 
 - A plan that searches the Store takes about 30 s and up to 41 s: 28 s for the camera comparison, 33 s for the day's agenda, 41 s for "Which cameras can I buy, and where?"; "Install Shop A." answered within 25 s, and in 32 s with decision 37's worked example.
 - The Store's search can't tell a search nothing fits from a match: with the embedding model all-MiniLM-L6-v2, "flight booking" scores Google Calendar 0.24 and "flights" Shop B 0.225, above the lowest right match in the labelled searches, "continuous integration" and CircleCI at 0.164, so no floor and margin keep every expected app and drop the flight searches' — the best cut on the cards as published shows 18 apps it should not across the labelled searches and 13 across ten flight, travel and booking searches. The Planner judges fit and offers none, searching again: 66 s. In the Backlog.
-- The live search test scores the Store recordings, older than decision 26's descriptions: on the cards as published the cut shows 19 apps it should not across the labelled searches, against the 16 it allows. The recordings are taken again in the regression pass after the sitting.
+- The live search test scored Store recordings older than decision 26's descriptions; on the cards as published the cut shows 19 apps it should not across the labelled searches, against the 16 it allowed, and CircleCI's score for "continuous integration" moves between 0.145 and 0.164 with what is embedded beside it, across the floor. Recorded again and the test set to the cards as published (decision 51).
+- Linear's deterministic answer to opening an issue is its one recording, A2U-5, whichever issue is pressed. In the Backlog.
+- Claude in Chrome asks leave per site, and each tunnel port is a site of its own: a sign-in window on an agent's port not yet allowed stops the run until the reader allows it.
+- A `pnpm dev:all` run against an orchestrator whose `.env` names a sitting's state folder reconciles that folder's registry: the sitting's apps installed from this computer, the ones it left out uninstalled.
 - The tunnel holds requests for seconds at a time: an install's row read "Installed" with "Loading…" for 11 s once and 1.5 s the next, an update's line "Loading…" for about 15 s while the new look loaded, the client's read of the installed apps and its `useApp` crossing the tunnel; the Store's list once took about 8 s to load, and a consent card up to 8 s to open.
 - A question that changes only part of the canvas on screen is undesigned: every question opens a canvas of its own, so "What's on this canvas?" answers about the canvas it was asked from. In the Backlog, worth discussing before Phase 20.
