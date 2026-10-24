@@ -44,6 +44,10 @@ From this sub-task the platform supplies `0.14.0` alone: an artifact packed for 
 - The sdk's tests covering the gate refusing a `0.9.1` artifact.
 - The platform's `pnpm verify` green.
 
+### 8. A Slot's one holding is the Planner's check
+
+A `Slot` holds exactly one of `source`, `gap`, `chooseAccount` or `addAccount`; the Planner's own checks refuse a slot holding none or more than one, beside what else it may write on a `Slot`.
+
 ## Invariants
 
 - The host lends one runtime at a time.
