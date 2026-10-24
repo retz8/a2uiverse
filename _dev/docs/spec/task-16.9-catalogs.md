@@ -15,7 +15,7 @@ The seven catalogs of the apps repo and the scaffolder's two catalog templates b
 
 ### 1. The themed basic catalogs keep their look through tokens alone
 
-Shop A, Shop B and the basic template sit on upstream's basic catalog, whose components style themselves. Each keeps its tokens, on upstream's names where they differ, and its theme sheet goes. Each store's accent is carried through upstream's primary colour and its hover shades, so the two stores side by side in a merged view still read as two sources. Where upstream draws a button or a hover differently from today, upstream's stands.
+Shop A, Shop B and the basic template sit on upstream's basic catalog, whose components style themselves. Each keeps its tokens, on upstream's names where they differ, and its theme sheet goes. Each store's accent is carried through upstream's primary and secondary colours — a default button's text in the accent, its hover a tint of it — so the two stores side by side in a merged view still read as two sources; the basic template carries its accent the same way. Where upstream draws a button or a hover differently from today, upstream's stands.
 
 ### 2. The lists draw their own `<li>`
 
