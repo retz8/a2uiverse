@@ -23,6 +23,8 @@ The client holds, in one place, the installed apps with their versions and each 
 
 The slot's consent card is the Store's card, its words and presses unchanged, in a frame anchored to the press and floating over the slot, on the canvas only. Escape, a click outside, and leaving the canvas — for another canvas, the trusted page or a new question — each count as Cancel, or Not now for an update. The Store and the App Library keep their centred card.
 
+*Amended by task 15.11 decision 23.* While the card is open, the press it floats from stays where it is on screen: a paint that moves it, the merged view landing above, is scrolled back by the same distance.
+
 ### 3. The Store page opened from a slot
 
 A Store page opened from a slot — by "More in the Store" or an offered app's name — stays tied to that slot for as long as it stays open, wherever the person goes in it. An install there of an app the slot offered fills the slot while it is still an unfilled offer; once it has filled, and for any app the slot did not offer, an install keeps today's line. The tie is never written into the page's address.

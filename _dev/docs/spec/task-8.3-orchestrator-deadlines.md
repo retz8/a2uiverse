@@ -64,6 +64,8 @@ The painter sets the decline's reason as `declined` on the shell slot. Every oth
 
 The shell catalog's addition is part of this task. The decline's prose copy stays until task 8.5 removes it.
 
+*Amended by task 15.11 decision 25.* The line for too few reads "Only GitHub answered, so there's nothing to combine.", or "No app answered, so there's nothing to combine."
+
 ### 10. The noun on each vendor slot
 
 Under a join the painter sets `noun` on each vendor slot: the source's display name with the plan's noun for it, "CircleCI runs". Without a join no noun is painted.

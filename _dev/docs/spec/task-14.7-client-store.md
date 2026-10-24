@@ -43,7 +43,7 @@ The sample is a picture of an answer: nothing in it takes focus or a press.
 
 The orchestrator's refused install answer carries a cause from a closed set — the Store behind the app, the app unreached, the checks failed, the Store unreached — beside its findings. The page draws each refusal's words and press from the cause.
 
-*Amended by task 15.11 decisions 44 and 48.* The closed set gains the app no longer in the Store: "Shop B isn't in the Store anymore, so nothing was installed.", or "…so nothing changed." for an update, with nothing to press, on a slot's offer row, the Store page and the App Library alike. An answer naming no cause the page knows says "That didn't go through, so nothing changed.", with Try again.
+*Amended by task 15.11 decisions 44 and 48.* The closed set gains the app no longer in the Store: "Shop B isn't in the Store anymore, so nothing was installed.", or "…so nothing changed." for an update, with nothing to press, on a slot's offer row, the Store page and the App Library alike. An answer naming no cause the page knows says "That didn't go through, so nothing was installed.", or "…so nothing changed." for an update, with Try again.
 
 ### 7. The consent card and the Update press are built here, once
 

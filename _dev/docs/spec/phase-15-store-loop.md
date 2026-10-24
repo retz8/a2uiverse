@@ -83,6 +83,8 @@ The agent kit's card can name an old catalog id beside a new one, and the kit pa
 
 An update that asks for more passes the consent card, and a slot whose account then lacks the new permission takes the needs-more-access tile — two steps, as in decision 7. Every other slot waiting on the same update, on any canvas, turns to "Show it here" once it lands. A slot whose app was uninstalled keeps "This app isn't installed anymore." with Retry, and offers no reinstall.
 
+*Amended by task 15.11 decision 40.* Every other slot waiting on the same update turns to "Shop B is updated." with Show it here once it lands.
+
 ### 16. The Gemini model sweep
 
 Code, configuration and the docs that describe the present, in both repos, move from `gemini-3.7-flash` to `gemini-3.8-flash`. Records of past runs keep what they say: the recordings' `model` field, the run logs of earlier specs, plans and handoffs, the Backlog's measurements. The vendor-agent model trial's baseline moves. `[apps]`, worked on `main` in both repos.

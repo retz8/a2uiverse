@@ -56,6 +56,8 @@ The Planner paints the add-account action only when the utterance asks for it �
 - **This canvas**: each slot of an account carries its label; a slot waiting on the account choice has its own state.
 - **Recent turns**: each line names a source by its one name — the app's name, with the label when the app has more than one account (task-12.4 decision 5).
 
+*Amended by task 15.11 decision 29.* The this-canvas reader names an account only when its name isn't the app's, in the person's words.
+
 ### 10. 12.6 builds the account choice end to end
 
 The account choice — the contract, the shell catalog's tile, the orchestrator and the client — is 12.6's, proven in the orchestrator's and the client's tests.

@@ -21,6 +21,8 @@ A question opens a canvas of its own, in a context the orchestrator mints. An ut
 
 The recent-turns reader walks `parent` links from the canvas the question was asked from, up to five ancestors, and writes one line per canvas from its composition state — the utterance, which sources answered, what became of the merged view, when it was opened, still loading or closed. The journal's per-conversation ring is not the source.
 
+*Amended by task 15.11 decision 29.* Each line is written in the person's words: what was asked, which apps answered by their names, never a field's name or the platform's terms.
+
 ### 3. A parent the orchestrator does not hold
 
 An opening utterance naming a parent with no composition here — after a restart, or a client bug — is planned as a root: no parent recorded, this canvas empty, recent turns empty, one log line naming the parent that was not found.

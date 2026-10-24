@@ -174,6 +174,8 @@ In the live half, "What needs my attention today?" painted GitHub's slot as a fa
 
 GitHub, back through Sign in again over a merge collapsed because no source answered, painted, and the merge's line still read "The merged view needs at least two sources, and none answered." with Retry GitHub, the progress line "No app answered, nothing to join": the arrival found a merge still impossible and left the collapse as it was written. A source arriving over a merge collapsed for too few, through Retry or the resume after a sign-in, writes the line afresh from the sources arrived — "Only GitHub answered, nothing to join", no Retry for it. Replaced: the line written once, when the merge collapsed.
 
+*Amended by task 15.11 decision 34.* The line is written afresh too when an app that answered leaves the merge's answers under a merge already too few — its slot failed, waiting on sign-in or needing an update — no longer naming it, its Retry covering it.
+
 ### 35. Retry takes a source that answered in words alone
 
 GitHub answered the attention question in words alone, its slot collapsed to them; the merge's line, carrying Retry over every source that did not arrive (task-8.7 decision 24), offered Retry GitHub, and the orchestrator refused the press — "GitHub has not failed." — with nothing said on the canvas. Retry takes a source that answered in words alone as it takes a failed one: the plan's request goes to it again. Replaced: Retry refused for any slot that had not failed or asked to sign in.

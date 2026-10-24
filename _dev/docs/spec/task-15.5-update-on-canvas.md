@@ -57,6 +57,8 @@ Every updatable state — the installed line retired, a major update, a card upd
 
 The update-tile slot carries the update state its line was computed from — the state, the installed version, the published version, the new permissions — and the publisher's name. The client draws the line from it; Update opens the consent card, when the update asks for more, from it and the app's entry read again at the press; a slot whose installed version no longer matches the app's in the client's installed apps reads "Show it here".
 
+*Amended by task 15.11 decision 40.* That slot reads "Shop B is updated." with Show it here.
+
 ### 9. Update ends in the slot's Retry
 
 Update is the orchestrator's existing install by app id, then the slot's Retry: the check before dispatch runs again and the slot sends again what failed — the press kept from inside the fragment, otherwise the plan's request. "Show it here" on a slot waiting on the same update is the same Retry. A Retry while the app still cannot paint lands on the update tile again.
@@ -74,6 +76,8 @@ Each run of the tile's state computation reports to the marketplace by the updat
 ### 12. The journal
 
 No new entry kind. A dispatch the update check stops is a dispatch record, failed, the agent not called, carrying the update finding: the case — the catalogs or a new permission — the update state and the line. The catch after the call keeps its catalog record, gaining the outcome of the card fetched again: changed, with the update finding; unchanged; unanswered. The Update is the registry line any install writes, the resend the Retry's operation entry; the report stays a log line.
+
+*Amended by task 15.11 decision 5.* A call that ends with no surface carries the outcome of the card fetched again on its dispatch record too: changed, with the update finding, the dispatch failed; otherwise the call stays completed.
 
 ### 13. SPEC edits
 

@@ -45,6 +45,8 @@ Pressing an offered app's name opens that app's view in the Store. A Store page 
 
 Install opens the Store's consent card, its words and presses unchanged, floating over the slot and anchored to the Install pressed. The offer stays behind it and nothing on the canvas moves.
 
+*Amended by task 15.11 decision 23.* While the card is open, the press it floats from stays where it is on screen: a paint that moves it, the merged view landing above, is scrolled back by the same distance.
+
 ### 8. One install at a time
 
 While one offered app installs, every other row's Install is disabled. A refused install brings them back; an install that lands gives the whole offer to its answer. Once the slot fills, the offer is gone.

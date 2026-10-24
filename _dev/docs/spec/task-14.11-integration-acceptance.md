@@ -284,7 +284,7 @@ Every write the page makes gets 60 s to answer, a publish 190 s: above the orche
 
 What only the lost answer knew stays unsaid: the apps that followed an update, whether an account's access was cancelled at its app. A read-back that cannot reach the orchestrator either answers as not reached. Replaced: a write with no time limit, the page saying "Updating" until reloaded when the tunnel left the request unanswered.
 
-*Amended by task 15.11 decision 28.* An install or an update whose read-back finds it not done says "That didn't go through, so nothing was installed." with Try again.
+*Amended by task 15.11 decision 28.* An install or an update whose read-back finds it not done says "That didn't go through, so nothing was installed." with Try again, or "…so nothing changed." for an update.
 
 ### 41. The Planner writes every update state into its sentence
 

@@ -82,3 +82,7 @@ The orchestrator's memory of the merged view, filed per combination of the paint
 ### 11. A Retry answered on the surface its failure took down shows on it
 
 A failed slot's fragment leaves the canvas as a copy. Once a Retry makes the slot pending again, an answer the app gives on that surface rather than a fresh one brings it back from the copy into its slot, the answer landing on it, and the way back returns to it again. While the slot stands failed, a message for it is still dropped. Replaced: the answer dropped as a late message, Shop A's slot on "Loading…" for good after its Retry sent "open camera" again and Shop A answered on its list's surface, the merged view's Shop A cells absent (task-8.5 decision 3's "a retried answer lands fresh").
+
+### 12. The journal's tool-call record names the Store's search
+
+The comment on the plan's tool-call record in the orchestrator's journal types says it holds every tool call the Planner made, a reader or the Store's search. Replaced: "One reader call the Planner made", standing since task 15.4 added `search_store` to the same record.

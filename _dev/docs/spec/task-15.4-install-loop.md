@@ -47,6 +47,8 @@ A merged view's planned columns are marked to dispatched sources only, and the p
 
 The painter stamps on the gap's `Slot` each offered app as its app id, name, publisher and short description, from the entry this plan's search returned, in the Planner's order. A gap offering nothing carries its cause instead — nothing found, or the Store unreached — from the record of its search. The requests the Planner wrote stay on the orchestrator.
 
+*Amended by task 15.11 decision 36.* An offer whose plan asks nothing of the apps it offers — an install asked for and nothing else — is marked so when painted, and opens with "From the Store:" alone.
+
 ### 9. Install, then the fill press
 
 Install is always the orchestrator's existing install, the call the Store page makes, its refusals carrying the Store's causes; the client shows the consent card first, built from the app's entry read again at the press. The slot fills on a press of its own on the canvas, `useApp`, after the account choice's `useAccount`: the one app the offer's request goes to, as its source, and the gap's words, naming the slot. Install in the slot, "Show it here", and an install on the Store page opened from the slot each end in that one press; "Show it here" is the press with no install before it.
@@ -66,6 +68,8 @@ An accepted `useApp` makes the gap's slot that app's slot, keeping its component
 ### 13. Asking to install an installed app
 
 An utterance asking to install an app that is already installed gets a platform answer in the Planner's words on the layout surface, the shell action opening the App Library on that app available to it. No gap is named.
+
+*Amended by task 15.11 decision 37.* The answer is one line in the shell's words, as the line an install leaves: "Shop A is already installed. Try asking “What cameras do you have?”", one of its skills' example questions, with "Manage Shop A" into the App Library. The installed-apps reader carries each skill's example questions, and a worked example shows the answer.
 
 ### 14. "Show it here"
 

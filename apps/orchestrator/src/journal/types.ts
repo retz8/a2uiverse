@@ -6,7 +6,10 @@ import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {TurnKind} from './descriptor.js';
 import type {SurfaceTouches} from './surfaces.js';
 
-/** One reader call the Planner made: which, with what, and what it read (task-6.4 decision 13). */
+/**
+ * One tool call the Planner made — a reader, or the Store's search — which, with what, and what it
+ * read (task-6.4 decision 13; task-15.4 decision 15).
+ */
 export interface ToolCallRecord {
   name: string;
   args: unknown;

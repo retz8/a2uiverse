@@ -66,6 +66,8 @@ The offer's tests narrow the world's installed apps for that test alone — Shop
 
 The snapshot gains a second build of Shop A's catalog, one visible theme token changed, made when the snapshot is built from the pinned package and packed with Stellify; the world's table keeps naming the first. A synthetic beat paints Shop A in the first build, then a new paint in the second: the surface on screen keeps the first build's mark and look, the new paint takes the second's.
 
+*Amended by task 15.11 decision 49.* The second build changes Shop A's accent in light and in dark: `#2b6a8a` beside the first build's `#8a5a2b`, and `#77aabe` beside `#d69a5f`. The per-paint test holds both appearances.
+
 ### 12. Carried from task 14.10
 
 The live suite's marketplace and dev publisher are its own, on scratch state. Each story leaves the stack as it found it. The live suite asserts no journal lines. Variants are made from built output.
