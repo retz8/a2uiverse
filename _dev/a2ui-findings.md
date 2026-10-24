@@ -135,7 +135,8 @@ Two parts, either useful alone:
 ## 9. A prop removed by `updateComponents` keeps its last value (web_core generic binder)
 
 **Component:** `@a2ui/web_core` 0.10.6, `src/v0_9/rendering/generic-binder.ts`
-(`rebuildAllBindings`, `resolveInitialProps`); the same lines stand on `upstream/main`.
+(`rebuildAllBindings`, `resolveInitialProps`); the same lines stand on `upstream/main`, and in
+0.14.0 at `src/resolution/generic-binder.js` (`rebuildAllBindings`, line 308).
 
 **Severity:** functional bug — a component repainted without a prop still renders with it; no
 error raised.
@@ -153,6 +154,11 @@ this.currentProps = {...this.currentProps, ...resolved};
 A key present in the previous properties and absent from the new ones is never cleared, so the
 component keeps receiving the value it last had. Only a prop whose new value is set explicitly
 changes; a prop that is dropped to mean "no longer so" cannot be expressed at all.
+
+On 0.14.0 a repaint that only drops props leaves the binder's props as they were, so the component
+is not rendered again at all: one that reads its own model's properties instead of the binder's
+still shows the dropped prop until something else renders it. Reading them on the model's
+`onUpdated` renders it without the prop.
 
 ### Reproduction
 
@@ -294,6 +300,12 @@ marks private and which skips the linking.
 
 Found building A2UIVerse's client, which loads every vendor catalog at runtime from its registry:
 each canvas's processor is built before the catalogs it will need are known.
+
+A2UIVerse carries PR #3304 as a local patch on `@a2ui/web_core` 0.14.0. A second build of a catalog
+the processor holds — the same id, a newer artifact — cannot come in through `addCatalog`, which
+refuses the id: the client puts the new build in the held one's place in the processor's own list,
+linked to the held catalogs with `linkCatalogs` as `addCatalog` links them, and a surface created
+before keeps the build it was created in.
 
 ### Reproduction
 
@@ -473,3 +485,113 @@ child inference from the Direct JSON stream processor") removed the same inferen
 TypeScript agent, and notes that the Python agent applies `is_v0_8_heuristic_child_prop_key` "for any
 component outside the reference map, whatever the version". The case here is a component inside the
 reference map whose spec is empty, in the core rather than the agent; no issue or PR reports it.
+
+---
+
+## 17. A prop declared as a plain array of strings is typed as a child list (web_core generic binder)
+
+**Component:** `@a2ui/web_core` 0.14.0, `src/resolution/generic-binder.d.ts` (`ResolveA2uiProp`,
+line 118) and `src/types/common-types.d.ts` (`ChildList`, line 684).
+
+**Severity:** typing versus runtime mismatch — a component casts its own declared prop back to the
+type its schema gives it.
+
+### Issue
+
+`ResolveA2uiProp` resolves any prop whose type extends `ChildList` to `(string | ResolvedChildRef)[]`.
+`ChildList` is `string[] | {componentId, path}`, so a prop declared as a plain `z.array(z.string())`
+— a list of headings, a list of words — extends it and is typed as a child list. At runtime the
+binder resolves children only for a prop marked with the `ChildList` reference, and the plain array
+arrives as the strings it holds. A component reading it as declared needs a cast.
+
+### Reproduction
+
+A component whose schema declares `columns: z.array(z.string())`: in its render function
+`props.columns` is typed `(string | ResolvedChildRef)[]`; painted with `columns: ['Name', 'Price']`,
+it holds `['Name', 'Price']`.
+
+### Fix
+
+Type a prop as a child list only when its schema carries the `ChildList` reference marker, as the
+binder's resolution decides; a plain string array resolves to `string[]`.
+
+---
+
+## 18. Every React component renders inside an element of its own (@a2ui/react)
+
+**Component:** `@a2ui/react` 0.14.0, `dist/chunk-QAAGXJWH.js`: each component is hosted in a custom
+element named `a2ui-react-<name>` (line 139), styled `display: contents` (line 103), with no class
+and no way to render a component without it.
+
+**Severity:** invalid markup and broken style rules — HTML that ties a parent to its child cannot be
+written, and a stylesheet's rules between a parent and its children, or between siblings, miss.
+
+### Issue
+
+HTML that requires a child directly inside its parent cannot hold the host element between them. A
+row component's `<tr>` lands inside its host under `<tbody>`, which React reports as invalid
+nesting; a list item's `<li>` lands inside its host under `<ul>` the same way.
+
+With each child alone in its host, a parent's rules that select its children (`>`) or relate
+siblings (`+`, `:first-child`, `:last-child`, `:nth-child`) miss or always hold. In Primer
+(`@primer/react` 38.36.0): ActionList's dividers, its item and group spacing, FormControl's and the
+checkbox and radio groups' spacing, Timeline's line, SegmentedControl's dividers and AvatarStack's
+overlap.
+
+The same release builds each child as a node of its own. A component's render function gets its
+child list as the child nodes' own ids (`a2ui-n15`), which name no component, so a parent that
+routes a child by its type reads the id from the child list its model holds. And a parent builds
+only its own children: building a child's child, or a component that a reference names but the
+schema does not mark as a component id — a union of an id and text, an icon two levels down in an
+array — draws an unresolved child reference. web_core resolves a marked field, a child list, an
+array of ids, and a marked field one level into an array of objects.
+
+### Reproduction
+
+A catalog `Table` whose `TableRow` child renders `<tr>`: the rendered DOM puts the row's host
+element between `<tbody>` and `<tr>`, and React reports the nesting as invalid. A Primer
+`ActionList` with `showDividers` draws no divider between its items: Primer's rule relates sibling
+items, and each item sits alone in its host.
+
+### Fix
+
+Let a component render without a host element where the DOM it draws needs to sit directly in its
+parent's, or carry the binding a host element provides on the component's own root.
+
+A2UIVerse's shell catalog draws each `TableRow` child's `<tr>` itself and renders only the cells
+through the renderer. Its GitHub catalog restates Primer's rules between a parent and its children
+in a scoped sheet; its Gmail, Calendar and Linear catalogs' lists draw each `<li>` around the child
+they build; Primer's lists keep an item's `<li>` inside its host, inside the list's `<ul>`.
+
+---
+
+## 19. Where a component cannot be drawn, the renderer draws developer text a host cannot replace (@a2ui/react)
+
+**Component:** `@a2ui/react` 0.14.0, `dist/chunk-QAAGXJWH.js`: `LoadingPlaceholder` (line 224),
+`UnresolvedChildReference` (line 244) and `ChildElement`'s unknown type (line 350); none is exported
+or configurable.
+
+**Severity:** developer text on the page — a surface shows the renderer's own messages to the person
+using it.
+
+### Issue
+
+Three places draw text meant for a developer. A child not yet arrived draws `[Loading <id>...]` in
+grey; a component type the catalog does not hold draws `Unknown component type: <type>` in red; a
+child reference the renderer cannot resolve draws its error message in red, beside reporting it on
+the surface. A streamed surface shows the first for every child still to come. No prop, context or
+catalog entry lets a host draw its own.
+
+### Reproduction
+
+Render a surface whose root `Column` names children `a` and `b` while only `a` has been sent: the
+page reads `[Loading b...]` until `b` arrives.
+
+### Fix
+
+A host-supplied stand-in for each of the three — a pending child, an unknown type, an unresolved
+reference — through the surface's props or a context, defaulting to today's.
+
+A2UIVerse carries a local patch on `@a2ui/react` 0.14.0 (`patches/@a2ui__react@0.14.0.patch`) that
+draws a quiet stand-in in all three places, each marked with `data-a2ui-placeholder`; the error of an
+unresolved reference is still reported on the surface.
