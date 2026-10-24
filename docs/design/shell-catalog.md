@@ -77,7 +77,7 @@ Eight components exist only in the shell catalog. In the example:
 
 | Component | What it is | In the example |
 | --- | --- | --- |
-| **`Slot`** | A region of the layout reserved for one source's answer. It draws the answer when there is one, and otherwise its state: loading, failed, collapsed, or waiting for sign-in. It is also the shell's own tiles: a capability gap, the account choice, the add-account tile | One per app, plus one for the merged view (`source: "shell"`) |
+| **`Slot`** | A region of the layout reserved for one source's answer. It draws the answer when there is one, and otherwise its state: loading, failed, collapsed, or waiting for sign-in. It is also the shell's own tiles: the offer from the Store, the update tile, the account choice, the add-account tile | One per app, plus one for the merged view (`source: "shell"`) |
 | **`Attribution`** | The quiet app name above a slot, the account's label when the app has more than one, that app's back and forward arrows, and a "Needs access" chip when the app asks for more | "Linear", "GitHub", "CircleCI" above the three slots |
 | **`DerivedValue`** | The only way a merged view shows a value: the value plus how sure it is | Every cell of the table |
 | **`SortControl`** | "Sort by" with the options and the direction | "Sort by Updated ↓" |
@@ -166,7 +166,7 @@ flowchart TD
 ]
 ```
 
-A `Slot` holds **exactly one** of `source` (whose answer fills it), `gap` (a capability no installed app has; more on that below) or `chooseAccount` (an app with two accounts, for a command that named neither). `weight` is the basic catalog's flex share: three slots of weight 1 split their row equally. `content: "shell"` marks the merged view's slot as the shell's own content, `columns` are the view's planned headers, and `columnSources` the app each one shows.
+A `Slot` holds **exactly one** of `source` (whose answer fills it), `gap` (what no installed app can do, named by the words of the Planner's search; more on that below) or `chooseAccount` (an app with two accounts, for a command that named neither). `weight` is the basic catalog's flex share: three slots of weight 1 split their row equally. `content: "shell"` marks the merged view's slot as the shell's own content, `columns` are the view's planned headers, and `columnSources` the app each one shows.
 
 **2. The orchestrator wraps each app's slot.** The `Attribution` entries above aren't the Planner's: the orchestrator adds one around every app's `Slot`, copying the slot's `weight` onto it so wrapped and bare slots size by one rule. The wrapper never shrinks below what it holds: in a column, a region taller than its share keeps its height and its neighbours take the rest, so one app's fragment never runs over the next app's. The merged view's slot stays bare, because the merged view is the shell's own page, not something an app painted.
 
@@ -187,7 +187,8 @@ A `Slot` holds **exactly one** of `source` (whose answer fills it), `gap` (a cap
 | clicks a cell | `DerivedValue` | `onNavigate(target)`: the client scrolls to that element in the app's slot |
 | presses the back arrow | `Attribution` | `onPress({kind: "step", sources: ["circleci"], step: 0})` |
 | presses Retry | `Slot` | `onPress({kind: "retry", sources: ["github"]})` |
-| presses "Search the Store" | `Slot` with a `gap` | `onShellAction({name: "openStore", query: …})` |
+| presses Install, Update or Show it here | `Slot` with an `offer`, or on the update tile | `onAppAct({kind: "install", appId: "shop-b", gap: "Shop B", …})`, the pressed button as `anchor` |
+| presses More in the Store, Search the Store or an offered app's name | `Slot` with a `gap` | `onShellAction({name: "openStore", query: …, componentId: …})`, or `{app}` for a name |
 | presses an account | `Slot` with `chooseAccount` | `onPress({kind: "useAccount", sources: ["gmail.2"]})` |
 
 Every press carries the surface and component that raised it, so the client knows which answer and which slot it came from.
@@ -270,7 +271,7 @@ One more detail explains why `Slot` reads its props from the component's own mod
 - **A button, when it can go somewhere.** With a `target` and a host `onNavigate`, the value gets `role="button"`, takes focus, and navigates on click, Enter or Space.
 - **The full story, always, for assistive technology.** The accessible name carries the value, "needs attention" for a danger value, the contributor detail, the mark and the evidence, whatever the pointer is doing.
 
-A value that names an app (`names: "app"`) is drawn by the host's name for it. The `format` prop renders numbers, currency, and date-times in one form: a whole amount of money without cents, a date-time in English (`en-US`) in the viewer's own zone, as their browser reports it, a time written with no zone read as the viewer's wall time, through the same `instant.ts` the client's sort uses ([`synthesis.md`](synthesis.md#reading-time)). The catalog's tests view from one zone, US Eastern, pinned in `vitest.setup.ts`. `prefix` writes a `#` before a pull request number but never before the empty dash.
+A value that names an app (`names: "app"`) is drawn by the host's name for it. The `format` prop renders numbers, currency, and date-times in one form: a whole amount of money without cents, in the browser's language ("US$1,449" in a Korean browser, "$1,449" in an American one), a date-time in English (`en-US`) in the viewer's own zone, as their browser reports it, a time written with no zone read as the viewer's wall time, through the same `instant.ts` the client's sort uses ([`synthesis.md`](synthesis.md#reading-time)). The catalog's tests view from one zone, US Eastern, pinned in `vitest.setup.ts`. `prefix` writes a `#` before a pull request number but never before the empty dash.
 
 The join marks themselves come from `cellJoin` in `src/components/derived-value/join.ts`, a **union-find** over the apps linked by facts. `synthesis.md` walks through it in [Marking a join](synthesis.md#marking-a-join-union-find), and the relations it relies on are in [Checking a relation](synthesis.md#checking-a-relation).
 
@@ -344,9 +345,19 @@ A paint the orchestrator refused for a credential field fails its slot with `cau
 
 The shell has exactly three actions of its own: **`openStore`**, with an optional `query`; **`openAppLibrary`**, with an optional `app`, an installed app's id, to open on that app; and **`openPublish`**, with nothing. Adding an account is the add-account tile, not an action ([Authority surfaces](#authority-surfaces)). Each is a catalog function, like the basic catalog's `openUrl`, that a `Button` runs through a `functionCall`. The function does nothing itself: it hands the host one plain object, `{name, surfaceId, query?, app?}`, through `onShellAction`, and the host decides what opening the Store, the App Library or Publish looks like: in the client, a destination of the trusted page ([`trusted-page.md`](trusted-page.md)). Manage apps on the "not supported here" tile names its slot's app the same way.
 
-The **account choice** is the capability tile's sibling. A `Slot` with `chooseAccount` draws "Which Gmail account should I use?" and one press per account, labelled from `accounts`, which the orchestrator paints from the vault, never the model. A press is a `useAccount` naming the account; the slot gives way to the loading line at once, and the repaint names the account the slot now waits on, wrapped in its `Attribution` like any app's.
+The **account choice** is the offer's sibling. A `Slot` with `chooseAccount` draws "Which Gmail account should I use?" and one press per account, labelled from `accounts`, which the orchestrator paints from the vault, never the model. A press is a `useAccount` naming the account; the slot gives way to the loading line at once, and the repaint names the account the slot now waits on, wrapped in its `Attribution` like any app's.
 
-The capability tile is the one component that raises an action itself. A `Slot` with a `gap` (a capability no installed app has) draws "No installed app can do this." beside a "Search the Store" button, which raises `openStore` with the gap as the query and the slot's own id as `componentId`. The tile keeps a box, unlike every other slot, because it's the shell's own UI with an action in it, not a place held for an app's pixels. The box hugs its line and its button at the slot's leading edge, where a failure tile's line sits, and wraps the button under the line only when the slot is too narrow for both.
+### Store loop surfaces
+
+A need no installed app can meet, and an app that can't paint in what it's installed with, are explained end to end in [`store-loop.md`](store-loop.md). This catalog draws both, every word the shell's own, from facts the orchestrator paints.
+
+**The offer.** A `Slot` with a `gap` and an `offer` (`components/slot/offer.tsx`) draws "None of your apps can do this. From the Store:", then each offered app as a row in the Store's result style: its letter tile, its name, which opens its view in the Store, "by" its publisher, its description held to two lines, and Install; then "More in the Store", which opens the Store on the gap's words. No box is drawn around it, and it's at most 880px wide, the Store page's column, at the slot's leading edge. The line reads "From the Store:" alone once an app it offered is installed, here or elsewhere, and when the plan asks nothing of the apps it offers (`asksNothing`). A row's press follows the client's `AppActState`: Install, Installing while it runs, Installed with Loading… once installed, Show it here for an app installed elsewhere, every other row's Install disabled meanwhile, and a refusal on its own row, in the Store's words from the sdk's `refusalOf`, with the press that cause carries. An `offer` with `none` draws one quiet line instead: "Nothing in the Store can do this yet." or "Couldn't reach the Store.", with Search the Store. Once installed with nothing asked of it, the slot holds `installed` and draws "Shop B is installed. Try asking “What cameras do you have?”", the card's first example, or "Ask it something." with none.
+
+Until the installed app's first answer the orchestrator keeps the offer on the slot as `offered` (the gap, the apps, which one was installed), and marks the slot's `Attribution` `fromOffer`, so the slot changes once: from the offer to the answer, or to the sign-in tile.
+
+**The update tile.** A vendor `Slot` in state `update` carries `update`: the update state, the installed and published versions, the new permissions and the publisher (`components/slot/update-tile.tsx`). It draws one line at the quiet line's size under the app's marker, its sentence chosen by `updateLineOf` from the state: "Shop B needs an update to show this." with Update; "Shop B has changed, and the Store is waiting on its publisher, Acme." with Check again; "Shop B has changed, and the Store couldn't be reached." with Retry; "Shop B has changed, and the Store has no update for it." with nothing to press. While Update runs it reads Updating; once the client's installed version passes the one the line was drawn from, "Shop B is updated." with Loading… while its request goes again, or with Show it here. A column reserved for an app on the tile reads "needs an update", "waiting on its publisher", "couldn't check for updates" or "no update available".
+
+**Raising the presses.** Install, Update and Show it here go to the host through **`onAppAct`**, inside the click, as an `AppActRequest`: `{kind, appId, gap?, source?, surfaceId, componentId, anchor}`, the pressed button as `anchor` for a card to float from. Without the handler none of the three is drawn. The host tells the catalog where each press stands through **`AppActContext`**, an `AppActState`: each slot's press (asking, running, refused with its cause), each app's installed version, and the apps a press holds anywhere.
 
 ### Keeping the files in step
 
@@ -384,7 +395,7 @@ Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-th
 - every component in every value of every enum prop, under Radix light, Radix dark, and no host Theme;
 - the merged view built from a worked timeline example, evaluated, with a live sort;
 - every `DerivedValue` reading, from hand-built cells: complete, partial, absent, empty, guessed, broken;
-- every `Slot` and `Attribution` state, the capability tile, the presses and their lines, and the way-back arrows;
+- every `Slot` and `Attribution` state, the offer and the update tile in each of their states, the presses and their lines, and the way-back arrows;
 - the authority surfaces: the authority tile with and without scopes, waiting, the quiet line, sign in again, not supported, the refused paint, two accounts' labels, the escalation chip and card, a column and a merge waiting on sign-in;
 - the scoping proof: two Providers under two different host Themes in one document.
 
@@ -395,7 +406,9 @@ Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-th
 | `?beat=9` | This guide's example: the layout, the names, the merged view's table and sort |
 | `?beat=10` to `?beat=18` | The failure tile, Retry, Include, and every way the merged view collapses |
 | `?beat=26` | The way-back arrows, stepping CircleCI back and forward, each named for where it goes |
-| `?beat=7` | A capability gap: the tile and its "Search the Store" button |
+| `?beat=7` | Nothing in the Store can do this yet, with Search the Store |
+| `?beat=31` | The offer: Shop B offered beside Shop A, installed in its slot |
+| `?beat=update-waiting` | The update tile's waiting line, with Check again |
 
 ## Where the code is
 
@@ -407,8 +420,9 @@ Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-th
 | Keep-sets | `src/keep-sets.ts` (pruning itself: `packages/sdk/js/src/a2ui/prune.ts`) |
 | The guidance docs | `docs/synthesis-guidance.md`, `docs/platform-ui-guidance.md` |
 | The Provider and its scoped stylesheet | `src/provider.tsx`, `scripts/scope-radix.mjs` |
-| The host's contexts | `src/slot-content.ts`, `src/slot-state.ts`, `src/press-state.ts`, `src/fragment-history.ts`, `src/sign-in.ts` |
+| The host's contexts | `src/slot-content.ts`, `src/slot-state.ts`, `src/press-state.ts`, `src/fragment-history.ts`, `src/sign-in.ts`, `src/app-act.ts` |
 | `Slot`, the failure tile, the authority tile and the lines | `src/components/slot/slot.tsx`, `src/components/slot/press-lines.ts` |
+| The offer and the update tile | `src/components/slot/offer.tsx`, `src/components/slot/update-tile.tsx`; their props in `src/components/slot/slot.schema.ts` |
 | `Attribution`, the arrows and the escalation | `src/components/attribution/attribution.tsx` |
 | `TextField` without `obscured` | `src/components/text-field/text-field.schema.ts` |
 | `DerivedValue` and the join marks | `src/components/derived-value/derived-value.tsx`, `src/components/derived-value/join.ts` |
@@ -428,7 +442,7 @@ In the client, the catalog is built in `apps/client/src/catalogs/clientCatalogs.
 | **Catalog** | The set of components and functions a surface may use: a schema plus an implementation |
 | **Basic catalog** | A2UI's standard catalog, whose props the shell catalog keeps exactly |
 | **Surface** | One A2UI screen: a component tree and its data model. The shell paints `shell:main` and `shell:synthesis` |
-| **Slot** | A region of the layout reserved for one source's answer, or for a missing capability |
+| **Slot** | A region of the layout reserved for one source's answer, or for what no installed app can do |
 | **Attribution** | The app's name above its slot, with its back and forward arrows |
 | **Fragment** | One app's surface, drawn inside its slot |
 | **Keep-set** | The components and functions one author may use |
@@ -437,7 +451,8 @@ In the client, the catalog is built in `apps/client/src/catalogs/clientCatalogs.
 | **Provider** | The catalog's one wrapper component: its Theme, its scoped styles, its portal root |
 | **Portal root** | The element inside the Provider where floating content mounts |
 | **Failure tile** | What a failed app's slot shows: one sentence, then Retry |
-| **Capability tile** | What a `gap` slot shows: "No installed app can do this." and "Search the Store" |
+| **Offer** | What a `gap` slot shows: the apps from the Store, each with Install, and More in the Store; or one quiet line with nothing to offer |
+| **Update tile** | What a slot whose app can't paint in what it's installed with shows: one line, with Update, Check again or Retry |
 | **Authority tile** | What a slot that needs sign-in shows: what the app will be able to do, and Sign in, Connect or Allow |
 | **Escalation** | An app asking, from inside its fragment, for more than it was allowed: the "Needs access" chip and its card |
 | **Source** | An app and the account it paints under: `gmail.2`, or the bare app id when the app needs no sign-in |

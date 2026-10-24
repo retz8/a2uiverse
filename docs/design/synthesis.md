@@ -477,6 +477,8 @@ The timers around it:
 
 Both lengths come from the orchestrator's environment (`A2UIVERSE_SOFT_DEADLINE_SECONDS`, `A2UIVERSE_HARD_CAP_SECONDS`).
 
+An app installed from the question's own slot joins the same way: the merge doesn't wait for it, and lands over the apps that answered; the installed app's first answer is included on arrival, as a slot waiting on sign-in is, its Install standing as its Retry ([`store-loop.md`](store-loop.md)).
+
 The release is the question's **one automatic merge**. Every later Synthesizer call has a reader's press behind it, so the merged view never changes without a visible reason. And a composition makes **one merge at a time**: a merge whose input partitions change while the model is writing is thrown away and made again over the data as it now stands.
 
 ### Noticing what changed after a click
@@ -563,12 +565,12 @@ A merged view that can't be shown collapses to **one line** where its label woul
 | Fewer than two apps answered        | "Only GitHub answered, so there’s nothing to combine.", or "No app answered, so there’s nothing to combine." | Retry over each app that didn't arrive: "Retry Linear", or "Retry all" |
 | The model's document failed twice, or the call failed | "The merged view couldn't be made."                         | Try again   |
 
-A too-few line is written afresh whenever an app arrives over it, through Retry or the resume after a sign-in, and the merge still can't be made. Say none answered, and GitHub comes back: the line becomes "…and only GitHub answered.", the progress line "Only GitHub answered, nothing to join", and the line's Retry covers only the apps still missing, never GitHub.
+A too-few line is written afresh whenever an app arrives over it, through Retry or the resume after a sign-in, and the merge still can't be made, and whenever an app that answered leaves the answers under it — its slot failed, waiting on sign-in or needing an update. Say none answered, and GitHub comes back: the line becomes "Only GitHub answered, so there's nothing to combine.", the progress line "Only GitHub answered, nothing to join", and the line's Retry covers only the apps still missing, never GitHub.
 
 Around a view that did land:
 
 - **A late app** fills its own slot for free. The view stays as it is, the late app's column reads "not included", and a line above the view offers **Include**, which runs a re-synthesis folding it in.
-- **Retry** asks one app that didn't arrive again: one that failed, or one that answered in words alone, its slot collapsed to them. It sends the click inside its answer that failed, when one did, otherwise its original request.
+- **Retry** asks one app that didn't arrive again: one that failed, or one that answered in words alone, its slot collapsed to them. It sends the click inside its answer that failed, when one did and the surface it was made on is still drawn in a catalog the app holds, otherwise its original request.
 - **Try again** makes a merge whose model call failed, over every app that arrived.
 - A re-synthesis that fails **keeps the landed view** and says so beside the press that tries again.
 

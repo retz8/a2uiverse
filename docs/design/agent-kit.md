@@ -318,12 +318,23 @@ The account comes from the upstream. In deterministic and stub mode that's a cho
 
 ### One card, every mode: the server
 
-`server.py` builds the agent card from the config, advertising A2UI's v0.9.1 extension with the catalog id the app supports, and `cli.py` runs it with uvicorn. Two details come from running agents through a dev tunnel:
+`server.py` builds the agent card from the config, advertising A2UI's v0.9.1 extension with the catalog ids the app supports, and `cli.py` runs it with uvicorn. Two details come from running agents through a dev tunnel:
 
 - **CORS** allows `localhost` on any port and `*.devtunnels.ms`.
 - **Keep-alive is 300 seconds**, not uvicorn's 5. With 5, an idle connection between turns was closed by the server while a tunnel kept reusing it, and the next request hung.
 
 `--base-url` sets the address the card advertises, for when the client reaches the agent through a tunnel or proxy. With sign-in on, `--public-url` sets where the browser reaches the sign-in pages (the sign-in page, the account chooser's form and the finish address a vendor returns to) while the card's endpoint, the metadata and the token endpoint stay on `--base-url`.
+
+### An old catalog line beside the new one
+
+A catalog id is a catalog's version: removing a component or changing a type needs a new id, and an install still on the old id can't draw the new one. So the config can carry an **old catalog line**, `old_catalog_line=CatalogLine(...)`, beside its own catalog fields: the old catalog as published, its examples, brand doc, question policy and deterministic answers (`config.py`, `catalog_lines.py`). Prose, tools and sign-in stay shared. A breaking catalog change then ships as a suggested update rather than a forced one.
+
+- **The card names both ids, newest first**, and the kit won't start if both are the same id.
+- **A turn is painted in the newest id the client renders.** The hub advertises the ids the app is installed with, so an install still on the old line is answered in it, each line's own prompt in the one conversation; a client sending no capabilities gets the newest.
+- **An action is answered in the id of the surface it came from**, while a line holds it and the client renders it; otherwise as a fresh surface in the newest id the client renders. The kit knows a surface's id from the `createSurface` it sent, held in memory, so an action on a surface painted before the agent last started takes the newest line.
+- **A client that renders neither id** gets no UI, only "Shop A has changed and can't show this here.", and no model call.
+
+Retiring the old line is deleting `old_catalog_line` and publishing. [`store-loop.md`](store-loop.md) follows one through: Shop A's 0.2.0 naming both ids, its 0.3.0 the new one alone, and the update on the canvas.
 
 ### Caching per config
 
@@ -370,7 +381,8 @@ The kit knows nothing about A2UIVerse. The connection is made from A2UIVerse's s
 - **The launcher** in the `a2uiverse` repo names each app in its roster — its folder, its tier and its port — and starts its agent through the kit's own entrypoint on that port: `uv run python -m app --mode <mode> --host localhost --port <port>`. It packs the app's catalog package with Stellify and installs the app into the orchestrator from the agent's card URL; [app-install.md](app-install.md) follows an install from the pack to the first paint.
 - **The orchestrator's AuthVault** signs in to the agent through its front door, as the card declares, and sends the token it issued as a header on every request; see [authority.md](authority.md).
 - **The orchestrator** talks A2A to the agent like any client. It renames the agent's surfaces (`assigned-issues` becomes `linear:assigned-issues`) and places them in the app's slot; see [orchestrator.md](orchestrator.md).
-- **The canvas** reads `paintMeta`, and draws the answer with the app's catalog; see [client.md](client.md). When the answer is joined with other apps' answers, [synthesis.md](synthesis.md) takes over.
+- **The canvas** reads `paintMeta`, and draws the answer with the app's catalog; see [client.md](client.md).
+- **The Store** reads the card as published: the Planner's search shows a published app's name, publisher, description and skills, and the slot that needs it offers the app; an app whose card names no catalog id it's installed with takes the update tile; see [store-loop.md](store-loop.md). When the answer is joined with other apps' answers, [synthesis.md](synthesis.md) takes over.
 
 ## Design decisions
 
@@ -387,6 +399,7 @@ The kit knows nothing about A2UIVerse. The connection is made from A2UIVerse's s
 | **Titles and questions as tags beside A2UI** | A2UI stays standard; any client ignores what it doesn't know | The model must write the tags; the prose teaches it, and the question policy checks it |
 | **Tool hooks at the lowest boundary** | One payload each way, never a second copy for the model to read | Re-classing ADK's tool objects relies on ADK's internals |
 | **Terminal tasks can't move** | A cancelled task stays cancelled | A store of the kit's own, until the A2A SDK's next major line reads each task once |
+| **An old catalog line beside the new one** | A breaking catalog change ships as a suggested update; installs on the old id keep getting answers in it | Two lines to keep until the old one retires: its catalog, examples, brand doc and deterministic answers |
 | **Apps pin the kit by commit when outside the repo** | A scaffolded app keeps working as the kit moves | Taking a kit change means re-pinning |
 
 ## Trying it without a model
@@ -407,7 +420,8 @@ In `a2uiverse-apps/agent-kit/src/a2ui_agent_kit/`:
 
 | Module                         | What it does                                                                                   |
 | ------------------------------ | ---------------------------------------------------------------------------------------------- |
-| `config.py`                    | `AgentAppConfig`, and the default model                                                         |
+| `config.py`                    | `AgentAppConfig`, `CatalogLine`, and the default model                                          |
+| `catalog_lines.py`             | The current and the old catalog line: the ids the card names, the line a turn is painted in     |
 | `cli.py`                       | The entrypoint: flags, `.env` loading, logging, uvicorn                                         |
 | `server.py`, `task_store.py`   | The A2A app, the one agent card, CORS; the terminal-guarded task store                          |
 | `modes.py`                     | Mode to executor; the ADK agent with the mode's tools                                           |

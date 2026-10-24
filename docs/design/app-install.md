@@ -42,7 +42,7 @@ An A2A agent describes itself in an **agent card**, a JSON document it serves at
 ```jsonc
 {
   "name": "GitHub",
-  "description": "Reads and acts on the user's GitHub: finds the pull requests that need them, …",
+  "description": "Reads and acts on your GitHub: finds the pull requests that need you, …",
   "url": "http://localhost:11001",
   "version": "0.1.0",
   "capabilities": {
@@ -457,7 +457,7 @@ flowchart TD
 The structures behind it:
 
 - **`builds: Map<artifactId, ResolvedCatalog>`** holds every build loaded, by its artifact id, once for the page, shared by every canvas that holds it and by a Store sample drawn in it ([`trusted-page.md`](trusted-page.md#sample-one-build-per-artifact-id-drawn-apart)). **`loadingBuilds`** keeps one load in flight per build, so the preload and a paint arriving in that catalog share one; an entry goes when its load settles.
-- **A set per canvas.** Each canvas holds its own `Map<catalogId, ResolvedCatalog>`, started from the builds the table names when it opens, and the first build of a catalog id loaded into a set wins for that set. A canvas on screen keeps the build it shows when an update moves the catalog; a canvas opened after takes the new build, with no reload.
+- **A build per paint.** A paint is drawn in the build the orchestrator's stamp names for its catalog, `builds` on the stamp, the one the registry held when the paint was relayed; with none named, the one the table names as last read. The gate loads that build and assigns it to the message (`catalogs/paintBuilds.ts`), and the canvas's processor draws the create in it, so a surface on screen keeps the build it was drawn in beside a newer one of its catalog. A change to a surface's components assigned a newer build moves the surface there, re-created with its tree and data; a change to its data alone moves nothing. A paint the way back returns to is restored in the build it was drawn in.
 - **One catalog array.** Every answer's `MessageProcessor` is built over the loader's `catalogs` array, and a loaded catalog is pushed into it. web_core looks a catalog up in that array when a surface is created, so an answer opened before an install still finds the new catalog. web_core doesn't promise to hold the array by reference; a test pins that it does.
 - **A failed load isn't kept**, so the next paint in that catalog, or a Retry, tries again.
 
@@ -488,10 +488,10 @@ Two browser behaviours shape the third column:
 | Change | The registry | An answer already drawn | The next paint |
 | --- | --- | --- | --- |
 | Uninstall | the record goes; each artifact goes once no record names it | keeps what it drew | a dispatch to the app fails `uninstalled`: "This app isn't installed anymore.", with Retry |
-| Install-over, same catalog, a new hash | the row moves to the new artifact; the old one's files go | keeps what it drew | a canvas on screen keeps the build it drew in; a canvas opened after loads the new one, with no reload |
+| Install-over, same catalog, a new hash | the row moves to the new artifact; the old one's files go | keeps what it drew | a surface on screen keeps the build it was drawn in; the next paint, on any canvas, is drawn in the new one, with no reload |
 | Install-over, a new catalog id | the old id's row goes, the new id's comes | keeps what it drew | the new catalog loads as the paint arrives, with no reload |
 
-**Retry sends again what failed.** Say an answer drawn before GitHub was uninstalled is still open, and you click a pull request in GitHub's slot. The click fails `uninstalled`. GitHub is installed again, and you press Retry on its slot. Retry sends the click again, so the slot shows the pull request it opened, not GitHub's list from the plan. The orchestrator keeps a click that failed on its slot (`failedPress` in `composition/state.ts`) until a click or a Retry there completes. A slot whose question's dispatch failed retries the plan's request.
+**Retry sends again what failed.** Say an answer drawn before GitHub was uninstalled is still open, and you click a pull request in GitHub's slot. The click fails `uninstalled`. GitHub is installed again, and you press Retry on its slot. Retry sends the click again, so the slot shows the pull request it opened, not GitHub's list from the plan. The orchestrator keeps a click that failed on its slot (`failedPress` in `composition/state.ts`) until a click or a Retry there completes. A slot whose question's dispatch failed retries the plan's request, and so does a slot whose kept click was made on a surface drawn in a catalog an update has since dropped: the app paints afresh in what it now holds ([`store-loop.md`](store-loop.md)).
 
 ### Dev harness: the launcher and the snapshot
 
@@ -550,9 +550,9 @@ Two browser behaviours shape the third column:
 | **One build per catalog id; a new build moves the row and the other apps follow, checked as an additive evolution** | Install is one operation on every path; a shared catalog upgrades in one install, and nothing another app renders in is removed or retyped under it | A hand install can move the build another hand-installed app renders in; the summary names it |
 | **The record keeps where its install came by** | Only an app from the marketplace is ever moved by the index; a pack handed from disk stays where the operator put it | A local-pack app on a shared row holds back the automatic update of the apps sharing it |
 | **Entitlement checked at the hub** | No app paints in another's catalog, whatever the client advertised | One check per relayed event |
-| **The first build a canvas loads wins for that canvas, each build's stylesheets scoped to its own surfaces** | A canvas on screen keeps its look when an update moves the catalog, and a canvas opened after takes the new build with no reload; no catalog's sheet styles another's | Every artifact sheet is read as text and adopted; a rule a sheet aims at the whole page reaches only its own surfaces; an `@import` inside a sheet is not followed, an adopted sheet having none |
+| **A paint drawn in the build the registry holds when it arrives, each build's stylesheets scoped to its own surfaces** | Nothing on screen changes its look when an update moves the catalog, and the next paint takes the new build on any canvas with no reload; no catalog's sheet styles another's | Every artifact sheet is read as text and adopted; a rule a sheet aims at the whole page reaches only its own surfaces; an `@import` inside a sheet is not followed, an adopted sheet having none |
 | **Every request of a load bounded, then asked once more** | A request nothing answers fails its slot, with Retry, rather than leaving it loading for good | A load through a very slow link can fail where waiting longer would have worked |
-| **Retry sends again what failed** | Retry after a failed click shows what the click opened | A slot keeps the failed click until something there completes |
+| **Retry sends again what failed** | Retry after a failed click shows what the click opened | A slot keeps the failed click until something there completes; a click made on a surface whose catalog an update dropped is not sent again |
 
 ## Known limits
 

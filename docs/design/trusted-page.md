@@ -5,7 +5,7 @@ This guide explains the **trusted page**: the one page A2UIVerse draws over the 
 One example runs through the whole guide: **Shop B**, a mock camera retailer from Northlight, put in the Store by a publisher who also uses A2UIVerse, then found, installed, updated and taken out again, all on the page. It's a real run on the deterministic apps: GitHub, Gmail, Google Calendar, CircleCI, Linear and Shop A were published by the dev publisher `a2uiverse-apps` and installed; Shop B's agent was running, neither published nor installed. Every id, hash and line below is a real one. You can repeat it yourself (see [Trying it](#trying-it)).
 
 <p align="center">
-  <img src="../images/trusted-page-store.gif" width="720" alt="The Store searching camera prices: Shop B and Shop A as the best matches, Shop B's view with its sample answer drawn live, and the apps by northlight">
+  <img src="../images/trusted-page-store.gif" width="720" alt="The Store searching camera prices: Shop B and Shop A at the top, Shop B's view with its sample answer drawn live, and the apps by northlight">
   <br>
   <em>The Store: a search, Shop B's view with its sample answer drawn live in Shop B's own look, and the apps of its publisher.</em>
 </p>
@@ -247,6 +247,10 @@ Every act on the page is one journal line, `"by":"page"`: install, update and un
 
 ## Beyond the example
 
+### Opened from a slot
+
+An offer on the canvas opens the Store too: More in the Store on the offer's words, Search the Store on the line with nothing to offer, and an offered app's name on its view. The page stays tied to the slot it was opened from for as long as it's open, wherever you go in it, and the tie is never written into the address. An install there of an app the slot offered fills that slot beneath the page while it's still an unfilled offer: "Shop B is installed. It's answering on your canvas.", with Back to your canvas. Any other install keeps "Try asking … on your canvas." [`store-loop.md`](store-loop.md) has the loop end to end.
+
 ### Ways in, and Back
 
 The Planner's shell actions land on the page from an answer: "Is anything out of date?" is answered with a button into the App Library, "How do I publish my app?" with one landing on Publish, and asking to manage an app's accounts with one opening the App Library on that app. The answer to "Is anything out of date?" comes from the installed-apps reader, which hands the Planner each app's update state **as last computed**, with when the check ran ("All of your installed apps are up to date — checked 11 minutes ago"). A plan never waits on the marketplace or a live card.
@@ -348,7 +352,6 @@ What only the lost answer knew stays unsaid: the apps that followed an update, w
 - **One publisher per orchestrator.** A second publisher on the same computer signs the first out first.
 - **Pack and preview stay on the terminal.** Publish takes Stellify's folders and sample file; it doesn't build or pack anything.
 - **The consent card has words only for scopes.** A card update that newly asks for a key, or for a sign-in with no named scope, passes the consent card with nothing in it.
-- **The Store loop isn't built yet.** A capability the canvas lacks doesn't yet lead into the Store and back; the page's ways in are the Planner's buttons, Apps and an address. The overlay keeps the canvas mounted for that loop.
 
 ## Trying it
 

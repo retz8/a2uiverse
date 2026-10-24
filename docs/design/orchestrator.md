@@ -292,6 +292,15 @@ The Store, the App Library and Publish are explained end to end in [`trusted-pag
 - **The publisher is held here** (`marketplace/publisher.ts`): one name and token, with the marketplace that issued them, in `<state>/publisher/publisher.json`, owner-only. The claim, the sign-in check, publish and unpublish are relayed with the token as the bearer; the token reaches the browser once, in the claim's answer. `listings.json` reads each of the publisher's live cards again before answering, so an app ahead of the Store says so at once, and reports a drift the marketplace's flag doesn't show yet.
 - **Writes from the browser need no token** (`writeGuard.ts`): a JSON body from an allowed origin, localhost or 127.0.0.1 on any port or a host of the orchestrator's own tunnel. Install, update, uninstall, an account's rename and sign-out, and the publisher's calls each journal one line `by: "page"`.
 
+### Store loop's hands
+
+An app offered, installed and updated in the slot that needs it is explained end to end in [`store-loop.md`](store-loop.md). The orchestrator's part in brief:
+
+- **The Planner searches the Store** through `search_store` (below), and a plan's **gap** offers the apps its own search returned, each with the request it would send.
+- **The offer is painted from the marketplace's entries** (`composition/shellPainter.ts`): each offered app's id, name, publisher and description, never its request, which stays on the orchestrator; a gap with nothing to offer carries why, nothing found or the Store unreached, from the plan's record of its search.
+- **`useApp`** naming the app and the gap turns the gap into the app's slot and sends it the request the plan offered it, with no second plan (`fillGap` in `composition/state.ts`); an offer that asked nothing paints the installed line instead. Until the app's first answer, the slot keeps the offer it came from.
+- **The update tile** is a slot in state `update`, carrying the update state its line was drawn from and the publisher's name. Update is the install by id over the held app, then the slot's Retry; the slot keeps its tile while the resend is pending.
+
 ### Refusing a repeat
 
 Through a dev tunnel a request sometimes gets lost, so the client sends a request once more, under the **same message id**, when it hears nothing for 10 seconds. If the first had only been slow, running both would repeat an app's write, like merging a pull request twice.
@@ -337,7 +346,8 @@ flowchart LR
 
 - **The rule it plans by** is prose in its prompt (`src/planner/planner.md`): answer the question the person means. A question about where one kind of thing stands, or about what is waiting on the person (what needs them, what's on their plate), gathers from every app whose card shows it holds a part, named or not: a review asked of them, mail to answer, a meeting to attend, an issue assigned to them. An app not signed in yet is dispatched all the same, and the shell asks for the sign-in in its slot. A command or a lookup inside one app's object, or a question naming its app, goes to that app alone. An app whose card shows no part is left out: every app added lengthens the wait, so none joins to fill the screen.
 - **The readers** are the Planner's only view of the platform: three tools with no input. `installed_apps` lists the apps, their skills with their example questions, whether each asks sign-in and its accounts by label, and each app's update state as last computed, in the App Library's words, with when that check ran ("checked 12 minutes ago"), so a plan never waits on the marketplace or a live card; `this_canvas` describes the canvas the question was asked from in the person's words, carrying what its screen doesn't say (what was asked; each app, an account by its name when it isn't the app's, what it was asked for, how its answer stands and what to do about one that isn't there; whether the merged view shows and why not, what it puts together, its columns and the order it was made in); `recent_turns` gives one line per question up that canvas's chain of parents, each app by its name. Each is a small projection of the orchestrator's own state, and the Planner writes it in the person's words, saying what the screen doesn't rather than restating it, and naming the canvas it describes by its question, since its answer opens a canvas of its own. None ever returns an app's data. The Planner can answer "what's on my screen?" without seeing what's on it.
-- **A step budget.** Each attempt may take at most four steps (`stopWhen: stepCountIs(4)`): the three readers and the answer.
+- **The Store's search** is the one tool with input: `search_store`, with words of the Planner's own (`src/planner/storeSearch.ts`). It asks the marketplace's search through the orchestrator's marketplace client, within the limit every request to the Store has, and answers the apps found, the installed ones left out, each as its name, publisher, description and skills, or that the Store wasn't reached. The model sees the marketplace only through that answer. Each call is recorded on the plan with its words and its answer, and that one record serves the plan check, the line with nothing to offer and the journal. [`store-loop.md`](store-loop.md) follows a search to an install.
+- **A step budget.** Each attempt may take at most five steps (`stopWhen: stepCountIs(5)`): the three readers, the search and the answer.
 - **One tagged block.** The model answers with its JSON inside `<layout-surface>…</layout-surface>`. `extractTaggedBlock` takes exactly one such block and tolerates text around it. The tag is the orchestrator's own and never `<a2ui-json>`, the tag the client extracts A2UI from, so model output meant for the orchestrator can never be mistaken for UI.
 - **The validator** (`src/planner/validate.ts`) checks, in order: the output schema; the tree against the shell catalog pruned to the layout's components (`Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button`), so `Attribution` is simply not a word the Planner has; every dispatched source is on the shortlist, once, with a request; an account choice names an app with two accounts, once, not also dispatched; a merged view needs at least two sources; its columns, column marks and join name only dispatched sources; exactly one `Slot` per dispatch entry; none of the painter's own props on a `Slot`; an add-account `Slot` names an app on the shortlist that asks sign-in, one per app; and a data model of plain values, never a formula or a ref.
 - **One retry, in the same conversation.** The failed answer and every reader result stay in the message list, and the errors are appended as one more turn: fix this, don't start over. A second failure makes the turn a **broken turn**, its final naming the findings.
@@ -349,7 +359,7 @@ The title the Planner writes is clipped to 48 characters before it's sent, and a
 `src/composition/shellPainter.ts` is a **pure function** from the composition's state to A2UI parts. It keeps the Planner's components and ids in order, and writes in what only the shell owns:
 
 - **Every app's `Slot` is wrapped in an `Attribution`.** A first pass builds a `Map` from each app slot's id to its wrapper's id, `attribution-<slotId>`. A second pass copies every component, **rewiring** any `child` or `children` reference to a wrapped slot so it points at the wrapper instead. The parent now holds the Attribution, which holds the Slot.
-- **The painter's props go on each slot:** `state` and `label`, plus, depending on the slot, the merged view's `columns` and `join`, a failed slot's `failure`, a collapsed merge's reason, and the facts the Retry, Include and Try again lines are drawn from. The Planner may not write any of these; the validator refuses them.
+- **The painter's props go on each slot:** `state` and `label`, plus, depending on the slot, the merged view's `columns` and `join`, a failed slot's `failure`, a collapsed merge's reason, the facts the Retry, Include and Try again lines are drawn from, a gap's `offer` drawn from the marketplace's entries, and an update tile's `update`. The Planner may not write any of these; the validator refuses them.
 
 A **repaint** sends the whole `updateComponents` again from the current state. Slots are found by their `source` and every id stays put, so the client updates in place. The first paint has two more parts, ahead of the tree: the Planner's title as the shell's own `paintMeta`, and the plan's data model when it isn't empty.
 
@@ -359,7 +369,7 @@ A2UIVerse promises that **an unmodified A2UI agent composes**. So the relay chan
 
 | Change | What | Why |
 | --- | --- | --- |
-| **Stamp** | `metadata.a2uiverse = {source, role: "fragment"}` | the client places the surface by `source` |
+| **Stamp** | `metadata.a2uiverse = {source, role: "fragment", builds}`, `builds` the build of each of the app's catalogs the registry holds now (`Registry.builds`), on every event carrying A2UI | the client places the surface by `source`, and draws it in the build `builds` names |
 | **Namespace** | `surfaceId` becomes `<source>:<surfaceId>` on the four A2UI operations and on the app's `paintMeta` | two apps can't collide on one screen, and a paint's title and question mark land on the surface the client sees |
 | **Partition filter** | outbound: each app gets only its own surfaces' data, keys un-namespaced | an app never sees another app's data |
 
@@ -394,6 +404,10 @@ The structures behind it:
 
 **Catalog entitlement** ([`app-install.md`](app-install.md#entitlement-at-the-hub) has it end to end). A dispatch reads the app from the registry once, as it starts, and keeps that snapshot to its end. The app's **entitlement** is the catalogs handed at its install plus the basic catalog. It goes out as the message's `a2uiClientCapabilities.supportedCatalogIds`, in place of whatever the client sent, so each app is told only what it may paint in. Every event coming back is checked: a `createSurface` in any other catalog is never relayed, the app is sent `tasks/cancel`, and the dispatch fails with the `catalog` cause, carrying the id.
 
+**The update check before a dispatch.** An app is asked only if it can paint in what it's installed with. Before the sign-in, the pool reads the live card the run holds: when it names no catalog id in the app's entitlement, the dispatch stops, the agent not called. After the sign-in, the vault judges the account against the live card, where the card as installed was met: an account short of a permission the live card newly asks stops it too. Either way the pool reads that one app's Store entry, runs the update check's state for it, and puts the **update finding** on the dispatch record — the case, the update state, the publisher and the line it chooses (`registry/updateTile.ts`) — and the slot takes the update tile. Access is judged on the card as installed: the live card is read only to see that the app has changed.
+
+**The catch after the call.** A paint refused outside the entitlement, or a call that ends with no surface, has the app's live card fetched again, given five seconds, and the fetched card replaces the one held. After a refused paint, a card naming a catalog id beyond the entitlement brings the update tile; after a call with no surface, a card naming one beyond it and none in it. Otherwise the refused paint fails as below, and the call with no surface stays completed. [`store-loop.md`](store-loop.md) follows one through to the update.
+
 **The credential bar.** No password, code or card field is ever painted on the canvas. Every event coming back is checked before it is relayed, by whole words over each painted component's type, its property names and the values its catalog declares as fixed options, never labels, free text or the app's data. A paint with a match is refused whole: never relayed, what its answer already showed taken down, the reason sent back to the app once in the same conversation, and a repair that paints one again failing the dispatch with the `credential` cause and the app's own page. Every text request the hub writes to an app ends with the same advice. [`authority.md`](authority.md#credential-bar-no-password-field-on-the-canvas) has it in full; it lives in `src/agentsPool/credentialBar.ts`.
 
 **How a dispatch ends.** `completed`; `cancelled` (aborted); or `failed` with a cause:
@@ -402,6 +416,8 @@ The structures behind it:
 - `catalog` when the app painted outside its entitlement.
 - `credential` when the app painted a credential field and painted one again when asked not to, carrying its own page as `continueUrl`.
 - `uninstalled` when the app isn't installed at dispatch time, so it isn't asked at all.
+
+A dispatch the update check stopped, or the catch after the call found the app changed, fails with no cause and the update finding on its record.
 
 **The hard cap** is a `setTimeout` for 300 seconds. When it fires first, `capped` resolves, but the stream is **not** ended: the slot fails as `timeout` right away, and whatever arrives after that is **held**, undrawn, until you press Retry. If the app is still running when you retry, the old dispatch and the new one **race**: the first to answer is drawn and the other is cancelled.
 
@@ -506,7 +522,9 @@ Set `A2UIVERSE_DEBUG_IDS=1` to see the app's own ids under the stamp while debug
 | The Planner's answer failed validation twice | A broken turn: a `failed` final naming the findings |
 | No `GOOGLE_API_KEY` | Questions are broken turns; clicks inside apps still work |
 | An app failed, couldn't be reached, or hit the hard cap | That app's slot shows the failure tile with Retry; the others carry on |
-| An app painted in a catalog outside its entitlement | The paint is dropped; that app's slot fails with the `catalog` cause and the id, with no Retry |
+| An app's live card names no catalog id it's installed with | The app isn't asked: its slot takes the update tile, its line from the Store's entry read then |
+| An app painted in a catalog outside its entitlement | The paint is dropped and the live card fetched again: a card naming the change takes the update tile; otherwise that app's slot fails with the `catalog` cause and the id, with no Retry |
+| An app answered with no UI, its live card fetched again naming nothing it's installed with | Its slot takes the update tile |
 | An app painted a password, code or card field | The paint is never shown; what its answer already showed is taken down and the app is asked once to answer without it. If it paints one again, its slot fails with the `credential` cause and "Continue on <App>", with no Retry |
 | A dispatch (a Retry, a click inside its answer) to an app uninstalled since | That app's slot fails with the `uninstalled` cause, with Retry |
 | The registry on disk is damaged | The orchestrator doesn't start; the error names the file and the problem |
@@ -539,6 +557,8 @@ For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay
 | **The relay changes three things, nothing else** | An unmodified A2UI agent composes; apps are written for their own product, never for A2UIVerse | The shell can't fix an app's paint; it can only trim or fail it |
 | **Apps' finals demoted; the hub sends the one final** | Under fan-out, the turn ends once, after everyone | The client learns an app is done from the `settled` marker instead |
 | **Model output in the orchestrator's own tag, validated, one retry** | The Planner and the Synthesizer share one shape; bad output never reaches the screen; cost is bounded | A second failure is a broken turn |
+| **The marketplace reached through a Planner tool, not folded into the Router** | The Router stays over the installed apps; a plan that never searches never waits on the marketplace; the model sees the Store only through the tool's answer | A plan that searches takes about 30 s, and a published app's card text reaches the Planner whenever it searches |
+| **The update check before every dispatch, on the live card the run holds** | An app that can't paint in what it's installed with says so before it's asked; the line is chosen from the Store as it stands | A change made while the orchestrator runs shows only once the card is fetched again: by the App Library's check, a refused paint, or a call that ends with no UI |
 | **Readers: a closed set of tools, never app data** | The Planner answers questions about the platform without seeing anyone's data; a new question kind is a new reader | Each reader is written by hand |
 | **The registry is files in the state directory** | Nothing to run beside the orchestrator; a copy of the directory is a snapshot | No concurrent writers; a damaged file stops the boot |
 | **Install refuses the whole app, every finding at once** | An app is never half installed; the publisher sees everything to fix in one go | A single bad file keeps out every catalog handed with it |
@@ -579,9 +599,10 @@ All paths are under `apps/orchestrator/src/`.
 | Classifying a message | `composition/classify.ts` |
 | Installed apps, the catalog table, install and uninstall (see [`app-install.md`](app-install.md)) | `registry/` (`registry.ts`, `store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `types.ts`); who may write, `writeGuard.ts`; the static gate is the sdk's `gate.ts` |
 | The marketplace client, install by id, the update check and the automatic build update | `registry/marketplace.ts`, `registry/registry.ts` (`installFromMarketplace`), `registry/updates.ts` |
+| The update tile's finding, the check before a dispatch and the catch after the call | `registry/updateTile.ts`, `agentsPool/agentsPool.ts` |
 | Embeddings, the corpus document, cosine and rank | `packages/embedder/` — the `@a2uiverse/embedder` package, shared with the marketplace |
 | Routing | `router/router.ts` |
-| The Planner | `planner/` (`planner.ts`, `validate.ts`, `prompt.ts`, `planner.md`, `examples.ts`, `readers.ts`, `platformReaders.ts`, `document.ts`, `getModel.ts`) |
+| The Planner | `planner/` (`planner.ts`, `validate.ts`, `prompt.ts`, `planner.md`, `examples.ts`, `readers.ts`, `platformReaders.ts`, `storeSearch.ts`, `document.ts`, `getModel.ts`) |
 | The Synthesizer | `synthesizer/` (see [`synthesis.md`](synthesis.md)) |
 | Sign-in: the AuthVault, its routes and pages (see [`authority.md`](authority.md)) | `vault/` (`vault.ts`, `store.ts`, `schemes.ts`, `oauth.ts`, `routes.ts`, `pages.ts`) |
 | The trusted page's relay, the publisher and the write guard (see [`trusted-page.md`](trusted-page.md)) | `marketplace/` (`routes.ts`, `publisher.ts`, `artifacts.ts`), `writeGuard.ts` |

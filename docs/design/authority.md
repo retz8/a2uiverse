@@ -243,6 +243,8 @@ Before each dispatch, `standing(source)` answers with no network call:
 | need `again` | The account's refresh failed, or it was refused after one | "Your Linear sign-in has run out.", **Sign in again** |
 | need `unsupported` | No alternative the vault can do | "Signing in to Acme Wiki isn't supported here.", **Manage apps** |
 
+Standing is judged against the card **as installed**. The live card is read only to see that the app has changed: once the account meets the installed card, the update check judges the same account against the live card, and an account short of a permission only the live card asks takes the update tile rather than this tile — the new permission asked only through the update's consent card, once the Store has that card. After such an update, a slot whose account still lacks it takes the `more` tile, a second step, as an app installed from a slot that needs sign-in takes its tile once installed: the install's consent and the sign-in stay two consents ([`store-loop.md`](store-loop.md)).
+
 The painter turns the need into the `Slot`'s `authority` prop: the cause (`signIn`, `connect`, `more`, `again` or `unsupported`), the scopes in the card's words, and `quiet` when the full tile was already shown. `prepare(source)` is the same check made just before sending, which also refreshes a token that expires within a minute.
 
 ### Full tile once per page load
