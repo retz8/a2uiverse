@@ -411,3 +411,65 @@ renderer function calls accept any args for such a function before and after the
 No issue, PR or discussion reports it (searched 2026-10-17). Of the open PRs, only #2724, which
 relaxes the v1.0 catalog schema rules, touches the Python catalog package, and only
 `_spec_shape.py`. Found writing the `add_catalog` tests for #3304.
+
+---
+
+## 16. A string prop naming a component reads as a child reference from v0.9 (Python core)
+
+**Component:** `a2ui-core` 0.4.0, `python/a2ui_core/src/a2ui/core/state/component_model.py`,
+`ComponentModel.get_child_references` (line 185) and its fallback to
+`is_v0_8_heuristic_child_prop_key` (lines 220–227); the same lines stand on `upstream/main`
+`409ded29` (lines 186–228). Reached from `analyze_topology`
+(`python/a2ui_core/src/a2ui/core/state/validation_helpers.py`, line 167), and so from
+`MessageProcessor`, `a2ui-agent-sdk` 0.9.0's `validate_payload` and its Direct JSON parser.
+
+**Severity:** functional bug — a valid v0.9 surface is refused as a cycle, or as holding a
+reference that is not one, whenever a plain string prop happens to equal a component id.
+
+### Issue
+
+`get_child_references` reads a component's child references from its catalog's reference
+spec when the spec declares any. When it declares none, it falls back to a heuristic its comment
+calls "legacy v0.8 protocol support where catalog schemas don't define formal ComponentId/ChildList
+refs": any prop not on a short list of names (`text`, `label`, `icon`, `variant`, …) whose string
+value is the id of a component on the surface is a child reference.
+
+The fallback runs on every surface, whatever its version, and for every component whose spec
+declares no reference props — a leaf such as `Icon` or `Text` as much as a component the catalog
+does not know. On a v0.9 catalog that declares every child with a `$ref`, an empty spec means the
+component has no children. A leaf's string prop that equals an id — an icon's `name`, an enum
+value — is read as an edge, so a valid surface fails topology: an `Icon` named `"mail"` inside the
+row whose id is `mail` makes a cycle.
+
+### Reproduction
+
+```python
+from a2ui.core.basic_catalog import BasicCatalog
+from a2ui.utils import validate_payload
+
+cat = BasicCatalog("0.9")
+validate_payload([cat], [
+    {"version": "v0.9", "createSurface": {"surfaceId": "s", "catalogId": cat.catalog_id}},
+    {"version": "v0.9", "updateComponents": {"surfaceId": "s", "components": [
+        {"id": "root", "component": "Row", "children": ["mail"]},
+        {"id": "mail", "component": "Row", "children": ["mail-icon"]},
+        {"id": "mail-icon", "component": "Icon", "name": "mail"},
+    ]}},
+])
+# A2uiRecursionError: Circular reference detected involving component 'mail'
+```
+
+With the `Icon` named `"send"` the same surface passes.
+
+### Fix
+
+From v0.9, read a component the catalog declares by its reference spec alone: an empty spec yields
+no child references. Keep the heuristic for v0.8 surfaces and for a component no spec covers.
+
+### Prior art
+
+Closed issue [#2978](https://github.com/a2ui-project/a2ui/issues/2978) ("TS agent: remove name-based
+child inference from the Direct JSON stream processor") removed the same inference from the
+TypeScript agent, and notes that the Python agent applies `is_v0_8_heuristic_child_prop_key` "for any
+component outside the reference map, whatever the version". The case here is a component inside the
+reference map whose spec is empty, in the core rather than the agent; no issue or PR reports it.

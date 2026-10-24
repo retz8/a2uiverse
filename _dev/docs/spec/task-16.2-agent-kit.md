@@ -18,7 +18,7 @@ The kit pins `a2ui-agent-sdk` 0.9.0, `a2ui-a2a` 0.1.0 and `a2ui-core` 0.4.0, eac
 
 ### 2. The prompt
 
-The kit assembles the prompt itself, in today's order: the role; the workflow slot — upstream's base rules, then the kit's and the app's prose; the UI description; the schema block; the examples header, the app's framing, then the examples. The base rules, the schema block and the examples are upstream's generated pieces. The examples reach the model without their `intent`.
+The kit assembles the prompt itself, in today's order: the role; the workflow slot — upstream's base rules, then the kit's and the app's prose; the UI description; the schema block; the examples header, the app's framing, then the examples. The base rules and the schema block are upstream's generator's; the examples are upstream's `load_examples`, each example file whole, its `intent` included.
 
 ### 3. A retry patches in place, owned by the kit
 
@@ -42,6 +42,10 @@ Every app's agent SDK pins and its lock move with the kit's change, so every app
 - The scaffolder's run of a freshly generated app, green.
 - Every app starting in each of its three modes and answering a deterministic turn.
 - One live turn: a custom-catalog app in `llm` mode streaming its first paint progressively, with no `Row` placeholder. The Backlog's item on the streaming parser's placeholder is answered by it and leaves the Backlog.
+
+### 8. A local fix for the core's child-reference fallback
+
+`a2ui-core` 0.4.0 reads a plain string prop equal to a component id as a child reference on every surface, so a valid surface fails topology (finding 16). The kit carries a local fix, reading a component its catalog declares by its reference spec alone from v0.9, recorded as finding 16 in `_dev/a2ui-findings.md` with a Backlog line to drop it when upstream fixes it.
 
 ## Invariants
 
