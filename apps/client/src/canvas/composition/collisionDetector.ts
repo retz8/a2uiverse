@@ -55,6 +55,8 @@ export function analyzeCss(css: string, into: StyleFacts = emptyFacts()): StyleF
       stack.push(prelude.trim());
       prelude = '';
     } else if (char === '}') {
+      // A block's last declaration may end at its brace, as a minified sheet writes it.
+      if (prelude.trim()) recordDeclaration(prelude, stack, into);
       stack.pop();
       prelude = '';
     } else if (char === ';') {

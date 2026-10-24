@@ -16,11 +16,11 @@ const create = (surfaceId: string, catalogId: string = CATALOG.id): A2uiMessage 
 const components = (surfaceId: string, comps: unknown[]): A2uiMessage =>
   ({
     version: 'v0.9',
-    updateComponents: {surfaceId, root: 'root', components: comps},
+    updateComponents: {surfaceId, components: comps},
   }) as unknown as A2uiMessage;
 
-const data = (surfaceId: string, path: string, contents: unknown): A2uiMessage =>
-  ({version: 'v0.9', updateDataModel: {surfaceId, path, contents}}) as unknown as A2uiMessage;
+const data = (surfaceId: string, path: string, value: unknown): A2uiMessage =>
+  ({version: 'v0.9', updateDataModel: {surfaceId, path, value}}) as unknown as A2uiMessage;
 
 const text = (id: string, value: string) => ({id, component: 'Text', text: value});
 

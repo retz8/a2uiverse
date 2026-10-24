@@ -56,12 +56,17 @@ for (const name of Object.keys(dependencies).sort()) {
 
 // Shop A's second build: its accent changed in a copy of the built package, in both appearances,
 // so the move shows in dark as in light (task-15.11 decision 49) — the dark accent the light one
-// shifted as Shop A's own pair is — its dependencies linked from where the package sits, never
+// shifted as Shop A's own pair is — on the primary colour and on the secondary ones, the tint the
+// new accent's as Shop A's is its own; its dependencies linked from where the package sits, never
 // copied.
 const SECOND = 'shop-a-catalog';
 const ACCENTS = [
   [`'--a2ui-color-primary': '#8a5a2b'`, `'--a2ui-color-primary': '#2b6a8a'`],
+  [`'--a2ui-color-secondary': '#f4efe8'`, `'--a2ui-color-secondary': '#eaf0f3'`],
+  [`'--a2ui-color-on-secondary': '#8a5a2b'`, `'--a2ui-color-on-secondary': '#2b6a8a'`],
   [`'--a2ui-color-primary': '#d69a5f'`, `'--a2ui-color-primary': '#77aabe'`],
+  [`'--a2ui-color-secondary': '#423831'`, `'--a2ui-color-secondary': '#2f3c44'`],
+  [`'--a2ui-color-on-secondary': '#d69a5f'`, `'--a2ui-color-on-secondary': '#77aabe'`],
 ];
 {
   const packageDir = realpathSync(join(root, 'node_modules', SECOND));

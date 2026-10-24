@@ -57,7 +57,7 @@
  * The live processor is the live registry — exactly what the agent may see.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {A2uiValidationError} from '@a2ui/web_core/v0_9';
+import {A2uiIntegrityError, A2uiValidationError} from '@a2ui/web_core/v0_9';
 import type {CompositionStamp, PaintMeta, SynthesisPayload} from '@a2uiverse/sdk';
 import {QUESTION_PAINT_KIND, readPaintMeta} from '@a2uiverse/sdk';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
@@ -172,6 +172,14 @@ export interface TurnRunner {
    */
   restore(source: string, step: RestorableStep): void;
 }
+
+/**
+ * A failure a streamed partial causes, which the rest of the stream can heal. web_core files a
+ * surface missing or created twice, and a component id given twice in one batch, under its
+ * validation failures as integrity failures; none of them heals, so each is reported as it happens.
+ */
+const isPartialFailure = (err: unknown) =>
+  err instanceof A2uiValidationError && !(err instanceof A2uiIntegrityError);
 
 const HELD_FAILURE_TEXT = 'The paint failed and was discarded — keeping the current view.';
 const EMPTY_FAILURE_TEXT = 'The paint failed and was withdrawn.';
@@ -521,7 +529,7 @@ export function createTurnRunner({
     const refuseBatch = ledger.refuse;
 
     const onMessageError = (err: unknown, message: A2uiMessage) => {
-      if (err instanceof A2uiValidationError) {
+      if (isPartialFailure(err)) {
         deferredValidation.push(err);
         return;
       }
@@ -946,7 +954,7 @@ export function createTurnRunner({
     const onMessageError = (err: unknown, message: A2uiMessage) => {
       // A partial the vendor completes in its next batch fails validation on the way; the
       // fragment is judged whole at the stream's end.
-      if (err instanceof A2uiValidationError) return;
+      if (isPartialFailure(err)) return;
       const {surfaceId} = targetOf(message);
       if (!surfaceId || !ledger.fragmentSlots.has(surfaceId)) reportMessageError(err);
       if (surfaceId) ledger.fail(surfaceId, '/', describeError(err));

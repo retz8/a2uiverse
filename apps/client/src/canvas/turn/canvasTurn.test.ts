@@ -1126,6 +1126,12 @@ describe('streams beside the turn (task 8.5)', () => {
     expect(store.getState().placement.has('gmail')).toBe(true);
   });
 
+  it('a message for a surface that never existed is reported as it arrives, on a stream beside the turn', () => {
+    const {store, runner} = composed();
+    runner.beginSideStream().apply([textRoot('missing', 'no such surface')]);
+    expect(store.getState().error).toMatch(/could not be displayed/);
+  });
+
   it('an action inside the composition leaves its streams running', () => {
     const {runner} = composed();
     const stream = runner.beginSideStream();

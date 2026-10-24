@@ -76,7 +76,6 @@ const preview = (appId: string, text: string): PreviewDocument => ({
       version: 'v0.9',
       updateComponents: {
         surfaceId: 'main',
-        root: 'root',
         components: [
           {id: 'root', component: 'Column', children: ['line', 'buy']},
           {id: 'line', component: 'Text', text},

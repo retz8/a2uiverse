@@ -2,7 +2,8 @@
  * Navigation from a merged cell (task-7.7 decisions 2–6; task-16.7 decision 3): a storefront
  * fragment in a themed catalog — upstream's basic components beside a React component of its own —
  * its boundary registered in the binding index, and landing resolved against what the page holds —
- * the exact binding, the row by degradation, the list, the boundary, the slot.
+ * the exact binding, the row by degradation, the list, the boundary, the slot; and the same landing
+ * over the registry snapshot's GitHub and Shop A catalogs.
  */
 import {afterEach, describe, expect, test, vi} from 'vitest';
 import {z} from 'zod';
@@ -17,6 +18,7 @@ import {clientCatalogs, resolveCatalog} from '../../catalogs/clientCatalogs';
 import {FragmentBoundary} from '../composition/FragmentBoundary';
 import {BindingIndexContext, createBindingIndex} from './bindingIndex';
 import {createNavigator, resolveLanding, RING_CLASS, RING_MS, SCROLL_SETTLE_MS} from './landing';
+import {snapshotCatalogId, snapshotCatalogs} from '../../../tests/snapshot';
 
 /** The storefront's own component: a React one, beside the basic catalog's custom elements. */
 const PriceTag = createComponentImplementation(
@@ -196,5 +198,70 @@ describe('landing', () => {
     navigator.navigate({app: 'nobody', surface: 'nobody:x', pointer: '/x'});
     expect(warn).toHaveBeenCalledOnce();
     warn.mockRestore();
+  });
+});
+
+describe('over the registry snapshot', () => {
+  test('a tap lands on a vendor’s React component and on a themed store’s basic one', async () => {
+    const catalogs = await snapshotCatalogs();
+    const github = snapshotCatalogId('github-catalog');
+    const shopA = snapshotCatalogId('shop-a-catalog');
+    const processor = new MessageProcessor<ReactCatalogComponent>(catalogs.map(c => c.catalog));
+    processor.processMessages([
+      msg({createSurface: {surfaceId: 'github:prs', catalogId: github}}),
+      msg({
+        updateComponents: {
+          surfaceId: 'github:prs',
+          components: [
+            {id: 'root', component: 'Stack', children: {path: '/prs', componentId: 'pr'}},
+            {id: 'pr', component: 'Text', text: {path: 'title'}},
+          ],
+        },
+      }),
+      msg({
+        updateDataModel: {surfaceId: 'github:prs', value: {prs: [{id: 'pr-7', title: 'Fix it'}]}},
+      }),
+      msg({createSurface: {surfaceId: SURFACE, catalogId: shopA}}),
+      msg({
+        updateComponents: {
+          surfaceId: SURFACE,
+          components: [
+            {id: 'root', component: 'Column', children: {path: '/items', componentId: 'row'}},
+            {id: 'row', component: 'Text', text: {path: 'name'}},
+          ],
+        },
+      }),
+      msg({updateDataModel: {surfaceId: SURFACE, value: {items: ITEMS}}}),
+    ]);
+    const index = createBindingIndex();
+    const fragment = (source: string, surfaceId: string) => (
+      <div data-slot={source}>
+        <FragmentBoundary source={source} surfaceId={surfaceId}>
+          <SurfaceFrame surface={processor.model.getSurface(surfaceId)!} />
+        </FragmentBoundary>
+      </div>
+    );
+    const view = render(
+      <CatalogProvider catalogs={catalogs}>
+        <BindingIndexContext.Provider value={index}>
+          {fragment('github', 'github:prs')}
+          {fragment('shop-a', SURFACE)}
+        </BindingIndexContext.Provider>
+      </CatalogProvider>,
+    );
+    await waitFor(() => expect(view.container).toHaveTextContent('Verity A7'));
+
+    const pr = resolveLanding(index, {
+      app: 'github',
+      surface: 'github:prs',
+      pointer: '/prs[id="pr-7"]/title',
+    });
+    expect(pr?.kind).toBe('bound');
+    expect(pr?.element.className).toMatch(/^prc-Text-/);
+    expect(pr?.element).toHaveTextContent(/^Fix it$/);
+
+    const item = resolveLanding(index, target('/items[id="verity-a7"]/name'));
+    expect(item?.kind).toBe('bound');
+    expect(item?.element).toHaveTextContent(/^Verity A7$/);
   });
 });

@@ -41,6 +41,15 @@ describe('the detector itself', () => {
     expect([...(facts.definitions.get('--spacing') ?? [])]).toEqual(['.vendor-scope']);
   });
 
+  it('reads the last declaration of a block that ends without a semicolon, as a minified sheet writes it', () => {
+    const facts = analyzeCss(
+      '.stack{--overlap:calc(var(--size)*0.5);--overlap-three:calc(var(--size)*0.8)}@media (min-width:48rem){.stack{--size:var(--size-wide)}}',
+    );
+    expect([...(facts.definitions.get('--overlap-three') ?? [])]).toEqual(['.stack']);
+    expect([...(facts.definitions.get('--size') ?? [])]).toEqual(['.stack']);
+    expect(facts.reads.get('--size-wide')).toEqual({withFallback: 0, bare: 1});
+  });
+
   it('fails a global write, whatever the variable is called', () => {
     const findings = findCollisions([synthetic('loud-catalog', ':root { --text-primary: red; }')]);
     expect(findings).toEqual([
@@ -147,14 +156,19 @@ describe('the detector itself', () => {
 /**
  * Violations that exist today, each with an owner — a record, not an exemption.
  *
- * Owner github-catalog: Primer's ProgressBar sheet writes `--progress-bg` on `:root` inside its
- * `@media (forced-colors: active)` block — the page's in high-contrast mode.
+ * Owner github-catalog: Primer's ProgressBar sheet writes `--progress-bg` and
+ * `--progressBar-track-bgColor` on `:root` inside its `@media (forced-colors: active)` block — the
+ * page's in high-contrast mode.
  */
 const ACCEPTED: Array<(finding: Finding) => boolean> = [
   finding =>
     finding.rule === 'global-write' &&
     finding.pkg === 'github-catalog' &&
     finding.name === '--progress-bg',
+  finding =>
+    finding.rule === 'global-write' &&
+    finding.pkg === 'github-catalog' &&
+    finding.name === '--progressBar-track-bgColor',
 ];
 
 describe('the registry snapshot’s catalogs', () => {
