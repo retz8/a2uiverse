@@ -2,7 +2,7 @@
 
 This guide explains the **marketplace**: the process where a vendor publishes an app so that any A2UIVerse can find it and install it by name alone, and the checks that keep an installed app in step with what its publisher ships next. It's written for a frontend engineer meeting A2UIVerse for the first time. It starts with the ideas, follows one app from its publisher's machine into a running A2UIVerse, then opens up the algorithms and data structures, and ends with the design decisions and where the code lives.
 
-One example runs through the whole guide: **Shop A**, a mock camera dealer called Aperture & Co, published under the publisher name `a2uiverse-apps` and installed from the marketplace into an empty registry. It's a real publish on the deterministic apps, and every id, hash and line below is a real one. Where the guide reaches a state Shop A never showed, it borrows from **Linear**, which was pushed through the others in the same sitting. You can repeat all of it yourself (see [Trying it without a model](#trying-it-without-a-model)).
+One example runs through the whole guide: **Shop A**, a mock camera dealer called Aperture & Co, published under the publisher name `a2uiverse-apps` and installed from the marketplace into an empty registry. It's a real publish: the deterministic apps launched with `--publish` into an empty marketplace and an empty registry, and every id, hash and line below is a real one. Where the guide reaches a state Shop A never showed, it borrows from **Linear**, which was pushed through the others in the marketplace's acceptance sitting. You can repeat all of it yourself (see [Trying it without a model](#trying-it-without-a-model)).
 
 [`app-install.md`](app-install.md) is the chapter before this one: what a catalog artifact is, how Stellify packs it, and every check the orchestrator's **install** runs over a card and an artifact handed from disk. This guide assumes that and adds what comes after: who may publish what, how an app is checked before anyone sees it, how a registry installs it by id, and what "update" means when a catalog id is a version. [`trusted-page.md`](trusted-page.md) is the chapter after: the Store, the App Library and Publish, the page where a person finds and looks after apps, and where a publisher who uses A2UIVerse publishes them.
 
@@ -67,8 +67,8 @@ From then on every publish carries that token as a bearer token, and the marketp
     {
       "name": "a2uiverse-apps",
       "tokenHash": "sha256-…",
-      "claimedAt": "2026-10-11T04:18:13.294Z",
-      "apps": ["shop-a", "shop-b", "github", "gmail", "circleci", "calendar", "linear"],
+      "claimedAt": "2026-10-25T09:13:45.657Z",
+      "apps": ["shop-a", "gmail", "calendar", "shop-b", "linear", "circleci", "github"],
       "catalogs": [
         "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json"
         // …one per catalog this publisher first published an artifact for
@@ -106,10 +106,10 @@ The marketplace serves one **entry** per published app, and lists them all in `i
     "…": "the rest of the card, verbatim"
   },
   "catalogs": {
-    "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json": "sha256-1E-0aZuqxTQPBXLthWC72x12Odzw4c71-KWbzmf4ApA"
+    "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json": "sha256-g_rV6uea03i4FKcmkaZxY89apVKhxZHHrzX5Fmor8cs"
   },
   "versions": ["0.1.0"],
-  "publishedAt": "2026-10-11T04:18:13.751Z",
+  "publishedAt": "2026-10-25T09:13:46.127Z",
   "retired": []
 }
 ```
@@ -130,7 +130,7 @@ A2UI has one version for a catalog: its id. A2UIVerse keeps that and adds a leve
 
 ```
 catalog id      https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json      the catalog's only version
-  └ build       sha256-1E-0aZuq…                                           one artifact for that id
+  └ build       sha256-g_rV6uea…                                           one artifact for that id
 card version    0.1.0                                                       the agent's version, on the card
 ```
 
@@ -166,13 +166,13 @@ Then it judges the answer as the hub judges a paint: the task reached a terminal
     {"version": "v0.9", "updateComponents": {"surfaceId": "list", "components": [{"id": "root", "component": "Card", "child": "body"}, "…"]}}
   ],
   "capturedBy": "marketplace",
-  "capturedAt": "2026-10-11T04:18:13.432Z"
+  "capturedAt": "2026-10-25T09:13:45.762Z"
 }
 ```
 
 It's plain A2UI, kept so the Store can draw it through the client's ordinary loader. No render and no screenshot happen at publish.
 
-**An agent that needs sign-in** can't be tried this way: the marketplace holds no credential, and never will. So its publish is in two halves. The marketplace still sends the request, with no credential, and the agent passes by answering as the contract says — **HTTP 401**, or a task in `auth-required` naming a scheme its card declares. The paint comes from the publisher instead: `stellify preview` runs the same smoke test on their machine, against their running agent, with a credential they supply in `STELLIFY_CREDENTIAL`, and writes a preview document marked `capturedBy: "publisher"`. Publish sends it beside the artifacts, and the marketplace checks it exactly as it checks a live paint — entitlement, schema, credential bar — before storing it. Linear's, GitHub's and the others' previews in the sitting were captured this way; Shop A's and Shop B's, which need no sign-in, by the marketplace itself.
+**An agent that needs sign-in** can't be tried this way: the marketplace holds no credential, and never will. So its publish is in two halves. The marketplace still sends the request, with no credential, and the agent passes by answering as the contract says — **HTTP 401**, or a task in `auth-required` naming a scheme its card declares. The paint comes from the publisher instead: `stellify preview` runs the same smoke test on their machine, against their running agent, with a credential they supply in `STELLIFY_CREDENTIAL`, and writes a preview document marked `capturedBy: "publisher"`. Publish sends it beside the artifacts, and the marketplace checks it exactly as it checks a live paint — entitlement, schema, credential bar — before storing it. Linear's, GitHub's and the others' previews in the launch were captured this way; Shop A's and Shop B's, which need no sign-in, by the marketplace itself.
 
 ### 5. Install by id: the same install, resolved through the marketplace
 
@@ -180,7 +180,7 @@ The orchestrator's install takes a card URL and packed folders, or **the app id 
 
 ```bash
 pnpm --filter @a2uiverse/orchestrator registry install shop-a
-# installed shop-a · card 0.1.0 · catalog sha256-1E-0aZuq…
+# installed shop-a · card 0.1.0 · catalog sha256-g_rV6uea…
 ```
 
 With the id alone the registry reads Shop A's entry from the marketplace, fetches the **live card** from the URL the entry names, reads each artifact's descriptor from the marketplace and fetches **only the files it doesn't already hold** — a file whose hash a held artifact lists is copied from disk. Then the ordinary install core runs: the same gate, the same coverage check, the same record, with one more field:
@@ -191,9 +191,9 @@ With the id alone the registry reads Shop A's entry from the marketplace, fetche
   "id": "shop-a",
   "cardUrl": "http://localhost:12001/.well-known/agent-card.json",
   "card": {"name": "Shop A", "url": "http://localhost:12001", "version": "0.1.0", "…": "…"},
-  "catalogs": {"https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json": "sha256-1E-0aZuqxTQPBXLthWC72x12Odzw4c71-KWbzmf4ApA"},
+  "catalogs": {"https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json": "sha256-g_rV6uea03i4FKcmkaZxY89apVKhxZHHrzX5Fmor8cs"},
   "entitlement": ["https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json", "https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json"],
-  "installedAt": "2026-10-11T04:18:13.898Z",
+  "installedAt": "2026-10-25T09:13:46.279Z",
   "source": "marketplace"
 }
 ```
@@ -239,15 +239,15 @@ flowchart TD
     Q --> U["7. The update check: up to date,<br/>until the publisher ships again"]
 ```
 
-**1. The publisher claims a name.** Once per marketplace. In the sitting the launcher did it for the roster — `dev:agents — claimed a2uiverse-apps at http://localhost:10002` — and the marketplace's log said `claimed a2uiverse-apps`. The token went into the launcher's own publisher file; a person's would go into `~/.config/stellify/publisher.json`.
+**1. The publisher claims a name.** Once per marketplace. In the launch the launcher did it for the roster — `dev:agents — claimed a2uiverse-apps at http://localhost:10002` — and the marketplace's log said `claimed a2uiverse-apps`. The token went into the launcher's own publisher file; a person's would go into `~/.config/stellify/publisher.json`.
 
-**2. The publisher packs the catalog**, as in `app-install.md`: in `shop-a-catalog`, `pnpm build` then `stellify pack`, which writes `dist/artifact/` — the descriptor over `catalog.json`, `dist/theme.css` and `index.js`, whose id is `sha256-1E-0aZuq…`.
+**2. The publisher packs the catalog**, as in `app-install.md`: in `shop-a-catalog`, `pnpm build` then `stellify pack`, which writes `dist/artifact/` — the descriptor over `catalog.json`, `dist/theme.css` and `index.js`, whose id is `sha256-g_rV6uea…`.
 
 **3. Publish.** With Shop A's agent running on port 12001:
 
 ```bash
 stellify publish shop-a http://localhost:12001/.well-known/agent-card.json ../shop-a-catalog/dist/artifact
-# published shop-a · card 0.1.0 · catalog sha256-1E-0aZuq…
+# published shop-a · card 0.1.0 · catalog sha256-g_rV6uea…
 ```
 
 Stellify posts `{appId, cardUrl, catalogs: [{files}]}` to `POST /publish` with the token — the same body the registry's install takes, each file as base64. The marketplace, in order:
@@ -262,7 +262,7 @@ Stellify posts `{appId, cardUrl, catalogs: [{files}]}` to `POST /publish` with t
 8. Runs the **smoke test**: one request, _"What cameras do you have?"_, advertising `[basic, shop-a's catalog]`. The agent answers with the `list` surface above and completes. Every check over the paint passes.
 9. **Commits**: the artifact written under its id; the ledger gaining `shop-a` and its catalog id for `a2uiverse-apps`; the entry and the preview written; the card **embedded** for search; `index.json` regenerated.
 
-It answers with the summary line and the **notes** the commit produced — here `app id "shop-a" is now a2uiverse-apps's` and `catalog "…/shop-a-catalog/catalogs/v0.9.1/catalog.json" is now a2uiverse-apps's`. Stellify prints each under the summary as `note: …`, word for word. The marketplace's log: `published shop-a · card 0.1.0 · catalog sha256-1E-0aZuq… (by a2uiverse-apps)`.
+It answers with the summary line and the **notes** the commit produced — here `app id "shop-a" is now a2uiverse-apps's` and `catalog "…/shop-a-catalog/catalogs/v0.9.1/catalog.json" is now a2uiverse-apps's`. Stellify prints each under the summary as `note: …`, word for word. The marketplace's log: `published shop-a · card 0.1.0 · catalog sha256-g_rV6uea… (by a2uiverse-apps)`.
 
 Every finding after step 4 is collected and answered together, as install answers, so a publisher sees everything to fix in one go; a refusal prints `refused shop-a:` and each finding indented, and exits 1.
 
@@ -280,13 +280,13 @@ The apps that match come back with their scores, an app the words name first. Th
 
 ```bash
 pnpm --filter @a2uiverse/orchestrator registry install shop-a
-# installed shop-a · card 0.1.0 · catalog sha256-1E-0aZuq…
+# installed shop-a · card 0.1.0 · catalog sha256-g_rV6uea…
 ```
 
 The command posts `{appId: "shop-a"}` and nothing else to `POST /registry/install` with the write token. The registry reads the entry, fetches the live card from `http://localhost:12001/.well-known/agent-card.json`, finds no drift between the two, fetches the artifact's descriptor and then each of its three files — none held yet in an empty registry — and runs the install core with `source: "marketplace"`. The journal gets its line:
 
 ```json
-{"kind":"registry","at":"2026-10-11T04:18:13.900Z","operation":"install","appId":"shop-a","cardUrl":"http://localhost:12001/.well-known/agent-card.json","catalogs":[{"catalogId":"https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json","artifact":"sha256-1E-0aZuqxTQPBXLthWC72x12Odzw4c71-KWbzmf4ApA"}],"outcome":"installed","source":"marketplace"}
+{"kind":"registry","at":"2026-10-25T09:13:46.281Z","operation":"install","appId":"shop-a","cardUrl":"http://localhost:12001/.well-known/agent-card.json","catalogs":[{"catalogId":"https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json","artifact":"sha256-g_rV6uea03i4FKcmkaZxY89apVKhxZHHrzX5Fmor8cs"}],"outcome":"installed","source":"marketplace","by":"token"}
 ```
 
 Every byte of the artifact in the registry is identical to the marketplace's: the same hash tree, checked at both ends.
@@ -403,7 +403,7 @@ STATE_DIR/
     index.json                      every entry, regenerated after each write
     apps/shop-a/entry.json
     apps/shop-a/preview.json
-    artifacts/sha256-1E-0aZuq…/     artifact.json, index.js, catalog.json, dist/theme.css
+    artifacts/sha256-g_rV6uea…/     artifact.json, index.js, catalog.json, dist/theme.css
   publishers.json                   the ledger, owner-only, never served
   models/                           the embedding model's cache
 ```
