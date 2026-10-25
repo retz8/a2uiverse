@@ -281,7 +281,7 @@ The catch after the call is the same finding, reached from the live card fetched
 
 ### Update, and what it sends again
 
-Update is the install by id over the held app, journaled `install-over`; landed, the client sends the slot's Retry. The executor keeps the tile on the slot while the resend is pending (`keeps: {update}`), and the check before dispatch runs again. The resend is what failed — the press kept from inside the fragment — unless that press was made on a surface drawn in a catalog the update dropped: the pool keeps each surface's catalog, and `drawnInDropped` sends the plan's request instead, so the app paints afresh in what it now holds rather than updating an old surface in the old look. Check again is the same Retry with no install. On the client, the tile reads "Shop A is updated." once the page holds the app past the version its line was drawn from, with Loading… while its own request is on the way, or Show it here.
+Update is the install by id over the held app, journaled `install-over`; landed, the client sends the slot's Retry. The executor keeps the tile on the slot while the resend is pending (`keeps: {update}`), and the check before dispatch runs again. The resend is what failed — the press kept from inside the fragment — unless that press was made on a surface drawn in a catalog the update dropped: the pool keeps each surface's catalog, and `drawnInDropped` sends the plan's request instead, so the app paints afresh in what it now holds rather than updating an old surface in the old look. Check again is the same Retry with no install. A Retry from the tile — Update's or Check again — first fetches the app's live card again, given five seconds, so the check before dispatch judges the app as it is now: an agent moved back to what the Store holds is called. On the client, the tile reads "Shop A is updated." once the page holds the app past the version its line was drawn from, with Loading… while its own request is on the way, or Show it here.
 
 ### A paint in the build of its arrival
 
@@ -302,7 +302,7 @@ The loop adds no entry kind. The search is a tool call on the plan's record; the
 | "Couldn't reach the Store." where an offer would be | The plan's search didn't reach the marketplace | Start the marketplace; ask again — nothing resumes on its own |
 | "Nothing in the Store can do this yet." for an app you know is published | The search's cut didn't reach it, or the Planner judged it didn't fit | Search the Store on the words; a later question offers it if it fits |
 | A row's "Shop B can't be installed yet." | Shop B's live card is ahead of the Store | The publisher publishes; Try again later |
-| "…and the Store is waiting on its publisher" that doesn't move | The app changed and the Store hasn't the version yet | Check again once it's published |
+| "…and the Store is waiting on its publisher" that doesn't move | The app changed and the Store hasn't the version yet | Check again once it's published, or once the app is back on what the Store holds |
 | "Shop A is updated." with Show it here on the slot you pressed Update in | The update landed, and its resend got no answer | Show it here sends it again |
 | A slot on "Loading…" after Install | The app's first answer, or its sign-in, hasn't landed | It changes once, when one does |
 

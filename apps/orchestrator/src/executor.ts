@@ -93,9 +93,10 @@ export interface OrchestratorDeps {
   gate?: SignInGate;
   /**
    * The update check (task 15.5), as first paint reads it: an app whose live card names nothing it
-   * is installed with is dispatched for its update tile, never shown its sign-in first.
+   * is installed with is dispatched for its update tile, never shown its sign-in first. A Retry
+   * from the update tile fetches the app's live card again before it goes (task-16.11).
    */
-  updates?: {catalogsChanged(appId: string): boolean};
+  updates?: {catalogsChanged(appId: string): boolean; refetched(appId: string): Promise<unknown>};
   /**
    * The build of each of an app's catalogs the registry holds now, named on each event of it the
    * hub relays (task-15.6 decision 2); none names no build.
@@ -1069,6 +1070,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     const slot = state.slots.get(source)!;
     const merge = synthesisSlot(state);
     const pack = !state.mergeDecided && state.trigger !== undefined;
+    const fromUpdate = slot.state === 'update';
     // Resent from the update tile, the slot keeps its line until the answer lands; filled from an
     // offer by `useApp`, the offer it came from; from any other state, nothing (task-15.8 decision
     // 2).
@@ -1086,6 +1088,9 @@ export class OrchestratorExecutor implements AgentExecutor {
     if (bringsBack) state.retrying.add(source);
     this.#repaint([sink], state);
 
+    // Judged afresh: the app's live card as it is now, not the one the run last fetched — an agent
+    // moved back to what the Store holds is called (task-16.11).
+    if (fromUpdate) await this.#deps.updates?.refetched(parseSourceId(source)?.appId ?? source);
     state.redispatching.add(source);
     const arrived = await this.#redispatch(sink, state, source, signal).finally(() =>
       state.redispatching.delete(source),

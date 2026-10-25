@@ -476,6 +476,25 @@ describe('the catch after the call (task-15.5 decisions 4, 12)', () => {
     expect(lastSlot(pressed, 'shop')).toMatchObject({state: 'update'});
   });
 
+  test('Check again fetches the card again: an agent moved back to what the Store holds is called, and paints (task-16.11)', async () => {
+    const {client, orchestrator} = await boot({apps: {shop: {}}, plan: shopOnly});
+    move(vendors.shop!, [CAT_2], '1.1.0');
+    await orchestrator.registry.refreshCards();
+    const turn = await collect(client, utterance('camera prices'));
+    expect(lastSlot(turn, 'shop')).toMatchObject({
+      state: 'update',
+      update: {state: 'ahead-of-store'},
+    });
+    expect(vendors.shop!.requests).toEqual([]);
+
+    move(vendors.shop!, [FAKE_CATALOG_ID], '0.0.0');
+    const pressed = await collect(client, retry('shop', contextOf(turn)));
+    expect(orchestrator.registry.card('shop')).toMatchObject({version: '0.0.0'});
+    expect(vendors.shop!.requests).toHaveLength(1);
+    expect(lastSlot(pressed, 'shop')).not.toMatchObject({state: 'update'});
+    expect(JSON.stringify(pressed)).toContain(FAKE_CATALOG_ID);
+  });
+
   test('an answer with no UI from an app that has not changed rests on its words, as before', async () => {
     const {client, painting} = await boot({apps: {shop: {}}, plan: shopOnly});
     painting.shop!.noUi = 'Nothing to show for that.';
