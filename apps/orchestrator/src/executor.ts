@@ -971,8 +971,9 @@ export class OrchestratorExecutor implements AgentExecutor {
    * merge's set, less a source failed since — with no call; a combination never seen is covered
    * by a wiring remembered over fewer sources, restored the same way, the sources that painted
    * since left late for Include (task-9.9 decision 16), the merge slot repainted when what waits
-   * changed; then, once no further step has come for the quiet (task-10.9 decision 7), the
-   * IntegrityChecker's walk runs over the restored state, free, and the Synthesizer is called
+   * changed or a merge the Synthesizer declined comes back with the view (task-16.11); then,
+   * once no further step has come for the quiet (task-10.9 decision 7), the IntegrityChecker's
+   * walk runs over the restored state, free, and the Synthesizer is called
    * only if it fires, the outcome filed under the combination. A step inside the quiet abandons
    * the walk before it starts, as one arriving while it runs abandons it there: the combination
    * it would walk is no longer on screen (task-9.9 decision 17). Nothing is painted on a silent
@@ -1004,7 +1005,20 @@ export class OrchestratorExecutor implements AgentExecutor {
       // The failure said beside the view was the last call's; the restored view is not it.
       const failed = state.callFailed !== undefined;
       delete state.callFailed;
-      if (failed || lateSources(state).join() !== lateBefore) this.#repaint([sink], state);
+      // A merge the Synthesizer declined or couldn't make over another combination comes back
+      // with the view restored, as an accept brings it back; a collapse the sources' state made
+      // stands (task-16.11).
+      const merge = synthesisSlot(state);
+      const back =
+        merge?.state === 'collapsed' &&
+        (merge.declined !== undefined || merge.collapse?.cause === 'unmade');
+      if (back) {
+        merge.state = 'pending';
+        delete merge.declined;
+        delete merge.collapse;
+        state.mergedView = {outcome: 'synthesized'};
+      }
+      if (back || failed || lateSources(state).join() !== lateBefore) this.#repaint([sink], state);
     }
     const late = covering ? lateSources(state).filter(id => covering.since.includes(id)) : [];
     const quiet = new AbortController();

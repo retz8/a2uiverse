@@ -2996,6 +2996,37 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
     });
   });
 
+  test('a step back to a combination seen brings back a merge the walk declined, repainted with no call (task-16.11)', async () => {
+    const synthesizer = new FakeSynthesizer([bestPriceView, decline('Nothing lines up now.')]);
+    const {client} = await boot({
+      planner: planner(),
+      synthesizer,
+      scripts: {github: drillScript(camerasA), gmail: shopScript(camerasB)},
+    });
+    const first = await collect(client, utterance('compare camera prices'));
+    const contextId = first[0]!.contextId!;
+    expect(synthesizer.calls).toHaveLength(1);
+
+    // The drill-down's walk declines: the merge collapses to the Synthesizer's words.
+    const drilled = await collect(client, actionOn('github:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(shellSlotOf(drilled)).toMatchObject({
+      state: 'collapsed',
+      declined: {reason: 'Nothing lines up now.'},
+    });
+
+    // Back to the list the merge was accepted over: the view comes back, with no call.
+    const back = await collect(
+      client,
+      step('github', 0, contextId, {'github:s1': {items: camerasA}}),
+    );
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(shellPaints(back)).not.toHaveLength(0);
+    expect(shellSlotOf(back)).not.toMatchObject({state: 'collapsed'});
+    expect(shellSlotOf(back)).not.toHaveProperty('declined');
+    expect(shellSlotOf(back)).toMatchObject({merged: ['github', 'gmail']});
+  });
+
   test("a later step abandons the walk an earlier step's unseen combination started, its call aborted; the combination is journaled as the step made it (task-9.9 decision 17)", async () => {
     let release: () => void = () => {};
     const gate = new Promise<void>(resolve => (release = resolve));
