@@ -374,7 +374,7 @@ async function withMergedView(
   );
   expect(canvas.synthesis.payload).toEqual(PAYLOAD);
   /** An action inside Shop A repainting its list, with or without a re-synthesis beside it. */
-  const repaintShopA = (resynthesis?: SynthesisPayload) => {
+  const repaintShopA = (resynthesis?: SynthesisPayload, document = DOCUMENT) => {
     const action = canvas.runner.begin({
       kind: 'surface-action',
       payload: {
@@ -389,7 +389,7 @@ async function withMergedView(
     });
     action.apply(shopAMessages(SHELL_CATALOG_ID, SHOP_A_REVERSED), fragment('shop-a'));
     if (resynthesis)
-      action.apply(synthesisMessages(DOCUMENT, SHELL_CATALOG_ID), fragment('shell'), resynthesis);
+      action.apply(synthesisMessages(document, SHELL_CATALOG_ID), fragment('shell'), resynthesis);
     action.end();
   };
   return {...built, repaintShopA};
@@ -436,6 +436,35 @@ describe('the merged view on a step back (task 9.7 decisions 3, 4)', () => {
     expect(canvas.synthesis.payload).toEqual(REWIRED);
   });
 
+  it('seen: the merged view’s own tree comes back with its wiring, a section a later re-synthesis added gone (task-16.11)', async () => {
+    const {wiring, canvas, repaintShopA} = await withMergedView(async function* () {
+      yield completed;
+    });
+    const merged = () =>
+      [...canvas.processor.model.getSurface('shell:synthesis')!.componentsModel.entries].map(
+        ([id]) => id,
+      );
+    const before = merged();
+    const sectioned = {
+      ...DOCUMENT,
+      tree: {
+        components: [
+          ...DOCUMENT.tree.components,
+          {id: 'section-added', component: 'Text', text: 'Calendar'},
+        ],
+      },
+    };
+    repaintShopA(REWIRED, sectioned);
+    expect(merged()).toContain('section-added');
+    await wiring.press(stepShopA(0));
+    expect(merged()).toEqual(before);
+    expect(canvas.synthesis.payload).toEqual(PAYLOAD);
+    // And forward again: the re-synthesis's tree with its wiring.
+    await wiring.press(stepShopA(1));
+    expect(merged()).toContain('section-added');
+    expect(canvas.synthesis.payload).toEqual(REWIRED);
+  });
+
   it('unseen: the merge line works until the stream ends; a silent end keeps the current wiring and files it', async () => {
     const {wiring, canvas, repaintShopA} = await withMergedView(async function* () {
       yield completed;
@@ -451,9 +480,10 @@ describe('the merged view on a step back (task 9.7 decisions 3, 4)', () => {
     await pressing;
     expect(canvas.store.getState().mergeFollowingStep).toBe(false);
     expect(canvas.synthesis.payload).toEqual(REWIRED);
-    expect(canvas.history.recall()).toEqual({
+    expect(canvas.history.recall()).toMatchObject({
       target: {surfaceId: 'shell:synthesis', source: 'shell'},
       payload: REWIRED,
+      paint: {surfaceId: 'shell:synthesis'},
     });
   });
 
@@ -495,9 +525,10 @@ describe('the merged view on a step back (task 9.7 decisions 3, 4)', () => {
     await wiring.press(stepShopA(1));
     expect(canvas.store.getState().mergeFollowingStep).toBe(false);
     expect(canvas.synthesis.payload).toEqual(CALLED);
-    expect(canvas.history.recall()).toEqual({
+    expect(canvas.history.recall()).toMatchObject({
       target: {surfaceId: 'shell:synthesis', source: 'shell'},
       payload: CALLED,
+      paint: {surfaceId: 'shell:synthesis'},
     });
   });
 });

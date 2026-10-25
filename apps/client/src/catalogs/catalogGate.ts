@@ -214,5 +214,6 @@ export function gateRunner(runner: TurnRunner, gate: CatalogGate): TurnRunner {
     beginSideStream: () => gated(runner.beginSideStream()),
     cancelAll: runner.cancelAll,
     restore: runner.restore,
+    restoreSynthesis: runner.restoreSynthesis,
   };
 }

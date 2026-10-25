@@ -1461,7 +1461,7 @@ describe("the fragment's history (task 9.7)", () => {
     expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pr-detail');
   });
 
-  it('the accepted wiring is filed under the combination it was accepted over; a payload the session refused is not (decision 3)', () => {
+  it('the accepted wiring is filed under the combination it was accepted over, with the surface as accepted; a payload the session refused is not (decision 3, task-16.11)', () => {
     for (const accepted of [true, false]) {
       const {runner, history} = historied(accepted);
       const stream = runner.beginSideStream();
@@ -1480,7 +1480,17 @@ describe("the fragment's history (task 9.7)", () => {
         payload as never,
       );
       expect(history.recall()).toEqual(
-        accepted ? {target: {surfaceId: 'shell:synthesis', source: 'shell'}, payload} : undefined,
+        accepted
+          ? {
+              target: {surfaceId: 'shell:synthesis', source: 'shell'},
+              payload,
+              paint: expect.objectContaining({
+                surfaceId: 'shell:synthesis',
+                catalogId: SHELL_CATALOG_ID,
+                tree: {root: {id: 'root', component: 'Text', text: 'merged'}},
+              }),
+            }
+          : undefined,
       );
     }
   });

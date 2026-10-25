@@ -52,10 +52,14 @@ export interface HistoryVisits {
   at: number;
 }
 
-/** The wiring accepted over a combination: the synthesis surface it was painted on, and its payload. */
+/**
+ * The wiring accepted over a combination: the synthesis surface it was painted on, its payload,
+ * and the surface as accepted — its tree, put back with the payload on a step (task-16.11).
+ */
 export interface RememberedWiring {
   target: {surfaceId: string; source: string};
   payload: SynthesisPayload;
+  paint?: PaintCopy;
 }
 
 /**

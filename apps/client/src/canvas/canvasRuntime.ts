@@ -344,7 +344,11 @@ export function createCanvasRuntime({
     const mine = ++steps;
     const remembered = history.recall() ?? history.recallCovering();
     const following = !remembered;
-    if (remembered) synthesis.accept(remembered.target, remembered.payload);
+    if (remembered) {
+      // The merged view's own tree first, as it was accepted, then its values (task-16.11).
+      if (remembered.paint) runner.restoreSynthesis(remembered.paint);
+      synthesis.accept(remembered.target, remembered.payload);
+    }
     store.setMergeFollowingStep(following);
     const key = store.addPress(operation);
     const stream = runner.beginSideStream();
@@ -379,8 +383,14 @@ export function createCanvasRuntime({
       if (following && !wired && steps === mine) {
         const current = synthesis.payload;
         const surfaceId = store.getState().placement.get(SHELL_SOURCE)?.surfaceId;
-        if (current && surfaceId)
-          history.remember({target: {surfaceId, source: SHELL_SOURCE}, payload: current});
+        if (current && surfaceId) {
+          const paint = capturePaint(processor, surfaceId);
+          history.remember({
+            target: {surfaceId, source: SHELL_SOURCE},
+            payload: current,
+            ...(paint ? {paint} : {}),
+          });
+        }
       }
     } catch (err) {
       if (!stream.signal.aborted) console.error('[A2UI:a2a] step failed', err);

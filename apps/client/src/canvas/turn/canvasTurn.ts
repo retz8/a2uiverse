@@ -171,6 +171,11 @@ export interface TurnRunner {
    * surface in its slot, the one there now retired.
    */
   restore(source: string, step: RestorableStep): void;
+  /**
+   * A step's remembered wiring (task-16.11): the synthesis surface as it was accepted, painted
+   * back the way a synthesis paint arrives, before its payload is accepted again.
+   */
+  restoreSynthesis(paint: PaintCopy): void;
 }
 
 /**
@@ -341,12 +346,17 @@ export function createTurnRunner({
     }
   };
 
-  /** The synthesis payload handed over, and filed under the combination it was accepted over. */
+  /**
+   * The synthesis payload handed over, and filed under the combination it was accepted over with
+   * the surface it was painted on, its tree as accepted.
+   */
   const acceptSynthesis = (
     target: {surfaceId: string; source: string},
     payload: SynthesisPayload,
   ) => {
-    if (synthesis?.accept(target, payload)) history?.remember({target, payload});
+    if (!synthesis?.accept(target, payload)) return;
+    const paint = capturePaint(processor, target.surfaceId);
+    history?.remember({target, payload, ...(paint ? {paint} : {})});
   };
 
   /** The source whose slot a batch's stamp claims, when it is a fragment's. */
@@ -1045,6 +1055,11 @@ export function createTurnRunner({
     store.bumpApplied();
   };
 
+  const restoreSynthesis: TurnRunner['restoreSynthesis'] = paint => {
+    applyA2uiMessages(processor, rebuild(paint), {onMessageError: reportMessageError});
+    store.bumpApplied();
+  };
+
   return {
     get current() {
       return current;
@@ -1053,5 +1068,6 @@ export function createTurnRunner({
     beginSideStream,
     cancelAll,
     restore,
+    restoreSynthesis,
   };
 }
