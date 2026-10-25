@@ -209,3 +209,7 @@ The two shops, run `live` for one filtering question and then a second, answered
 ### 30. GitHub's catalog draws in the OS appearance
 
 GitHub's catalog follows the appearance the canvas follows, as the other six catalogs do: in dark, Primer's dark colors. GitHub's catalog at 0.2.2, republished at the same card; the registry takes the newer build at its check. Replaced: Primer's light colors on the dark canvas, the pull requests' titles dark grey on near-black and the branch names on white chips.
+
+### 31. Check again judges the app on its live card as it is now
+
+A Retry from the update tile, Update's or Check again, fetches the app's live card again before the check before the call, so an app back on what the Store holds is called and paints. Replaced: the check judging on the card the run last fetched, the waiting line standing after the app moved back until the App Library's check fetched its card again.
