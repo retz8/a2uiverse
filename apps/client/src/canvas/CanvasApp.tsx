@@ -15,6 +15,7 @@ import {useCallback, useEffect, useRef, useState, useSyncExternalStore} from 're
 import {Button, Kbd} from '@radix-ui/themes';
 import type {A2ASenderOptions} from '../a2a/client';
 import {getBeatFixture} from '../beats/beatFixtures';
+import {buildsAgainstRegistry} from '../beats/recordedBuilds';
 import {syntheticBeat} from '../beats/syntheticBeats';
 import {CatalogProvider, isLoader, type PageCatalogs} from '../catalogs/CatalogContext';
 import {createCanvasWiring} from './createCanvasWiring';
@@ -133,11 +134,21 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
       const byHand = beatParams.byHand ? createReplayTransport() : undefined;
       if (byHand) wiring.attachReplay(byHand.sender);
       for (const beat of beatParams.beats) {
-        const fixture = beatFixtureFor(beat);
-        if (!fixture) {
+        const recorded = beatFixtureFor(beat);
+        if (!recorded) {
           setReplayError(`Unknown beat: ${beat}.`);
           return;
         }
+        // A build the registry it replays over cannot load is left to its table (task-16.10
+        // decision 2): the beat names the builds as the registry held them when it was recorded.
+        const fixture = isLoader(catalogs)
+          ? await buildsAgainstRegistry(recorded, (catalogId, artifactId) =>
+              catalogs.builds.load(catalogId, artifactId).then(
+                () => true,
+                () => false,
+              ),
+            )
+          : recorded;
         await replayBeatOnCanvas(fixture, {
           canvases: wiring,
           paced: !beatParams.instant,
