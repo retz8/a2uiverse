@@ -201,3 +201,7 @@ The temporal merge with Calendar's loop ran with every agent `live`. Every case 
 ### 28. The way back restores the merged view's own tree
 
 A step that restores a wiring the merge accepted puts back the merged view as it was accepted — its tree and its values — so a section a later re-synthesis added leaves with it, and returns with a step forward. Replaced: the remembered values over the latest tree, an empty "Calendar" section standing under the restored table.
+
+### 29. The two shops' chip sets stay with the automated tests
+
+The two shops, run `live` for one filtering question and then a second, answered both with their lists and sort buttons and no chip set. A `ChoicePicker` in each of two surfaces on one page, each its own radio group, is the client's renderer test's, on upstream's basic catalog, and is named in the write-up beside decision 21's items. Amends decision 11. Replaced: the two shops' chip sets checked live on one canvas.
