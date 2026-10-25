@@ -46,7 +46,7 @@
         "signIn": {
           "flows": {
             "authorizationCode": {
-              "authorizationUrl": "https://vnw20xbg-11005.asse.devtunnels.ms/oauth/authorize",
+              "authorizationUrl": "http://localhost:11005/oauth/authorize",
               "refreshUrl": "http://localhost:11005/oauth/token",
               "scopes": {
                 "issues.read": "See your issues",
@@ -137,12 +137,12 @@
       "version": "0.1.0"
     },
     "catalogs": {
-      "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json": "sha256-tBGe6Sb474HVDC026lJ8vmeZfTc0MKH9i7ZSXjHv7e0"
+      "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json": "sha256-yJ-B1XR3um7Rqd1QOxs1PirV19NHGJifhpCtjpzxNRg"
     },
     "versions": [
       "0.1.0"
     ],
-    "publishedAt": "2026-10-24T01:09:43.161Z",
+    "publishedAt": "2026-10-25T01:18:15.785Z",
     "retired": []
   },
   "preview": {
@@ -652,6 +652,6 @@
       }
     ],
     "capturedBy": "publisher",
-    "capturedAt": "2026-10-24T01:09:42.875Z"
+    "capturedAt": "2026-10-25T01:18:15.277Z"
   }
 }

@@ -36,13 +36,18 @@ async function openListings(page: Page) {
 const recorded = (appId: string): RecordedStoreApp =>
   JSON.parse(readFileSync(new URL(`../recordings/store/${appId}.json`, import.meta.url), 'utf8'));
 
-/** Linear's packed folder, as the snapshot packs it. */
-function linearFolder(): {folder: string; catalogId: string; artifact: string} {
+/** The snapshot's row for the catalog whose id holds `part`: the build the world lists it at. */
+function snapshotRow(part: string): {catalogId: string; artifact?: string} {
   const table = JSON.parse(readFileSync(join(REGISTRY_SNAPSHOT_DIR, 'catalogs.json'), 'utf8')) as {
     catalogId: string;
     artifact?: string;
   }[];
-  const row = table.find(r => r.catalogId.includes('/linear-catalog/'))!;
+  return table.find(r => r.catalogId.includes(part))!;
+}
+
+/** Linear's packed folder, as the snapshot packs it. */
+function linearFolder(): {folder: string; catalogId: string; artifact: string} {
+  const row = snapshotRow('/linear-catalog/');
   return {
     folder: join(REGISTRY_SNAPSHOT_DIR, 'artifacts', row.artifact!),
     catalogId: row.catalogId,
@@ -291,8 +296,10 @@ test('P5 · your listings: each look at its build, a retired line, the ahead-of-
   ]);
   const shopA = listing(page, 'shop-a');
   await expect(shopA).toContainText('Version 0.1.0 (card version)');
+  // The build is the snapshot's, as the world lists it (task-16.10 decision 6).
+  const shopALook = snapshotRow('/shop-a-catalog/');
   await expect(shopA.getByTestId('publish-look')).toContainText(
-    'Its look (catalog) https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json at build sha256-nnzw-NQHDz-DY2UPvsVm0hLMKv-E927yrmCuEYLIh24',
+    `Its look (catalog) ${shopALook.catalogId} at build ${shopALook.artifact}`,
   );
   await expect(shopA.getByTestId('publish-ahead')).toHaveText(
     'Your app is ahead of the Store (ahead of the Store). It now uses a look the Store doesn’t have (https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.10.0/catalog.json), and it now says it’s version 0.2.0, which the Store doesn’t have, so no one new can install it until you publish an update.',
@@ -318,7 +325,7 @@ test('P6 · an update’s form: the id and the address filled in, the folder and
   );
   await expect(form.getByRole('list', {name: 'Packed folders'})).toContainText('5 files');
   await expect(form.getByRole('list', {name: 'Sample answer file'})).toContainText(
-    'captured Oct 24',
+    'captured Oct 25',
   );
   await expect(form).toContainText(
     'Needed because Linear asks people to sign in: the Store can’t ask it a question without your account.',

@@ -46,7 +46,7 @@
         "signIn": {
           "flows": {
             "authorizationCode": {
-              "authorizationUrl": "https://vnw20xbg-11002.asse.devtunnels.ms/oauth/authorize",
+              "authorizationUrl": "http://localhost:11002/oauth/authorize",
               "refreshUrl": "http://localhost:11002/oauth/token",
               "scopes": {
                 "inbox": "See your inbox",
@@ -139,12 +139,12 @@
       "version": "0.1.0"
     },
     "catalogs": {
-      "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json": "sha256-weisv289DcmBJ9ETbpLV_KaCrvLsdVTk2t7CvVL0800"
+      "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json": "sha256-0-ahJFWxuBze93fyGDXr8j9LksIsCx6CZ7Estmkq-kY"
     },
     "versions": [
       "0.1.0"
     ],
-    "publishedAt": "2026-10-24T01:09:42.563Z",
+    "publishedAt": "2026-10-25T01:18:15.528Z",
     "retired": []
   },
   "preview": {
@@ -741,6 +741,6 @@
       }
     ],
     "capturedBy": "publisher",
-    "capturedAt": "2026-10-24T01:09:42.472Z"
+    "capturedAt": "2026-10-25T01:18:15.149Z"
   }
 }

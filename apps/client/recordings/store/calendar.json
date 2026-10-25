@@ -46,7 +46,7 @@
         "signIn": {
           "flows": {
             "authorizationCode": {
-              "authorizationUrl": "https://vnw20xbg-11003.asse.devtunnels.ms/oauth/authorize",
+              "authorizationUrl": "http://localhost:11003/oauth/authorize",
               "refreshUrl": "http://localhost:11003/oauth/token",
               "scopes": {
                 "calendar.read": "See your calendar",
@@ -140,12 +140,12 @@
       "version": "0.1.0"
     },
     "catalogs": {
-      "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json": "sha256-BBmTI37kkTjrPvTFvCiKgaCJHx0apej_2CTC5hkvYgY"
+      "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json": "sha256-xrHATiBX9re_bkqn-jdAtimQzXrItqaHca_2Aoh3w2E"
     },
     "versions": [
       "0.1.0"
     ],
-    "publishedAt": "2026-10-24T01:09:42.758Z",
+    "publishedAt": "2026-10-25T01:18:15.655Z",
     "retired": []
   },
   "preview": {
@@ -493,6 +493,6 @@
       }
     ],
     "capturedBy": "publisher",
-    "capturedAt": "2026-10-24T01:09:42.665Z"
+    "capturedAt": "2026-10-25T01:18:15.156Z"
   }
 }
