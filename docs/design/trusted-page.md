@@ -89,7 +89,7 @@ flowchart TD
 Claim posts `{"publisher": "northlight"}` to the orchestrator's `/marketplace/claim`, which relays it to the marketplace's own `claim`. The marketplace answers with the token, once, and logs `claimed northlight`. The orchestrator writes the name, the token and the marketplace's address into `<state>/publisher/publisher.json`, owner-only, and answers the page with the token so it can be shown: "“northlight” is yours", the token with Copy, and "I've saved it somewhere safe", which unlocks Continue. Continue lands on the listings, "Your apps in the Store", "Publishing as northlight · 0 apps", and "Nothing of yours in the Store right now." The journal says:
 
 ```json
-{"kind":"publisher","at":"2026-10-17T07:08:29.241Z","act":"claim","publisher":"northlight","outcome":"done","by":"page"}
+{"kind":"publisher","at":"2026-10-25T09:24:06.164Z","act":"claim","publisher":"northlight","outcome":"done","by":"page"}
 ```
 
 **2. Publish from the packed folder.** Pack and preview stay in Stellify, on the publisher's terminal, in Shop B's catalog package. `stellify pack` writes the artifact folder (`shop-b-catalog 0.2.2 — 3 files written to …/dist/artifact`), and `stellify preview` asks the running agent its first screen with the publisher's own credential, Shop B's demo key: `preview of shop-b at 0.1.0 — 1 surface painted`. Shop B asks you to connect with a key, so the Store can't ask it a question itself; the sample has to come from the publisher.
@@ -97,7 +97,7 @@ Claim posts `{"publisher": "northlight"}` to the orchestrator's `/marketplace/cl
 Publish an app opens the form: the app's id, its card URL, the folders Stellify packed, and the sample answer file.
 
 <p align="center">
-  <img src="../images/trusted-page-publish-form.png" width="720" alt="Publish an app: shop-b, Shop B's card address, the shop-b-catalog folder of 4 files, and preview.json captured Oct 17">
+  <img src="../images/trusted-page-publish-form.png" width="720" alt="Publish an app: shop-b, Shop B's card address, the shop-b-catalog folder of 4 files, and preview.json captured Oct 25">
   <br>
   <em>The form filled: the folder read in the browser and labelled from its descriptor, the sample file read and checked.</em>
 </p>
@@ -141,7 +141,7 @@ The sample needs Shop B's build, `sha256-_TCD3fq4YuIEIkQUXick5spwJggpnchxEq4Fx3I
 Install posts `{"appId": "shop-b"}` to the orchestrator's `/registry/install`: the install by id ([`app-install.md`](app-install.md), [`marketplace.md`](marketplace.md#install-by-id-inside-the-orchestrator)), the same operation every path takes.
 
 ```json
-{"kind":"registry","at":"2026-10-17T07:11:49.573Z","operation":"install","appId":"shop-b","cardUrl":"http://localhost:12002/.well-known/agent-card.json","catalogs":[{"catalogId":"https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json","artifact":"sha256-_TCD3fq4YuIEIkQUXick5spwJggpnchxEq4Fx3I8GWE"}],"outcome":"installed","source":"marketplace","by":"page"}
+{"kind":"registry","at":"2026-10-25T09:26:27.469Z","operation":"install","appId":"shop-b","cardUrl":"http://localhost:12002/.well-known/agent-card.json","catalogs":[{"catalogId":"https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json","artifact":"sha256-_TCD3fq4YuIEIkQUXick5spwJggpnchxEq4Fx3I8GWE"}],"outcome":"installed","source":"marketplace","by":"page"}
 ```
 
 The view says "**Shop B is installed.** Try asking “What cameras do you have?” on your canvas.", and its press reads ✓ Installed. Nothing opens Shop B from the Store; asking does.
@@ -158,7 +158,7 @@ Shop B's view in the App Library says "No accounts." beside **Add account**, "Op
 
 The orchestrator reports the drift to the marketplace, which looks at the card itself and sets its own flag: `shop-b is ahead of the Store: version 0.2.0`. In the App Library, the update check runs on entering, and Shop B's row says "A newer version is on its way from the publisher", with nothing to press.
 
-**6. The update, published and taken.** The publisher captures the sample again at 0.2.0 and presses Publish an update on the listing. The form opens with the app's id and card URL filled in, and the sample file "Needed because Shop B asks people to sign in: the Store can't ask it a question without your account." No folder is handed: the marketplace already holds Shop B's build. The outcome: "**Shop B 0.2.0 is in the Store.** People who have Shop B installed see the update in their App Library.", and under Details, `republished shop-b · card 0.1.0 → 0.2.0 · catalog sha256-_TCD3fq4…` and `the held build counts as covered`. The notice is gone.
+**6. The update, published and taken.** The publisher captures the sample again at 0.2.0 and presses Publish an update on the listing. The form opens with the app's id and card URL filled in, and the sample file "Needed because Shop B asks people to sign in: the Store can't ask it a question without your account." No folder is handed: the marketplace already holds Shop B's build. The outcome: "**Shop B 0.2.0 is in the Store.** People who have Shop B installed see the update in their App Library.", and under Details, `republished shop-b · card 0.1.0 → 0.2.0 · catalog sha256-_TCD3fq4…` and `catalog "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json": the held build counts as covered`. The notice is gone.
 
 <p align="center">
   <img src="../images/trusted-page-new-version.png" width="560" alt="Shop B's head in the App Library: A new version is available, and Update">
