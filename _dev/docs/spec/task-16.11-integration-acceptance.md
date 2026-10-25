@@ -185,3 +185,15 @@ Each case's reading presses and checks inside its fragments (decision 11) run wi
 This spec is the record. Each on-the-spot fix is added as a numbered decision as it lands, with what it replaced.
 
 The write-up has four parts: before the sitting, the sitting case by case, after it, and the findings. Findings for later phases go into their phase's notes in `_dev/TODO.md` at the write-up. Every amendment to the phase spec, SPEC.md and earlier sub-task specs that 16.11 calls for is made by 16.12.
+
+### 25. The way back brings back a merge the Synthesizer set aside
+
+A step to a combination of paints the merge was accepted over brings the merged view back when the Synthesizer declined, or couldn't make, the merge over the combination in between: the slot left as an accept leaves it, the shell repainted, with no call. A collapse the sources' state made stands. Replaced: the decline line kept over a wiring the orchestrator and the client had both restored.
+
+### 26. GitHub's catalog lays a page out by its fragment's width
+
+GitHub's `PageLayout` follows the width of the fragment it is drawn in, not the window's: below Primer's breakpoint, 48rem, Primer's narrow layout holds — the regions stacked, the pane at full width before or after the content, the dividers and what is hidden as their narrow variants say. GitHub's catalog at 0.2.1, republished at the same card; the registry takes the newer build at its check. Replaced: the pane beside the content in a 574px slot, the pull request's conversation 221px wide, a word to a line.
+
+### 27. The deterministic roster after the first case
+
+The temporal merge with Calendar's loop ran with every agent `live`. Every case after it runs on the deterministic roster, the Planner and the Synthesizer still on `gemini-3.8-flash`: the entity join on the deterministic set, Calendar's reading press on the deterministic roster's events, no write reaching a live account. Amends decisions 5, 7, 10 and 12. Replaced: every agent `live` through the sitting.
