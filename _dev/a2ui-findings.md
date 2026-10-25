@@ -663,3 +663,59 @@ space, in a scoped sheet under the Provider's class; their buttons keep the brow
 Closed issue [#975](https://github.com/a2ui-project/a2ui/issues/975) ("Figure out how to let
 application developers customize provided basic catalog implementation") ended in the CSS variables
 the components document. No issue or PR names these four.
+
+---
+
+## 22. The comment on `A2uiStateError` names missing surfaces, which the processor throws as integrity failures (web_core)
+
+**Component:** `@a2ui/web_core` 0.14.0, `src/errors.js`: `A2uiStateError` (line 95), its comment "Error thrown
+for structural issues in the UI tree (missing surfaces, duplicate components)", and `A2uiIntegrityError`
+(line 125), a subclass of `A2uiValidationError`; `src/processing/message-processor.js`: a surface created
+twice (line 537) and an operation naming no surface (lines 777 and 802), each thrown as
+`A2uiIntegrityError`.
+
+**Severity:** documentation — a host reading the error classes catches the wrong one for a missing or a
+doubled surface.
+
+### Issue
+
+The `MessageProcessor` throws `A2uiIntegrityError` for a `createSurface` naming a surface that exists, for
+an `updateComponents` or `updateDataModel` naming one that doesn't, and for a component id given twice in
+one `updateComponents`. Upstream's conformance suite pins that choice:
+`conformance/core/message_processor_v0_9.yaml` expects `IntegrityError` for "Surface s1 already exists" and
+for "Surface not found for message". `A2uiStateError` is thrown for none of them: its throw sites are a
+component added twice to a surface's model (`state/surface-components-model.js`, line 114), a component
+context for a component the model doesn't hold (`resolution/component-context.js`, line 36) and a resolver
+handed another catalog (`resolution/node-resolver.js`, line 59). A host that catches `A2uiStateError` for a
+missing surface, as its comment says, never sees one; a host that catches `A2uiValidationError` gets the
+three as validation failures.
+
+### Reproduction
+
+```ts
+const processor = new MessageProcessor([basicCatalog]);
+const create = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: basicCatalog.id}};
+processor.processMessages([create, create]);
+// A2uiIntegrityError: Surface s already exists.
+// instanceof A2uiValidationError: true; instanceof A2uiStateError: false
+```
+
+An `updateComponents` naming no surface throws `A2uiIntegrityError: Surface not found for message: nope`,
+and one giving `root` twice `A2uiIntegrityError: Duplicate component ID: 'root'`, alike.
+
+### Fix
+
+Bring the comment in line with what throws the class: a component the surface's model already holds, a
+component it doesn't, a resolver handed another catalog. The missing and the doubled surface move to the
+comment on `A2uiIntegrityError`, beside the tree checks it names.
+
+A2UIVerse's client tells a streamed partial's validation failures from these three by the integrity
+subclass, and reports them as they arrive.
+
+### Prior art
+
+Closed issue [#1223](https://github.com/a2ui-project/a2ui/issues/1223) ("[web_core,v0.9]
+processCreateSurfaceMessage crashes on duplicate surfaceId") quotes `A2uiStateError: Surface <id> already
+exists`. PR [#2884](https://github.com/a2ui-project/a2ui/pull/2884) ("feat(conformance): align message
+processor, validator, and catalog parity across SDKs", merged 2026-10-01) moved the surface failures to
+`A2uiIntegrityError` and left the comment. No issue or PR names the comment.
