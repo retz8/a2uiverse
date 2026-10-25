@@ -205,3 +205,7 @@ A step that restores a wiring the merge accepted puts back the merged view as it
 ### 29. The two shops' chip sets stay with the automated tests
 
 The two shops, run `live` for one filtering question and then a second, answered both with their lists and sort buttons and no chip set. A `ChoicePicker` in each of two surfaces on one page, each its own radio group, is the client's renderer test's, on upstream's basic catalog, and is named in the write-up beside decision 21's items. Amends decision 11. Replaced: the two shops' chip sets checked live on one canvas.
+
+### 30. GitHub's catalog draws in the OS appearance
+
+GitHub's catalog follows the appearance the canvas follows, as the other six catalogs do: in dark, Primer's dark colors. GitHub's catalog at 0.2.2, republished at the same card; the registry takes the newer build at its check. Replaced: Primer's light colors on the dark canvas, the pull requests' titles dark grey on near-black and the branch names on white chips.
