@@ -8,8 +8,8 @@ reproducible against upstream artifacts only.
 
 ## 5. Dynamic prop types are unenforced claims (web_core generic binder / DataContext)
 
-**Component:** `@a2ui/web_core` 0.10.7, `src/v0_9/rendering/generic-binder.ts`
-(`ResolveA2uiProp`), `DataContext.resolveDynamicValue`.
+**Component:** `@a2ui/web_core` 0.14.0, `src/resolution/generic-binder.d.ts` (`ResolveA2uiProp`,
+line 118) and `src/resolution/data-context.js` (`DataContext.resolveDynamicValue`, line 410).
 
 **Severity:** typing versus runtime mismatch — components hand-roll defensive coercion against
 their own declared prop types.
@@ -30,11 +30,11 @@ and the boolean rules. No layer applies that table at the binder boundary.
 
 Components compensate one at a time, with branches TypeScript considers unreachable:
 
-| site (`renderers/react`, `main` @ `65aca464`) | declared type | written guard |
+| site (`@a2ui/web_core` 0.14.0, `src/universal/basic_catalog/components/`) | declared type | written guard |
 | --- | --- | --- |
-| `Text.tsx:77` | `string` | `typeof props.text === 'string' ? props.text : String(props.text ?? '')` |
-| `ChoicePicker.tsx:35` | `string[]` | `Array.isArray(props.value) ? props.value : []` |
-| `DateTimeInput.tsx:112-113` | `string` | `typeof props.min === 'string' ? props.min : undefined` |
+| `Text.js:34` | `string` | `typeof props.text === 'string' ? props.text : String(props.text ?? '')` |
+| `ChoicePicker.js:36-40` | `string[]` | `Array.isArray(rawVal) ? rawVal : typeof rawVal === 'string' ? [rawVal] : []` |
+| `DateTimeInput.js:68` | `string` | `typeof props.min === 'string' ? props.min : props.min ? String(props.min) : ''` |
 
 ### Fix
 
@@ -73,62 +73,6 @@ contract, not an omission.
 This finding is the same as issue
 [#846](https://github.com/a2ui-project/a2ui/issues/846) (Strict Type Coercion in DataContext),
 open and triaged P2. The unreachable branches above are evidence it does not currently cite.
-
----
-
-## 8. No way for a web consumer to validate an agent's output against the v0.9.1 spec
-
-**Component:** `@a2ui/web_core` (`renderers/web_core`, 0.10.7 on `main`), `src/v0_9/index.ts` and
-the `copy-spec` script in `package.json`.
-
-**Severity:** missing capability. Nothing breaks; a TypeScript application that consumes
-model-authored A2UI has no upstream way to reject a non-conforming message before it renders.
-
-### Issue
-
-The spec ships complete JSON Schemas for v0.9.1 (`specification/v0_9_1/json/server_to_client.json`,
-`common_types.json`) and the basic catalog's `catalog.json`. Validating a message properly takes
-all three: `common_types.json` defines `FunctionCall` as `oneOf` a reference to the catalog's
-`$defs/anyFunction`, which is what ties a `functionCall`'s `call` to the functions a catalog
-actually declares.
-
-`web_core` exposes none of that for v0.9.1:
-
-- **The only exported raw schema is v0.9's message schema.** `src/v0_9/index.ts` exports
-  `Schemas = {A2uiMessageSchemaRaw}`, imported from `./schemas/server_to_client.json`, whose `$id`
-  is `…/v0_9/server_to_client.json` and whose `version` is `const: "v0.9"`. `common_types.json` is
-  copied into the package but not exported, so the message schema's references into it cannot be
-  resolved by a consumer.
-- **v0.9.1 is not copied at all.** The `copy-spec` script's inputs are
-  `specification/v0_8/json`, `v0_9/json`, `v0_9/catalogs`, `v1_0/json` and `v1_0/catalogs`;
-  `v0_9_1` is absent.
-- **There is no validator.** The only validation on the web path is `MessageProcessor`'s intake:
-  each component's props are parsed against its catalog's zod schema, throwing
-  `A2uiValidationError`. That is a renderer's check. It accepts any string as a `functionCall`'s
-  `call` (`FunctionCallSchema.call` is `z.string()`), so an undeclared function surfaces only when
-  a user triggers it ("Function not found in catalog"), and it does not check dangling child
-  references, a missing root or cycles. Reproduced with `@a2ui/web_core` 0.10.6: a
-  `MessageProcessor` over a `Catalog` of `BASIC_COMPONENTS` and `BASIC_FUNCTIONS` accepts, without
-  error, an `updateComponents` whose `Card` names an undeclared child, one with no `root`, one where
-  two `Card`s name each other, and a `Button` whose action calls `noSuchFunction`.
-
-The Python agent SDK has the full check — `A2uiValidator` in `a2ui/validation/validator.py`
-validates messages with `jsonschema` against the version's `server_to_client.json`,
-`common_types.json` and the catalog, then runs component integrity validation (dangling
-references, missing root) — and `conformance/core/validator.yaml` pins its behaviour, with Dart
-and Kotlin ports. There is no TypeScript equivalent, so a web consumer either calls Python or
-copies the spec files out of the repository and re-implements the integrity checks.
-
-### Fix
-
-Two parts, either useful alone:
-
-1. **Ship and export the v0.9.1 schemas.** Add `specification/v0_9_1/json/*.json` and
-   `v0_9_1/catalogs/**/*.json` to `copy-spec`, and export the raw `server_to_client.json` and
-   `common_types.json` together, so a consumer can compile them with any JSON Schema validator.
-2. **Export a TypeScript validator** equivalent to the Python `A2uiValidator` — schema validation
-   against a given catalog plus the integrity checks — tested against `conformance/core/validator.yaml`
-   so the two implementations cannot drift.
 
 ---
 
@@ -178,10 +122,10 @@ checkable rules) land in the fresh props and nothing the new properties dropped 
 
 **Component:** `specification/v0_9_1/json/server_capabilities.json` and
 `specification/v0_9_1/json/client_capabilities.json` (the root's one required key, `v0.9`);
-`specification/v0_9_1/docs/a2ui_extension_specification.md`, lines 44 and 129; the Python agent
-SDK's `resolve_catalogs` (`python/a2ui_agent/src/a2ui/utils/catalog_resolver.py`, `_CAPABILITIES_ENTRIES`,
-lines 37–44); web_core's `MessageProcessor.getRendererCapabilities`
-(`typescript/web_core/src/processing/message-processor.ts`) (`upstream/main` `ce03d005`).
+`specification/v0_9_1/docs/a2ui_extension_specification.md`, lines 44 and 129 (`upstream/main`
+`409ded29`); `a2ui-agent-sdk` 0.9.0's `resolve_catalogs` (`a2ui/utils/catalog_resolver.py`,
+`_CAPABILITIES_ENTRIES`, lines 45–48); `@a2ui/web_core` 0.14.0's
+`MessageProcessor.getRendererCapabilities` (`src/processing/message-processor.js`, line 102).
 
 **Severity:** interoperability — a web_core renderer that advertises v0.9.1 and a Python agent
 serving a v0.9.1 catalog cannot negotiate: the agent raises on the renderer's capabilities. The
@@ -266,8 +210,8 @@ renderers accept v0.9.1 messages; capabilities were not part of it. Open issue
 
 ## 14. No way to add a catalog to a processor after it is built (web_core, Python core, Dart core)
 
-**Component:** `MessageProcessor` in web_core `typescript/core/web_core/src/processing/message-processor.ts`,
-Python core `python/a2ui_core/src/a2ui/core/processing/message_processor.py` and Dart core
+**Component:** `MessageProcessor` in `@a2ui/web_core` 0.14.0 (`src/processing/message-processor.js`),
+`a2ui-core` 0.4.0 (`a2ui/core/processing/message_processor.py`) and Dart core
 `dart/a2ui_core/lib/src/processing/processor.dart` on `upstream/main` `45633b97`. Each takes its
 catalogs in the constructor, links them there (`linkCatalogs` / `link_catalogs`), and hands the same
 list to its `RpcHandler`; `createSurface` looks a catalog up in that list, else `Catalog not found`.
@@ -346,14 +290,13 @@ before the app starts, so its catalog is fixed for the session.
 
 ## 15. A function without an argument schema breaks `to_json`, and with it any processor of two or more catalogs (Python core)
 
-**Component:** Python core `python/a2ui_core/src/a2ui/core/catalog/catalog.py` on `upstream/main`
-`45633b97` — `Catalog._derive_model_entries` (line 2462, `unbundled(assembled_functions.get(name, {}))`)
-and `_function_document` (line 737, `document = dict(schema)`); reached from `Catalog.to_json`, from
-`Catalog._has_cross_document_refs` (line 1364) and so from `link_catalogs` (line 2889), which the
-`MessageProcessor` constructor calls (`python/a2ui_core/src/a2ui/core/processing/message_processor.py`),
-and from the agent SDK's `schema_to_prompt`
-(`python/a2ui_agent/src/a2ui/inference_formats/direct_json/schema_prompt.py`) and `validate_payload`
-(`python/a2ui_agent/src/a2ui/utils/validation.py`).
+**Component:** `a2ui-core` 0.4.0, `a2ui/core/catalog/catalog.py` — `Catalog._derive_model_entries`
+(line 2462, `unbundled(assembled_functions.get(name, {}))`) and `_function_document` (line 737,
+`document = dict(schema)`); reached from `Catalog.to_json`, from `Catalog._has_cross_document_refs`
+(line 1364) and so from `link_catalogs` (line 2889), which the `MessageProcessor` constructor calls
+(`a2ui/core/processing/message_processor.py`), and from `a2ui-agent-sdk` 0.9.0's `schema_to_prompt`
+(`a2ui/inference_formats/direct_json/schema_prompt.py`) and `validate_payload`
+(`a2ui/utils/validation.py`).
 
 **Severity:** functional bug — a processor that holds a catalog with such a function and any other
 catalog cannot be built: `TypeError: 'NoneType' object is not iterable`.
@@ -605,3 +548,118 @@ reference — through the surface's props or a context, defaulting to today's.
 A2UIVerse carries a local patch on `@a2ui/react` 0.14.0 (`patches/@a2ui__react@0.14.0.patch`) that
 draws a quiet stand-in in all three places, each marked with `data-a2ui-placeholder`; the error of an
 unresolved reference is still reported on the surface.
+
+---
+
+## 20. A catalog written in zod over web_core's common types warns in the console at each prop built on them (web_core schema serializer)
+
+**Component:** `@a2ui/web_core` 0.14.0, `src/catalog/schema_serializer.js`: `zodToUnbundledJson`
+(line 227) converts a component schema with `zod-to-json-schema` under `$refStrategy: 'none'`
+(line 233) and only then rewrites a `REF:`-marked schema to its `$ref` (`rewriteRefMarkers`, line
+237); `src/catalog/types.js`: `linkCatalogs` (line 381) writes each catalog's document through
+`referencesOtherCatalogs` (line 357) whenever a processor holds two or more.
+
+**Severity:** console noise — a warning for every prop built on a dynamic type, about a part of the
+schema the document never holds; a page holding several catalogs logs hundreds at each load.
+
+### Issue
+
+The dynamic types are recursive: a `FunctionCall`'s `args` hold `DynamicValue`s, which hold
+`FunctionCall`s. Converting a component schema whose prop is one of them, `zod-to-json-schema`
+walks into that recursion and, under `$refStrategy: 'none'`, prints `Recursive reference detected
+at …! Defaulting to any`. The serializer then replaces the whole prop with its `$ref` into the
+common types, so the document comes out right and the warning is about a subtree it drops.
+
+The basic catalog does not warn: its generated components are wrapped in `spec()` and shaped by rule
+(`src/catalog/spec_shape.js`). A component written in plain zod — every catalog a host or a vendor
+writes — goes through `zodToUnbundledJson`. The warnings come the first time a `MessageProcessor`
+holding it and any other catalog is built, `linkCatalogs` writing every catalog's document to look
+for a reference into another.
+
+### Reproduction
+
+```ts
+const Label = {name: 'Label', schema: z.object({text: DynamicStringSchema})};
+const labels = new Catalog('https://example.com/labels/catalog.json', basicCatalog.protocolVersion, [Label]);
+new MessageProcessor([basicCatalog, labels]);
+// console.warn: Recursive reference detected at
+//   #/properties/text/anyOf/2/properties/args/additionalProperties/anyOf/0/anyOf/5! Defaulting to any
+labels.toJson().components.Label.properties.text;
+// {"$ref": "common_types.json#/$defs/DynamicString", "description": "Represents a string"}
+```
+
+### Fix
+
+Stop the conversion at a `REF:`-marked schema instead of rewriting after it: hand
+`zod-to-json-schema` an `override` that returns the `$ref` for a schema whose description carries
+the marker, so the recursion behind it is never walked. The document is unchanged.
+
+A2UIVerse's client holds the shell catalog and the seven apps' catalogs, all written in zod; its
+console holds about 680 of these warnings at each load. Nothing is done locally.
+
+### Prior art
+
+No issue or PR reports it. Open issue [#3155](https://github.com/a2ui-project/a2ui/issues/3155)
+("Direct JSON prompt: list common types once instead of bundling them into every catalog schema")
+is about the prompt, not the serializer.
+
+---
+
+## 21. Parts of the basic catalog's look no token reaches (web_core basic catalog)
+
+**Component:** `@a2ui/web_core` 0.14.0, `src/universal/basic_catalog/components/Button.js` (its tokens,
+lines 52–66; its styles, lines 68–110) and `Text.js` (the caption's `<em>`, line 55; its tokens,
+lines 71–77; its styles, lines 79–136).
+
+**Severity:** theming gap — a catalog themed on the basic catalog through its tokens cannot set four
+parts of its look, and reaches them only through rules on the components' own classes.
+
+### Issue
+
+- **A button's text.** `.a2ui-button` sets a private `--_a2ui-text-color` to
+  `--a2ui-color-on-secondary`, and the `Text` inside reads it; only the primary variant sets it
+  again. The borderless variant sets `color` to `--a2ui-color-primary`, which reaches the button but
+  not the `Text` it holds, so a borderless button's label draws in `--a2ui-color-on-secondary`. The
+  token the docs give as "the color for the default variant", `--a2ui-color-secondary`, colours only
+  its hover; its background reads `--a2ui-button-background`, then `--a2ui-color-surface`.
+- **A button's font.** `.a2ui-button` sets its weight alone, so the `<button>` keeps the browser's
+  own font.
+- **A caption's style and size.** The `caption` variant sets its text inside `<em>`, italic by the
+  browser, and sizes it from `--a2ui-font-size-xs`, the extra-small size CheckBox, ChoicePicker,
+  TextField, DateTimeInput and Slider share. Only its colour has a token,
+  `--a2ui-text-caption-color`.
+- **A heading's space.** Text sets the margin of every heading, paragraph, list and block it draws
+  to `var(--_a2ui-text-margin, 0)`, a private variable; no token gives a heading space above or
+  below it.
+
+### Reproduction
+
+A basic catalog surface holding an `h3` Text, a `caption` Text and a default, a borderless and a
+primary Button, each with a Text inside, rendered with `@a2ui/react` 0.14.0 in a page set in 18px
+Georgia, with `--a2ui-color-primary: red`, `--a2ui-color-on-primary: green` and
+`--a2ui-color-on-secondary: blue`. Computed in Chromium:
+
+| element | computed |
+| --- | --- |
+| the default button's Text | blue, Arial 13.33px |
+| the borderless button | red; its Text blue, Arial 13.33px |
+| the primary button's Text | green, Arial 13.33px |
+| the `h3` | margins 0 |
+| the caption | italic, 11.1px (`--a2ui-font-size-xs`) |
+
+### Fix
+
+Public tokens for each, defaulting to today's look: the borderless variant setting the text colour
+its `Text` reads, as the primary does; a button font family and size; a caption font style and
+size of its own; a heading margin in place of the private variable.
+
+A2UIVerse's themed catalogs — Shop A, Shop B and the scaffolder's basic template — put their accent
+on `--a2ui-color-on-secondary` and a tint of it on `--a2ui-color-secondary` beside
+`--a2ui-color-primary`, and carry the caption at its row's size and upright, and the heading's
+space, in a scoped sheet under the Provider's class; their buttons keep the browser's font.
+
+### Prior art
+
+Closed issue [#975](https://github.com/a2ui-project/a2ui/issues/975) ("Figure out how to let
+application developers customize provided basic catalog implementation") ended in the CSS variables
+the components document. No issue or PR names these four.

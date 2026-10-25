@@ -259,6 +259,8 @@ The Store page heads a search's results "Closest matches". Replaced: "Best match
 
 "Shop A has changed, and the Store is waiting on its publisher, a2uiverse-apps." carries Check again, the slot's Retry: the app is judged afresh, its Store entry read again — "Shop A needs an update to show this." with Update once the Store has the update, the same line if not. Replaced: the line with no press (task-15.5 decision 6), standing on two canvases after 0.3.0 was published, until the update landed elsewhere.
 
+*Amended by task 16.11 decision 31.* A Retry from the tile, Check again or Update's, first fetches the app's live card again, within five seconds: the app is judged on its live card as it is now, its Store entry read again — an app back on what the Store holds is called and paints; "Shop A needs an update to show this." with Update once the Store has the update; the same line if neither.
+
 ### 40. An update tile whose app was updated says so
 
 Once the page holds the app past the version its line was drawn from, the tile reads "Shop A is updated." with Show it here, and Loading… while its request goes again; the progress line reads "Shop A updated". Replaced: "Shop A has changed, and the Store is waiting on its publisher, a2uiverse-apps." beside "Updated" and Show it here, the progress line "Shop A waiting on its publisher".

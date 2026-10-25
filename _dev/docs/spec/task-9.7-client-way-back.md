@@ -25,6 +25,8 @@ Every vendor `createSurface` the client receives is a step the moment it arrives
 
 On every accepted synthesis payload the client files it under its own current combination — every source with a stack, mapped to its current index, keyed as the orchestrator keys it. A step back to a combination the client has seen restores the paint and the recalled wiring together, at once, re-evaluated over the restored paint, with no call.
 
+*Amended by task 16.11 decision 28.* The client files each accepted payload with the merged view's surface as accepted, its tree; a step to a combination seen paints that tree back before the recalled wiring, so a section a later re-synthesis added leaves with it.
+
 ### 4. Unseen holds the merge line working
 
 On a step back to a combination the client has not seen, the paint is restored at once and the merged view stands as it is with the merge line in its working state until the step's stream ends. A synthesis paint on that stream lands as usual. A silent end with no paint drops the working state, leaves the current wiring evaluated over the restored paint, and files it under the combination, so the two memories converge.

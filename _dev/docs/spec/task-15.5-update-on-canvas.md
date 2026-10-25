@@ -49,6 +49,8 @@ The read runs the update check's own state computation for that one app, over th
 
 *Amended by task 15.11 decisions 39 and 40.* The waiting line carries Check again, the slot's Retry: the app is judged afresh, its Store entry read again — "Shop B needs an update to show this." with Update once the Store has the update, the same line if not. Once the page holds the app past the version a line was drawn from, the tile reads "Shop B is updated." with Show it here, and Loading… while its request goes again.
 
+*Amended by task 16.11 decision 31.* A Retry from the tile, Check again or Update's, first fetches the app's live card again, within five seconds: the app is judged on its live card as it is now, its Store entry read again — an app back on what the Store holds is called and paints; "Shop B needs an update to show this." with Update once the Store has the update; the same line if neither.
+
 ### 7. An update that asks for more
 
 Every updatable state — the installed line retired, a major update, a card update — carries the new card's new permissions, and any of them naming one asks for more: its Update passes the consent card, in the slot, the App Library and the Store alike.

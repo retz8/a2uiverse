@@ -67,6 +67,8 @@ For the catch after the call, the orchestrator fetches the live card again befor
 
 *Amended by task 15.11 decisions 5, 39 and 40.* The catch after the call covers a call that ends with no surface too: the live card fetched again, a card naming a catalog id beyond the entitlement and none in it takes the update tile. The waiting line carries Check again, the slot's Retry, judging the app afresh: "Shop B needs an update to show this." with Update once the Store has the update, the same line if not. Once the page holds the app past the version a line was drawn from, the tile reads "Shop B is updated." with Show it here.
 
+*Amended by task 16.11 decision 31.* A Retry from the tile, Check again or Update's, first fetches the app's live card again, within five seconds: the app is judged on its live card as it is now, its Store entry read again — an app back on what the Store holds is called and paints; "Shop B needs an update to show this." with Update once the Store has the update; the same line if neither.
+
 ### 12. Access is judged on the card as installed
 
 A slot's access is judged against the card as installed; the live card is read only to detect that the app has changed. An app ahead of the Store whose live card asks a new permission takes decision 11's waiting line, not the needs-more-access tile, and the new permission is asked only through the update's consent card once the Store has the card. Task 13.8's decision 27 is replaced.

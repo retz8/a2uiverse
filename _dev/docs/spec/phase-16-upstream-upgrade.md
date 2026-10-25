@@ -47,6 +47,8 @@ The spec copy under the sdk syncs to `upstream/main`'s head at the time its sub-
 
 Gates green in both repos, every e2e suite green, and a live run through the tunnel touching each thing the upgrade changed: every one of the seven catalogs painting live on the new runtime, the agents on the new kit in `llm` mode; the temporal merge and the entity join; the store loop over re-packed builds — the loop with the slot filling and the merge taking it in, the update tile every way in, a new paint on an open canvas drawn in a newer build; a sign-in; a clean regression pass. The exact list is the acceptance task's own spec.
 
+*Amended by task 16.11 decision 27.* The temporal merge runs with every agent `live`; every case after it runs on the deterministic roster, the Planner and the Synthesizer still on the model.
+
 ### 9. Three tracks
 
 The platform runtime: the sdk's contracts first, the spec copy early, then the client, the shell catalog, the orchestrator, Stellify and the marketplace. The apps' catalogs (`[apps]`): after the sdk and Stellify, parallel with the rest of the platform track. The agent kit (`[apps]`): beside everything from the first day, the seven agents following, the apps' recorded beats kept as recorded. Then the dev harness once the first two tracks land, the live acceptance, and the records, READMEs and the `a2ui-sdk-design` skill last. Doc edits open the phase: SPEC, the TODO's gate restatement and its stale line on the toolkits' PyPI release, the findings file and the delta register.

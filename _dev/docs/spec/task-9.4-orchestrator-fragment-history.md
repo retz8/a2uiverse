@@ -32,6 +32,8 @@ On every accept — the turn's first merge, Include, Retry, Try again, a walk's 
 
 On a step the orchestrator restores the remembered entry when the combination has one, writes the partition, and runs the IntegrityChecker's walk over the restored state with no call. The Synthesizer is called only if the walk fires; the outcome is filed under the new key. On a silent walk the orchestrator paints nothing — the client restored its own paint and wiring.
 
+*Amended by task 16.11 decision 25.* A step to a combination seen, over a merge the Synthesizer declined or couldn't make over the combination in between, brings the merge back: the slot left as an accept leaves it and the orchestrator repaints the shell, with no call. A collapse the sources' state made stands.
+
 ### 6. What a step refuses
 
 A failed final, in the press's register, when the source has no stack in the canvas, when the index is past the stack's end, or when the message carries no surface of that source in `a2uiClientDataModel`; the closed and unknown canvas refusals as for every press. An index equal to the current one is an idempotent no-op: the partition written, the walk run, nothing else.

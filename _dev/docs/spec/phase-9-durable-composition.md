@@ -28,6 +28,8 @@ The composition remembers, per combination of agent paints, the wiring it accept
 
 *Amended during the run (task 9.9 decisions 16, 17).* A combination never seen is first covered by a wiring remembered over fewer sources — every source it names where it stands now, the rest having painted since — restored with no call, the sources painted since late for Include. Only a combination nothing covers falls to the walk and its call, and a later step abandons that walk.
 
+*Amended by task 16.11 decisions 25 and 28.* A step restores the merged view as it was accepted over the combination — its tree with its wiring — so a section a later re-synthesis added leaves with it, and returns with a step forward. A merge the Synthesizer declined, or couldn't make, over the combination in between comes back with it: the slot left as an accept leaves it, the shell repainted, with no call. A collapse the sources' state made stands.
+
 ### 4. Acting inside a past canvas is the tab's own life
 
 An action inside a fragment of a past canvas runs on that canvas: the answer lands in its slot, its per-agent history grows, the merged view follows as in decision 3. No new entry; the trail entry stays labelled by its question. Presses — Retry, Include, Try again — work in a past canvas the same way. "Live" keeps meaning the newest question's canvas; "Return to live" goes there. The orchestrator answers against that canvas's composition, not the newest one. Phase 1's fork path — holding the parked view while a forked paint is in flight, then returning to live — is retired.
