@@ -23,6 +23,7 @@ still open is described in `a2ui-findings.md` under the same number.
 | 12 | v0.9.1 capabilities keyed `v0.9` by the schemas and Python agent SDK, `v0.9.1` by the guide and web_core | [#3134](https://github.com/a2ui-project/a2ui/issues/3134) | [#3135](https://github.com/a2ui-project/a2ui/pull/3135) — Varun-S10 verified the changes 2026-10-14 and asked for a rebase onto `main` to resolve a merge conflict; rebased 2026-10-17, awaiting review |
 | 14 | No way to add a catalog to a `MessageProcessor` after it is built (web_core, Python core, Dart core) | [#3303](https://github.com/a2ui-project/a2ui/issues/3303) | [#3304](https://github.com/a2ui-project/a2ui/pull/3304) — opened 2026-10-17, awaiting review |
 | 15 | `Catalog.to_json` raises for a function without an argument schema, and with it any `MessageProcessor` of two or more catalogs (Python core) | [#3305](https://github.com/a2ui-project/a2ui/issues/3305) | [#3306](https://github.com/a2ui-project/a2ui/pull/3306) — opened 2026-10-17, awaiting review |
+| 16 | A string prop naming a component reads as a child reference from v0.9 (Python core) | [#3605](https://github.com/a2ui-project/a2ui/issues/3605) | [#3606](https://github.com/a2ui-project/a2ui/pull/3606) — opened 2026-10-25, awaiting review |
 
 ## Closed
 

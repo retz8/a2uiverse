@@ -432,11 +432,16 @@ relaxes the v1.0 catalog schema rules, touches the Python catalog package, and o
 `ComponentModel.get_child_references` (line 185) and its fallback to
 `is_v0_8_heuristic_child_prop_key` (lines 220–227); the same lines stand on `upstream/main`
 `409ded29` (lines 186–228). Reached from `analyze_topology`
-(`python/a2ui_core/src/a2ui/core/state/validation_helpers.py`, line 167), and so from
-`MessageProcessor`, `a2ui-agent-sdk` 0.9.0's `validate_payload` and its Direct JSON parser.
+(`python/a2ui_core/src/a2ui/core/state/validation_helpers.py`, line 167), and so from a
+`MessageProcessor` given a `ValidationConfig` (without one it does not validate),
+`a2ui-agent-sdk` 0.9.0's `validate_payload` and its Direct JSON parser.
 
 **Severity:** functional bug — a valid v0.9 surface is refused as a cycle, or as holding a
 reference that is not one, whenever a plain string prop happens to equal a component id.
+
+**Reported:** `a2ui-project/a2ui` issue
+[#3605](https://github.com/a2ui-project/a2ui/issues/3605), PR
+[#3606](https://github.com/a2ui-project/a2ui/pull/3606) (in review).
 
 ### Issue
 
@@ -477,6 +482,11 @@ With the `Icon` named `"send"` the same surface passes.
 
 From v0.9, read a component the catalog declares by its reference spec alone: an empty spec yields
 no child references. Keep the heuristic for v0.8 surfaces and for a component no spec covers.
+
+#3606 does this and still reads typed `ComponentReference` values. One agent test's custom v1.0
+catalog declared `CustomCard.child` as `{"type": "string"}` and reached its child only through the
+heuristic; it now uses `ComponentId`, which the v0.9 and v1.0 protocol docs require of any property
+holding a component id.
 
 ### Prior art
 
