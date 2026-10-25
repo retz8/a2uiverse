@@ -54,3 +54,7 @@ A fault the fresh run or the check against the code finds is fixed on `main` wit
 ### 9. Worked on `main`
 
 The work is done directly on `main` in both repos, with no worktree.
+
+### 10. The client's own catalogs say what they are
+
+The comment on the client's own catalogs says they are the shell catalog and upstream's basic catalog, with no Provider. Replaced: "wrapped for navigation like every vendor catalog", standing since task 16.7 removed `decorateCatalog`.

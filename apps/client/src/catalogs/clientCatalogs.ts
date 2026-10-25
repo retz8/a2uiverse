@@ -67,8 +67,7 @@ export function resolveCatalog(
 
 /**
  * The client's own catalogs: the shell catalog, bound to its host, and upstream's basic catalog
- * as a default (task-11.5 decision 5) — wrapped for navigation like every vendor catalog, with no
- * Provider.
+ * as a default (task-11.5 decision 5), with no Provider.
  */
 export function clientCatalogs({
   onShellAction = () => {},
