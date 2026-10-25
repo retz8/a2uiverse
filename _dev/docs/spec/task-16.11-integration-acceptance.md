@@ -197,3 +197,7 @@ GitHub's `PageLayout` follows the width of the fragment it is drawn in, not the 
 ### 27. The deterministic roster after the first case
 
 The temporal merge with Calendar's loop ran with every agent `live`. Every case after it runs on the deterministic roster, the Planner and the Synthesizer still on `gemini-3.8-flash`: the entity join on the deterministic set, Calendar's reading press on the deterministic roster's events, no write reaching a live account. Amends decisions 5, 7, 10 and 12. Replaced: every agent `live` through the sitting.
+
+### 28. The way back restores the merged view's own tree
+
+A step that restores a wiring the merge accepted puts back the merged view as it was accepted — its tree and its values — so a section a later re-synthesis added leaves with it, and returns with a step forward. Replaced: the remembered values over the latest tree, an empty "Calendar" section standing under the restored table.
