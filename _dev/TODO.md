@@ -321,3 +321,6 @@ Fires when `@a2ui/react` publishes a `/v1_0` entry point — not when the v1.0 s
 - Stellify packs a named import a lent specifier does not export at the host's version, and the catalog fails only in the client: an import of `basicCatalog` from `@a2ui/react/v0_9`, gone since react 0.13.0, packs clean (found in 16.5)
 - Drop the local pnpm patch on `@a2ui/web_core` that carries PR #3304's `addCatalog` once upstream ships it (Phase 16 decision 2)
 - Drop the agent kit's local fix for `a2ui-core`'s child-reference fallback (finding 16) once upstream ships one (task-16.2 decision 8)
+- The deterministic GitHub answers an open on its "My Open Pull Requests" list with no visible change: no deterministic flow paints a pull request, so a pull request's page is seen only live (found in 16.11)
+- GitHub's catalog loads about 80 stylesheets one by one, Primer's per component: through the tunnel its Store sample waits about 10 s on a fresh page, and a build loaded on first use holds its first paint the same way, about 10 s for Linear's (found in 16.11)
+- Calendar's fragment shows an event's time with no zone, "Today, 11:00 – 12:00", while the timeline beside it shows the same event at 8:00 PM local time; Gmail names UTC on its own. Seen on the deterministic roster (found in 16.11)
