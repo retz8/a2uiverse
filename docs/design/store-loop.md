@@ -68,24 +68,24 @@ flowchart TD
     E --> F["6. 0.3.0 published: needs an update,<br/>Update, the new look"]
 ```
 
-**1. The question, and the offer.** "Compare camera prices at Shop A and Shop B." The Router shortlists the one installed shop. The Planner calls `search_store` once, with the words `"Shop B"`, and the marketplace answers Shop B's entry: its name, its publisher `a2uiverse-apps`, its description and its skills. The plan, in 19.8 seconds:
+**1. The question, and the offer.** "Compare camera prices at Shop A and Shop B." The Router shortlists the one installed shop. The Planner calls `search_store` once, with the words `"Shop B"`, and the marketplace answers Shop B's entry: its name, its publisher `a2uiverse-apps`, its description and its skills. The plan, in 23.7 seconds:
 
 ```jsonc
 {
   "title": "Camera prices at Shop A and Shop B",
   "dispatch": [
-    {"source": "shop-a", "request": "Show the camera bodies you have in stock with their prices; for each, include its model name and price."},
-    {"source": "shell", "request": "One row per camera model across the shops, the same model at both shops merged into one row, with each shop’s price and the lowest price.",
+    {"source": "shop-a", "request": "Show the camera bodies you have in stock with their prices; for each, include its full model name and its price."},
+    {"source": "shell", "request": "One row per camera across the shops, the same model at both shops merged into one row, with each shop’s price and the lowest of them.",
      "columns": ["Camera", "Shop A", "Lowest price"], "columnSources": [null, "shop-a", null],
      "join": {"home": null, "entity": "cameras", "nouns": {"shop-a": "cameras"}}},
-    {"gap": "Shop B", "offers": [{"app": "shop-b", "request": "Show the camera bodies you have in stock with their prices; for each, include its model name and price."}]}
+    {"gap": "Shop B", "offers": [{"app": "shop-b", "request": "Show the camera bodies you have in stock with their prices; for each, include its full model name and its price."}]}
   ],
   "tree": {"components": [
-    {"id": "root", "component": "Column", "children": ["merged", "shops"]},
+    {"id": "root", "component": "Column", "children": ["merged", "sources"]},
     {"id": "merged", "component": "Slot", "source": "shell"},
-    {"id": "shops", "component": "Row", "children": ["shop-a", "shop-b"]},
-    {"id": "shop-a", "component": "Slot", "source": "shop-a", "weight": 1},
-    {"id": "shop-b", "component": "Slot", "gap": "Shop B", "weight": 1}
+    {"id": "sources", "component": "Row", "children": ["shop-a", "shop-b"]},
+    {"id": "shop-a", "component": "Slot", "source": "shop-a"},
+    {"id": "shop-b", "component": "Slot", "gap": "Shop B"}
   ]}
 }
 ```
@@ -125,7 +125,7 @@ Then the client presses `useApp` naming Shop B and the gap `"Shop B"`, and the o
 **4. Shop A names two looks.** Shop A's publisher ships a breaking change: a new catalog id, with the Video component removed and its accent turned from brown to purple. Shop A's 0.2.0 card names the new id beside the old one, the kit's **old catalog line** ([`agent-kit.md`](agent-kit.md)), and is published:
 
 ```text
-republished shop-a · card 0.1.0 → 0.2.0 · catalog sha256-g_rV6uea… · catalog https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v2/catalog.json new at sha256-5ZDe-VA6…
+republished shop-a · card 0.1.0 → 0.2.0 · catalog sha256-g_rV6uea… · catalog https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v2/catalog.json new at sha256-IQ7jeqeT…
 ```
 
 Your install still holds the old line, and the live card still names it, so nothing stops: a press on Lumen Z6 in Shop A's list is answered in the old id, its detail in the old brown look, no tile.
@@ -157,7 +157,7 @@ The journal's dispatch records `failed (answered with no UI, its live card namin
 **6. Published: the update, and the new look.** 0.3.0 is published, retiring the old line:
 
 ```text
-republished shop-a · card 0.2.0 → 0.3.0 · catalog sha256-5ZDe-VA6… · catalog https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json gone
+republished shop-a · card 0.2.0 → 0.3.0 · catalog sha256-IQ7jeqeT… · catalog https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json gone
 ```
 
 Back on the camera canvas, now a past canvas, which stays actable, Check again reads Shop A's entry again and finds the installed line retired, `update-required` from 0.1.0 to 0.3.0:
@@ -168,7 +168,7 @@ Back on the camera canvas, now a past canvas, which stays actable, Check again r
   <em>The Store has the update: needs an update, with Update.</em>
 </p>
 
-Update asks for nothing new, so it goes straight through: the install by id over the held app, journaled `install-over` with the new id at `sha256-5ZDe-VA689Wcn9Wr6n9o5zm7O8d2E9Mqq8TyjVsSrl8`. The tile reads "Shop A is updated." with Loading… while its request goes again. In this run the tunnel swallowed that request: the client heard nothing and logged `press failed … The orchestrator did not answer.`, and the tile stood at "Shop A is updated." with Show it here, the line a slot reads when its app was updated and no request of its own is on the way. Show it here sent it again. The press the slot had kept, "Back to the list", was made on a surface drawn in the old id, which the update dropped, so the slot sends the plan's request instead, and Shop A paints its list afresh in the new purple look. The merged view comes back over both shops.
+Update asks for nothing new, so it goes straight through: the install by id over the held app, journaled `install-over` with the new id at `sha256-IQ7jeqeTE1IA5PLXubeDRKyKQcKlBJUUMHrCUI0EtO0`. The tile reads "Shop A is updated." with Loading… while its request goes again. The press the slot had kept, "Back to the list", was made on a surface drawn in the old id, which the update dropped, so the slot sends the plan's request instead, and Shop A paints its list afresh in the new purple look. The merged view comes back over both shops.
 
 <p align="center">
   <img src="../images/store-loop-repainted.png" width="720" alt="The camera canvas after the update: Shop A's list in purple beside Shop B's, the merged view back">
@@ -235,7 +235,7 @@ The gap in the plan is `{gap: "<words>", offers: [{app, request?}]}` beside the 
 `compositionFrom` builds a `GapEntry` per gap from the plan and its searches: each offered app's id, name, publisher and description from the entry the search answered, and the request kept on the orchestrator; with no offers, `none: "unreached"` when the search with those words didn't reach the Store, else `"nothing"`. The shell painter writes the `Slot`'s `offer`:
 
 ```jsonc
-{"id": "shop-b", "component": "Slot", "gap": "Shop B", "weight": 1,
+{"id": "shop-b", "component": "Slot", "gap": "Shop B",
  "offer": {"apps": [{"appId": "shop-b", "name": "Shop B", "publisher": "a2uiverse-apps",
    "description": "Northlight Cameras, a high-volume online retailer listing current stock with live pricing and next-day dispatch."}]}}
 ```
