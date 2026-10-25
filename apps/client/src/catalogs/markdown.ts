@@ -14,5 +14,21 @@ md.renderer.rules.link_close = () => '';
 md.renderer.rules.image = (tokens, idx, options, env, self) =>
   md.utils.escapeHtml(self.renderInlineAsText(tokens[idx].children ?? [], options, env));
 
-// markdown-it ends every block with a newline; the last one would sit in the text as a space.
-export const renderMarkdown: MarkdownRenderer = async markdown => md.render(markdown).trimEnd();
+/**
+ * A text that is one paragraph comes back inline, as a plain text draws: web_core gives a paragraph
+ * inside its `Text` a size and line height of its own. Several paragraphs, or a list, come back as
+ * blocks.
+ */
+export const renderMarkdown: MarkdownRenderer = async markdown => {
+  const env = {};
+  const tokens = md.parse(markdown, env);
+  if (
+    tokens.length === 3 &&
+    tokens[0].type === 'paragraph_open' &&
+    tokens[2].type === 'paragraph_close'
+  ) {
+    return md.renderer.renderInline(tokens[1].children ?? [], md.options, env);
+  }
+  // markdown-it ends every block with a newline; the last one would sit in the text as a space.
+  return md.renderer.render(tokens, md.options, env).trimEnd();
+};

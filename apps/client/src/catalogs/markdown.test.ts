@@ -13,6 +13,11 @@ describe('renderMarkdown', () => {
     expect(html).toMatch(/^<p>/);
   });
 
+  it('draws a one-paragraph text inline, as a plain text draws', async () => {
+    expect(await renderMarkdown('**Free** shipping')).toBe('<strong>Free</strong> shipping');
+    expect(await renderMarkdown('Lumen Z6')).toBe('Lumen Z6');
+  });
+
   it('draws a link as its text and an image as its alt text', async () => {
     const html = await renderMarkdown(
       '[see the shop](https://shop.example) ![a lamp](https://shop.example/lamp.png) <https://shop.example>',
