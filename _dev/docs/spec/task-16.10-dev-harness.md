@@ -23,7 +23,7 @@ A build a recorded beat names that the registry it replays over does not hold is
 
 ### 3. A screenshot difference is traced before its baseline is taken again
 
-Each difference the upgrade makes in the replay suite is traced to a decision on record before its baseline is taken again — the shops' rows drawn in their accent to task 16.9 decision 1, their ratings in an italic caption to the finding 16.12 carries, the Planner's numbered list drawn as a list to the client's markdown fix on `main` (`60b2cc4`) — and the differences are listed in 16.10's done commit. A difference no decision explains is a finding, fixed where it lives before 16.10 lands; the shops' taller rows are yet to be traced.
+Each difference the upgrade makes in the replay suite is traced to a decision on record before its baseline is taken again — the shops' rows drawn in their accent to task 16.9 decision 1, their ratings in an italic caption to the finding 16.12 carries, the Planner's numbered list drawn as a list to the client's markdown fix on `main` (`60b2cc4`) — and the differences are listed in 16.10's done commit. A difference no decision explains is a finding, fixed where it lives before 16.10 lands (decisions 11 and 12).
 
 ### 4. The launcher is checked by a launch
 
@@ -59,3 +59,11 @@ No worktree branch.
 ### 10. A note for 16.12
 
 16.12's line names the beat replay reading a recorded build against the registry it replays over.
+
+### 11. The shops' look kept by tokens where a token reaches
+
+In Shop A, Shop B and the basic template, a list sits flush with what is above it, `--a2ui-list-padding` at 0, and an `h3` draws at the size it always has, `--a2ui-font-size-l` at 1.17rem. Shop A's and Shop B's catalogs take a patch version, are re-packed and republished, and the registry snapshot moves to their commit.
+
+### 12. A scoped sheet for what no token reaches
+
+Each themed catalog — Shop A, Shop B and the basic template — carries a scoped sheet again, holding only what no token reaches: a caption at its row's size and upright, and an `h3` with the browser's own space above and below it. Shop A's and Shop B's catalogs at 0.2.2. Amends task 16.9 decision 1. The missing tokens go into the findings file as an upstream request.

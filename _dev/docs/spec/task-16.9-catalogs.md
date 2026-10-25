@@ -17,6 +17,8 @@ The seven catalogs of the apps repo and the scaffolder's two catalog templates b
 
 Shop A, Shop B and the basic template sit on upstream's basic catalog, whose components style themselves. Each keeps its tokens, on upstream's names where they differ, and its theme sheet goes. Each store's accent is carried through upstream's primary and secondary colours — a default button's text in the accent, its hover a tint of it — so the two stores side by side in a merged view still read as two sources; the basic template carries its accent the same way. Where upstream draws a button or a hover differently from today, upstream's stands.
 
+*Amended by task 16.10 decisions 11 and 12.* A list sits flush, `--a2ui-list-padding` at 0, and an `h3` draws at the size it always has, `--a2ui-font-size-l` at 1.17rem; each catalog carries a scoped sheet again, holding only what no token reaches: a caption at its row's size and upright, an `h3` with the browser's own space above and below it.
+
 ### 2. The lists draw their own `<li>`
 
 Gmail's, Calendar's and Linear's lists wrap each child they build in an `<li>` of their own. The list items draw a row instead of an `<li>`, and Linear's list group a container holding its own nested list, so a list's markup is a `<ul>` of `<li>` elements, each holding the element its child renders in.
