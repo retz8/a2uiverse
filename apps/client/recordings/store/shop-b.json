@@ -87,12 +87,12 @@
       "version": "0.1.0"
     },
     "catalogs": {
-      "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json": "sha256-z771tM-x9xjY7bFQ4r10-Oo7QDcGz-cNL0pj91RjzXQ"
+      "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json": "sha256-_TCD3fq4YuIEIkQUXick5spwJggpnchxEq4Fx3I8GWE"
     },
     "versions": [
       "0.1.0"
     ],
-    "publishedAt": "2026-10-25T01:18:15.594Z",
+    "publishedAt": "2026-10-25T01:41:27.311Z",
     "retired": []
   },
   "preview": {
@@ -274,6 +274,6 @@
       }
     ],
     "capturedBy": "publisher",
-    "capturedAt": "2026-10-25T01:18:15.141Z"
+    "capturedAt": "2026-10-25T01:41:26.864Z"
   }
 }

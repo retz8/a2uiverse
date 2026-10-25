@@ -19,13 +19,13 @@
     "build": "node scripts/generate.mjs"
   },
   "dependencies": {
-    "calendar-catalog": "github:retz8/a2uiverse-apps#4ff933b6d8fc56ff88ba7e2ff8bc6371c6543884&path:calendar/calendar-catalog",
-    "circleci-catalog": "github:retz8/a2uiverse-apps#4ff933b6d8fc56ff88ba7e2ff8bc6371c6543884&path:circleci/circleci-catalog",
-    "github-catalog": "github:retz8/a2uiverse-apps#4ff933b6d8fc56ff88ba7e2ff8bc6371c6543884&path:github/github-catalog",
-    "gmail-catalog": "github:retz8/a2uiverse-apps#4ff933b6d8fc56ff88ba7e2ff8bc6371c6543884&path:gmail/gmail-catalog",
-    "linear-catalog": "github:retz8/a2uiverse-apps#4ff933b6d8fc56ff88ba7e2ff8bc6371c6543884&path:linear/linear-catalog",
-    "shop-a-catalog": "github:retz8/a2uiverse-apps#4ff933b6d8fc56ff88ba7e2ff8bc6371c6543884&path:mocks/shop-a/shop-a-catalog",
-    "shop-b-catalog": "github:retz8/a2uiverse-apps#4ff933b6d8fc56ff88ba7e2ff8bc6371c6543884&path:mocks/shop-b/shop-b-catalog"
+    "calendar-catalog": "github:retz8/a2uiverse-apps#7a6d88dbbdc9372c4a8472b53907c278ab805f0c&path:calendar/calendar-catalog",
+    "circleci-catalog": "github:retz8/a2uiverse-apps#7a6d88dbbdc9372c4a8472b53907c278ab805f0c&path:circleci/circleci-catalog",
+    "github-catalog": "github:retz8/a2uiverse-apps#7a6d88dbbdc9372c4a8472b53907c278ab805f0c&path:github/github-catalog",
+    "gmail-catalog": "github:retz8/a2uiverse-apps#7a6d88dbbdc9372c4a8472b53907c278ab805f0c&path:gmail/gmail-catalog",
+    "linear-catalog": "github:retz8/a2uiverse-apps#7a6d88dbbdc9372c4a8472b53907c278ab805f0c&path:linear/linear-catalog",
+    "shop-a-catalog": "github:retz8/a2uiverse-apps#7a6d88dbbdc9372c4a8472b53907c278ab805f0c&path:mocks/shop-a/shop-a-catalog",
+    "shop-b-catalog": "github:retz8/a2uiverse-apps#7a6d88dbbdc9372c4a8472b53907c278ab805f0c&path:mocks/shop-b/shop-b-catalog"
   },
   "devDependencies": {
     "@a2uiverse/sdk": "workspace:*",
