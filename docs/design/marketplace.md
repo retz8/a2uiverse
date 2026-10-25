@@ -256,7 +256,7 @@ Stellify posts `{appId, cardUrl, catalogs: [{files}]}` to `POST /publish` with t
 2. Checks **who owns `shop-a`**: no one yet, so on. Another publisher's id would be refused here, alone, before anything is fetched.
 3. **Fetches the live card** from the URL given (10 seconds), and requires a `version` and a `description` on it.
 4. Reads the catalog ids the card declares and checks **who owns each**. Shop A's is unclaimed, so on.
-5. Runs the **static gate** over the artifact — descriptor, every file at its hash, host interface `0.9.1`, the schema compiling under its own id — and checks **coverage both ways**: every declared id handed, public, or already held by the marketplace for this publisher; every artifact handed for a declared id.
+5. Runs the **static gate** over the artifact — descriptor, every file at its hash, host interface `0.14.0`, the schema compiling under its own id — and checks **coverage both ways**: every declared id handed, public, or already held by the marketplace for this publisher; every artifact handed for a declared id.
 6. Applies the **version rule**: a first publish, nothing to compare.
 7. Applies the **preview rule**: Shop A's card requires no sign-in, so no preview may be handed — the marketplace will capture it.
 8. Runs the **smoke test**: one request, _"What cameras do you have?"_, advertising `[basic, shop-a's catalog]`. The agent answers with the `list` surface above and completes. Every check over the paint passes.
@@ -274,7 +274,7 @@ pnpm --filter @a2uiverse/marketplace marketplace search "camera prices"
 # shop-a  Shop A  0.379
 ```
 
-The apps that match come back with their scores, an app the words name first. The Store calls this route through the orchestrator ([`trusted-page.md`](trusted-page.md#search-and-the-lists-the-store-holds)); Phase 15's Router miss will call it too.
+The apps that match come back with their scores, an app the words name first. The Store calls this route through the orchestrator ([`trusted-page.md`](trusted-page.md#search-and-the-lists-the-store-holds)), and so does the Planner's search ([Store loop](#store-loop-the-planners-search) below).
 
 **5. Install by id.** From any machine running an orchestrator pointed at this marketplace:
 
@@ -452,7 +452,7 @@ sequenceDiagram
 
 Every refusal along the way is journaled as a `registry` line with `outcome: "refused"` and `source: "marketplace"`, so a Store-behind refusal shows in the journal like any other.
 
-The journal's registry line gained three fields in this phase: `source`, where the install came by; `followed`, the other installed apps whose row this install moved; and `automatic: true` when the update check did it. The install summary names followers too: `updated linear · card 0.1.0 · catalog sha256-JvcQSoor… → sha256-zJbZyJNl… · linear-admin followed`.
+The journal's registry line carries three fields for this: `source`, where the install came by; `followed`, the other installed apps whose row this install moved; and `automatic: true` when the update check did it. The install summary names followers too: `updated linear · card 0.1.0 · catalog sha256-JvcQSoor… → sha256-zJbZyJNl… · linear-admin followed`.
 
 ### Update check: eight states, one operation
 
@@ -504,6 +504,7 @@ The orchestrator's Planner reads the marketplace too, when a question needs some
 | A sign-in app published with no preview | `the card requires sign-in: publish needs the preview `stellify preview` captures with your own credential` |
 | A preview handed for an open app, or at another version | `a preview is only taken for an app whose card requires sign-in …`; `the preview was captured at version "0.1.0", the card is at "0.2.0"` |
 | A build removes something | `catalog artifact 1 (…): components/Video: removed`; the row stays where it was |
+| A build packed for another host interface | `catalog artifact 1 (…): host interface "0.9.1" is not one the platform supplies (it supplies "0.14.0")`, `422`; Stellify 0.3.0 packs for `0.14.0` |
 | The card changed at a published version | `the card changed, but version "0.1.0" is already published: a changed card carries a version this app id has never published` |
 | The agent never finishes, fails, or paints nothing | `the agent never finished: the stream ended without a final event`; `the agent ended the task as failed: …`; `the answer paints nothing: no createSurface` |
 | The agent paints outside its entitlement | `surface "list" is painted in catalog "…", outside the entitlement` |
@@ -527,7 +528,7 @@ The orchestrator's Planner reads the marketplace too, when a question needs some
 | **The card's `version` is the app's, and a changed card needs a new one** | A registry can tell a changed card from the same one by one string; an unpublished id's history still holds | A publisher must bump the version for any card change, a description's typo included |
 | **Retirement by publish, no verb** | A2UI's migration rule becomes a recorded fact the update check reads as `update-required` | The marketplace records the line retired; it cannot make the agent keep painting in it |
 | **Artifacts hosted in the registry's layout, immutable** | An install fetches only the files it lacks, and a plain directory stands in for the process | Every artifact lives twice, in the marketplace and in each registry |
-| **One embedder and one corpus document for both indexes** | A question ranks the same against the Store and the registry; Phase 15's miss-to-hit needs no second tuning | A change of model re-ranks both at once; a 23 MB download per process |
+| **One embedder and one corpus document for both indexes** | A question ranks the same against the Store and the registry; the Planner's search of the Store needs no second tuning | A change of model re-ranks both at once; a 23 MB download per process |
 | **The update state is computed by the orchestrator, from three things** | No push channel, no subscription; each registry judges on the card the agent serves now | A check costs one fetch per app at the marketplace and one at each agent |
 | **A newer build installs itself; everything else waits for the person** | The publisher's own fix under the same contract lands with no one asked; a new catalog, a new scope or a retired line is never applied behind the person's back | A read with a side effect; an app from a local pack is never moved, nor carried |
 | **Ahead of the Store is detected from the live card, reported, verified, and told — never prevented** | An agent that moved without a publish is named within one check, the Store refuses to hand a stale build, and the publisher is told where it matters | The listing waits on the publisher; nothing stops them changing the agent |

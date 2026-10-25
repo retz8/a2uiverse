@@ -192,11 +192,24 @@ A pnpm workspace with Turborepo over it. Each package's README has its own comma
 
 </details>
 
+## Built on
+
+A2UIVerse speaks the A2UI protocol at v0.9.1, on the packages the A2UI project publishes:
+
+| Package          | Version | Used by                                                                                                      |
+| ---------------- | ------- | ------------------------------------------------------------------------------------------------------------ |
+| `@a2ui/web_core` | 0.14.0  | the client, the shell catalog, the orchestrator, the sdk and Stellify; lent to the apps' catalogs at runtime |
+| `@a2ui/react`    | 0.14.0  | the client and the shell catalog; lent to the apps' catalogs at runtime                                      |
+| `a2ui-agent-sdk` | 0.9.0   | the agent kit in `a2uiverse-apps`                                                                            |
+| `a2ui-core`      | 0.4.0   | the agent kit                                                                                                |
+| `a2ui-a2a`       | 0.1.0   | the agent kit                                                                                                |
+
+The two npm packages carry local patches, described in the [client README](apps/client/README.md#upstream-patches).
+
 ## Where it's headed
 
 What's built so far is the composed screen; installing an app from its card and its packed catalog, or from the marketplace by its id alone; signing in to apps, with several accounts each; the marketplace an app is published to — its index with search, its hosted catalogs, the publish step that tries a new app by asking it to paint its first screen — and the orchestrator telling when a published update is waiting; the one page over the canvas — the Store, the App Library and Publish; and the store loop — a question no installed app can answer offering apps from the Store in its slot, installed there, and an app that has changed updated where it stands. Next:
 
-- **Today's A2UI packages**: the renderer, its core and the agent SDK brought to their current releases.
 - **Models beyond Gemini** tried on the apps' agents.
 - **One sitting, end to end**: publish a new app, discover it, install it, compose it with an existing one, and act inside it, with no code changes.
 

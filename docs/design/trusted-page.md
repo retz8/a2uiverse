@@ -92,7 +92,7 @@ Claim posts `{"publisher": "northlight"}` to the orchestrator's `/marketplace/cl
 {"kind":"publisher","at":"2026-10-17T07:08:29.241Z","act":"claim","publisher":"northlight","outcome":"done","by":"page"}
 ```
 
-**2. Publish from the packed folder.** Pack and preview stay in Stellify, on the publisher's terminal, in Shop B's catalog package. `stellify pack` writes the artifact folder (`shop-b-catalog 0.1.0 — 3 files written to …/dist/artifact`), and `stellify preview` asks the running agent its first screen with the publisher's own credential, Shop B's demo key: `preview of shop-b at 0.1.0 — 1 surface painted`. Shop B asks you to connect with a key, so the Store can't ask it a question itself; the sample has to come from the publisher.
+**2. Publish from the packed folder.** Pack and preview stay in Stellify, on the publisher's terminal, in Shop B's catalog package. `stellify pack` writes the artifact folder (`shop-b-catalog 0.2.2 — 3 files written to …/dist/artifact`), and `stellify preview` asks the running agent its first screen with the publisher's own credential, Shop B's demo key: `preview of shop-b at 0.1.0 — 1 surface painted`. Shop B asks you to connect with a key, so the Store can't ask it a question itself; the sample has to come from the publisher.
 
 Publish an app opens the form: the app's id, its card URL, the folders Stellify packed, and the sample answer file.
 
@@ -102,17 +102,17 @@ Publish an app opens the form: the app's id, its card URL, the folders Stellify 
   <em>The form filled: the folder read in the browser and labelled from its descriptor, the sample file read and checked.</em>
 </p>
 
-The folder is read in the browser, every file by its path inside it, and refused on the spot if no descriptor sits at its top; it's labelled from the descriptor, `shop-b-catalog`, 4 files. The sample file is held to the same preview check Stellify's `publish` applies. Publish sends the body the command line sends, `{appId, cardUrl, catalogs: [{files}], preview}`, each file base64-encoded only now. The orchestrator relays it with the token as the bearer and gives the marketplace 180 seconds; the marketplace runs its publish step ([`marketplace.md`](marketplace.md#publish-in-order)) and lists the app: `published shop-b · card 0.1.0 · catalog sha256-HZguEEJZ… (by northlight)`.
+The folder is read in the browser, every file by its path inside it, and refused on the spot if no descriptor sits at its top; it's labelled from the descriptor, `shop-b-catalog`, 4 files. The sample file is held to the same preview check Stellify's `publish` applies. Publish sends the body the command line sends, `{appId, cardUrl, catalogs: [{files}], preview}`, each file base64-encoded only now. The orchestrator relays it with the token as the bearer and gives the marketplace 180 seconds; the marketplace runs its publish step ([`marketplace.md`](marketplace.md#publish-in-order)) and lists the app: `published shop-b · card 0.1.0 · catalog sha256-_TCD3fq4… (by northlight)`.
 
 The page lands on the listings, with the outcome on top: "**Shop B 0.1.0 is in the Store.** People can now find Shop B in the Store." The Store's own summary folds under Details:
 
 ```text
-published shop-b · card 0.1.0 · catalog sha256-HZguEEJZ…
+published shop-b · card 0.1.0 · catalog sha256-_TCD3fq4…
 app id "shop-b" is now northlight's
 catalog "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json" is now northlight's
 ```
 
-The listing reads as Stellify's `list` prints it: "Version 0.1.0 (card version)", "Its look (catalog) …/shop-b-catalog/catalogs/v0.9.1/catalog.json at build sha256-HZguEEJ…", Publish an update, Unpublish, and the sample drawn live beside it.
+The listing reads as Stellify's `list` prints it: "Version 0.1.0 (card version)", "Its look (catalog) …/shop-b-catalog/catalogs/v0.9.1/catalog.json at build sha256-_TCD3fq…", Publish an update, Unpublish, and the sample drawn live beside it.
 
 **3. Found in the Store.** The Store opens on every published app by name, "All apps · 7", Shop B "by northlight" with Install and every other app with ✓ Installed. A search runs on Enter: "camera prices" asks the orchestrator's `/marketplace/search`, which relays the marketplace's matches and annotates each one.
 
@@ -126,7 +126,7 @@ The listing reads as Stellify's `list` prints it: "Version 0.1.0 (card version)"
 
 "Closest matches · 2" lists the two shops; the other five apps score under the cut. The heading says closest, not best: the cut can't tell a search nothing fits from a match, so a search like "flight booking" lists the nearest apps too. Opening Shop B shows its view: **What it does**, the card's description; **Try asking**, its skills' examples, "What cameras do you have?" and "What is your returns policy?"; **Signing in**, "Shop B asks you to connect with a key the first time you use it."; and the sample, headed by the question it answered, a table of Northlight's cameras with their prices and ratings, and the caption "Made by the publisher with their own account, Oct 17".
 
-The sample needs Shop B's build, `sha256-HZguEEJZFF8jNpZb6DQaQaEIIR9JkMgI3WpFohZ3KMQ`, which the registry doesn't hold. The loader asks the orchestrator for it under `/marketplace/artifacts/sha256-HZguEEJZ…/`, and the orchestrator fetches each file from the marketplace and checks it before serving: the descriptor's bytes against the id, each file against the hash the descriptor lists. Nothing is written into the registry. The sample then draws in a renderer of its own, over the client's own catalogs and that build.
+The sample needs Shop B's build, `sha256-_TCD3fq4YuIEIkQUXick5spwJggpnchxEq4Fx3I8GWE`, which the registry doesn't hold. The loader asks the orchestrator for it under `/marketplace/artifacts/sha256-_TCD3fq4…/`, and the orchestrator fetches each file from the marketplace and checks it before serving: the descriptor's bytes against the id, each file against the hash the descriptor lists. Nothing is written into the registry. The sample then draws in a renderer of its own, over the client's own catalogs and that build.
 
 "by northlight" is a link: it opens `?page=store&publisher=northlight`, "Apps by northlight · 1", the public index filtered on the name. No secret is needed to see a publisher's apps.
 
@@ -141,7 +141,7 @@ The sample needs Shop B's build, `sha256-HZguEEJZFF8jNpZb6DQaQaEIIR9JkMgI3WpFohZ
 Install posts `{"appId": "shop-b"}` to the orchestrator's `/registry/install`: the install by id ([`app-install.md`](app-install.md), [`marketplace.md`](marketplace.md#install-by-id-inside-the-orchestrator)), the same operation every path takes.
 
 ```json
-{"kind":"registry","at":"2026-10-17T07:11:49.573Z","operation":"install","appId":"shop-b","cardUrl":"http://localhost:12002/.well-known/agent-card.json","catalogs":[{"catalogId":"https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json","artifact":"sha256-HZguEEJZFF8jNpZb6DQaQaEIIR9JkMgI3WpFohZ3KMQ"}],"outcome":"installed","source":"marketplace","by":"page"}
+{"kind":"registry","at":"2026-10-17T07:11:49.573Z","operation":"install","appId":"shop-b","cardUrl":"http://localhost:12002/.well-known/agent-card.json","catalogs":[{"catalogId":"https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json","artifact":"sha256-_TCD3fq4YuIEIkQUXick5spwJggpnchxEq4Fx3I8GWE"}],"outcome":"installed","source":"marketplace","by":"page"}
 ```
 
 The view says "**Shop B is installed.** Try asking “What cameras do you have?” on your canvas.", and its press reads ✓ Installed. Nothing opens Shop B from the Store; asking does.
@@ -158,7 +158,7 @@ Shop B's view in the App Library says "No accounts." beside **Add account**, "Op
 
 The orchestrator reports the drift to the marketplace, which looks at the card itself and sets its own flag: `shop-b is ahead of the Store: version 0.2.0`. In the App Library, the update check runs on entering, and Shop B's row says "A newer version is on its way from the publisher", with nothing to press.
 
-**6. The update, published and taken.** The publisher captures the sample again at 0.2.0 and presses Publish an update on the listing. The form opens with the app's id and card URL filled in, and the sample file "Needed because Shop B asks people to sign in: the Store can't ask it a question without your account." No folder is handed: the marketplace already holds Shop B's build. The outcome: "**Shop B 0.2.0 is in the Store.** People who have Shop B installed see the update in their App Library.", and under Details, `republished shop-b · card 0.1.0 → 0.2.0 · catalog sha256-HZguEEJZ…` and `the held build counts as covered`. The notice is gone.
+**6. The update, published and taken.** The publisher captures the sample again at 0.2.0 and presses Publish an update on the listing. The form opens with the app's id and card URL filled in, and the sample file "Needed because Shop B asks people to sign in: the Store can't ask it a question without your account." No folder is handed: the marketplace already holds Shop B's build. The outcome: "**Shop B 0.2.0 is in the Store.** People who have Shop B installed see the update in their App Library.", and under Details, `republished shop-b · card 0.1.0 → 0.2.0 · catalog sha256-_TCD3fq4…` and `the held build counts as covered`. The notice is gone.
 
 <p align="center">
   <img src="../images/trusted-page-new-version.png" width="560" alt="Shop B's head in the App Library: A new version is available, and Update">

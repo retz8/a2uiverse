@@ -74,11 +74,11 @@ notice: shop is ahead of the Store: its card declares catalog https://…/shop/c
 **What it checks**, every failure reported together as `file: reason`:
 
 1. The config has only known keys, and its `catalogId` matches the schema's.
-2. `package.json` has a name and a version and names a built entry that exists and bundles. An import of a host package the client doesn't lend is refused, with the list of what it does lend: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `zod`.
+2. `package.json` has a name and a version and names a built entry that exists and bundles. An import of a host package the client doesn't lend is refused, with the list of what it does lend: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `@a2ui/web_core/v0_9/basic_catalog`, `zod`.
 3. Every stylesheet reached, and every `url()` or `@import` inside it, resolves to a file inside your package or one of its dependencies.
 4. The entry exports `CATALOG`.
 5. The schema parses, has a `catalogId`, and compiles as an A2UI catalog whose id is the one the descriptor carries.
-6. The descriptor is well formed, names the host-module interface the client lends (`0.9.1`), and lists every file with its hash.
+6. The descriptor is well formed, names the host-module interface the client lends (`0.14.0`), and lists every file with its hash.
 
 Stellify runs none of your code: exports are read from the bundle, the id from the schema file. Whether `CATALOG.id` agrees is the client's check when it loads the artifact. `check` passing means the registry's gate will pass; the install can still refuse the app for what lies outside the artifact, such as a card that doesn't name the catalog.
 
@@ -154,11 +154,11 @@ In `index.js`, `import {useState} from 'react'` has become a read from `__a2uive
 ## Developing Stellify
 
 ```bash
-pnpm --filter @a2uiverse/stellify build       # dist/: index.js with the sdk inlined, cli.js, declarations
+pnpm --filter @a2uiverse/stellify build       # dist/: index.js and cli.js with the sdk inlined, sharing shared.js; declarations
 pnpm --filter @a2uiverse/stellify test        # vitest over the fixture catalog, a scripted agent and a scripted marketplace
 ```
 
-`dist/` is committed, because a git install sees no workspace siblings: the build ships with the sdk inlined and needs no build step of its own, and its two runtime dependencies, esbuild and the A2A client `@a2a-js/sdk`, come from npm. `pnpm verify` at the root rebuilds `dist/` and fails on any difference — after editing `src/` or the sdk, run `build` and commit the result.
+`dist/` is committed, because a git install sees no workspace siblings: the build ships with the sdk inlined and needs no build step of its own, and its runtime dependencies come from npm: esbuild, the A2A client `@a2a-js/sdk`, and the sdk's own, `@a2ui/web_core`, zod and ajv, at the sdk's versions, which a test holds equal. `pnpm verify` at the root rebuilds `dist/` and fails on any difference — after editing `src/` or the sdk, run `build` and commit the result.
 
 The tests pack the fixture catalog in `test/fixtures` and drive the marketplace verbs against two fakes of their own, an in-process A2A agent scripted per turn and a marketplace scripted per route, each recording what it received so the tests assert on the wire. The round trip against the real marketplace is run by hand, and by the launcher under `--publish`.
 

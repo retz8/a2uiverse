@@ -109,7 +109,7 @@ The gap is a `Slot` like any other, named by its words, and the request it offer
 Install posts the install by id to the orchestrator; the row reads "From the Store:", Shop B "Installed" with Loading…. The journal:
 
 ```json
-{"kind":"registry","operation":"install","appId":"shop-b","cardUrl":"http://localhost:12002/.well-known/agent-card.json","catalogs":[{"catalogId":"https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json","artifact":"sha256-HZguEEJZFF8jNpZb6DQaQaEIIR9JkMgI3WpFohZ3KMQ"}],"outcome":"installed","source":"marketplace","by":"page"}
+{"kind":"registry","operation":"install","appId":"shop-b","cardUrl":"http://localhost:12002/.well-known/agent-card.json","catalogs":[{"catalogId":"https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json","artifact":"sha256-_TCD3fq4YuIEIkQUXick5spwJggpnchxEq4Fx3I8GWE"}],"outcome":"installed","source":"marketplace","by":"page"}
 ```
 
 Then the client presses `useApp` naming Shop B and the gap `"Shop B"`, and the orchestrator turns the gap into Shop B's slot and sends it the request the plan offered it, with no second plan. Shop B asks you to connect with a key, so the dispatch stops before the call, the way any slot needing sign-in does, and the slot says "Connect Shop B to show it here." with Connect, "Opens a page to paste your Shop B key". The progress line reads "Shop B not connected".
@@ -125,7 +125,7 @@ Then the client presses `useApp` naming Shop B and the gap `"Shop B"`, and the o
 **4. Shop A names two looks.** Shop A's publisher ships a breaking change: a new catalog id, with the Video component removed and its accent turned from brown to purple. Shop A's 0.2.0 card names the new id beside the old one, the kit's **old catalog line** ([`agent-kit.md`](agent-kit.md)), and is published:
 
 ```text
-republished shop-a · card 0.1.0 → 0.2.0 · catalog sha256-nnzw-NQH… · catalog https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v2/catalog.json new at sha256-5ZDe-VA6…
+republished shop-a · card 0.1.0 → 0.2.0 · catalog sha256-g_rV6uea… · catalog https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v2/catalog.json new at sha256-5ZDe-VA6…
 ```
 
 Your install still holds the old line, and the live card still names it, so nothing stops: a press on Lumen Z6 in Shop A's list is answered in the old id, its detail in the old brown look, no tile.
@@ -152,7 +152,7 @@ The App Library reads Shop A "A new version is available", with Update, a sugges
   <em>Ahead of the Store: the waiting line, with Check again.</em>
 </p>
 
-The journal's dispatch records `failed (answered with no UI, its live card naming nothing it is installed with)`, and the orchestrator reports the change to the marketplace as the update check does. Check again judges Shop A afresh, its entry read again, and lands on the same line. A second question, "Which cameras can I buy, and where?", opens a canvas of its own: Shop A's slot takes the same line before the call, the agent never asked.
+The journal's dispatch records `failed (answered with no UI, its live card naming nothing it is installed with)`, and the orchestrator reports the change to the marketplace as the update check does. Check again judges Shop A afresh, its live card fetched again and its entry read again, and lands on the same line. A second question, "Which cameras can I buy, and where?", opens a canvas of its own: Shop A's slot takes the same line before the call, the agent never asked.
 
 **6. Published: the update, and the new look.** 0.3.0 is published, retiring the old line:
 
@@ -324,7 +324,7 @@ The loop adds no entry kind. The search is a tool call on the plan's record; the
 
 - **A plan that searches is slow.** About 30 seconds for the example, up to 66 when the Planner searches several times.
 - **The search can't tell a search nothing fits from a match.** "flight booking" scores Google Calendar above the weakest right match in the labelled searches, so the Planner judges fit itself ([`marketplace.md`](marketplace.md#index-embedding-and-search)).
-- **A change made while the orchestrator runs** shows only once the live card is fetched again: by the App Library's check, a refused paint, or a call that ends with no surface.
+- **A change made while the orchestrator runs** shows only once the live card is fetched again: by the App Library's check, a Retry from the update tile, a refused paint, or a call that ends with no surface.
 - **A question changes no canvas but its own.** Every question opens a canvas of its own, so an install asked for answers on the new canvas, not the one you were looking at.
 
 ## Trying it

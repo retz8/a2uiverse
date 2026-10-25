@@ -24,7 +24,7 @@ A2UIVerse answers with two units joined by an id, a pack tool, and one writer:
 flowchart LR
     subgraph vendor["The vendor's side"]
         A["GitHub's agent<br/>and its card"]
-        P["github-catalog<br/>the package"] -->|"stellify pack"| ART["the catalog artifact<br/>99 files"]
+        P["github-catalog<br/>the package"] -->|"stellify pack"| ART["the catalog artifact<br/>101 files"]
     end
     A -->|"its card URL"| INS["install<br/>into the orchestrator's registry"]
     ART -->|"its files"| INS
@@ -86,7 +86,7 @@ The catalog is installed beside the app, not inside it, and the two meet only th
   {"catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json", "provided": "client"},
   {"catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json", "provided": "client"},
   {"catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
-   "artifact": "sha256-muNbmR5mKt8syNMd8F2CwoX3dD4io6xoVLEbHSB_GG8", "entry": "index.js"}
+   "artifact": "sha256-o0lcA0wt5e2S9Jv8bXLb47m3_4kvXVto2Bx9zD4tyLM", "entry": "index.js"}
 ]
 ```
 
@@ -94,13 +94,15 @@ Two rows are always there: the standard **basic catalog**, which every A2UI clie
 
 ### 3. Catalog artifact: a folder under one URL
 
-Stellify packs `github-catalog` into a **catalog artifact**, a folder the orchestrator serves under one base URL, `/registry/artifacts/sha256-muNbmR5m…/`:
+Stellify packs `github-catalog` into a **catalog artifact**, a folder the orchestrator serves under one base URL, `/registry/artifacts/sha256-o0lcA0wt…/`:
 
 ```
 artifact.json                                    the descriptor: every other file and its hash
-index.js                                         the whole catalog, one ES module, 2.2 MB
+index.js                                         the whole catalog, one ES module, 2.3 MB
 catalog.json                                     the schema, byte for byte
-dist/primer-scoped.css                           the package's own stylesheet
+dist/primer-children.css                         the package's own stylesheets
+dist/primer-narrow.css
+dist/primer-scoped.css
 node_modules/@primer/react/dist/…/*.css          94 of Primer's component stylesheets
 node_modules/@primer/primitives/…/light.css      Primer's tokens, light and dark
 node_modules/@primer/primitives/…/dark.css
@@ -109,25 +111,25 @@ node_modules/@primer/primitives/…/dark.css
 The **descriptor**, `artifact.json`, names everything:
 
 ```jsonc
-// artifact.json, trimmed: 99 files in all
+// artifact.json, trimmed: 101 files in all
 {
   "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
   "entry": "index.js",
   "schema": "catalog.json",
-  "hostInterface": "0.9.1",
+  "hostInterface": "0.14.0",
   "files": {
     "catalog.json": "sha256-Oh2nkmMlLbWW3dMdYNClrCyQ6PQCTX6Ta8rkWBIxcLQ=",
     "dist/primer-scoped.css": "sha256-wUxytl+aoj55Eo3DO4U/78JsiZffBgRd0Hd/uzQ0jNo=",
-    "index.js": "sha256-UT8YNrJn4/GH+83Z6v1bSJan13300vZwEGnLPPVqxnc=",
+    "index.js": "sha256-XJaOMAzaicLz0wXSPnP+V2kYRXVeDLJpHiOvrrBWyJE=",
     "node_modules/@primer/react/dist/ActionBar/ActionBar-3767d551.css": "sha256-70jMseXmGWC1itfLStJn1OMCy+3PJpF3meCiRx3uVC0="
     // …
   },
-  "package": {"name": "github-catalog", "version": "0.1.2"},
-  "packedBy": {"tool": "@a2uiverse/stellify", "version": "0.1.0"}
+  "package": {"name": "github-catalog", "version": "0.2.2"},
+  "packedBy": {"tool": "@a2uiverse/stellify", "version": "0.3.0"}
 }
 ```
 
-Every file is listed with its **hash**, so a file that's missing, changed or extra is caught. The **artifact id**, `sha256-muNbmR5m…`, is the hash of `artifact.json` itself. Because the descriptor lists every other file's hash, that one id covers all 100 files: change one byte of one stylesheet and the id changes. So what's at an artifact's URL never changes. The orchestrator serves it as immutable content, and nothing downstream ever asks whether it's stale.
+Every file is listed with its **hash**, so a file that's missing, changed or extra is caught. The **artifact id**, `sha256-o0lcA0wt…`, is the hash of `artifact.json` itself. Because the descriptor lists every other file's hash, that one id covers all 102 files: change one byte of one stylesheet and the id changes. So what's at an artifact's URL never changes. The orchestrator serves it as immutable content, and nothing downstream ever asks whether it's stale.
 
 ### 4. Host-module interface: one React for the whole page
 
@@ -135,13 +137,13 @@ GitHub's catalog imports React, the A2UI runtime and zod. If its bundle carried 
 
 ```ts
 interface HostInterface {
-  version: string;                             // "0.9.1": the A2UI version it lends
+  version: string;                             // "0.14.0": the A2UI runtime release it lends
   modules: Record<HostSpecifier, unknown>;     // the client's own module for each specifier lent
   loadStylesheet(url: string): Promise<void>;  // the sheet held to its build's surfaces, resolved once applied
 }
 ```
 
-It lends exactly seven imports: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9` and `zod`. Everything else a catalog imports, Primer included, is bundled into its own `index.js`. An artifact names the interface version it was built against, and the client refuses one it doesn't lend.
+It lends exactly eight imports: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `@a2ui/web_core/v0_9/basic_catalog` and `zod`. A catalog built on the basic catalog shares the page's, as it shares React. Everything else a catalog imports, Primer included, is bundled into its own `index.js`. The interface's version is the release of `@a2ui/react` and `@a2ui/web_core` it lends, `0.14.0`. An artifact names the interface version it was built against, and one the platform doesn't supply is refused at publish, at install and at load.
 
 The vendor never writes code against this interface: Stellify rewrites the imports in the bundle, never in the vendor's source ([Packing](#packing-what-stellify-does) shows how).
 
@@ -185,7 +187,7 @@ flowchart TD
 cd ../a2uiverse-apps/github/github-catalog
 pnpm build
 pnpm exec stellify pack
-# github-catalog 0.1.2 — 99 files written to …/github-catalog/dist/artifact
+# github-catalog 0.2.2 — 101 files written to …/github-catalog/dist/artifact
 ```
 
 Stellify bundles the built entry, copies every stylesheet the code reaches, runs the checks install will run, and writes `dist/artifact/`. It runs none of the vendor's code and edits none of its files. It's one dev dependency of the package, pinned to a commit of this repo, and a package laid out like GitHub's needs no configuration.
@@ -198,7 +200,7 @@ Stellify bundles the built entry, copies every stylesheet the code reaches, runs
 pnpm --filter @a2uiverse/orchestrator registry install github \
   http://localhost:11001/.well-known/agent-card.json \
   ../a2uiverse-apps/github/github-catalog/dist/artifact
-# installed github · card 0.1.0 · catalog sha256-muNbmR5m…
+# installed github · card 0.1.0 · catalog sha256-o0lcA0wt…
 ```
 
 The command reads the artifact folder, base64-encodes every file, and posts `{appId, cardUrl, catalogs: [{files}]}` to `POST /registry/install` with the write token. The files travel in the request: the orchestrator never reads a path it's handed. It fetches the card, then checks the app, collecting every finding before it answers and refusing the whole app on any:
@@ -212,21 +214,21 @@ The command reads the artifact folder, base64-encodes every file, and posts `{ap
 
 [Checking an app at install](#checking-an-app-at-install) has the details.
 
-**4. Stored, and live.** The card is embedded for routing, the artifact is written under `artifacts/sha256-muNbmR5m…/`, and the record goes into `registry.json`:
+**4. Stored, and live.** The card is embedded for routing, the artifact is written under `artifacts/sha256-o0lcA0wt…/`, and the record goes into `registry.json`:
 
 ```jsonc
 {
   "id": "github",
   "cardUrl": "http://localhost:11001/.well-known/agent-card.json",
   "card": {"name": "GitHub", "url": "http://localhost:11001", "version": "0.1.0", "…": "the card as fetched, verbatim"},
-  "catalogs": {"https://github.com/…/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-muNbmR5mKt8syNMd8F2CwoX3dD4io6xoVLEbHSB_GG8"},
+  "catalogs": {"https://github.com/…/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-o0lcA0wt5e2S9Jv8bXLb47m3_4kvXVto2Bx9zD4tyLM"},
   "entitlement": ["https://a2ui.org/…/basic/catalog.json", "https://github.com/…/github-catalog/catalogs/v0.9.1/catalog.json"],
   "installedAt": "2026-10-03T00:49:11.509Z",
   "source": "local"
 }
 ```
 
-`source` says where the install came by: `local` for a pack handed from disk, `marketplace` for an install by id. Install answers with one line saying what changed, `installed github · card 0.1.0 · catalog sha256-muNbmR5m…`, and the journal gets a line of kind `registry`. Nothing restarts: the Router ranks GitHub on the very next question, and the Planner's `installed_apps` reader lists it.
+`source` says where the install came by: `local` for a pack handed from disk, `marketplace` for an install by id. Install answers with one line saying what changed, `installed github · card 0.1.0 · catalog sha256-o0lcA0wt…`, and the journal gets a line of kind `registry`. Nothing restarts: the Router ranks GitHub on the very next question, and the Planner's `installed_apps` reader lists it.
 
 **5. A question routes to GitHub.** You ask _"What pull requests need my review?"_. The Router ranks GitHub's card against it (one of its skills' examples is that very question), and the Planner dispatches to it. The AgentsPool reads GitHub's record once, as the dispatch starts, and sends the Planner's request with GitHub's entitlement as the message's `a2uiClientCapabilities`:
 
@@ -244,11 +246,11 @@ That's A2UI's own handshake: a client says which catalogs it can render, and the
 
 1. finds no row for GitHub's catalog in the table it read at boot, so it reads the table again, past the browser's cache, and finds it;
 2. reads `artifact.json`, and checks that it's for this catalog and built against an interface version the client lends;
-3. imports `index.js` from its served URL, `…/registry/artifacts/sha256-muNbmR5m…/index.js`. As it evaluates, the entry reads React and the rest from the host interface and starts 77 stylesheet loads at once, each a sheet the host adopts in import order, scoped to the surfaces of this build. The import settles once all 77 have loaded;
+3. imports `index.js` from its served URL, `…/registry/artifacts/sha256-o0lcA0wt…/index.js`. As it evaluates, the entry reads React and the rest from the host interface and starts 82 stylesheet loads at once, each a sheet the host adopts in import order, scoped to the surfaces of this build. The import settles once all 82 have loaded;
 4. checks the module: it exports `CATALOG`, a catalog whose id is GitHub's, and its `Provider` is a component;
-5. pushes the catalog into the one array every answer's processor reads, and records its Provider for its surfaces.
+5. keeps the build by its artifact id, with its Provider for its surfaces.
 
-The gate releases the held batches, in order. GitHub's surface is created in its catalog and mounts in its slot inside the fragment boundary, with GitHub's Provider around it, and "My Open Pull Requests" draws in Primer. The answer from before the install, the one with the capability tile, is still in the trail.
+The gate assigns the build to the batch's create and releases the held batches, in order. The answer's processor takes GitHub's catalog in through `addCatalog` just before the create, and GitHub's surface is created in it and mounts in its slot inside the fragment boundary, with GitHub's Provider around it, and "My Open Pull Requests" draws in Primer. The answer from before the install, the one with the capability tile, is still in the trail.
 
 On the next reload, the paint waits for nothing: the boot's **preload** loads every artifact the table lists, in the background, before any question is asked.
 
@@ -269,7 +271,7 @@ Every failure is a **finding**, `file: reason`, and every one is reported togeth
 
 | Import | Class | What happens |
 | --- | --- | --- |
-| one of the seven lent | host | becomes a read from the host interface |
+| one of the eight lent | host | becomes a read from the host interface |
 | any other under `react`, `react-dom`, `@a2ui/react`, `@a2ui/web_core` or `zod`, like `react-dom/server` | refuse | a finding: the host doesn't lend it |
 | everything else: `@primer/react`, the package's own files | bundle | bundled into `index.js` |
 
@@ -295,14 +297,14 @@ else loads.early.push(load);
 
 `import.meta.url` is wherever `index.js` was imported from, so every sheet resolves under the artifact's base URL, and no URL is written into the bundle. That's why the client imports the entry from its served URL: a blob would have no base to resolve against. The sheet itself is copied into the artifact, its bytes never rewritten.
 
-**Waiting for the sheets, once.** A component shouldn't render before its CSS applies. Awaiting each sheet in turn would make GitHub's 77 a chain of 77 round trips. Instead, the loads the entry makes as it evaluates are only started, their promises collected in `loads.early`, and Stellify's wrapper around the entry ends with:
+**Waiting for the sheets, once.** A component shouldn't render before its CSS applies. Awaiting each sheet in turn would make GitHub's 82 a chain of 82 round trips. Instead, the loads the entry makes as it evaluates are only started, their promises collected in `loads.early`, and Stellify's wrapper around the entry ends with:
 
 ```js
 await Promise.all(loads.early);
 loads.done = true;
 ```
 
-The entry finishes once the slowest sheet has loaded. A sheet the package imports only later, like the three GitHub's Provider loads lazily (Primer's light and dark tokens and its own scoped sheet), is started there too: Stellify finds each sheet a module imports dynamically and has the entry import it after its own, so it lands in `loads.early` with the rest. The Provider's own import then finds the sheet loaded. The host takes each sheet's place synchronously as it's called — an empty adopted sheet, filled when the text arrives — so the cascade follows import order whatever order the sheets arrive in. Each sheet's rules are wrapped, as written, in `@scope ([data-catalog-build="sha256-muNbmR5m…"])`, the mark `SurfaceFrame` puts around each surface of that build, so GitHub's reset (`*{box-sizing:border-box}`) reaches GitHub's surfaces and nothing else, and a newer build's sheets never restyle a canvas still showing the older one. A font face, keyframes and a rule aimed at `body` stay page-wide. The sheet is wrapped as text, not parsed and written back: Chromium writes back a `border` shorthand holding a variable without its width.
+The entry finishes once the slowest sheet has loaded. A sheet the package imports only later, like the five GitHub's Provider loads lazily (Primer's light and dark tokens and its own three sheets), is started there too: Stellify finds each sheet a module imports dynamically and has the entry import it after its own, so it lands in `loads.early` with the rest. The Provider's own import then finds the sheet loaded. The host takes each sheet's place synchronously as it's called — an empty adopted sheet, filled when the text arrives — so the cascade follows import order whatever order the sheets arrive in. Each sheet's rules are wrapped, as written, in `@scope ([data-catalog-build="sha256-o0lcA0wt…"])`, the mark `SurfaceFrame` puts around each surface of that build, so GitHub's reset (`*{box-sizing:border-box}`) reaches GitHub's surfaces and nothing else, and a newer build's sheets never restyle a canvas still showing the older one. A font face, keyframes and a rule aimed at `body` stay page-wide. The sheet is wrapped as text, not parsed and written back: Chromium writes back a `border` shorthand holding a variable without its width.
 
 **Where each file goes.** The artifact mirrors the package, so a relative `url()` inside a copied sheet keeps resolving and Stellify rewrites no CSS; the host makes each relative address whole against the sheet's own URL as it loads it, since a font face in an adopted sheet resolves against the page:
 
@@ -317,7 +319,7 @@ The entry finishes once the slowest sheet has loaded. A sheet the package import
 `packages/sdk/js/src/artifact.ts` holds both:
 
 - **A file's hash** is SHA-256 in standard base64: `sha256-Oh2nkmMl…CQ6PQCTX6Ta8rkWBIxcLQ=`. It's computed with Web Crypto, so Stellify and the orchestrator in Node and the client in the browser run one function.
-- **The artifact id** is the hash of `artifact.json`'s exact bytes, spelled URL-safe because it's a path segment (`+` becomes `-`, `/` becomes `_`, no padding): `sha256-muNbmR5mKt8syNMd8F2CwoX3dD4io6xoVLEbHSB_GG8`.
+- **The artifact id** is the hash of `artifact.json`'s exact bytes, spelled URL-safe because it's a path segment (`+` becomes `-`, `/` becomes `_`, no padding): `sha256-o0lcA0wt5e2S9Jv8bXLb47m3_4kvXVto2Bx9zD4tyLM`.
 
 It's a **hash tree** one level deep, like a Merkle tree: the id is a hash over the descriptor, and the descriptor holds a hash for every file. Checking an artifact is checking each file against the descriptor. The id is always computed from the descriptor's bytes, never taken from whoever handed it.
 
@@ -340,7 +342,7 @@ Both must be empty. `public` is the basic catalog alone. A card that declares no
 
 1. `artifact.json` is there, parses, and conforms to the descriptor's JSON Schema; its entry and its schema are among its files.
 2. Every listed file is there with its hash, and nothing unlisted is.
-3. The host interface is one the platform supplies, `0.9.1`.
+3. The host interface is one the platform supplies, `0.14.0`.
 4. The schema parses, its `catalogId` is the descriptor's, and it compiles as an A2UI catalog.
 
 What only running code can show, like what the module exports and whether `CATALOG.id` agrees, is the client's check, when it loads the artifact.
@@ -358,7 +360,7 @@ Install doesn't look for credential inputs in a catalog. The orchestrator checks
 ```
 .state/registry/
   registry.json                  {"apps": [...]}: every installed app's record, sorted by id
-  artifacts/sha256-muNbmR5m…/    one folder per artifact: artifact.json, index.js, catalog.json, its stylesheets
+  artifacts/sha256-o0lcA0wt…/    one folder per artifact: artifact.json, index.js, catalog.json, its stylesheets
   write-token                    this run's write token, readable by the owner only
 ```
 
@@ -368,7 +370,7 @@ Install doesn't look for credential inputs in a catalog. The orchestrator checks
 
 ### Two cards per app
 
-The record keeps the card as it was fetched at install. At every startup the orchestrator fetches each card again from its stored URL, all in parallel, and that's the card the run uses: where questions are sent, the skills the Router ranks, the name the Planner reads. Each update check fetches them all again, so the run never judges on a card older than its last check. An agent that's down at startup stays installed, can't be routed to for the run, and is named in the boot log.
+The record keeps the card as it was fetched at install. At every startup the orchestrator fetches each card again from its stored URL, all in parallel, and that's the card the run uses: where questions are sent, the skills the Router ranks, the name the Planner reads. Each update check fetches them all again, and a Retry from an app's update tile fetches that app's again first, given five seconds ([`store-loop.md`](store-loop.md#update-and-what-it-sends-again)), so the run never judges on a card older than its last check. An agent that's down at startup stays installed, can't be routed to for the run, and is named in the boot log.
 
 The card on disk changes only by install-over, and a refreshed card never grows the entitlement. An agent that starts declaring a new catalog paints in it only once it's installed over with that catalog's artifact.
 
@@ -377,10 +379,10 @@ The card on disk changes only by install-over, and a refreshed card never grows 
 `installSummary(previous, next)` in `registry.ts` writes the line the command and the launcher print:
 
 ```
-installed github · card 0.1.0 · catalog sha256-muNbmR5m…
-updated github · card 0.1.0 · catalog sha256-muNbmR5m… → sha256-bYxc_jOA…
-reinstalled github · nothing changed · card 0.1.0 · catalog sha256-muNbmR5m…
-updated github · card 0.1.0 · catalog …/catalogs/v0.9.1/catalog.json sha256-muNbmR5m… gone · catalog …/v2/catalogs/v0.9.1/catalog.json sha256-A9ZrhYLo… new
+installed github · card 0.1.0 · catalog sha256-o0lcA0wt…
+updated github · card 0.1.0 · catalog sha256-o0lcA0wt… → sha256-bYxc_jOA…
+reinstalled github · nothing changed · card 0.1.0 · catalog sha256-o0lcA0wt…
+updated github · card 0.1.0 · catalog …/catalogs/v0.9.1/catalog.json sha256-o0lcA0wt… gone · catalog …/v2/catalogs/v0.9.1/catalog.json sha256-A9ZrhYLo… new
 updated linear · card 0.1.0 · catalog sha256-JvcQSoor… → sha256-zJbZyJNl… · linear-admin followed
 ```
 
@@ -436,7 +438,7 @@ The snapshot is what keeps uninstall and install-over safe in the middle of a qu
 
 **At boot** (`canvas.tsx`):
 
-1. `registerHost()` puts the host interface on `globalThis.__a2uiverse_host__`: the client's own module for each of the seven, and `linkStylesheetLoader`. It's the first thing the entry does, because an artifact reads the interface as it evaluates.
+1. `registerHost()` puts the host interface on `globalThis.__a2uiverse_host__`: the client's own module for each of the eight, and `scopedStylesheetLoader`. It's the first thing the entry does, because an artifact reads the interface as it evaluates.
 2. `createCatalogLoader` builds the loader over the registry's URL, holding the client's own two catalogs from the start.
 3. `preload()` starts in the background, and the canvas renders at once. The shell never waits on the registry.
 
@@ -451,17 +453,17 @@ flowchart TD
     C1 -->|"yes"| E["Import index.js from its served URL"]
     E --> C2{"Exports CATALOG with this id?<br/>Its Provider a component?"}
     C2 -->|"no"| F2
-    C2 -->|"yes"| H["Push into the processors' array;<br/>record its Provider"]
+    C2 -->|"yes"| H["Keep the build by its artifact id,<br/>with its Provider"]
 ```
 
 The structures behind it:
 
 - **`builds: Map<artifactId, ResolvedCatalog>`** holds every build loaded, by its artifact id, once for the page, shared by every canvas that holds it and by a Store sample drawn in it ([`trusted-page.md`](trusted-page.md#sample-one-build-per-artifact-id-drawn-apart)). **`loadingBuilds`** keeps one load in flight per build, so the preload and a paint arriving in that catalog share one; an entry goes when its load settles.
 - **A build per paint.** A paint is drawn in the build the orchestrator's stamp names for its catalog, `builds` on the stamp, the one the registry held when the paint was relayed; with none named, the one the table names as last read. The gate loads that build and assigns it to the message (`catalogs/paintBuilds.ts`), and the canvas's processor draws the create in it, so a surface on screen keeps the build it was drawn in beside a newer one of its catalog. A change to a surface's components assigned a newer build moves the surface there, re-created with its tree and data; a change to its data alone moves nothing. A paint the way back returns to is restored in the build it was drawn in.
-- **One catalog array.** Every answer's `MessageProcessor` is built over the loader's `catalogs` array, and a loaded catalog is pushed into it. web_core looks a catalog up in that array when a surface is created, so an answer opened before an install still finds the new catalog. web_core doesn't promise to hold the array by reference; a test pins that it does.
+- **A catalog list per answer.** Every answer's `MessageProcessor` is built over a list of its own, copied from the catalogs the page holds when the answer opens. web_core looks a create's catalog up by id in that list, so the processor puts the build assigned to a create there just before it (`BuildProcessor`): a catalog the list doesn't hold comes in through `addCatalog`, upstream's PR #3304 carried as a local patch on web_core 0.14.0; another build of one it holds takes the held one's place, linked to the others with web_core's `linkCatalogs` as `addCatalog` links them. So an answer opened before an install still draws the new catalog.
 - **A failed load isn't kept**, so the next paint in that catalog, or a Retry, tries again.
 
-**The Provider.** A catalog brings at most one `Provider`, its whole way into the page. GitHub's wraps its surfaces in a `github-catalog-scope` element with Primer's `ThemeProvider` and `BaseStyles`, and loads Primer's light and dark tokens and its own scoped sheet lazily. `SurfaceFrame`, in `CatalogContext.tsx`, wraps each surface in its own catalog's Provider and nothing else, and the client registers nothing at the app root for any vendor. [`client.md`](client.md#many-design-systems-on-one-page) explains how the fragment boundary and the collision detector keep catalogs' CSS apart.
+**The Provider.** A catalog brings at most one `Provider`, its whole way into the page. GitHub's wraps its surfaces in a `github-catalog-scope` element with Primer's `ThemeProvider` and `BaseStyles`, and loads Primer's light and dark tokens and its own three sheets lazily. `SurfaceFrame`, in `CatalogContext.tsx`, wraps each surface in its own catalog's Provider and nothing else, and the client registers nothing at the app root for any vendor. [`client.md`](client.md#many-design-systems-on-one-page) explains how the fragment boundary and the collision detector keep catalogs' CSS apart.
 
 **The catalog gate** (`catalogGate.ts`) sits in front of each answer's turn runner. A batch whose catalogs are all held passes straight through. A batch that creates a surface in a catalog not held is held, with everything after it in that answer, in order, until the load settles, so the turn runner itself stays synchronous.
 
@@ -541,7 +543,7 @@ Two browser behaviours shape the third column:
 | **No vendor catalog compiled into the client** | Installing an app needs no client build, and no client code names an app | Every vendor catalog is a network load, on every page |
 | **A host-module interface** | One React and one A2UI runtime on the page; an artifact carries only its own code | The interface is a contract: lending one more module is a new version |
 | **Imports rewritten in the bundle, never the source** | A vendor writes React and CSS as usual, with no wrapper and no config | The code that runs is a rewrite of what the vendor tested |
-| **Stylesheets started together, awaited once** | GitHub's 77 sheets cost the slowest sheet, not their sum; no fragment paints before its styles apply | The entry waits for every sheet it reaches, a Provider's lazy ones and ones no paint uses among them |
+| **Stylesheets started together, awaited once** | GitHub's 82 sheets cost the slowest sheet, not their sum; no fragment paints before its styles apply | The entry waits for every sheet it reaches, a Provider's lazy ones and ones no paint uses among them |
 | **An artifact is files under its descriptor's hash** | Immutable content: one id checks every file, and a static server can serve it | Any byte changes the id, so a rebuild against a dependency at another path is another artifact |
 | **Install refuses the whole app, every finding at once** | An app is never half installed; the publisher sees every problem in one go | One bad file keeps out the whole app |
 | **The gate is static** | Nothing of a vendor's runs on the orchestrator | What only running code shows waits for the client's load |
@@ -557,8 +559,8 @@ Two browser behaviours shape the third column:
 ## Known limits
 
 - **One package packs to one artifact only within one install.** esbuild writes each bundled module's path from the package into the entry, in a comment over the module and as the key of a CommonJS module's wrapper. Pack GitHub's catalog in the apps checkout and again where the registry snapshot installs it, and some of Primer's dependencies sit at other paths: the same source gives another `index.js`, so another id. GitHub's and Linear's artifacts differ from the snapshot's this way; the other five agree. Two installs may also resolve different versions of a dependency.
-- **GitHub waits for 77 stylesheets before its first paint**, sheets for components the paint doesn't use among them: through the tunnel, about 80 requests. The artifact carries 97 sheets, and its entry loads 80 of them; 17 are copied and never loaded.
-- **Catalog version skew.** A canvas already on screen keeps the build it was drawn in after an install-over; only a canvas opened after shows the new one. An agent restarted with a new catalog id before it's installed over is refused at the hub with the `catalog` cause until it is. After an update to a new catalog id, the old and the new can both be on one page.
+- **GitHub waits for 82 stylesheets before its first paint**, sheets for components the paint doesn't use among them: through the tunnel, about 80 requests. The artifact carries 99 sheets, and its entry loads 82 of them; 17 are copied and never loaded.
+- **Catalog version skew.** A surface already on screen keeps the build it was drawn in after an install-over; the next paint, on any canvas, is drawn in the new one, so one page can show both builds side by side. An agent restarted with a new catalog id before it's installed over is refused at the hub with the `catalog` cause until it is. After an update to a new catalog id, the old and the new can both be on one page.
 - **A hand install can move a shared row.** Two apps installed from local packs on one catalog id: installing a new build for one moves the other with it. The summary names it, and the additive check keeps what it renders in; between publishers, the marketplace's owner-only rule is the protection.
 - **Through the tunnel, a reload loads every artifact again.** The tunnel adds its own `Cache-Control: no-cache,no-store` beside the orchestrator's `immutable`, so the browser keeps no artifact across reloads there. Within a page, each is loaded once.
 
@@ -570,7 +572,7 @@ Installing needs no model. Questions do, since the Planner is a model call, but 
 - **Install over, and uninstall.** Pack again after a change to the catalog and install again over it to see `updated` and the new hash; install the same pack again to see `reinstalled … nothing changed`; `registry uninstall github` and watch `artifacts/` empty.
 - **Install from the marketplace.** With the marketplace running and the roster published, `registry install github` with no card URL installs by id, `registry list` shows its source as `marketplace`, and `registry updates` prints each app's state; [`marketplace.md`](marketplace.md#trying-it-without-a-model) walks the whole path.
 - **Replay GitHub.** `?beat=1` replays GitHub's pull request list through the canvas, drawn in the catalog the loader loaded, from the live orchestrator's registry or, with `preview:snapshot`, from the snapshot.
-- **The tests.** Stellify's (`pnpm --filter @a2uiverse/stellify test`) pack a small fixture catalog, `test/fixtures/star-catalog`, with a Provider, a lazy stylesheet, a font and a dependency that imports `react-dom/client`: both rewrites, every check, and the same bytes from two places. The orchestrator's `test/registry.test.ts`, `registryApi.test.ts` and `registryCommand.test.ts` install, refuse, install over and uninstall with no network. The client's `src/catalogs/loader.test.ts` loads every snapshot artifact through the real loader, and plays unanswered requests against the bounds.
+- **The tests.** Stellify's (`pnpm --filter @a2uiverse/stellify test`) pack a small fixture catalog, `test/fixtures/star-catalog`, with a Provider, a lazy stylesheet, a font, an import from the basic catalog and a dependency that imports `react-dom/client`: both rewrites, every check, and the same bytes from two places. The orchestrator's `test/registry.test.ts`, `registryApi.test.ts` and `registryCommand.test.ts` install, refuse, install over and uninstall with no network. The client's `src/catalogs/loader.test.ts` loads every snapshot artifact through the real loader, and plays unanswered requests against the bounds.
 
 ## Where the code is
 
@@ -587,7 +589,7 @@ Installing needs no model. Questions do, since the Planner is a model call, but 
 | Routing an installed app | `packages/embedder/src/corpus.ts`, `apps/orchestrator/src/router/router.ts`, `planner/platformReaders.ts` |
 | Entitlement at the hub | `apps/orchestrator/src/agentsPool/agentsPool.ts` |
 | A failed click kept for Retry; the `load` cause | `apps/orchestrator/src/composition/state.ts`, `executor.ts` |
-| Host interface and loading | `apps/client/src/catalogs/host.ts`, `loader.ts`, `clientCatalogs.ts`, `CatalogContext.tsx`, `apps/client/src/orchestratorApi.ts` |
+| Host interface and loading | `apps/client/src/catalogs/host.ts`, `loader.ts`, `paintBuilds.ts`, `clientCatalogs.ts`, `CatalogContext.tsx`, `apps/client/src/orchestratorApi.ts` |
 | Holding a paint, reporting a load failure | `apps/client/src/catalogs/catalogGate.ts`, `apps/client/src/canvas/canvasRuntime.ts` |
 | The launcher | `scripts/dev-agents.mjs`, `dev-roster.mjs`, `launch-plan.mjs`, `launch-registry.mjs` |
 | The registry snapshot | `packages/registry-snapshot/scripts/generate.mjs`, `apps/client/tests/snapshot.ts` |

@@ -520,15 +520,17 @@ Each app's slot has its own back and forward arrows. The history behind them is 
 
 **A combination is where every source stands.** For example `{circleci: 1, github: 0, linear: 0}` means CircleCI shows its paint 1 (a run's detail) and the others their paint 0, however you got there. Its key is the JSON of the `[source, index]` pairs **sorted by source**, so the same combination always produces the same string.
 
-**The wiring memory is a map** from combination key to the merged view's accepted document (and the set of apps it merged). A document is filed under the current combination every time one is accepted. A paint id is never reused, so an entry never goes stale: the runs list visited a second time is the same key as the first, and its wiring comes back with no call.
+**The wiring memory is a map** from combination key to what the merged view accepted there, kept on both sides under the same key: the orchestrator files the accepted document (and the set of apps it merged); the client files the merged view's surface as it was accepted, its tree, with its payload. An entry is filed under the current combination every time a document is accepted. A paint id is never reused, so an entry never goes stale: the runs list visited a second time is the same key as the first, and its wiring comes back with no call.
 
 When you step, the client restores the paint at once and tells the orchestrator. Then the merged view goes one of three ways:
 
 | Case        | What's found                                                                                     | What happens                                                           |
 | ----------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| **Seen**    | an entry at exactly this combination                                                             | its wiring is restored and evaluated at once, no model call           |
+| **Seen**    | an entry at exactly this combination                                                             | the merged view as it was accepted: its tree painted back, then its wiring restored and evaluated, at once, no model call |
 | **Covered** | an entry over fewer apps, each of them on the paint it shows now (the one naming most apps wins, then the latest) | restored the same way; apps that painted since are offered for Include |
 | **Unseen**  | nothing                                                                                          | the change account above decides whether the Synthesizer runs          |
+
+Restoring the tree with the wiring means a section a later re-synthesis added to the view leaves with the step back, and comes back with a step forward. And a merged view the Synthesizer declined, or couldn't make, over a combination in between comes back on a seen or covered step: the orchestrator leaves the merged view's slot as an accept leaves it and repaints the shell, with no call. A collapse the apps' own state made, like too few of them answering, stands.
 
 Finding a covering entry is a **linear scan** over the map, checking each entry's apps against the current combination.
 
@@ -622,7 +624,7 @@ In the orchestrator's tests, the model sits behind a one-method **text seam** (t
 | The model call | | `synthesizer/synthesizer.ts` | | |
 | When to merge, the presses | | `composition/trigger.ts`, `composition/presses.ts` | `canvas/composition/columnState.ts` | `src/components/slot/press-lines.ts` |
 | What changed after a click | | `composition/integrity.ts`, `composition/relations.ts` | | |
-| Going back | `a2uiverse.ts` | `composition/history.ts` | `canvas/history/fragmentHistory.ts` | |
+| Going back | `a2uiverse.ts` | `composition/history.ts`, `executor.ts` (the step) | `canvas/history/fragmentHistory.ts`, `canvas/canvasRuntime.ts` (the step) | |
 | Painting the view | | `composition/synthesisPainter.ts` | | |
 | Evaluating and staying live | | | `canvas/synthesis/bindingEvaluator.ts`, `canvas/synthesis/synthesisSession.ts` | `src/functions/operators.ts`, `src/functions/relations.ts`, `src/components/derived-value/join.ts` |
 | Reading time | | | | `src/components/shared/instant.ts` |

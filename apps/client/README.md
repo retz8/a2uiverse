@@ -32,7 +32,7 @@ Its stories, each leaving the stack as it found it: Shop A found in the Store, i
 
 ## Working without a model
 
-`?beat=<name>` replays a recorded or hand-built session through the whole canvas, with no model call and no app; `&instant` skips the recorded pacing. The catalogs it draws in still come from a registry: the live orchestrator's, or the registry snapshot with `preview:snapshot` and no orchestrator at all. `?beat=27&instant` is the answer above, `?beat=9&instant` the entity join, `?beat=trail` the trail, `?beat=26&instant` the way back, `?beat=31&instant` an app offered from the Store. A beat's presses fire through the same handler the buttons call, answered from the beat itself; `&byhand` leaves them to you, each press you make answered by the beat's recorded press of the same kind, sources and gap; the tests and the screenshots in this README come from beats.
+`?beat=<name>` replays a recorded or hand-built session through the whole canvas, with no model call and no app; `&instant` skips the recorded pacing. The catalogs it draws in still come from a registry: the live orchestrator's, or the registry snapshot with `preview:snapshot` and no orchestrator at all. A build a recorded beat names that the registry it replays over can't load is drawn in the one that registry's table names for its catalog. `?beat=27&instant` is the answer above, `?beat=9&instant` the entity join, `?beat=trail` the trail, `?beat=26&instant` the way back, `?beat=31&instant` an app offered from the Store. A beat's presses fire through the same handler the buttons call, answered from the beat itself; `&byhand` leaves them to you, each press you make answered by the beat's recorded press of the same kind, sources and gap; the tests and the screenshots in this README come from beats.
 
 Under `preview:snapshot` the page over the canvas reads a fixed world shipped with the registry snapshot — the seven apps in the Store with their samples, six installed in six update states, a publisher signed in — so `?page=store`, `?page=library` and `?page=publish` open with content and no orchestrator; only the e2e tests answer its writes. Shop B is installed in that world, so the store loop's beats offer it as Show it here; the e2e tests take the apps a case needs out of the world for that test.
 
@@ -106,7 +106,7 @@ Every question gets its own answer, and none is thrown away when the next one is
 
 A browser keeps one history stack: go back a few pages and open something new, and everything ahead is gone. Here nothing is dropped. A question asked from an earlier answer starts a branch from it, the trail draws every question on the branch it grew from, and hovering an entry previews its answer. Back goes up the branch, not to the page before: above, "Camera prices" was asked from "Needs attention today" (the fork mark), though "what apps do I have?" came in between, so Back from "Camera prices" goes to "Needs attention today".
 
-Inside each app's answer, its slot has its own Back and Forward at the right of its name, apart from the trail and the other apps, and like the trail it drops nothing: open a run and its failing job, go back to the list and open the run again, and Back still reaches the job. The merged view follows the step, restored with no model call from the wiring remembered for that combination of screens.
+Inside each app's answer, its slot has its own Back and Forward at the right of its name, apart from the trail and the other apps, and like the trail it drops nothing: open a run and its failing job, go back to the list and open the run again, and Back still reaches the job. The merged view follows the step, restored with no model call from the view and the wiring remembered for that combination of screens.
 
 <table>
   <tr>
@@ -137,9 +137,9 @@ An app that can't paint in what it's installed with takes the update tile, one l
 
 ## Catalogs
 
-The client compiles no app's catalog in. It holds two of its own, the shell catalog and the standard basic catalog; every other catalog is loaded at runtime from the orchestrator's registry, as the artifact Stellify packed, inside the catalog's own Provider — an app's design system, Primer for GitHub, comes inside its artifact.
+The client compiles no app's catalog in. It holds two of its own, the shell catalog and the standard basic catalog as `@a2ui/web_core` ships it; every other catalog is loaded at runtime from the orchestrator's registry, as the artifact Stellify packed, inside the catalog's own Provider — an app's design system, Primer for GitHub, comes inside its artifact.
 
-- At startup it registers the host-module interface — the one object an artifact reaches React, react-dom, `@a2ui/react`, `@a2ui/web_core` and zod through — and starts loading every catalog the registry lists, without waiting for it to render.
+- At startup it registers the host-module interface — the one object an artifact reaches React, react-dom, `@a2ui/react`, `@a2ui/web_core`, its basic catalog and zod through — and starts loading every catalog the registry lists, without waiting for it to render.
 - A fragment in a catalog it doesn't hold yet waits, its slot loading, while that catalog loads; an app installed while the page is open is found without a reload.
 - Every request of a load is bounded — no answer in 10 seconds, 30 for the artifact's entry — and asked once more, so a request lost in transit fails rather than leaving the slot loading for good. A catalog that won't load fails its slot: "Something went wrong loading this.", with Retry.
 - Each build is loaded once per page, and its stylesheets are held to the surfaces drawn in it. A paint is drawn in the build the orchestrator's stamp names, the one the registry held when the paint was relayed, so an update's new build draws the next paint with no reload; a surface on screen keeps the build it was drawn in until its app changes its components, and a paint the way back returns to keeps its own. A catalog under a new id loads as its first paint arrives.
@@ -147,9 +147,11 @@ The client compiles no app's catalog in. It holds two of its own, the shell cata
 
 The code is in `src/catalogs/`. The tests and e2e load the **registry snapshot**, generated by `packages/registry-snapshot` from the seven catalog packages at one pinned commit of the apps repo: the vitest suite through the real loader from disk, and Playwright from `preview:snapshot`, whose page is built against the preview's own origin and whose server serves the snapshot under `/registry`, and the page's fixed world beside it. Moving the snapshot to a newer apps commit is that package's job.
 
-## Renderer patch
+## Upstream patches
 
-`@a2ui/react` is patched locally (`patches/@a2ui__react@0.10.2.patch`) with two fixes that only show when several apps share a page: `ChoicePicker`'s radio group name comes from `React.useId()` instead of the component id, so two fragments' pickers that share an id no longer join one group — reported upstream as [#2447](https://github.com/a2ui-project/a2ui/issues/2447), fixed in [PR #2449](https://github.com/a2ui-project/a2ui/pull/2449) — and the loading and unknown-component fallbacks draw as quiet, themed placeholders instead of hard-coded gray and red. `src/canvas/composition/rendererPatch.test.tsx` fails if a version bump drops either; regenerate the patch with `pnpm patch @a2ui/react@<version>`.
+`@a2ui/react` is patched locally (`patches/@a2ui__react@0.14.0.patch`) so that what the renderer can't draw stays quiet: a child still on its way, a type the catalog doesn't have and a child reference that can't be resolved each draw a quiet, themed stand-in marked `data-a2ui-placeholder`, never upstream's developer text, and the rest of the fragment stands. `src/canvas/composition/rendererPatch.test.tsx` fails if a version bump drops it; regenerate the patch with `pnpm patch @a2ui/react@<version>`.
+
+`@a2ui/web_core` is patched locally (`patches/@a2ui__web_core@0.14.0.patch`) with `addCatalog`, upstream's [PR #3304](https://github.com/a2ui-project/a2ui/pull/3304): a `MessageProcessor` takes its catalogs in its constructor alone, and the client adds each catalog it loads at runtime through it. The client puts another build of a catalog the processor holds in the held one's place in its list, linked to the others as `addCatalog` links them. `src/catalogs/host.test.ts` fails without it; the patch is dropped once upstream ships `addCatalog`.
 
 <details>
 <summary><b>On-demand scripts</b></summary>

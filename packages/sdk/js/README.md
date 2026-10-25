@@ -28,4 +28,4 @@ pnpm --filter @a2uiverse/sdk sync-a2ui-spec    # refresh ../a2ui-spec from the A
 
 `build`, `typecheck` and `test` first copy the pinned A2UI schemas from `../a2ui-spec` into `src/a2ui/spec.generated.ts`, which is generated and not committed.
 
-It depends only on `ajv`.
+It depends on `@a2ui/web_core`, zod and `ajv`.

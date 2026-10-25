@@ -104,7 +104,7 @@ The model defaults to `gemini-3.8-flash`. The `MODEL_NAME` environment variable 
 
 In the model modes, the model answers in text: some prose, and A2UI messages inside `<a2ui-json>` blocks. The kit does three things with that text:
 
-1. **Streams it.** As tokens arrive, a streaming parser pulls complete A2UI messages out of the partial text, and each one is sent to the client right away, as an A2A `working` update. The client paints the surface as it's written.
+1. **Streams it.** As tokens arrive, a streaming parser pulls A2UI messages out of the partial text as they're written, and what's new of each is sent to the client right away, as an A2A `working` update. The client paints the surface as it's written.
 2. **Checks it at the end.** Once the model stops, the whole answer is validated against the app's own catalog: known components, correct props, a `root`, everything reachable, every binding pointing at real data.
 3. **Retries once.** If the check fails, the model is called again in the same conversation, with the error message as a correction.
 
@@ -178,7 +178,7 @@ flowchart TD
 
 **3. The model runs.** The responder wraps Google's Agent Development Kit (ADK): an `LlmAgent` with the assembled system prompt and the mode's tools. Conversations are kept **per A2A context**, so a follow-up ("Move it to In Progress.") continues the same model session. In `live` mode the tools are Linear's MCP server, with the inventory pinned to 10 of the server's tools: the issue, comment, team, status, label and user reads, plus the two writes.
 
-**4. Tokens stream out as UI.** Every token goes to the streaming parser. Whenever a complete A2UI message can be pulled out, it's sent immediately. Prose goes through the tag filter first, so a `<paint-title>` becomes a `paintMeta` part, sent ahead of its `createSurface`. In the recording, `paintMeta` left at 28.7 seconds and `createSurface` at 29.0.
+**4. Tokens stream out as UI.** Every token goes to the streaming parser. Whenever it reads a new A2UI message, or more of one, what the client doesn't hold yet is sent immediately. Prose goes through the tag filter first, so a `<paint-title>` becomes a `paintMeta` part, sent ahead of its `createSurface`. In the recording, `paintMeta` left at 28.7 seconds and `createSurface` at 29.0.
 
 **5. The answer is checked.** When the model stops, the kit collects every A2UI message from the full text and validates them. A turn that creates a surface is checked as a whole surface; a turn that only updates a surface the client already has (a detail opened in place, a list re-sorted) is checked as an update. Then the app's **question policy** runs: Linear's requires that a surface declared a question carries at least one action, so the user can actually answer it.
 
@@ -190,16 +190,17 @@ flowchart TD
 
 ### Prompt: the app's prose, and three rules every app gets
 
-`prompt.py`'s `build_system_prompt` assembles the system prompt once, through the A2UI SDK's `generate_system_prompt`, which has a slot for each part:
+`prompt.py`'s `build_system_prompt` assembles the system prompt once, section by section, around three pieces the A2UI SDK writes: the base rules and the schema block from its `DirectJsonPromptGenerator`, and the examples its `load_examples` reads, each example file whole:
 
-| Slot | What goes in |
+| Section | What goes in |
 | --- | --- |
 | role | the config's `role_description` |
-| workflow | the kit's three rules, then the config's `workflow_descriptions`, then the domain doc |
+| workflow | the SDK's base rules, then the kit's three rules, then the config's `workflow_descriptions`, then the domain doc |
 | UI description | the brand guide |
-| schema and examples | the app's catalog and its curated example surfaces, injected by the SDK, with the config's `examples_framing` spliced under the examples' header |
+| schema | the app's catalog, as the SDK's schema block |
+| examples | the examples' header, the config's `examples_framing`, then the app's curated example surfaces |
 
-The three rules come first in the workflow slot, ahead of anything the app wrote, because they hold for every app:
+The three rules follow the SDK's base rules in the workflow section, ahead of anything the app wrote, because they hold for every app:
 
 1. **A failure is worded for the person.** A failure the model reports in prose is read on the screen by someone who may not work in tech: what didn't work, and what they can do about it when there's something, in their words. Never a status code or error name, an exception, a tool or API name, a URL, or a sign-in or protocol term like token or scope. "The connection to GitHub encountered a 403 Forbidden error" is what it rules out.
 2. **A proposal is not a question.** A write the app drafts for the person to confirm (an event, a reply, an issue, a rerun) is never declared `kind="question"`; a question is for a choice the app can't go on without. A proposal dismissed outright, with Discard or Not now, is repainted as the same surface settled: its buttons gone, one plain line saying what didn't happen, like "Discarded — not added to your calendar". Backing out of a confirm step to edit returns to the draft.
@@ -211,14 +212,11 @@ These are guidance the model reads, not checks: an app whose model does otherwis
 
 `agent-kit/src/a2ui_agent_kit/executor_llm.py` is the heart of the kit. Its rule is **stream first, validate at the end, retry**. Streaming first means the user watches the UI assemble rather than waiting for the whole answer. Validating at the end is necessary because half a surface can't be judged: a `root` that hasn't arrived yet isn't missing.
 
-Streaming partial JSON has sharp edges, and the kit's `LenientA2uiStreamParser` handles two of them on top of the A2UI SDK's own v0.9 parser:
+The streaming parser is the A2UI SDK's own `DirectJsonParser`, made fresh for each attempt over every catalog line's catalog. It heals the partial JSON to read a message early, hands a message out again each time it grows, and holds a `createSurface` back until its object closes. A block that isn't JSON at all fails the attempt, and the parser's verdict is the correction. A block the parser refuses as a renderer would is left to the kit's own check at the end, in the kit's words, and the rest of the answer streams through a fresh parser.
 
-- **Transient cycles.** The parser "heals" partial JSON to read it early. A chunk that ends in the middle of a child's id (`"row-0-lv"` cut at `"row-0"`) can briefly look like a component pointing at itself. The SDK treats a cycle as fatal; the kit skips that early read instead, and the next chunk resolves it. Real cycles are still caught by the final check.
-- **Ids that aren't strings.** A model that writes an object where an id belongs would crash the SDK's component cache, which uses the id as a dictionary key. The kit swaps in a small `dict` subclass whose `__setitem__` drops non-string keys, which covers both places the SDK writes to it.
+**A retry patches in place.** Between the parser and the client sits the kit's **stream filter** (`_StreamFilter` in `executor_llm.py`), kept across both attempts with its memory of what the turn has sent. A retry's `createSurface` for a surface the turn already created is dropped; a component goes out only when it's new or changed since it was last sent, and a data model value only when it changed. So a growing `updateComponents` streams only what it added, a retry that repeats most of the first attempt sends only the components that changed, and the surface on screen is patched rather than wiped and redrawn. Nothing is torn down between attempts; only when every attempt has failed does the kit delete what it painted.
 
-**A retry patches in place.** One parser is kept across both attempts, with its memory of what it already sent. So a retry that repeats most of the first attempt sends only the components that changed, and the surface on screen is patched rather than wiped and redrawn. Nothing is torn down between attempts; only when every attempt has failed does the kit delete what it painted.
-
-**What the stream held back goes at the end.** The SDK's parser holds a surface's components back until it has seen that surface created in the same parse, and a delete likewise. So a turn that only updates or deletes a surface an earlier turn painted, like Calendar repainting its proposal settled after Discard, streams nothing at all. At the end of a valid turn, the kit sends every message of the validated answer whose surface and kind (`updateComponents`, `updateDataModel`, `deleteSurface`) the stream didn't send, whole and in order (`_unstreamed` in `executor_llm.py`). A surface created in the turn streams as before.
+**What the stream held back goes at the end.** The filter holds back every message for a surface the turn didn't create: an update or a delete to a surface an earlier turn painted, like Calendar repainting its proposal settled after Discard. At the end of a valid turn, the filter's `flush` sends whatever of the validated answer the client still lacks, in order: each held-back message whole, and whatever of the turn's own surfaces the stream didn't reach.
 
 The kit also tells failures apart, because each needs a different retry:
 
@@ -252,13 +250,15 @@ A `<` that turns out not to start a tag is released as soon as the next characte
 `catalog.py`'s `CatalogContext.validate_surface` checks a finished surface in four passes, each aimed at a mistake models really make, with an error message that tells the model how to fix it, because the retry reads that message:
 
 0. **A binding on a literal prop.** Some props can only hold a fixed value, like an icon's name, which is an enum. A model that binds one to data (`{"path": "/status"}`) gets a message naming the prop, its allowed values, and the fix, before the generic schema error could bury it.
-1. **Conformance.** Every component matches its catalog schema: known components, declared props, right types.
-2. **Completeness and topology.** There's a `createSurface`, a component with id `root`, and every component is reachable from the root, with no dangling children, no cycles and no orphans.
+1. **Completeness.** There's a `createSurface`, it carries components, and one of them has id `root`.
+2. **Conformance and topology**, the A2UI SDK's `validate_payload`, which judges the answer as a renderer holding the catalog would: every component matches its catalog schema (known components, declared props, right types), and every component is reachable from the root, with no dangling children, no cycles and no orphans.
 3. **Bindings resolve.** The kit rebuilds the data model from the answer's own `updateDataModel` messages, then walks the tree from `root` and checks that every binding points at a value. Inside a list template it resolves against each list item, and when a model wrote an absolute path where a relative one was meant, the message says exactly that: use `'title'`, not `'/title'`.
 
-The catalog's **kind** changes two details. A **custom** catalog (GitHub's, built on Primer) doesn't model the `id` every component carries, so pass 1 runs on a copy with ids stripped. A **basic** catalog (the themed A2UI basic catalog, like the mock stores') requires `id` on every component and composes each component's props from `allOf` branches, so ids stay and the props are flattened before pass 0 can read them.
+The catalog's **kind** changes how pass 0 reads a component's declared props. A **custom** catalog (GitHub's, built on Primer) declares them at the top of each component's schema. A **basic** catalog (the themed A2UI basic catalog, like the mock stores') composes each component's props from `allOf` branches, so they're flattened before pass 0 can read them.
 
-An update-only turn goes through `validate_update` instead: passes 0, 1 and 3, but not pass 2. The `createSurface`, the `root` and reachability live on the client, so the agent can't check them for an update.
+The SDK's `a2ui-core` 0.4.0 reads a plain string prop equal to a component id as a child reference, on every surface, for any component whose spec declares no reference props: an `Icon` named `mail` inside a `Row` whose id is `mail` reads as a cycle, so a valid surface would fail pass 2. The kit carries a local fix, applied at import (`upstream_patches.py`): from v0.9, a component its catalog declares is read by its reference spec alone. It's finding 16 in the [findings file](../../_dev/a2ui-findings.md), and goes when an SDK release carries the fix.
+
+An update-only turn goes through `validate_update` instead: passes 0 and 2, and 3 when the turn repaints components, but not pass 1. The `createSurface`, the `root` and reachability live on the client, so the agent can't check them for an update: the SDK's check judges a surface the answer doesn't create without its root or reachability.
 
 ### Question policies
 
@@ -391,7 +391,7 @@ The kit knows nothing about A2UIVerse. The connection is made from A2UIVerse's s
 | **An app is one config object** | Every app's differences in one place; the kit never guesses | Adding a new kind of per-app behavior means a new config field |
 | **Three modes, one port, one card** | Any mode drops in for any other; the card always describes the product | The card says nothing about which mode is running; the log does |
 | **Stream first, validate at the end** | The UI assembles on screen as the model writes it | An invalid answer is visible until the retry patches it, or the teardown removes it |
-| **A retry patches in place** | No wipe and redraw between attempts | The parser keeps state across attempts, and must be reset carefully between them |
+| **A retry patches in place** | No wipe and redraw between attempts | A filter of the kit's own beside the SDK's parser, holding a copy of every component the turn sent to compare the next one against |
 | **What the stream held back sent at the end** | An update or a delete to an earlier turn's surface reaches the client | It shows when the turn ends, not as it's written |
 | **Three rules every app gets, ahead of its own prose** | Failures, proposals and times read the same in every app, without each app writing them | Guidance, not a check: a model can still do otherwise |
 | **Error messages that name the fix** | The retry has what it needs to succeed | Each common mistake needs its own targeted check |
@@ -425,18 +425,22 @@ In `a2uiverse-apps/agent-kit/src/a2ui_agent_kit/`:
 | `cli.py`                       | The entrypoint: flags, `.env` loading, logging, uvicorn                                         |
 | `server.py`, `task_store.py`   | The A2A app, the one agent card, CORS; the terminal-guarded task store                          |
 | `modes.py`                     | Mode to executor; the ADK agent with the mode's tools                                           |
-| `executor_llm.py`              | Streaming, validation at the end, the retry, cancel                                             |
+| `executor_llm.py`              | Streaming through the SDK's parser and the stream filter, validation at the end, the retry, cancel |
 | `executor_deterministic.py`, `responses.py` | The no-model executor; the fixture responder and stub fixture loader                |
 | `responder.py`                 | The responder protocol, and the ADK-backed implementation with a session per context          |
-| `catalog.py`, `versions.py`    | Catalog loading, `validate_surface` and `validate_update`; the wire version tag                 |
-| `prompt.py`, `knowledge.py`    | System prompt assembly: the three rules every app gets, the config's prose, domain doc and brand guide |
+| `catalog.py`, `versions.py`    | Catalog loading through the SDK's `CatalogConfig`, `validate_surface` and `validate_update` around its `validate_payload`; the protocol versions the kit names: the wire tag, the version a catalog is read at, the extension the card advertises |
+| `upstream_patches.py`          | The local fix over `a2ui-core`'s child-reference fallback, applied at import (finding 16)      |
+| `prompt.py`, `knowledge.py`    | System prompt assembly around the SDK's base rules, schema block and examples: the three rules every app gets, the config's prose, domain doc and brand guide |
 | `paint_meta.py`                | The tag filter, the `paintMeta` part, the two question policies                                 |
 | `toolset.py`, `tool_shaping.py`| The MCP tool hooks; the annotation walker                                                       |
 | `recorder.py`, `corpus.py`, `beats.py` | Recording what was painted and what was read; the beat driver                           |
 | `sign_in.py`, `sign_in_server.py`, `sign_in_store.py`, `sign_in_fake.py`, `sign_in_vendor.py` | Sign-in: the config, the authorization server and the 401, the store, the made-up accounts' chooser, the vendor's OAuth |
+| `preview_credential.py`        | A token from the running agent for Stellify's preview, signed in as one of its made-up accounts |
 | `testing.py`                   | Run an executor in-process, for tests                                                           |
 
-The scaffolder is `a2uiverse-apps/create-a2ui-agent/`: `src/cli.ts` (flags and the flow), `src/prompts.ts` (the walkthrough), `src/scaffold.ts` (composing templates), `src/generate.ts` (the four generated files), `src/kit.ts` (the pin), `src/ports.ts`, and `templates/`. Its drift gate is `test/scaffold-run.test.ts`.
+The kit pins upstream's A2UI packages exactly, in `pyproject.toml`: `a2ui-agent-sdk` 0.9.0, `a2ui-core` 0.4.0 beneath it, and the A2A toolkit `a2ui-a2a` 0.1.0.
+
+The scaffolder is `a2uiverse-apps/create-a2ui-agent/`: `src/cli.ts` (flags and the flow), `src/prompts.ts` (the walkthrough), `src/scaffold.ts` (composing templates), `src/generate.ts` (the three generated files), `src/kit.ts` (the pin), `src/ports.ts`, and `templates/`. Its drift gate is `test/scaffold-run.test.ts`.
 
 ## Words used in this guide
 
@@ -453,6 +457,7 @@ The scaffolder is `a2uiverse-apps/create-a2ui-agent/`: `src/cli.ts` (flags and t
 | **Mode** | `deterministic`, `stub` or `live`: who answers |
 | **Executor** | The A2A SDK's name for the object that answers a request |
 | **Responder** | The kit's wrapper that streams the model's text |
+| **Stream filter** | The kit's memory of what a turn has sent, so only what's new reaches the client and a retry patches in place |
 | **Fixture** | Canned data: tool results for `stub`, A2UI answers for `deterministic` |
 | **Beat** | One scripted question in a recording session |
 | **paintMeta** | A surface's title and question mark, sent beside the A2UI |

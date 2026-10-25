@@ -53,14 +53,14 @@ pnpm --filter @a2uiverse/orchestrator registry updates            # each app's u
 Install prints what it changed in one line; a refusal prints every finding and exits 1. A new build for a catalog other installed apps render in moves them with it, named on the line:
 
 ```text
-installed github · card 0.1.0 · catalog sha256-muNbmR5m…
-updated github · card 0.1.0 · catalog sha256-muNbmR5m… → sha256-bYxc_jOA…
-reinstalled github · nothing changed · card 0.1.0 · catalog sha256-muNbmR5m…
+installed github · card 0.1.0 · catalog sha256-o0lcA0wt…
+updated github · card 0.1.0 · catalog sha256-o0lcA0wt… → sha256-bYxc_jOA…
+reinstalled github · nothing changed · card 0.1.0 · catalog sha256-o0lcA0wt…
 updated linear · card 0.1.0 · catalog sha256-JvcQSoor… → sha256-zJbZyJNl… · linear-admin followed
 ```
 
 ```text
-gmail  newer build  0.1.0  catalog https://…/gmail/catalog.json sha256-muNbmR5m… → sha256-bYxc_jOA…
+gmail  newer build  0.1.0  catalog https://…/gmail/catalog.json sha256-o0lcA0wt… → sha256-bYxc_jOA…
 github  major update  0.1.0 → 1.0.0  new catalog https://…/github/v2/catalog.json
 linear  card update  0.1.0 → 0.2.0  asks signIn: issues.write
 circleci  ahead of the Store  0.1.0  the Store lacks catalog https://…/circleci/v2/catalog.json
@@ -200,7 +200,7 @@ A question about A2UIVerse itself — which apps you have, what the screen can d
 - **An offer is painted from the marketplace's entries**, never the model's words: each app's name, publisher and description. With nothing to offer, the slot is "Nothing in the Store can do this yet." or "Couldn't reach the Store.", chosen from the plan's own record of its search.
 - **Install fills the slot it came from.** Once the client has installed the app, it presses `useApp` naming the app and the gap, and the orchestrator turns the gap into the app's slot and sends it the request the plan offered it: no second plan. A merge already made takes the app in on arrival.
 - **The update check before every dispatch.** An app whose live card names no catalog id it's installed with isn't asked: its slot takes the update tile, before the sign-in. One whose live card asks a permission the account lacks takes it after the sign-in, access being judged on the card as installed. The tile's line comes from a check of that one app, its Store entry read then: needs an update, waiting on its publisher, the Store unreached, or no update for it.
-- **Update is the install by id over the held app, then the slot's Retry**, sending again what failed — unless the press was made on a surface drawn in a catalog the update dropped, when the plan's request goes instead.
+- **Update is the install by id over the held app, then the slot's Retry**, sending again what failed — unless the press was made on a surface drawn in a catalog the update dropped, when the plan's request goes instead. A Retry from the tile — Update's or Check again — fetches the app's live card again first, given five seconds, so an app back on what the Store holds is asked.
 
 [`docs/design/store-loop.md`](../../docs/design/store-loop.md) has the whole loop.
 

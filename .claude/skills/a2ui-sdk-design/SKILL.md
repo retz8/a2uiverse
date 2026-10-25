@@ -30,9 +30,12 @@ This project is a downstream consumer of the A2UI protocol; it does not vendor t
 For the targeted version, analyze these core files to inform your design, typically reading each file _in full_:
 
 1. **JSON Schemas (`json/*.json`)**: Absolute authority for message format compliance. Check `server_to_client.json` for stream envelopes, `client_to_server.json` for action events, and `common_types.json` for dynamic binding primitives and other schema `$defs`.
-2. **Component & Function Catalogs (`catalogs/<catalog-name>/catalog.json`)**: Authoritative definitions of supported visual components and registered evaluation/validation functions. Use the standard catalog as the structural reference when authoring the Primer/React catalog in this project.
+2. **Component & Function Catalogs (`catalogs/<catalog-name>/catalog.json`)**: Authoritative definitions of supported visual components and registered evaluation/validation functions. Use the basic catalog as the structural reference when authoring a catalog.
 3. **Protocol Semantics (`docs/a2ui_protocol.md`)**: Semantic foundation covering message stream structures, pointer scopes, and two-way binding agreements.
-4. **SDK APIs and architecture design (`docs/renderer_guide.md`)**: Required mechanics for state layer separation, reactive models, and component subscription lifecycles to prevent memory leaks. This is the primary reference for the thin React renderer in this project.
+4. **SDK architecture (`docs/sdks_spec.md`)**: The unified SDK architecture — the core SDK (surface state, message processing, validation), the inference SDK, and the framework adapters — and what each library is responsible for. The reference for how the client and the catalogs sit on upstream's core and its React adapter.
+5. **Basic catalog implementation (`docs/basic_catalog_implementation_guide.md`)**: How each basic catalog component renders and behaves. Read beside the basic catalog's `catalog.json` when a catalog builds on it or mirrors one of its components.
+6. **Custom functions (`docs/a2ui_custom_functions.md`)**: How a catalog defines its own functions, makes them available, and how they are validated.
+7. **Conformance suite (`test/`)**: The test cases the version's schemas are validated against; the sdk's validator is measured against them.
 
 ## Catalog Authoring Conventions
 
@@ -52,3 +55,11 @@ A value/scalar prop's type is decided by whether data or interaction drives it a
 Enums are always plain `z.enum` — there is no `DynamicEnum` common type.
 
 The basic catalog is the reference for the split: `CheckBox.value` / `TextField.value` / `Slider.value` / `label` are `Dynamic*`; `Slider.min` / `Slider.max` / `TextField.validationRegexp` are plain.
+
+### A themed basic catalog's look goes through upstream's tokens
+
+A catalog built on upstream's basic catalog carries its look through the basic catalog's `--a2ui-*` tokens. A scoped sheet under the catalog's scope class holds only what no token reaches.
+
+### No style rule spans two components
+
+Upstream's React adapter hosts every component in an element of its own, styled `display: contents`. A rule relating a parent to its children (`>`) or siblings to each other (`+`, `:first-child`, `:nth-child`) misses, and markup that ties a parent to its child — a `<ul>` and its `<li>`, a `<tbody>` and its `<tr>` — cannot span two components. A component styles its own element, and a parent that needs such markup draws the wrapping element around each child itself.

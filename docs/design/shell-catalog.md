@@ -51,7 +51,7 @@ flowchart LR
     CAT --> C["The client renders"]
 ```
 
-`schema.ts` and `catalog.ts` are built from **the same component APIs**: upstream's `TextApi`, `ButtonApi` and the rest from `@a2ui/web_core`, and the shell components' own `*.schema.ts` files. So those two can't disagree about a prop. `catalog.json` is a separate file, kept in step by tests: every component it declares has an implementation and the other way round, and every function it declares is implemented (see [Keeping the files in step](#keeping-the-files-in-step)).
+`schema.ts` and `catalog.ts` are built from **the same component APIs**: upstream's `TextApi`, `ButtonApi` and the rest from `@a2ui/web_core`, and the shell components' own `*.schema.ts` files. So those two can't disagree about a prop. `catalog.json` is a separate file, kept in step by tests: every component and every function it declares has an implementation, and the other way round (see [Keeping the files in step](#keeping-the-files-in-step)).
 
 ### 2. Basic catalog, drawn on Radix Themes
 
@@ -84,7 +84,7 @@ Eight components exist only in the shell catalog. In the example:
 | **`Table`**, **`TableRow`** | A list of like things whose columns line up | The "Work items" table |
 | **`DataList`**, **`DataListItem`** | Labelled facts about one thing | A summary of one item, or an answer about A2UIVerse itself |
 
-`Table` exists because the basic catalog can only draw a list as a heading `Row` over a `Column` of `Row`s, and a `Row` sizes its children by their content, so the columns never line up. A table is the one shape whose columns align by construction.
+`Table` exists because the basic catalog can only draw a list as a heading `Row` over a `Column` of `Row`s, and a `Row` sizes its children by their content, so the columns never line up. A table is the one shape whose columns align by construction. The renderer hosts every component in an element of its own, which can't stand between a `<tbody>` and its `<tr>`, so `Table` draws each `TableRow` child's `<tr>` itself and renders only the cells' content through the renderer, inside each `<td>`.
 
 `Attribution` is written by the orchestrator, never by a model: the Planner writes the `Slot`s, and the orchestrator wraps every app's `Slot` in an `Attribution` it fills from its registry. Its props are plain literals and never data-bound, so a fragment can't rebind who it claims to be.
 
@@ -166,7 +166,7 @@ flowchart TD
 ]
 ```
 
-A `Slot` holds **exactly one** of `source` (whose answer fills it), `gap` (what no installed app can do, named by the words of the Planner's search; more on that below) or `chooseAccount` (an app with two accounts, for a command that named neither). `weight` is the basic catalog's flex share: three slots of weight 1 split their row equally. `content: "shell"` marks the merged view's slot as the shell's own content, `columns` are the view's planned headers, and `columnSources` the app each one shows.
+A `Slot` holds **exactly one** of `source` (whose answer fills it), `gap` (what no installed app can do, named by the words of the Planner's search; more on that below), `chooseAccount` (an app with two accounts, for a command that named neither) or `addAccount` (an app to add another account to), and the Planner's checks refuse a `Slot` holding none or more than one. `weight` is the basic catalog's flex share: three slots of weight 1 split their row equally. `content: "shell"` marks the merged view's slot as the shell's own content, `columns` are the view's planned headers, and `columnSources` the app each one shows.
 
 **2. The orchestrator wraps each app's slot.** The `Attribution` entries above aren't the Planner's: the orchestrator adds one around every app's `Slot`, copying the slot's `weight` onto it so wrapped and bare slots size by one rule. The wrapper never shrinks below what it holds: in a column, a region taller than its share keeps its height and its neighbours take the rest, so one app's fragment never runs over the next app's. The merged view's slot stays bare, because the merged view is the shell's own page, not something an app painted.
 
@@ -260,7 +260,7 @@ The facts come from props the orchestrator paints on the merged view's `Slot` (`
 
 Two accessibility details ride along. When the button that was pressed disappears, **focus moves to the line that replaced it** (a ref flag records that the button held focus, and the new line takes focus once). And the outcomes the progress line doesn't say are announced through a visually hidden `role="status"` region beside the slot.
 
-One more detail explains why `Slot` reads its props from the component's own model instead of from the props the binder hands it. Upstream's binder merges each repaint over the last one, so a prop the orchestrator stops painting, like `working` once a press finishes, would otherwise keep its old value. Every `Slot` prop is a literal the orchestrator repaints, so the model is the whole truth.
+One more detail explains why `Slot` reads its props from the component's own model, again on every update of the model, instead of from the props the binder hands it. Upstream's binder merges each repaint over the last one, so a prop the orchestrator stops painting, like `working` once a press finishes, would otherwise keep its old value, and a repaint that only drops props hands the component nothing new to render. Every `Slot` prop is a literal the orchestrator repaints, so the model is the whole truth.
 
 ### Drawing a value: `DerivedValue`
 
@@ -364,8 +364,8 @@ Until the installed app's first answer the orchestrator keeps the offer on the s
 
 Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-that-must-agree) honest:
 
-- **Name-level parity** (`catalog.parity.test.ts`): the catalog id matches everywhere; every component in `catalog.json` has an implementation and the other way round; the declared functions are exactly upstream's, plus the operators, the relations and the three shell actions.
-- **Render-level parity** (`catalog.render-parity.test.tsx`), which is **generated from `catalog.json`**. `fixture/matrix.ts` walks every component and every enum prop, and for each value builds a minimal valid tree: required props sampled from their declared types, a small seed per component so the sample is readable, and the one prop being varied. Every case renders through the real renderer under the Provider and must produce an element, with no validation error and no console error or warning. Add an enum value to `catalog.json` and it's tested automatically.
+- **Name-level parity** (`catalog.parity.test.ts`, and `schema.test.ts` for the React-free face): the catalog id matches everywhere; every component and every function in `catalog.json` has an implementation and the other way round; the declared functions are exactly upstream's, plus the operators, the relations and the three shell actions.
+- **Render-level parity** (`catalog.render-parity.test.tsx`), which is **generated from `catalog.json`**. `fixture/matrix.ts` walks every component and every enum prop, and for each value builds a minimal valid tree: required props sampled from their declared types, a small seed per component so the sample is readable, and the one prop being varied. Every case renders through the real renderer under the Provider, and the surface must report no error, every component's element must hold something it drew, and no child may be left pending, with no console error or warning. Add an enum value to `catalog.json` and it's tested automatically.
 
 `keep-sets.test.ts` checks the pruning: a merged view validates against the Synthesizer's pruned catalog while `Slot`, `Attribution` and `Button` don't, and a layout validates against the Planner's while `Attribution`, `DerivedValue` and `SortControl` don't. `scoped-css.test.ts` checks that no `:root` survived in the stylesheet.
 
