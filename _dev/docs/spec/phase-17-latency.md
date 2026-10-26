@@ -41,7 +41,7 @@ The vendor trial runs per agent over each app's recorded live prompts, repeated,
 
 ### 6. A survey before the trials; the orchestrator first
 
-The spec locks no model and no provider. A survey of the models of the day, done before the trials, chooses the candidates for each seam and names the keys they need; the notes' candidate table is its starting point and is replaced by it. The orchestrator's Planner and Synthesizer are tried first: they are A2UIVerse's own; the vendor agents stand in for vendors.
+The spec locks no model and no provider. A survey of the models of the day, done before the trials, chooses the candidates for each seam and names the keys they need; the notes' candidate table is its starting point and is replaced by it. Model tokens are paid for: credits are held today on a Gemini API key and a Claude API key, and a candidate on any other provider is a cost the survey states. The orchestrator's Planner and Synthesizer are tried first: they are A2UIVerse's own; the vendor agents stand in for vendors.
 
 ### 7. What makes a candidate not worse on the orchestrator
 
