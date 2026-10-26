@@ -27,9 +27,9 @@ The phase covers the vendor-agent model trial the TODO named, the orchestrator's
 
 Bring your own model ships as a feature on the orchestrator: a model named by its provider, Gemini as it is, tests unchanged. On the agent kit it is the trial's plumbing — a Claude model reachable by name beside Gemini, the modes and every test unchanged, no generic road (task 17.1 decision 1). The trials run as experiments on the same branch and produce the write-up. Whether any default changes — the model, the thinking budget or effort, on either side — is decided at the phase's end from the write-up, for Phase 18's recording; nothing is promised before the numbers exist.
 
-### 3. Branches, not worktrees
+### 3. One branch per repo, not worktrees
 
-The phase's work, in both repos, is done on branches. The TODO's line placing the phase in a worktree of the apps repo goes.
+The phase's work, in both repos, is done on one branch, `phase-17/latency`, off `main`, merged to `main` when the phase ends; no branch per sub-task. For this phase `_dev/` edits ride that branch too and reach `main` with the merge. The TODO's line placing the phase in a worktree of the apps repo goes.
 
 ### 4. Four levers
 
