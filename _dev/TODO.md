@@ -267,7 +267,7 @@ The wait the person feels on a turn — the plan before any slot, the vendors' a
 Notes: `_dev/docs/phase-17-model-trial-notes.md` — the phase's write-up, from the candidate table it started with to the default decision that closes it.
 Spec: `_dev/docs/spec/phase-17-latency.md`.
 
-- [WIP] **17.1** `[apps]` Bring your own model on the kit — a model named by its provider through the kit's model name, the thinking budget settable beside it, Gemini as it is, the three modes and every app's tests unchanged (parallel with 17.2–17.4)
+- [x] **17.1** `[apps]` Bring your own model on the kit — a model named by its provider through the kit's model name, the thinking budget settable beside it, Gemini as it is, the three modes and every app's tests unchanged (parallel with 17.2–17.4). Spec: `_dev/docs/spec/task-17.1-kit-model.md`
 - [ ] **17.2** Bring your own model on the orchestrator — the Planner's and the Synthesizer's model named by its provider at `getModel.ts`, the effort setting carried to each provider, Gemini as it is, tests unchanged (parallel with 17.1, 17.3, 17.4)
 - [ ] **17.3** `[apps]` The kit's measurement — per turn, the time to first token, the generation time after it and the token usage, recorded where the kit records its runs (parallel with 17.1, 17.2, 17.4)
 - [ ] **17.4** The model survey — the models of the day for each seam with their sources, speed and price; the candidates chosen per seam and the keys they need, within what can be paid for: credits held today on a Gemini API key and a Claude API key, any other provider a cost the survey states; the notes' candidate table replaced (parallel with 17.1–17.3, 17.5)
