@@ -23,7 +23,7 @@ The kit reaches Gemini as today and a Claude model through ADK's direct-API Anth
 
 ### 3. The thinking tier
 
-Two words, the orchestrator's: `low` spends no thinking — Gemini's budget at zero, Anthropic's thinking disabled; `default` configures nothing, each provider doing what it does on its own. Resolved as the model name is — an environment variable, then the app's config, then the kit's default, which is `default` — so an app that sets nothing behaves as it does today.
+Two words, the orchestrator's: `low` spends the least thinking the provider offers — Gemini's thinking level at `low`, Anthropic's thinking disabled; `default` configures nothing, each provider doing what it does on its own. Amended in 17.3: Gemini's side was a budget of zero, which Gemini 3 does not honour. Resolved as the model name is — an environment variable, then the app's config, then the kit's default, which is `default` — so an app that sets nothing behaves as it does today.
 
 ### 4. The Anthropic SDK is a plain dependency
 
