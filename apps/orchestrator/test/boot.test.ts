@@ -35,6 +35,7 @@ function build(marketplaceUrl: string, stateDir: string) {
       stateDir,
       debugIds: false,
       googleApiKey: undefined,
+      anthropicApiKey: undefined,
       plannerModelId: 'test-model',
       plannerEffort: 'low',
       shortlistCap: 5,

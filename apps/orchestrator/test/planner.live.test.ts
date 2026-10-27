@@ -1,21 +1,27 @@
 /**
- * Live smoke test of the real Planner against Gemini — proves the model answers the text prompt
- * with one tagged block the whole validator admits, calling a reader when the utterance needs one
- * (task-6.4). Never runs in `pnpm verify`:
+ * Live smoke test of the real Planner against its configured model — proves the model answers the
+ * text prompt with one tagged block the whole validator admits, calling a reader when the
+ * utterance needs one (task-6.4). Runs on whatever `A2UIVERSE_PLANNER_MODEL` names, when the key
+ * its provider needs is set (task-17.2 decision 8). Never runs in `pnpm verify`:
  *
  *   set -a; source .env; set +a
  *   A2UIVERSE_PLANNER_LIVE=1 pnpm --filter @a2uiverse/orchestrator test planner.live
+ *   A2UIVERSE_PLANNER_LIVE=1 A2UIVERSE_PLANNER_MODEL=anthropic/claude-haiku-5-5 pnpm --filter @a2uiverse/orchestrator test planner.live
  */
+import {wrapLanguageModel, type LanguageModelMiddleware} from 'ai';
 import {describe, expect, test} from 'vitest';
 import {buildAgentCard} from '../src/agentCard.js';
 import {loadConfig} from '../src/config.js';
-import {getModel, plannerProviderOptions} from '../src/planner/getModel.js';
+import {getModel, keyFor, parseModelName, reasoningFor} from '../src/model/getModel.js';
 import {ModelPlanner} from '../src/planner/planner.js';
 import {plannerSystemPrompt, readPlannerFiles} from '../src/planner/prompt.js';
 import type {PlatformReaders} from '../src/planner/readers.js';
 import type {ShortlistEntry} from '../src/router/router.js';
 
-const live = process.env.A2UIVERSE_PLANNER_LIVE === '1' && !!process.env.GOOGLE_API_KEY;
+const config = loadConfig(process.env);
+const live =
+  process.env.A2UIVERSE_PLANNER_LIVE === '1' &&
+  !!keyFor(parseModelName(config.plannerModelId, 'A2UIVERSE_PLANNER_MODEL').provider, config);
 
 function entry(appId: string, name: string, description: string, skills: string[]): ShortlistEntry {
   return {
@@ -83,16 +89,10 @@ const readers: PlatformReaders = {
 };
 
 describe.skipIf(!live)('Planner (live)', () => {
-  const config = loadConfig(process.env);
-  const settings = {
-    googleApiKey: config.googleApiKey!,
-    modelId: config.plannerModelId,
-    effort: config.plannerEffort,
-  };
   const files = readPlannerFiles();
   const planner = new ModelPlanner({
-    model: getModel(settings),
-    providerOptions: plannerProviderOptions(settings),
+    model: getModel({seam: 'Planner', keys: config, modelId: config.plannerModelId}),
+    reasoning: reasoningFor(config.plannerEffort),
     systemPrompt: plannerSystemPrompt(files),
     catalog: files.catalog,
     readers,
@@ -137,8 +137,8 @@ describe.skipIf(!live)('Planner (live)', () => {
             ]
           : [{source: appId}];
     const withAccounts = new ModelPlanner({
-      model: getModel(settings),
-      providerOptions: plannerProviderOptions(settings),
+      model: getModel({seam: 'Planner', keys: config, modelId: config.plannerModelId}),
+      reasoning: reasoningFor(config.plannerEffort),
       systemPrompt: plannerSystemPrompt(files),
       catalog: files.catalog,
       readers: {
@@ -229,8 +229,8 @@ describe.skipIf(!live)('Planner (live)', () => {
       ],
     );
     const withTracker = new ModelPlanner({
-      model: getModel(settings),
-      providerOptions: plannerProviderOptions(settings),
+      model: getModel({seam: 'Planner', keys: config, modelId: config.plannerModelId}),
+      reasoning: reasoningFor(config.plannerEffort),
       systemPrompt: plannerSystemPrompt(files),
       catalog: files.catalog,
       readers,
@@ -263,3 +263,65 @@ describe.skipIf(!live)('Planner (live)', () => {
     expect(outcome.document.dispatch.some(d => 'source' in d)).toBe(false);
   }, 90_000);
 });
+
+/**
+ * The Gemini check (task-17.2 decision 4): the reasoning-token count of a Planner call on Gemini
+ * at `low` through the SDK's `none`, and, to compare, through the explicit thinking budget of
+ * zero the seam sent before. One call each; runs only when asked:
+ *
+ *   A2UIVERSE_PLANNER_LIVE=1 A2UIVERSE_MODEL_CHECK=1 pnpm --filter @a2uiverse/orchestrator test planner.live -t "Gemini check"
+ */
+describe.skipIf(!live || process.env.A2UIVERSE_MODEL_CHECK !== '1')(
+  'the Gemini check (task-17.2 decision 4)',
+  () => {
+    const files = readPlannerFiles();
+    const gemini = () => getModel({seam: 'Planner', keys: config, modelId: 'gemini-3.8-flash'});
+    /** Keeps every call's output-token usage; injects provider options when given. */
+    const counting = (
+      usages: unknown[],
+      inject?: Record<string, Record<string, unknown>>,
+    ): LanguageModelMiddleware => ({
+      specificationVersion: 'v4',
+      transformParams: async ({params}) =>
+        inject ? {...params, providerOptions: {...params.providerOptions, ...inject}} : params,
+      wrapGenerate: async ({doGenerate}) => {
+        const result = await doGenerate();
+        usages.push(result.usage.outputTokens);
+        return result;
+      },
+    });
+
+    test('reasoning none: the count the SDK’s word gets on gemini-3.8-flash', async () => {
+      const usages: unknown[] = [];
+      const planner = new ModelPlanner({
+        model: wrapLanguageModel({model: gemini(), middleware: counting(usages)}),
+        reasoning: 'none',
+        systemPrompt: plannerSystemPrompt(files),
+        catalog: files.catalog,
+        readers,
+      });
+      const outcome = await planner.plan({utterance: 'What needs my attention today?', shortlist});
+      console.log(
+        'gemini check — reasoning none — output tokens per call:',
+        JSON.stringify(usages),
+      );
+      expect(outcome.kind).toBe('planned');
+    }, 90_000);
+
+    test('thinking budget zero: the explicit option the seam sent before, to compare', async () => {
+      const usages: unknown[] = [];
+      const planner = new ModelPlanner({
+        model: wrapLanguageModel({
+          model: gemini(),
+          middleware: counting(usages, {google: {thinkingConfig: {thinkingBudget: 0}}}),
+        }),
+        systemPrompt: plannerSystemPrompt(files),
+        catalog: files.catalog,
+        readers,
+      });
+      const outcome = await planner.plan({utterance: 'What needs my attention today?', shortlist});
+      console.log('gemini check — budget zero — output tokens per call:', JSON.stringify(usages));
+      expect(outcome.kind).toBe('planned');
+    }, 90_000);
+  },
+);

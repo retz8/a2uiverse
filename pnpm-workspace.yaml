@@ -19,6 +19,13 @@ allowBuilds:
   protobufjs: false
   sharp: false
 
+minimumReleaseAgeExclude:
+  - "@ai-sdk/anthropic@4.0.89"
+  - "@ai-sdk/provider-utils@5.0.69"
+  - "@ai-sdk/gateway@4.0.127"
+  - "@ai-sdk/google@4.0.106"
+  - ai@7.0.154
+
 patchedDependencies:
   "@a2ui/react@0.14.0": patches/@a2ui__react@0.14.0.patch
   "@a2ui/web_core@0.14.0": patches/@a2ui__web_core@0.14.0.patch

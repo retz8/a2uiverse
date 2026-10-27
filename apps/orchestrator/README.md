@@ -14,7 +14,7 @@ flowchart LR
     O <-->|A2A| L["Linear agent"]
     O <-->|A2A| G["GitHub agent"]
     O <-->|A2A| CI["CircleCI agent"]
-    O -.->|model calls| M["Gemini<br/>Planner and Synthesizer"]
+    O -.->|model calls| M["Gemini or Claude<br/>Planner and Synthesizer"]
     O -.->|the Store's search,<br/>install by id| MK["Marketplace"]
 ```
 
@@ -23,7 +23,7 @@ To the client it's one A2A agent that answers every question and every click; to
 ## Running it
 
 ```bash
-echo "GOOGLE_API_KEY=<your key>" > apps/orchestrator/.env   # the Planner and the Synthesizer run on Gemini
+echo "GOOGLE_API_KEY=<your key>" > apps/orchestrator/.env   # Gemini by default; a Claude model reads ANTHROPIC_API_KEY instead
 pnpm dev:orch                                               # from the repo root; port 10001
 pnpm --filter @a2uiverse/orchestrator build | typecheck | test | lint
 ```
@@ -126,11 +126,12 @@ A read the marketplace can't answer says why: `503` unreached, `404` not publish
 | `PORT`                                  | `10001`                                       | Listen port                                                                                                                                                                             |
 | `BASE_URL`                              | `http://localhost:<PORT>`                     | The address its agent card advertises, and the vault's: its client ID metadata document and the return address an authorization server sends the browser to. The tunnel URL in a tunnel |
 | `STATE_DIR`                             | `./.state`                                    | The registry, the vault (`vault/vault.json`), the publisher (`publisher/publisher.json`), the journal and the cached embedding model                                                    |
-| `GOOGLE_API_KEY`                        | none                                          | The Gemini key. Without it, questions fail; actions inside fragments still work                                                                                                         |
-| `A2UIVERSE_PLANNER_MODEL`               | `gemini-3.8-flash`                            | The Planner's model                                                                                                                                                                     |
-| `A2UIVERSE_PLANNER_EFFORT`              | `low`                                         | `low` (no thinking) or `default`                                                                                                                                                        |
-| `A2UIVERSE_SYNTHESIZER_MODEL`           | the Planner's if set, else `gemini-3.8-flash` | The Synthesizer's model                                                                                                                                                                 |
-| `A2UIVERSE_SYNTHESIZER_EFFORT`          | `low`                                         | `low` or `default`                                                                                                                                                                      |
+| `GOOGLE_API_KEY`                        | none                                          | The key of a Gemini model. Without it, questions on Gemini fail; actions inside fragments still work                                                                                    |
+| `ANTHROPIC_API_KEY`                     | none                                          | The key of a Claude model; needed only when a model below names `anthropic/`                                                                                                            |
+| `A2UIVERSE_PLANNER_MODEL`               | `gemini-3.8-flash`                            | The Planner's model as `provider/model` — `google/gemini-3.8-flash`, `anthropic/claude-haiku-5-5`. A name with no provider is Google                                                    |
+| `A2UIVERSE_PLANNER_EFFORT`              | `low`                                         | `low`, the least thinking the model's provider accepts, or `default`, the provider's own                                                                                                |
+| `A2UIVERSE_SYNTHESIZER_MODEL`           | the Planner's if set, else `gemini-3.8-flash` | The Synthesizer's model, in the same form                                                                                                                                               |
+| `A2UIVERSE_SYNTHESIZER_EFFORT`          | `low`                                         | `low` or `default`, as the Planner's                                                                                                                                                    |
 | `A2UIVERSE_SHORTLIST_CAP`               | `5`                                           | How many apps the Router hands the Planner                                                                                                                                              |
 | `A2UIVERSE_SOFT_DEADLINE_SECONDS`       | `10`                                          | How long with no answer releases the merge without the late apps                                                                                                                        |
 | `A2UIVERSE_HARD_CAP_SECONDS`            | `300`                                         | How long before an app's slot fails                                                                                                                                                     |

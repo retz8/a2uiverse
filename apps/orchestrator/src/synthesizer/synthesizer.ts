@@ -1,7 +1,7 @@
-import type {ProviderOptions} from '@ai-sdk/provider-utils';
 import {createA2uiValidator, type A2uiCatalogSchema, type A2uiValidator} from '@a2uiverse/sdk';
 import {RELATIONS} from '@a2uiverse/shell-catalog/schema';
 import {generateText, type LanguageModel} from 'ai';
+import type {Reasoning} from '../model/getModel.js';
 import {extractTaggedBlock} from '../authoring/taggedBlock.js';
 import {isDecline, type Synthesis, type SynthesizeDataModel} from './document.js';
 import {
@@ -186,14 +186,14 @@ function columnChecks(input: SynthesisInput): SynthesisChecks['columns'] {
   };
 }
 
-/** The AI SDK behind the text seam; effort via provider options as the Planner. */
+/** The AI SDK behind the text seam; the effort tier's word as the Planner carries it. */
 export class AiSdkSynthesisModel implements SynthesisModel {
   #model: LanguageModel;
-  #providerOptions: ProviderOptions | undefined;
+  #reasoning: Reasoning | undefined;
 
-  constructor(options: {model: LanguageModel; providerOptions?: ProviderOptions}) {
+  constructor(options: {model: LanguageModel; reasoning?: Reasoning}) {
     this.#model = options.model;
-    this.#providerOptions = options.providerOptions;
+    this.#reasoning = options.reasoning;
   }
 
   async generate(call: SynthesisCall): Promise<string> {
@@ -201,7 +201,7 @@ export class AiSdkSynthesisModel implements SynthesisModel {
       model: this.#model,
       system: call.system,
       prompt: call.prompt,
-      ...(this.#providerOptions ? {providerOptions: this.#providerOptions} : {}),
+      ...(this.#reasoning ? {reasoning: this.#reasoning} : {}),
       ...(call.signal ? {abortSignal: call.signal} : {}),
     });
     return result.text;

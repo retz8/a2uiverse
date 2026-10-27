@@ -13,7 +13,7 @@ import {STEP_QUIET_MS, type Config} from './config.js';
 import {TransformersEmbedder, type Embedder} from '@a2uiverse/embedder';
 import {OrchestratorExecutor} from './executor.js';
 import {IntentJournal} from './journal/intentJournal.js';
-import {getModel, plannerProviderOptions} from './planner/getModel.js';
+import {getModel, keyFor, keyVariableFor, parseModelName, reasoningFor} from './model/getModel.js';
 import {ModelPlanner, type Planner} from './planner/planner.js';
 import {platformReaders} from './planner/platformReaders.js';
 import {plannerSystemPrompt, readPlannerFiles} from './planner/prompt.js';
@@ -274,20 +274,19 @@ function plannerFrom(
   sources: Sources,
   store: StoreSearch,
 ): Planner {
-  const {googleApiKey} = config;
-  if (!googleApiKey) {
-    // Booting without a key is fine (actions still route); a palette turn is then a broken turn.
+  const {provider} = parseModelName(config.plannerModelId, 'A2UIVERSE_PLANNER_MODEL');
+  if (!keyFor(provider, config)) {
+    // Booting without the key is fine (actions still route); a palette turn is then a broken turn.
     return {
       async plan() {
-        throw new Error('GOOGLE_API_KEY not set: the Planner has no model');
+        throw new Error(`${keyVariableFor(provider)} not set: the Planner has no model`);
       },
     };
   }
-  const settings = {googleApiKey, modelId: config.plannerModelId, effort: config.plannerEffort};
   const files = readPlannerFiles();
   return new ModelPlanner({
-    model: getModel(settings),
-    providerOptions: plannerProviderOptions(settings),
+    model: getModel({seam: 'Planner', keys: config, modelId: config.plannerModelId}),
+    reasoning: reasoningFor(config.plannerEffort),
     systemPrompt: plannerSystemPrompt(files),
     catalog: files.catalog,
     readers,
@@ -311,22 +310,17 @@ function synthesizerFrom(config: Config, model: SynthesisModel | undefined): Syn
 }
 
 function synthesisModelFrom(config: Config): SynthesisModel {
-  const {googleApiKey} = config;
-  if (!googleApiKey) {
+  const {provider} = parseModelName(config.synthesizerModelId, 'A2UIVERSE_SYNTHESIZER_MODEL');
+  if (!keyFor(provider, config)) {
     return {
       async generate() {
-        throw new Error('GOOGLE_API_KEY not set: the Synthesizer has no model');
+        throw new Error(`${keyVariableFor(provider)} not set: the Synthesizer has no model`);
       },
     };
   }
-  const settings = {
-    googleApiKey,
-    modelId: config.synthesizerModelId,
-    effort: config.synthesizerEffort,
-  };
   return new AiSdkSynthesisModel({
-    model: getModel(settings),
-    providerOptions: plannerProviderOptions(settings),
+    model: getModel({seam: 'Synthesizer', keys: config, modelId: config.synthesizerModelId}),
+    reasoning: reasoningFor(config.synthesizerEffort),
   });
 }
 

@@ -126,3 +126,25 @@ describe('loadConfig — the marketplace (task-13.5 decisions 1, 11)', () => {
     );
   });
 });
+
+describe('loadConfig — the model seam (task-17.2 decisions 2, 3, 6)', () => {
+  test('reads ANTHROPIC_API_KEY beside GOOGLE_API_KEY', () => {
+    const config = loadConfig({GOOGLE_API_KEY: 'g', ANTHROPIC_API_KEY: 'a'});
+    expect(config.googleApiKey).toBe('g');
+    expect(config.anthropicApiKey).toBe('a');
+    expect(loadConfig({}).anthropicApiKey).toBeUndefined();
+  });
+  test('a model named by its provider is kept as written; the Synthesizer follows it', () => {
+    const config = loadConfig({A2UIVERSE_PLANNER_MODEL: 'anthropic/claude-haiku-5-5'});
+    expect(config.plannerModelId).toBe('anthropic/claude-haiku-5-5');
+    expect(config.synthesizerModelId).toBe('anthropic/claude-haiku-5-5');
+  });
+  test('an unknown provider stops the boot, naming the variable and the registered providers', () => {
+    expect(() => loadConfig({A2UIVERSE_PLANNER_MODEL: 'mistral/mistral-small'})).toThrow(
+      /A2UIVERSE_PLANNER_MODEL.*"mistral".*google, anthropic/,
+    );
+    expect(() => loadConfig({A2UIVERSE_SYNTHESIZER_MODEL: 'antropic/claude-haiku-5-5'})).toThrow(
+      /A2UIVERSE_SYNTHESIZER_MODEL.*"antropic"/,
+    );
+  });
+});

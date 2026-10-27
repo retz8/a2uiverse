@@ -1,6 +1,10 @@
 import {resolve} from 'node:path';
 import {parseFaults, type FaultMap} from './agentsPool/faults.js';
-import {DEFAULT_PLANNER_MODEL_ID, DEFAULT_SYNTHESIZER_MODEL_ID} from './planner/getModel.js';
+import {
+  DEFAULT_PLANNER_MODEL_ID,
+  DEFAULT_SYNTHESIZER_MODEL_ID,
+  parseModelName,
+} from './model/getModel.js';
 
 export interface Config {
   port: number;
@@ -10,15 +14,17 @@ export interface Config {
   stateDir: string;
   /** Include vendor ids under the source stamp (debugging only). */
   debugIds: boolean;
-  /** Google AI Studio key for the Planner (`GOOGLE_API_KEY`, the a2ui-github convention). */
+  /** Google AI Studio key (`GOOGLE_API_KEY`, the a2ui-github convention): the key of a Gemini model. */
   googleApiKey: string | undefined;
-  /** Planner model id (`A2UIVERSE_PLANNER_MODEL`). */
+  /** Anthropic key (`ANTHROPIC_API_KEY`): the key of a Claude model (task-17.2 decision 3). */
+  anthropicApiKey: string | undefined;
+  /** Planner model (`A2UIVERSE_PLANNER_MODEL`): `provider/model`, a bare name being Gemini (task-17.2 decision 2). */
   plannerModelId: string;
   /** Planner effort tunable (`A2UIVERSE_PLANNER_EFFORT`); starts below default — latency is time-to-first-paint. */
   plannerEffort: 'low' | 'default';
   /** Router shortlist cap (`A2UIVERSE_SHORTLIST_CAP`). */
   shortlistCap: number;
-  /** Synthesizer model id (`A2UIVERSE_SYNTHESIZER_MODEL`); follows `A2UIVERSE_PLANNER_MODEL` when set, else its own default. */
+  /** Synthesizer model (`A2UIVERSE_SYNTHESIZER_MODEL`), the Planner's form; follows `A2UIVERSE_PLANNER_MODEL` when set, else its own default. */
   synthesizerModelId: string;
   /** Synthesizer effort (`A2UIVERSE_SYNTHESIZER_EFFORT`); `low` by default — dead air is measured first. */
   synthesizerEffort: 'low' | 'default';
@@ -74,13 +80,19 @@ export function loadConfig(env: Env = process.env): Config {
     stateDir: env.STATE_DIR ?? resolve(process.cwd(), '.state'),
     debugIds: env.A2UIVERSE_DEBUG_IDS === '1' || env.A2UIVERSE_DEBUG_IDS === 'true',
     googleApiKey: env.GOOGLE_API_KEY,
-    plannerModelId: env.A2UIVERSE_PLANNER_MODEL ?? DEFAULT_PLANNER_MODEL_ID,
+    anthropicApiKey: env.ANTHROPIC_API_KEY,
+    plannerModelId: parseModel(
+      env.A2UIVERSE_PLANNER_MODEL ?? DEFAULT_PLANNER_MODEL_ID,
+      'A2UIVERSE_PLANNER_MODEL',
+    ),
     plannerEffort: parseEffort(env.A2UIVERSE_PLANNER_EFFORT, 'A2UIVERSE_PLANNER_EFFORT'),
     shortlistCap: parseCap(env.A2UIVERSE_SHORTLIST_CAP),
-    synthesizerModelId:
+    synthesizerModelId: parseModel(
       env.A2UIVERSE_SYNTHESIZER_MODEL ??
-      env.A2UIVERSE_PLANNER_MODEL ??
-      DEFAULT_SYNTHESIZER_MODEL_ID,
+        env.A2UIVERSE_PLANNER_MODEL ??
+        DEFAULT_SYNTHESIZER_MODEL_ID,
+      'A2UIVERSE_SYNTHESIZER_MODEL',
+    ),
     synthesizerEffort: parseEffort(
       env.A2UIVERSE_SYNTHESIZER_EFFORT,
       'A2UIVERSE_SYNTHESIZER_EFFORT',
@@ -117,6 +129,12 @@ function parseSeconds(raw: string | undefined, key: string, fallback: number): n
   if (!Number.isFinite(seconds) || seconds <= 0)
     throw new Error(`${key}: expected a positive number of seconds, got "${raw}"`);
   return seconds * 1000;
+}
+
+/** The name as written, once its provider is one the seam knows (task-17.2 decision 6). */
+function parseModel(raw: string, key: string): string {
+  parseModelName(raw, key);
+  return raw;
 }
 
 function parseEffort(raw: string | undefined, key: string): 'low' | 'default' {

@@ -1,7 +1,8 @@
 /**
- * Live smoke test of the real Synthesizer against Gemini — proves the model answers the text
- * prompt with one tagged block the whole checklist admits (task-5.4 decision 11). Never runs in
- * `pnpm verify`:
+ * Live smoke test of the real Synthesizer against its configured model — proves the model answers
+ * the text prompt with one tagged block the whole checklist admits (task-5.4 decision 11). Runs on
+ * whatever `A2UIVERSE_SYNTHESIZER_MODEL` (or the Planner's) names, when the key its provider needs
+ * is set (task-17.2 decision 8). Never runs in `pnpm verify`:
  *
  *   set -a; source .env; set +a
  *   A2UIVERSE_SYNTHESIZER_LIVE=1 pnpm --filter @a2uiverse/orchestrator test synthesizer.live
@@ -9,25 +10,25 @@
 import {describe, expect, test} from 'vitest';
 import {loadConfig} from '../src/config.js';
 import {Partitions} from '../src/composition/partitions.js';
-import {getModel, plannerProviderOptions} from '../src/planner/getModel.js';
+import {getModel, keyFor, parseModelName, reasoningFor} from '../src/model/getModel.js';
 import {readSynthesizerFiles, synthesizerSystemPrompt} from '../src/synthesizer/prompt.js';
 import {AiSdkSynthesisModel, Synthesizer} from '../src/synthesizer/synthesizer.js';
 
-const live = process.env.A2UIVERSE_SYNTHESIZER_LIVE === '1' && !!process.env.GOOGLE_API_KEY;
+const config = loadConfig(process.env);
+const live =
+  process.env.A2UIVERSE_SYNTHESIZER_LIVE === '1' &&
+  !!keyFor(
+    parseModelName(config.synthesizerModelId, 'A2UIVERSE_SYNTHESIZER_MODEL').provider,
+    config,
+  );
 
 describe.skipIf(!live)('Synthesizer (live)', () => {
   test('merges two storefronts with matching ids into a validated, sortable comparison', async () => {
-    const config = loadConfig(process.env);
-    const settings = {
-      googleApiKey: config.googleApiKey!,
-      modelId: config.synthesizerModelId,
-      effort: config.synthesizerEffort,
-    };
     const files = readSynthesizerFiles();
     const synthesizer = new Synthesizer({
       model: new AiSdkSynthesisModel({
-        model: getModel(settings),
-        providerOptions: plannerProviderOptions(settings),
+        model: getModel({seam: 'Synthesizer', keys: config, modelId: config.synthesizerModelId}),
+        reasoning: reasoningFor(config.synthesizerEffort),
       }),
       systemPrompt: synthesizerSystemPrompt(files),
       catalog: files.catalog,

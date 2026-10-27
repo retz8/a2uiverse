@@ -11,7 +11,6 @@ import {MockLanguageModelV3} from 'ai/test';
 import {describe, expect, test} from 'vitest';
 import type {LayoutSurface} from '../src/planner/document.js';
 import {LAYOUT_EXAMPLES} from '../src/planner/examples.js';
-import {plannerProviderOptions} from '../src/planner/getModel.js';
 import {MAX_ATTEMPTS, MAX_STEPS, ModelPlanner} from '../src/planner/planner.js';
 import {
   buildPlannerTurn,
@@ -319,15 +318,6 @@ describe('the Planner’s files and prompt', () => {
     expect(retry).toContain('rejected');
     expect(retry).toContain('- /tree: no Slot holds source gmail');
     expect(retry).toContain('do not start over');
-  });
-});
-
-describe('plannerProviderOptions', () => {
-  test('low effort spends no thinking budget; default leaves the provider alone', () => {
-    expect(plannerProviderOptions({effort: 'low'})).toEqual({
-      google: {thinkingConfig: {thinkingBudget: 0}},
-    });
-    expect(plannerProviderOptions({effort: 'default'})).toBeUndefined();
   });
 });
 

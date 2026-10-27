@@ -1,6 +1,6 @@
-import type {ProviderOptions} from '@ai-sdk/provider-utils';
 import {createA2uiValidator, type A2uiCatalogSchema, type A2uiValidator} from '@a2uiverse/sdk';
 import {generateText, stepCountIs, type LanguageModel, type ModelMessage} from 'ai';
+import type {Reasoning} from '../model/getModel.js';
 import {extractTaggedBlock} from '../authoring/taggedBlock.js';
 import type {ToolCallRecord} from '../journal/types.js';
 import type {ShortlistEntry} from '../router/router.js';
@@ -55,7 +55,7 @@ export const MAX_STEPS = 5;
  */
 export class ModelPlanner implements Planner {
   readonly #model: LanguageModel;
-  readonly #providerOptions: ProviderOptions | undefined;
+  readonly #reasoning: Reasoning | undefined;
   readonly #system: string;
   readonly #tree: A2uiValidator;
   readonly #readers: PlatformReaders;
@@ -64,7 +64,8 @@ export class ModelPlanner implements Planner {
 
   constructor(options: {
     model: LanguageModel;
-    providerOptions?: ProviderOptions;
+    /** The effort tier's word (task-17.2 decision 4); none, and the provider does what it does. */
+    reasoning?: Reasoning;
     systemPrompt: string;
     /** The shell catalog pruned to the layout surface's keep-set: the one the prompt shows. */
     catalog: A2uiCatalogSchema;
@@ -78,7 +79,7 @@ export class ModelPlanner implements Planner {
     store?: StoreSearch;
   }) {
     this.#model = options.model;
-    this.#providerOptions = options.providerOptions;
+    this.#reasoning = options.reasoning;
     this.#system = options.systemPrompt;
     this.#tree = createA2uiValidator({catalog: options.catalog});
     this.#readers = options.readers;
@@ -103,7 +104,7 @@ export class ModelPlanner implements Planner {
         messages,
         tools,
         stopWhen: stepCountIs(MAX_STEPS),
-        ...(this.#providerOptions ? {providerOptions: this.#providerOptions} : {}),
+        ...(this.#reasoning ? {reasoning: this.#reasoning} : {}),
         ...(input.signal ? {abortSignal: input.signal} : {}),
       });
       // Every step's messages — each reader call and its result, then the answer — stay in the
