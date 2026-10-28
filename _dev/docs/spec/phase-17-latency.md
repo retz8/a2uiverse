@@ -7,7 +7,7 @@ The wait the person feels on a turn — the plan before any slot, the vendors' a
 - Bring your own model, on both seams: the agent kit's model, and the orchestrator's Planner and Synthesizer. A model named by its provider, Gemini untouched, every test unchanged.
 - A survey of the levers of the day for the Planner, the Synthesizer and the agent kit, before any lever moves.
 - A baseline of where the time goes today, end to end and per agent, with the measurement the kit lacks added.
-- The levers the survey chooses, each built, measured and decided in its own sub-task.
+- The levers chosen from the survey, each built, measured and decided in its own sub-task.
 - The Planner's dispatch list streamed ahead of its layout tree, so vendors start before the layout completes.
 - The synthesis fragment streamed into its reserved slot.
 - The thinking budget and the effort as a dimension of every model the phase measures.
@@ -24,7 +24,7 @@ The phase covers every wait inside the Planner's and the Synthesizer's turns —
 
 ### 2. Each lever decided in its own sub-task, the defaults last
 
-Bring your own model ships as a feature on the orchestrator: a model named by its provider, Gemini as it is, tests unchanged. On the agent kit it is the plumbing the kit's levers stand on — a Claude model reachable by name beside Gemini, the modes and every test unchanged, no generic road (task 17.1 decision 1); a further provider on either side is a lever the survey may name. Each lever the survey chooses is built in its own sub-task, measured there beside the baseline, and landed or taken out there by the person's decision. The acceptance measures what landed, together. The model and the effort on each seam — the Planner, the Synthesizer, the kit — are decided at the phase's end from the write-up, for Phase 18's recording.
+Bring your own model ships as a feature on the orchestrator: a model named by its provider, Gemini as it is, tests unchanged. On the agent kit it is the plumbing the kit's levers stand on — a Claude model reachable by name beside Gemini, the modes and every test unchanged, no generic road (task 17.1 decision 1); a further provider on either side is a lever the survey may name. Each lever chosen from the survey is built in its own sub-task, measured there beside the baseline, and landed or taken out there by the person's decision. The acceptance measures what landed, together. The model and the effort on each seam — the Planner, the Synthesizer, the kit — are decided at the phase's end from the write-up, for Phase 18's recording.
 
 ### 3. One branch per repo, not worktrees
 
@@ -40,7 +40,7 @@ A kit lever is measured per agent over each app's recorded live prompts, repeate
 
 ### 6. A survey before any lever; the orchestrator first
 
-The spec locks no model, no provider and no lever. A survey of the levers of the day, done before any lever moves, chooses the levers for the Planner, the Synthesizer and the kit, each with its cost and the code it needs, and names the keys they need; the sub-tasks after it are derived from that choice. The notes' candidate table is its starting point and is replaced by it. Model tokens are paid for: credits are held today on a Gemini API key and a Claude API key, and a lever on any other provider is a cost the survey states. The orchestrator's Planner and Synthesizer come first: they are A2UIVerse's own; the vendor agents stand in for vendors.
+The spec locks no model, no provider and no lever. A survey of the levers of the day, done before any lever moves, recommends the levers for the Planner, the Synthesizer and the kit, each with its cost and the code it needs, and names the keys they need; the person chooses, and the sub-tasks after it are derived from that choice (task 17.4 decision 7). The notes' candidate table is its starting point and is replaced by it. Model tokens are paid for: credits are held today on a Gemini API key and a Claude API key, and a lever on any other provider is a cost the survey states. The orchestrator's Planner and Synthesizer come first: they are A2UIVerse's own; the vendor agents stand in for vendors.
 
 ### 7. What makes a lever not worse on the orchestrator
 
