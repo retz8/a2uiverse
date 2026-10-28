@@ -1,6 +1,6 @@
 # 17.3 — The kit's measurement
 
-The agent kit in `../a2uiverse-apps/` measuring every model request a turn makes — the time to its first token, the generation time after it and its token usage — and keeping the numbers where the kit records its runs: the plumbing the baseline (17.5) and the vendor trial (17.7) read, and the prompt-size gate (phase decision 9) is judged on. Sub-task 17.3 of Phase 17 (`_dev/docs/spec/phase-17-latency.md`); an `[apps]` sub-task, worked on the apps repo's `phase-17/latency` branch (phase decision 3).
+The agent kit in `../a2uiverse-apps/` measuring every model request a turn makes — the time to its first token, the generation time after it and its token usage — and keeping the numbers where the kit records its runs: the plumbing the baseline (17.5) and the kit's levers read. Sub-task 17.3 of Phase 17 (`_dev/docs/spec/phase-17-latency.md`); an `[apps]` sub-task, worked on the apps repo's `phase-17/latency` branch (phase decision 3).
 
 ## Scope
 
