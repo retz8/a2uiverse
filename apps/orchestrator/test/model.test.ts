@@ -175,7 +175,7 @@ describe('the callers carry the tier (task-17.2 decision 8)', () => {
 
   test('the Synthesizer’s text seam passes the reasoning word', async () => {
     const model = new MockLanguageModelV4({doGenerate: answer('merged')});
-    const text = await new AiSdkSynthesisModel({model, reasoning: 'provider-default'}).generate({
+    const {text} = await new AiSdkSynthesisModel({model, reasoning: 'provider-default'}).generate({
       system: 'S',
       prompt: 'P',
       input: {utterance: 'u', request: 'r', sources: []},

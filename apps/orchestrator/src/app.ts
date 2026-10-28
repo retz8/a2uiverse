@@ -287,6 +287,7 @@ function plannerFrom(
   return new ModelPlanner({
     model: getModel({seam: 'Planner', keys: config, modelId: config.plannerModelId}),
     reasoning: reasoningFor(config.plannerEffort),
+    effort: config.plannerEffort,
     systemPrompt: plannerSystemPrompt(files),
     catalog: files.catalog,
     readers,
@@ -304,6 +305,7 @@ function synthesizerFrom(config: Config, model: SynthesisModel | undefined): Syn
   const files = readSynthesizerFiles();
   return new Synthesizer({
     model: model ?? synthesisModelFrom(config),
+    effort: config.synthesizerEffort,
     systemPrompt: synthesizerSystemPrompt(files),
     catalog: files.catalog,
   });

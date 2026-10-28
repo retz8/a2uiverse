@@ -9,14 +9,18 @@ import type {Express} from 'express';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {buildOrchestrator} from '../src/app.js';
 import {A2UI_EXTENSION_URI_V091} from '../src/agentCard.js';
-import type {PlanRecord} from '../src/journal/types.js';
+import type {PlanRecord, SynthesisRecord} from '../src/journal/types.js';
 import type {LayoutSurface} from '../src/planner/document.js';
 import type {Planner} from '../src/planner/planner.js';
 import {FakeEmbedder} from '@a2uiverse/embedder';
 import {nowhere} from './fakeMarketplace.js';
 import {FakePlanner, layoutFor, MalformedPlanner, ThrowingPlanner} from './fakePlanner.js';
 import {bestPriceView, decline, FakeSynthesizer, HeldSynthesizer} from './fakeSynthesizer.js';
-import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer.js';
+import type {
+  SynthesisAnswer,
+  SynthesisCall,
+  SynthesisModel,
+} from '../src/synthesizer/synthesizer.js';
 import {
   BASIC_CATALOG_ID,
   canvasParentMetadata,
@@ -992,6 +996,62 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     expect(synthesis.attempts[0]!.text).toContain('<synthesize-data-model>');
     expect(synthesis.attempts[0]!.errors).toEqual([]);
     expect(typeof synthesis.deadAirMs).toBe('number');
+  });
+
+  test("the journal line carries the measurement: the shortlist's time, each request of the plan and the merge with its seam's effort, the final's instant (task-17.5 decisions 1–4)", async () => {
+    const request = {
+      attempt: 1,
+      step: 1,
+      model: {provider: 'google.generative-ai', modelId: 'gemini-3.8-flash'},
+      startMs: 12,
+      endMs: 40,
+      modelMs: 28,
+      ended: 'text' as const,
+      finish: 'stop',
+      usage: {promptTokens: 40000, cachedTokens: 36000},
+    };
+    const fake = planner();
+    const measured: Planner = {
+      plan: async input => ({...(await fake.plan(input)), effort: 'low', requests: [request]}),
+    };
+    class MeasuredSynthesizer extends FakeSynthesizer {
+      override async generate(call: SynthesisCall): Promise<SynthesisAnswer> {
+        const answer = await super.generate(call);
+        return {
+          ...answer,
+          step: {
+            model: request.model,
+            modelMs: 30,
+            stepMs: 30,
+            ended: 'text',
+            finish: 'stop',
+            tools: [],
+            usage: {promptTokens: 30000},
+          },
+        };
+      }
+    }
+    const {client} = await boot({
+      planner: measured,
+      synthesizer: new MeasuredSynthesizer(),
+      scripts: scripts(),
+    });
+    const events = await collect(client, utterance('compare camera prices'));
+    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    const [line] = await journalLines(1);
+    const plan = line.plan as PlanRecord;
+    expect(plan.shortlistMs).toEqual(expect.any(Number));
+    expect(plan.shortlistMs!).toBeLessThanOrEqual(plan.planMs);
+    expect(plan.effort).toBe('low');
+    expect(plan.requests).toEqual([request]);
+    const synthesis = line.synthesis as SynthesisRecord;
+    expect(synthesis.requests).toEqual([
+      expect.objectContaining({attempt: 1, step: 1, modelMs: 30, usage: {promptTokens: 30000}}),
+    ]);
+    expect(synthesis.requests![0]!.startMs).toBeLessThanOrEqual(synthesis.deadAirMs!);
+    const finalAt = Date.parse(line.finalAt as string);
+    expect(finalAt).toBeGreaterThanOrEqual(Date.parse(line.at as string));
+    expect(finalAt).toBeGreaterThanOrEqual(Date.parse(synthesis.release!.at));
   });
 
   test('a decline collapses the synthesis slot and sends no payload', async () => {

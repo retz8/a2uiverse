@@ -1,7 +1,14 @@
 import {createA2uiValidator, type A2uiCatalogSchema, type A2uiValidator} from '@a2uiverse/sdk';
 import {RELATIONS} from '@a2uiverse/shell-catalog/schema';
 import {generateText, type LanguageModel} from 'ai';
-import type {Reasoning} from '../model/getModel.js';
+import type {Effort, Reasoning} from '../model/getModel.js';
+import {
+  AttemptMeasurement,
+  measureOf,
+  type ModelRequestRecord,
+  type RequestClock,
+  type StepMeasure,
+} from '../model/requests.js';
 import {extractTaggedBlock} from '../authoring/taggedBlock.js';
 import {isDecline, type Synthesis, type SynthesizeDataModel} from './document.js';
 import {
@@ -44,9 +51,15 @@ export interface SynthesisCall {
   signal?: AbortSignal;
 }
 
+/** One call's answer: the raw text, and the SDK's measure of the request when a model made it (task 17.5). */
+export interface SynthesisAnswer {
+  text: string;
+  step?: StepMeasure;
+}
+
 /** The text seam: one call, the raw text back. The AI SDK model behind it, or a fake. */
 export interface SynthesisModel {
-  generate(call: SynthesisCall): Promise<string>;
+  generate(call: SynthesisCall): Promise<SynthesisAnswer>;
 }
 
 /** One attempt as journaled: the raw text the model returned and why it was refused, if it was. */
@@ -55,10 +68,18 @@ export interface SynthesisAttempt {
   errors: string[];
 }
 
-export type SynthesisOutcome =
-  | {kind: 'synthesized'; document: Synthesis; attempts: SynthesisAttempt[]}
-  | {kind: 'declined'; reason: string; attempts: SynthesisAttempt[]}
-  | {kind: 'malformed'; attempts: SynthesisAttempt[]};
+/** What the synthesis's model requests cost (task 17.5). */
+export interface SynthesisMeasure {
+  effort?: Effort;
+  requests?: ModelRequestRecord[];
+}
+
+export type SynthesisOutcome = SynthesisMeasure &
+  (
+    | {kind: 'synthesized'; document: Synthesis; attempts: SynthesisAttempt[]}
+    | {kind: 'declined'; reason: string; attempts: SynthesisAttempt[]}
+    | {kind: 'malformed'; attempts: SynthesisAttempt[]}
+  );
 
 /** The number of model calls a synthesis may spend: one, and one retry (task-5.4 decision 4). */
 export const MAX_ATTEMPTS = 2;
@@ -72,6 +93,7 @@ export const MAX_ATTEMPTS = 2;
  */
 export class Synthesizer {
   readonly #model: SynthesisModel;
+  readonly #effort: Effort | undefined;
   readonly #system: string;
   readonly #tree: A2uiValidator;
   readonly #operators: readonly string[];
@@ -79,11 +101,14 @@ export class Synthesizer {
 
   constructor(options: {
     model: SynthesisModel;
+    /** The effort tier the model runs at, stamped on the synthesis's record (task-17.5 decision 3). */
+    effort?: Effort;
     systemPrompt: string;
     /** The shell catalog pruned to the synthesis surface's keep-set: the one the prompt shows. */
     catalog: A2uiCatalogSchema;
   }) {
     this.#model = options.model;
+    this.#effort = options.effort;
     this.#system = options.systemPrompt;
     this.#tree = createA2uiValidator({catalog: options.catalog});
     const functions = Object.keys(options.catalog.functions ?? {});
@@ -95,9 +120,16 @@ export class Synthesizer {
     input: SynthesisInput,
     partitions: SynthesisChecks['partitions'],
     signal?: AbortSignal,
+    /** The synthesis's clock its requests are placed on, and the task their lines name (task 17.5). */
+    clock?: RequestClock,
   ): Promise<SynthesisOutcome> {
     const columns = columnChecks(input);
     const attempts: SynthesisAttempt[] = [];
+    const requests: ModelRequestRecord[] = [];
+    const measured: SynthesisMeasure = {
+      ...(this.#effort ? {effort: this.#effort} : {}),
+      requests,
+    };
     let previous: unknown = input.previous;
     let errors: string[] | undefined;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -114,25 +146,35 @@ export class Synthesizer {
         ...(input.joined && input.joined.length > 0 && !errors ? {joined: input.joined} : {}),
       });
       signal?.throwIfAborted();
-      const text = await this.#model.generate({
-        system: this.#system,
-        prompt,
-        input,
-        ...(signal ? {signal} : {}),
-      });
+      // The request measured from the SDK's own step result (task-17.5 decision 2).
+      const measurement = new AttemptMeasurement('Synthesizer', attempt + 1, clock);
+      let answer: SynthesisAnswer;
+      try {
+        answer = await this.#model.generate({
+          system: this.#system,
+          prompt,
+          input,
+          ...(signal ? {signal} : {}),
+        });
+      } catch (err) {
+        if (!signal?.aborted) measurement.failed(err);
+        throw err;
+      }
+      if (answer.step) requests.push(measurement.step(answer.step));
       signal?.throwIfAborted();
+      const {text} = answer;
       const result = this.#accept(text, partitions, columns);
       attempts.push({text, errors: result.errors});
       if (result.ok) {
         const {document} = result;
         return isDecline(document)
-          ? {kind: 'declined', reason: document.reason, attempts}
-          : {kind: 'synthesized', document, attempts};
+          ? {kind: 'declined', reason: document.reason, attempts, ...measured}
+          : {kind: 'synthesized', document, attempts, ...measured};
       }
       previous = result.document ?? text;
       errors = result.errors;
     }
-    return {kind: 'malformed', attempts};
+    return {kind: 'malformed', attempts, ...measured};
   }
 
   #accept(
@@ -196,7 +238,7 @@ export class AiSdkSynthesisModel implements SynthesisModel {
     this.#reasoning = options.reasoning;
   }
 
-  async generate(call: SynthesisCall): Promise<string> {
+  async generate(call: SynthesisCall): Promise<SynthesisAnswer> {
     const result = await generateText({
       model: this.#model,
       system: call.system,
@@ -204,6 +246,17 @@ export class AiSdkSynthesisModel implements SynthesisModel {
       ...(this.#reasoning ? {reasoning: this.#reasoning} : {}),
       ...(call.signal ? {abortSignal: call.signal} : {}),
     });
-    return result.text;
+    const step = result.steps[0];
+    const measure = step ? stepMeasure(step) : undefined;
+    return {text: result.text, ...(measure ? {step: measure} : {})};
+  }
+}
+
+/** The step's measure, or none when it cannot be read: diagnostics never fail the call. */
+function stepMeasure(step: Parameters<typeof measureOf>[0]): StepMeasure | undefined {
+  try {
+    return measureOf(step);
+  } catch {
+    return undefined;
   }
 }

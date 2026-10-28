@@ -1,6 +1,10 @@
 import type {Synthesis, SynthesizeDataModel} from '../src/synthesizer/document.js';
 import {SYNTHESIS_TAG} from '../src/synthesizer/prompt.js';
-import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer.js';
+import type {
+  SynthesisAnswer,
+  SynthesisCall,
+  SynthesisModel,
+} from '../src/synthesizer/synthesizer.js';
 
 /** Wraps a document — or raw text — the way the model is asked to answer. */
 export function tagged(document: SynthesizeDataModel | string): string {
@@ -29,13 +33,14 @@ export class FakeSynthesizer implements SynthesisModel {
     this.#answers = list.map(item => (typeof item === 'function' ? item : () => item));
   }
 
-  async generate(call: SynthesisCall): Promise<string> {
+  async generate(call: SynthesisCall): Promise<SynthesisAnswer> {
     this.calls.push(call);
     const make = this.#answers[Math.min(this.calls.length - 1, this.#answers.length - 1)]!;
     const answer = make(call);
-    return typeof answer === 'string' && !answer.trimStart().startsWith('{')
-      ? answer
-      : tagged(answer);
+    return {
+      text:
+        typeof answer === 'string' && !answer.trimStart().startsWith('{') ? answer : tagged(answer),
+    };
   }
 }
 
@@ -102,7 +107,7 @@ export class HeldSynthesizer extends FakeSynthesizer {
     this.#gates = gates;
   }
 
-  override async generate(call: SynthesisCall): Promise<string> {
+  override async generate(call: SynthesisCall): Promise<SynthesisAnswer> {
     const gate = this.#gates[this.calls.length];
     const answer = super.generate(call);
     if (gate) await Promise.race([gate, abortion(call.signal)]);
@@ -122,7 +127,7 @@ export class ThrowingSynthesizer implements SynthesisModel {
   constructor(error: Error) {
     this.#error = error;
   }
-  async generate(): Promise<string> {
+  async generate(): Promise<SynthesisAnswer> {
     throw this.#error;
   }
 }

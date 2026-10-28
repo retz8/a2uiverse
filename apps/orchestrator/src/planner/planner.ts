@@ -1,6 +1,12 @@
 import {createA2uiValidator, type A2uiCatalogSchema, type A2uiValidator} from '@a2uiverse/sdk';
 import {generateText, stepCountIs, type LanguageModel, type ModelMessage} from 'ai';
-import type {Reasoning} from '../model/getModel.js';
+import type {Effort, Reasoning} from '../model/getModel.js';
+import {
+  AttemptMeasurement,
+  wholeMs,
+  type ModelRequestRecord,
+  type RequestClock,
+} from '../model/requests.js';
 import {extractTaggedBlock} from '../authoring/taggedBlock.js';
 import type {ToolCallRecord} from '../journal/types.js';
 import type {ShortlistEntry} from '../router/router.js';
@@ -20,6 +26,8 @@ export interface PlanInput {
   askedFrom?: string;
   /** Aborts the call when the composition is closed while it plans (task-9.3 decision 5). */
   signal?: AbortSignal;
+  /** The turn's clock its requests are placed on, and the task their lines name (task 17.5). */
+  clock?: RequestClock;
 }
 
 /** One attempt as journaled: the raw text the model returned and why it was refused, if it was. */
@@ -28,9 +36,22 @@ export interface PlanAttempt {
   errors: string[];
 }
 
-export type PlanOutcome =
-  | {kind: 'planned'; document: LayoutSurface; attempts: PlanAttempt[]; toolCalls: ToolCallRecord[]}
-  | {kind: 'malformed'; attempts: PlanAttempt[]; toolCalls: ToolCallRecord[]};
+/** What the plan's model requests cost (task 17.5): absent from a Planner that makes none. */
+export interface PlanMeasure {
+  effort?: Effort;
+  requests?: ModelRequestRecord[];
+}
+
+export type PlanOutcome = PlanMeasure &
+  (
+    | {
+        kind: 'planned';
+        document: LayoutSurface;
+        attempts: PlanAttempt[];
+        toolCalls: ToolCallRecord[];
+      }
+    | {kind: 'malformed'; attempts: PlanAttempt[]; toolCalls: ToolCallRecord[]}
+  );
 
 /** The phase's one model call (SPEC §5 ◆ Planner). A malformed outcome is a broken turn. */
 export interface Planner {
@@ -56,6 +77,7 @@ export const MAX_STEPS = 5;
 export class ModelPlanner implements Planner {
   readonly #model: LanguageModel;
   readonly #reasoning: Reasoning | undefined;
+  readonly #effort: Effort | undefined;
   readonly #system: string;
   readonly #tree: A2uiValidator;
   readonly #readers: PlatformReaders;
@@ -66,6 +88,8 @@ export class ModelPlanner implements Planner {
     model: LanguageModel;
     /** The effort tier's word (task-17.2 decision 4); none, and the provider does what it does. */
     reasoning?: Reasoning;
+    /** The effort tier itself, stamped on the plan's record (task-17.5 decision 3). */
+    effort?: Effort;
     systemPrompt: string;
     /** The shell catalog pruned to the layout surface's keep-set: the one the prompt shows. */
     catalog: A2uiCatalogSchema;
@@ -80,6 +104,7 @@ export class ModelPlanner implements Planner {
   }) {
     this.#model = options.model;
     this.#reasoning = options.reasoning;
+    this.#effort = options.effort;
     this.#system = options.systemPrompt;
     this.#tree = createA2uiValidator({catalog: options.catalog});
     this.#readers = options.readers;
@@ -94,34 +119,58 @@ export class ModelPlanner implements Planner {
     const tools = readerTools(this.#readers, input.askedFrom, this.#store);
     const attempts: PlanAttempt[] = [];
     const toolCalls: ToolCallRecord[] = [];
+    const requests: ModelRequestRecord[] = [];
+    const measured = (): PlanMeasure => ({
+      ...(this.#effort ? {effort: this.#effort} : {}),
+      requests,
+    });
     let messages: ModelMessage[] = [
       {role: 'user', content: buildPlannerTurn(input, this.#sourcesOf)},
     ];
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      const result = await generateText({
-        model: this.#model,
-        system: this.#system,
-        messages,
-        tools,
-        stopWhen: stepCountIs(MAX_STEPS),
-        ...(this.#reasoning ? {reasoning: this.#reasoning} : {}),
-        ...(input.signal ? {abortSignal: input.signal} : {}),
-      });
+      // Each step measured as it ends, from the SDK's own step result (task-17.5 decision 2).
+      const measurement = new AttemptMeasurement('Planner', attempt + 1, input.clock);
+      let result;
+      try {
+        result = await generateText({
+          model: this.#model,
+          system: this.#system,
+          messages,
+          tools,
+          stopWhen: stepCountIs(MAX_STEPS),
+          ...(this.#reasoning ? {reasoning: this.#reasoning} : {}),
+          ...(input.signal ? {abortSignal: input.signal} : {}),
+          onStepEnd: step => measurement.take(step),
+        });
+      } catch (err) {
+        if (!input.signal?.aborted) measurement.failed(err);
+        throw err;
+      }
+      requests.push(...measurement.records);
       // Every step's messages — each reader call and its result, then the answer — stay in the
       // conversation the retry continues (task-6.4 decision 6); the result's own `response`
       // carries only the last step's.
       for (const step of result.steps) {
+        const executed = step.performance?.toolExecutionMs ?? {};
         for (const call of step.toolResults) {
-          toolCalls.push({name: call.toolName, args: call.input, result: call.output});
+          const ms = wholeMs(executed[call.toolCallId]);
+          toolCalls.push({
+            name: call.toolName,
+            args: call.input,
+            result: call.output,
+            ...(ms !== undefined ? {ms} : {}),
+          });
         }
         messages = [...messages, ...step.response.messages];
       }
       const accepted = this.#accept(result.text, shortlist, toolCalls);
       attempts.push({text: result.text, errors: accepted.errors});
-      if (accepted.ok) return {kind: 'planned', document: accepted.document, attempts, toolCalls};
+      if (accepted.ok) {
+        return {kind: 'planned', document: accepted.document, attempts, toolCalls, ...measured()};
+      }
       messages.push({role: 'user', content: buildRetryTurn(accepted.errors)});
     }
-    return {kind: 'malformed', attempts, toolCalls};
+    return {kind: 'malformed', attempts, toolCalls, ...measured()};
   }
 
   #accept(

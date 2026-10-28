@@ -32,6 +32,8 @@ export interface JournalTurn {
   refused(reason: string): void;
   /** A step in a fragment's history: where it landed and what it cost. */
   step(record: StepRecord): void;
+  /** The instant the turn's final `completed` left (task-17.5 decision 4). */
+  answered(at: number): void;
   /**
    * Appends the entry, once: a second close does nothing. A turn still listening past its final
    * closes when the listening ends, so what arrives after the hard cap is on its line. Never
@@ -117,6 +119,9 @@ export class IntentJournal implements RegistryJournal {
       },
       step: record => {
         entry.step = record;
+      },
+      answered: at => {
+        entry.finalAt = new Date(at).toISOString();
       },
       close: async outcome => {
         if (closed) return;

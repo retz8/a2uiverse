@@ -4,12 +4,17 @@
  */
 import {createA2uiValidator} from '@a2uiverse/sdk';
 import {OPERATORS, RELATIONS} from '@a2uiverse/shell-catalog/schema';
-import {describe, expect, test} from 'vitest';
+import {MockLanguageModelV4} from 'ai/test';
+import {describe, expect, test, vi} from 'vitest';
 import {Partitions} from '../src/composition/partitions.js';
 import {isDecline, type Synthesis} from '../src/synthesizer/document.js';
 import {SYNTHESIS_EXAMPLES, TODAY_TIMELINE} from '../src/synthesizer/examples.js';
 import {readSynthesizerFiles, SYNTHESIS_TAG} from '../src/synthesizer/prompt.js';
-import {Synthesizer, type SynthesisInput} from '../src/synthesizer/synthesizer.js';
+import {
+  AiSdkSynthesisModel,
+  Synthesizer,
+  type SynthesisInput,
+} from '../src/synthesizer/synthesizer.js';
 import {validateSynthesis} from '../src/synthesizer/validate.js';
 import {bestPriceView, decline, FakeSynthesizer, tagged} from './fakeSynthesizer.js';
 
@@ -633,5 +638,68 @@ describe('Synthesizer (the loop)', () => {
       p,
     );
     expect(outcome.kind).toBe('synthesized');
+  });
+});
+
+describe('Synthesizer — the measurement (task 17.5)', () => {
+  const step = (text: string) => ({
+    finishReason: {unified: 'stop' as const, raw: undefined},
+    usage: {
+      inputTokens: {total: 30000, noCache: 3000, cacheRead: 27000, cacheWrite: undefined},
+      outputTokens: {total: 1500, text: 1500, reasoning: undefined},
+    },
+    content: [{type: 'text' as const, text}],
+    warnings: [],
+  });
+
+  test('a synthesis on each of its two attempts: one record each on the clock dead air runs on, the effort stamped, a line each (decisions 1–4)', async () => {
+    const answers = ['no block', tagged(good())];
+    let call = 0;
+    const model = new MockLanguageModelV4({
+      modelId: 'gemini-3.8-flash',
+      doGenerate: async () => step(answers[Math.min(call++, answers.length - 1)]!),
+    });
+    const lines: string[] = [];
+    const spy = vi.spyOn(console, 'log').mockImplementation((line: unknown) => {
+      lines.push(String(line));
+    });
+    const release = Date.now() - 100;
+    const outcome = await new Synthesizer({
+      model: new AiSdkSynthesisModel({model, reasoning: 'none'}),
+      effort: 'low',
+      systemPrompt: 'SYSTEM',
+      catalog: files.catalog,
+    }).synthesize(input, partitions(), undefined, {origin: release, task: 't1'});
+    spy.mockRestore();
+    expect(outcome.kind).toBe('synthesized');
+    expect(outcome.effort).toBe('low');
+    expect(outcome.requests).toHaveLength(2);
+    expect(outcome.requests?.map(r => [r.attempt, r.step])).toEqual([
+      [1, 1],
+      [2, 1],
+    ]);
+    expect(outcome.requests![0]).toMatchObject({
+      model: {modelId: 'gemini-3.8-flash'},
+      ended: 'text',
+      usage: {promptTokens: 30000, outputTokens: 1500, cachedTokens: 27000},
+    });
+    expect(outcome.requests![0]!.usage).not.toHaveProperty('reasoningTokens');
+    expect(outcome.requests![0]!.startMs).toBeGreaterThanOrEqual(100);
+    expect(outcome.requests![1]!.startMs).toBeGreaterThanOrEqual(outcome.requests![0]!.endMs);
+    const requestLines = lines.filter(line => line.includes('Synthesizer request task=t1'));
+    expect(requestLines).toHaveLength(2);
+    expect(requestLines[1]).toMatch(
+      /Synthesizer request task=t1 2\.1 on gemini-3\.8-flash: model \d+ ms at \d+ ms, ended in text, 30000 prompt \/ 1500 output \/ 27000 cached tokens$/,
+    );
+  });
+
+  test('a model that gives no measure — a fake — leaves no record', async () => {
+    const outcome = await new Synthesizer({
+      model: new FakeSynthesizer(),
+      systemPrompt: 'SYSTEM',
+      catalog: files.catalog,
+    }).synthesize(input, partitions());
+    expect(outcome.kind).toBe('synthesized');
+    expect(outcome.requests).toEqual([]);
   });
 });

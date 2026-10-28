@@ -611,7 +611,7 @@ Start the client (`pnpm dev:client`) and open a replay; see the [client README](
 | `?beat=23`, `?beat=24` | Stepping back to a combination seen (restored, no call) and one never seen (the change account)   |
 | `?beat=26`             | Back past a new run: every step lands on a combination seen, the job left behind still reachable  |
 
-In the orchestrator's tests, the model sits behind a one-method **text seam** (text in, text out), and a `FakeSynthesizer` plays it. `A2UIVERSE_SYNTHESIZER_LIVE=1` runs the real model once.
+In the orchestrator's tests, the model sits behind a one-method **text seam** (text in, text out, with the AI SDK's measure of the request beside the text when a real model made it), and a `FakeSynthesizer` plays it. `A2UIVERSE_SYNTHESIZER_LIVE=1` runs the real model once.
 
 ## Where the code is
 

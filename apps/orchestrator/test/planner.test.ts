@@ -8,7 +8,7 @@ import type {AgentCard} from '@a2a-js/sdk';
 import {createA2uiValidator} from '@a2uiverse/sdk';
 import {LAYOUT_SURFACE_KEEP_SET} from '@a2uiverse/shell-catalog/schema';
 import {MockLanguageModelV3} from 'ai/test';
-import {describe, expect, test} from 'vitest';
+import {describe, expect, test, vi} from 'vitest';
 import type {LayoutSurface} from '../src/planner/document.js';
 import {LAYOUT_EXAMPLES} from '../src/planner/examples.js';
 import {MAX_ATTEMPTS, MAX_STEPS, ModelPlanner} from '../src/planner/planner.js';
@@ -349,6 +349,7 @@ describe('ModelPlanner — the loop', () => {
         name: 'installed_apps',
         args: {},
         result: [{id: 'gmail', displayName: 'Gmail', skills: [], reachable: true}],
+        ms: expect.any(Number),
       },
     ]);
     expect(calls).toHaveLength(2);
@@ -508,7 +509,12 @@ describe('ModelPlanner — the Store’s search (task 15.4)', () => {
     ]);
     expect(search.asked).toEqual(['flight booking']);
     expect(outcome.toolCalls).toEqual([
-      {name: 'search_store', args: {words: 'flight booking'}, result: {apps: [skyway]}},
+      {
+        name: 'search_store',
+        args: {words: 'flight booking'},
+        result: {apps: [skyway]},
+        ms: expect.any(Number),
+      },
     ]);
     expect(messagesOf(calls[1]!, 'tool').join('\n')).toContain('"publisher":"skyway-travel"');
   });
@@ -565,7 +571,12 @@ describe('ModelPlanner — the Store’s search (task 15.4)', () => {
     const outcome = await withStore(model, store({unreached: 'fetch failed'})).plan(input);
     expect(outcome.kind).toBe('planned');
     expect(outcome.toolCalls).toEqual([
-      {name: 'search_store', args: {words: 'flight booking'}, result: {unreached: 'fetch failed'}},
+      {
+        name: 'search_store',
+        args: {words: 'flight booking'},
+        result: {unreached: 'fetch failed'},
+        ms: expect.any(Number),
+      },
     ]);
     expect(searchesOf(outcome.toolCalls)).toEqual([
       {words: 'flight booking', reached: false, apps: []},
@@ -574,5 +585,132 @@ describe('ModelPlanner — the Store’s search (task 15.4)', () => {
 
   test('the step budget is one per tool and one for the answer (decision 5)', () => {
     expect(MAX_STEPS).toBe(5);
+  });
+});
+
+describe('ModelPlanner — the measurement (task 17.5)', () => {
+  /** A step whose usage carries every count the record reads. */
+  const counted = (result: LanguageModelV3GenerateResult): LanguageModelV3GenerateResult => ({
+    ...result,
+    usage: {
+      inputTokens: {total: 40000, noCache: 4000, cacheRead: 36000, cacheWrite: undefined},
+      outputTokens: {total: 900, text: 700, reasoning: 200},
+    },
+  });
+  /** A step whose provider reported no usage at all. */
+  const uncounted = (result: LanguageModelV3GenerateResult): LanguageModelV3GenerateResult => ({
+    ...result,
+    usage: {
+      inputTokens: {
+        total: undefined,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {total: undefined, text: undefined, reasoning: undefined},
+    },
+  });
+  const logged = () => {
+    const lines: string[] = [];
+    const spy = vi.spyOn(console, 'log').mockImplementation((line: unknown) => {
+      lines.push(String(line));
+    });
+    return {lines, restore: () => spy.mockRestore()};
+  };
+
+  test('a plan that calls a reader and answers: one record per request, in order on the turn’s clock, the tool named and timed (decisions 1–3)', async () => {
+    const {model} = scripted([counted(toolCall('installed_apps')), uncounted(text(tagged(good)))]);
+    const log = logged();
+    const origin = Date.now() - 250;
+    const outcome = await new ModelPlanner({
+      model,
+      effort: 'low',
+      systemPrompt: 'SYSTEM',
+      catalog: files.catalog,
+      readers,
+    }).plan({...input, clock: {origin, task: 't1'}});
+    log.restore();
+    expect(outcome.kind).toBe('planned');
+    expect(outcome.effort).toBe('low');
+    const [first, second] = outcome.requests!;
+    expect(outcome.requests).toHaveLength(2);
+    expect(first).toMatchObject({
+      attempt: 1,
+      step: 1,
+      model: {provider: 'mock-provider', modelId: 'mock-model-id'},
+      ended: 'toolCall',
+      finish: 'tool-calls',
+      tools: ['installed_apps'],
+      usage: {promptTokens: 40000, outputTokens: 900, reasoningTokens: 200, cachedTokens: 36000},
+    });
+    expect(second).toMatchObject({attempt: 1, step: 2, ended: 'text', finish: 'stop'});
+    expect(second).not.toHaveProperty('usage');
+    expect(second).not.toHaveProperty('tools');
+    // Placed on the clock the turn's origin starts: the attempt began after it, each step after the last.
+    expect(first!.startMs).toBeGreaterThanOrEqual(250);
+    expect(first!.endMs).toBe(first!.startMs + first!.modelMs);
+    expect(second!.startMs).toBeGreaterThanOrEqual(first!.endMs);
+    expect(outcome.toolCalls[0]!.ms).toEqual(expect.any(Number));
+    // One line per request, as each ends (decision 4).
+    const lines = log.lines.filter(line => line.includes('Planner request'));
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toMatch(
+      /Planner request task=t1 1\.1 on mock-model-id: model \d+ ms at \d+ ms, ended in toolCall \(installed_apps \d+ ms\), 40000 prompt \/ 900 output \/ 200 reasoning \/ 36000 cached tokens$/,
+    );
+    expect(lines[1]).toMatch(/1\.2 on mock-model-id: .*ended in text, no usage reported$/);
+  });
+
+  test('a plan that searches the Store: the search’s own time on its tool-call record', async () => {
+    const {model} = scripted([
+      toolCall('search_store', 'call-1', {words: 'flight booking'}),
+      text(tagged(good)),
+    ]);
+    const slow: StoreSearch = {
+      async search() {
+        await new Promise(resolve => setTimeout(resolve, 40));
+        return {apps: []};
+      },
+    };
+    const log = logged();
+    const outcome = await new ModelPlanner({
+      model,
+      systemPrompt: 'SYSTEM',
+      catalog: files.catalog,
+      readers,
+      store: slow,
+    }).plan(input);
+    log.restore();
+    expect(outcome.requests?.[0]?.tools).toEqual(['search_store']);
+    expect(outcome.toolCalls[0]!.ms).toBeGreaterThanOrEqual(35);
+    expect(outcome.requests?.[1]?.startMs).toBeGreaterThanOrEqual(outcome.requests![0]!.endMs + 35);
+  });
+
+  test('a plan refused once and accepted on the retry: both attempts’ requests, each numbered from 1', async () => {
+    const {model} = scripted([text('no block'), text(tagged(good))]);
+    const log = logged();
+    const outcome = await planner(model).plan(input);
+    log.restore();
+    expect(outcome.kind).toBe('planned');
+    expect(outcome.requests?.map(r => [r.attempt, r.step])).toEqual([
+      [1, 1],
+      [2, 1],
+    ]);
+    expect(outcome).not.toHaveProperty('effort');
+  });
+
+  test('a request that throws leaves its line and the throw', async () => {
+    const model = new MockLanguageModelV3({
+      doGenerate: async () => {
+        throw new Error('quota exceeded');
+      },
+    });
+    const log = logged();
+    await expect(
+      planner(model).plan({...input, clock: {origin: Date.now(), task: 't2'}}),
+    ).rejects.toThrow();
+    log.restore();
+    expect(
+      log.lines.some(line => /Planner request task=t2 1\.1: error after \d+ ms/.test(line)),
+    ).toBe(true);
   });
 });

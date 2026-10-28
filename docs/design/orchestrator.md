@@ -197,6 +197,26 @@ In the recording, GitHub's answer reached the client at 6.07 s, Linear's at 6.08
 }
 ```
 
+The line also says what the turn's model calls cost. This recording predates that, so here are the fields by name:
+
+- **On the plan:** `shortlistMs`, the Router's share of `planMs`; `effort`, the tier the Planner ran at; and `requests`, one record per model request. Each tool call on the plan carries its `ms` beside its words and its answer.
+- **On the synthesis:** its own `effort` and `requests`.
+- **`finalAt`:** when the final `completed` left, the moment the screen settled.
+
+A request record:
+
+```jsonc
+{
+  "attempt": 1, "step": 2,                                         // both from 1: a retry is attempt 2
+  "model": {"provider": "google.generative-ai", "modelId": "gemini-3.8-flash"},
+  "startMs": "…", "endMs": "…", "modelMs": "…",                     // the plan's from the question arriving, the synthesis's from its release
+  "ended": "toolCall", "finish": "tool-calls", "tools": ["search_store"],
+  "usage": {"promptTokens": "…", "outputTokens": "…", "reasoningTokens": "…", "cachedTokens": "…"}  // each absent when the provider gave none
+}
+```
+
+Every number is the AI SDK's own, read off the step's result (`src/model/requests.ts`): `modelMs` is the time waiting on the model, a tool's `ms` its execution time, and the usage what the provider reported. The orchestrator only reads the clock when an attempt starts, and places each step after the one before it.
+
 ## Inside the machinery
 
 ### Server and its boot
@@ -346,7 +366,7 @@ flowchart LR
 
 - **The rule it plans by** is prose in its prompt (`src/planner/planner.md`): answer the question the person means. A question about where one kind of thing stands, or about what is waiting on the person (what needs them, what's on their plate), gathers from every app whose card shows it holds a part, named or not: a review asked of them, mail to answer, a meeting to attend, an issue assigned to them. An app not signed in yet is dispatched all the same, and the shell asks for the sign-in in its slot. A command or a lookup inside one app's object, or a question naming its app, goes to that app alone. An app whose card shows no part is left out: every app added lengthens the wait, so none joins to fill the screen.
 - **The readers** are the Planner's only view of the platform: three tools with no input. `installed_apps` lists the apps, their skills with their example questions, whether each asks sign-in and its accounts by label, and each app's update state as last computed, in the App Library's words, with when that check ran ("checked 12 minutes ago"), so a plan never waits on the marketplace or a live card; `this_canvas` describes the canvas the question was asked from in the person's words, carrying what its screen doesn't say (what was asked; each app, an account by its name when it isn't the app's, what it was asked for, how its answer stands and what to do about one that isn't there; whether the merged view shows and why not, what it puts together, its columns and the order it was made in); `recent_turns` gives one line per question up that canvas's chain of parents, each app by its name. Each is a small projection of the orchestrator's own state, and the Planner writes it in the person's words, saying what the screen doesn't rather than restating it, and naming the canvas it describes by its question, since its answer opens a canvas of its own. None ever returns an app's data. The Planner can answer "what's on my screen?" without seeing what's on it.
-- **The Store's search** is the one tool with input: `search_store`, with words of the Planner's own (`src/planner/storeSearch.ts`). It asks the marketplace's search through the orchestrator's marketplace client, within the limit every request to the Store has, and answers the apps found, the installed ones left out, each as its name, publisher, description and skills, or that the Store wasn't reached. The model sees the marketplace only through that answer. Each call is recorded on the plan with its words and its answer, and that one record serves the plan check, the line with nothing to offer and the journal. [`store-loop.md`](store-loop.md) follows a search to an install.
+- **The Store's search** is the one tool with input: `search_store`, with words of the Planner's own (`src/planner/storeSearch.ts`). It asks the marketplace's search through the orchestrator's marketplace client, within the limit every request to the Store has, and answers the apps found, the installed ones left out, each as its name, publisher, description and skills, or that the Store wasn't reached. The model sees the marketplace only through that answer. Each call is recorded on the plan with its words, its answer and how long the Store took, and that one record serves the plan check, the line with nothing to offer and the journal. [`store-loop.md`](store-loop.md) follows a search to an install.
 - **A step budget.** Each attempt may take at most five steps (`stopWhen: stepCountIs(5)`): the three readers, the search and the answer.
 - **One tagged block.** The model answers with its JSON inside `<layout-surface>…</layout-surface>`. `extractTaggedBlock` takes exactly one such block and tolerates text around it. The tag is the orchestrator's own and never `<a2ui-json>`, the tag the client extracts A2UI from, so model output meant for the orchestrator can never be mistaken for UI.
 - **The validator** (`src/planner/validate.ts`) checks, in order: the output schema; the tree, through the sdk's A2UI validator (`@a2ui/web_core`'s checks behind the sdk's own findings), against the shell catalog pruned to the layout's components (`Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button`), so `Attribution` is simply not a word the Planner has; every dispatched source is on the shortlist, once, with a request; an account choice names an app with two accounts, once, not also dispatched; a merged view needs at least two sources; its columns, column marks and join name only dispatched sources; a gap names the words of one of the plan's searches and offers only apps they returned that aren't installed; exactly one `Slot` per dispatch entry; each `Slot` holding exactly one of `source`, `gap`, `chooseAccount` or `addAccount`; none of the painter's own props on a `Slot`; an add-account `Slot` names an app on the shortlist that asks sign-in, one per app; an `openAppLibrary` names an installed app; and a data model of plain values, never a formula or a ref.
@@ -500,6 +520,8 @@ merge task=4922aa90-… released (settled)
 
 (The recorded run's lines, Linear's alone of the three apps.)
 
+Each model request of the Planner and the Synthesizer adds a line of its own as it ends, the kit's agents logging theirs the same way: the seam, the task, the attempt and the step, the model, the time waiting on it and where the request started on its clock, how it ended with each tool's time, then the usage. A searching plan's step reads `Planner request task=<task> 1.2 on gemini-3.8-flash: model <ms> ms at <ms> ms, ended in toolCall (search_store <ms> ms), <n> prompt / <n> output / <n> reasoning / <n> cached tokens`.
+
 ### Id spaces
 
 Three kinds of id cross the orchestrator, and each is rewritten at the boundary:
@@ -616,6 +638,7 @@ All paths are under `apps/orchestrator/src/`.
 | The apps' data copies | `composition/partitions.ts` |
 | When to merge, presses, what changed, going back | `composition/trigger.ts`, `composition/presses.ts`, `composition/integrity.ts`, `composition/relations.ts`, `composition/history.ts` |
 | The journal and the log | `journal/`, `log.ts` |
+| What each model request cost | `model/requests.ts` |
 | Tests and fakes | `../test/` |
 
 ## Words used in this guide

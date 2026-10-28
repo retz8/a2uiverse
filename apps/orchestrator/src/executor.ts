@@ -45,16 +45,16 @@ import {
 import type {PressWait} from './composition/presses.js';
 import {decideTrigger, mergePossible} from './composition/trigger.js';
 import type {IntentJournal, JournalTurn} from './journal/intentJournal.js';
-import type {SynthesisRecord, SynthesisRelease} from './journal/types.js';
+import type {PlanRecord, SynthesisRecord, SynthesisRelease} from './journal/types.js';
 import {elapsedMs, logLine} from './log.js';
 import {emptyTouches, mergeTouches, touchesOf, type SurfaceTouches} from './journal/surfaces.js';
-import type {Planner} from './planner/planner.js';
+import type {PlanMeasure, Planner} from './planner/planner.js';
 import {searchesOf} from './planner/storeSearch.js';
 import {SHELL_SOURCE_ID} from './registry/types.js';
 import type {Router} from './router/router.js';
 import type {ChangeAccount, MissingSource} from './synthesizer/prompt.js';
 import type {Synthesis} from './synthesizer/document.js';
-import type {Synthesizer} from './synthesizer/synthesizer.js';
+import type {SynthesisMeasure, Synthesizer} from './synthesizer/synthesizer.js';
 import type {UpdateFinding} from './registry/updateTile.js';
 import type {AuthorityNeed, Standing} from './vault/vault.js';
 
@@ -429,6 +429,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     // The first-paint clock (task-6.6 decision 3): from here to the tree accepted, the shortlist
     // included, since nothing paints before either.
     let outcome;
+    let shortlistMs: number | undefined;
     try {
       // Asked from a view: the apps on screen there stay plannable (phase-9 decision 12).
       const viewed = parent !== undefined ? this.#compositions.get(parent) : undefined;
@@ -439,13 +440,16 @@ export class OrchestratorExecutor implements AgentExecutor {
             .map(source => this.#deps.sources.appOf(source)),
         ),
       ];
+      const shortlistAt = Date.now();
       const shortlist = await this.#deps.router.shortlist(text, onScreen);
+      shortlistMs = Date.now() - shortlistAt;
       signal.throwIfAborted();
       outcome = await this.#deps.planner.plan({
         utterance: text,
         shortlist,
         ...(parent !== undefined ? {askedFrom: parent} : {}),
         signal,
+        clock: {origin: openedAt, task: ctx.taskId},
       });
     } catch (err) {
       if (signal.aborted) return closed();
@@ -461,6 +465,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         attempts: outcome.attempts,
         toolCalls: outcome.toolCalls,
         planMs,
+        ...planMeasure(outcome, shortlistMs),
       });
       done();
       // Both attempts refused: a broken turn, the findings on the final (task-6.4 decision 6).
@@ -496,6 +501,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       attempts: outcome.attempts,
       toolCalls: outcome.toolCalls,
       planMs,
+      ...planMeasure(outcome, shortlistMs),
     });
     const session = readClientSession(ctx.userMessage.metadata)?.session;
     if (session !== undefined) state.session = session;
@@ -694,6 +700,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       signal.aborted || (outcomes.length > 0 && outcomes.every(o => o === 'cancelled'));
     state.answeredAt = Date.now();
     bus.publish(finalStatus(ctx, cancelled ? 'canceled' : 'completed'));
+    if (!cancelled) turn.answered(state.answeredAt);
     // The journal line closes when the last dispatch ends: an answer held past the cap is on it.
     void Promise.all(runs.map(run => run.drained)).then(async () => {
       done();
@@ -1400,6 +1407,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         outcome: 'declined' | 'malformed' | 'skipped' | 'failed',
         reason: string | undefined,
         attempts: {text: string; errors: string[]}[],
+        measure: SynthesisMeasure = {},
       ): SynthesisEnd => {
         // A decline is the Synthesizer's own judgment in its own words, said once: on the
         // collapsed slot the repaint carries (task 8.5).
@@ -1421,6 +1429,7 @@ export class OrchestratorExecutor implements AgentExecutor {
             ...context,
             ...quiescence(),
             deadAirMs: deadAir(),
+            ...synthesisMeasure(measure),
           },
           over,
         );
@@ -1432,6 +1441,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         outcome: 'malformed' | 'failed',
         reason: string | undefined,
         attempts: {text: string; errors: string[]}[],
+        measure: SynthesisMeasure = {},
       ): SynthesisEnd => {
         state.callFailed = {kind: joined.length > 0 ? 'include' : 'update', sources: joined};
         logLine(`merge task=${sinks[0]?.ctx.taskId} kept (${outcome})`);
@@ -1443,6 +1453,7 @@ export class OrchestratorExecutor implements AgentExecutor {
           ...context,
           ...quiescence(),
           deadAirMs: deadAir(),
+          ...synthesisMeasure(measure),
         });
         return 'kept';
       };
@@ -1497,6 +1508,7 @@ export class OrchestratorExecutor implements AgentExecutor {
           },
           view,
           call.signal,
+          {origin: run.at, task: sinks[0]?.ctx.taskId},
         );
       } catch (err) {
         error = err;
@@ -1524,14 +1536,14 @@ export class OrchestratorExecutor implements AgentExecutor {
         return fresh ? collapse('failed', reason, []) : keep('failed', reason, []);
       }
       if (outcome.kind === 'declined') {
-        return collapse('declined', outcome.reason, outcome.attempts);
+        return collapse('declined', outcome.reason, outcome.attempts, outcome);
       }
       if (outcome.kind === 'malformed') {
         const last = outcome.attempts.at(-1);
         const reason = last?.errors.join('; ');
         return fresh
-          ? collapse('malformed', reason, outcome.attempts)
-          : keep('malformed', reason, outcome.attempts);
+          ? collapse('malformed', reason, outcome.attempts, outcome)
+          : keep('malformed', reason, outcome.attempts, outcome);
       }
 
       const {document} = outcome;
@@ -1574,6 +1586,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         ...context,
         ...quiescence(),
         deadAirMs: deadAir(),
+        ...synthesisMeasure(outcome),
       });
       return 'landed';
     }
@@ -2162,6 +2175,23 @@ function settledMarker(
     final: false,
     status: {state: 'working', timestamp: new Date().toISOString()},
     metadata: {[STAMP_KEY]: {source: source, role: 'fragment', settled: true}},
+  };
+}
+
+/** The plan's measurement as its record carries it (task-17.5 decisions 1–3). */
+function planMeasure(measure: PlanMeasure, shortlistMs: number | undefined): Partial<PlanRecord> {
+  return {
+    ...(shortlistMs !== undefined ? {shortlistMs} : {}),
+    ...(measure.effort ? {effort: measure.effort} : {}),
+    ...(measure.requests ? {requests: measure.requests} : {}),
+  };
+}
+
+/** The synthesis's measurement as its record carries it (task-17.5 decisions 1–3). */
+function synthesisMeasure(measure: SynthesisMeasure): Partial<SynthesisRecord> {
+  return {
+    ...(measure.effort ? {effort: measure.effort} : {}),
+    ...(measure.requests && measure.requests.length > 0 ? {requests: measure.requests} : {}),
   };
 }
 

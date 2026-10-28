@@ -15,7 +15,7 @@ The orchestrator measuring every model request the Planner and the Synthesizer m
 
 ### 1. The grain is the model request, the waits between them timed too
 
-Every model request the Planner and the Synthesizer make gets its own record: its step and its attempt, its duration, how it ended — in text, in tool calls with the tools named, or in an error — and the usage the provider reports, four counts: prompt, output, cached prompt, reasoning, each absent when the provider gave none. Each request is placed on the turn's clock, the clock `planMs` runs on. Each tool call's duration sits on the tool-call record the plan already journals; the Router's shortlist has its duration on the plan record.
+Every model request the Planner and the Synthesizer make gets its own record: its step and its attempt, its duration, how it ended — in text, in tool calls with the tools named, or in an error — and the usage the provider reports, four counts: prompt, output, cached prompt, reasoning, each absent when the provider gave none. Each request is placed on its record's clock: the plan's on the clock `planMs` runs on, from the utterance arriving; the synthesis's on the clock `deadAirMs` runs on, from its release. Each tool call's duration sits on the tool-call record the plan already journals; the Router's shortlist has its duration on the plan record.
 
 ### 2. The numbers are the SDK's
 
