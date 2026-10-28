@@ -6,7 +6,7 @@ The wait the person feels on a turn — the plan before any slot, the vendors' a
 
 - Bring your own model, on both seams: the agent kit's model, and the orchestrator's Planner and Synthesizer. A model named by its provider, Gemini untouched, every test unchanged.
 - A survey of the levers of the day for the Planner, the Synthesizer and the agent kit, before any lever moves.
-- A baseline of where the time goes today, end to end and per agent, with the measurement the kit lacks added.
+- A baseline of where the time goes today, end to end and per agent, with the measurement the kit lacks and the one the orchestrator lacks added.
 - The levers chosen from the survey, each built, measured and decided in its own sub-task.
 - The Planner's dispatch list streamed ahead of its layout tree, so vendors start before the layout completes.
 - The synthesis fragment streamed into its reserved slot.
