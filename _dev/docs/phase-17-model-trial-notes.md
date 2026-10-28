@@ -1,12 +1,12 @@
-# Phase 17 notes — vendor-agent model candidates and A2UI-unique prompts
+# Phase 17 notes — the latency survey and A2UI-unique prompts
 
-Research gathered on 2026-10-09 for Phase 17, the vendor-agent model trial. Two parts: the candidate models for the trial, with their sources, and the prompts that exercise what only a composition across independent agents can answer.
+The write-up of Phase 17, the latency phase. Where the time goes, the survey of the levers with their sources, and the prompts that exercise what only a composition across independent agents can answer.
 
 ---
 
 ## 1. Where the time goes today
 
-Every model call runs on `gemini-3.8-flash`. The orchestrator's Planner and Synthesizer run at low effort, thinking budget zero. The agent kit's vendor agents run with thinking on.
+Every model call runs on `gemini-3.8-flash`. The orchestrator's Planner and Synthesizer run at low effort, Gemini's `low` thinking level (17.3). The agent kit's vendor agents run with thinking on.
 
 | Measurement | Value | Where recorded |
 | --- | --- | --- |
@@ -19,61 +19,176 @@ In the kit's live mode every action inside a fragment is framed as text for the 
 
 ---
 
-## 2. Model candidates
+## 2. The survey
 
-Published speeds are third-party snapshots that disagree with one another; the live pages decide before the trial. Speed is mostly a serving property: the same open-weight model runs at very different rates on different hosts.
+The levers of the day for the Planner, the Synthesizer and the agent kit (task 17.4), read on 2026-10-28 with no model call made. Each fact carries its grade: **ours** — A2UIVerse's code or its own measurements; **provider** — the provider's own pages, a speed figure there the provider's claim; **third-party** — benchmarks, dated, speed only. Artificial Analysis's figures are medians over the past 72 hours on a prompt of about 10k input tokens, its time to first token counting the model's thinking [32]; OpenRouter's are medians over its live traffic, the prompt length unstated [33]. Three columns of every lever wait on the baseline (17.5): the wait it attacks, its expected saving, its measuring spend.
 
-| Candidate | Host | Published output speed | Documented fit | Source |
+### 2.1 The prompts today (ours)
+
+| | Planner | Synthesizer | GitHub agent | Linear agent |
 | --- | --- | --- | --- | --- |
-| Gemini 3.5 Flash | Google | about 280 tok/s, first token under 0.3 s | Same family as today, lowest-risk swap | [1] [2] |
-| Gemini 3.5 Flash-Lite | Google | about 350–390 tok/s | A quality trade-off is noted | [1] [2] |
-| Claude Haiku 5.5 | Anthropic | no current figure found | Haiku 4.5 cited for reliable tool calls and first token under 0.6 s; $1 in / $5 out per million tokens | [3] [4] |
-| GPT-5.4-mini | OpenAI | no figure found | Listed as a budget option for agent back ends | [3] |
-| gpt-oss-120b | Cerebras | about 1,700 tok/s measured, about 3,000 claimed | JSON Schema strict mode and tool calling documented; a reasoning model, run at low reasoning effort | [5] [6] [7] |
-| gpt-oss-120b | Groq | about 480 tok/s | Tool use and `json_schema` structured output documented | [5] [8] [9] |
-| Qwen 3.8 27B | Cerebras | no figure found | JSON Schema strict mode and tool calling documented | [6] |
-| Qwen 3.6 27B | Groq | no figure found | Listed as preview | [9] [10] |
-| GLM-5.3 · Kimi K3 · MiMo-V2.6-Pro | ordinary hosts | hosted GLM-5.2 about 215 tok/s | Highest open-weight intelligence scores, 44–46 on the Artificial Analysis index; speed depends on host | [11] [12] |
+| System prompt | 114,683 characters | 73,704 characters | 299,694 characters | 73,945 characters |
+| Of it, the catalog schema | 40,056 (pruned) | 32,258 (pruned) | about 216.5k | about 24.0k |
+| Examples | 12 | 1 | 4 | 3 |
+| Fixed across turns | the whole system prompt, built at boot; every per-turn part after it | the same | the whole system prompt; the session's history growing each turn | the same |
+| Cache marked | none | none | none | none |
+| Usage recorded | none | none | per model request, since 17.3 | per model request, since 17.3 |
+| Model requests | up to five steps an attempt, two attempts | one, two on a retry | one per tool round, one for the paint | three on beat 1 (17.3) |
 
-Three classes:
+Sources: `apps/orchestrator/src/planner/prompt.ts:68-83` and `src/synthesizer/prompt.ts:119-134`, the lengths from the real prompt builders; `planner.ts:41-43`, `synthesizer.ts:64`; in `a2uiverse-apps`, `agent-kit/src/a2ui_agent_kit/prompt.py:61-94`, each agent's system-prompt dump of 2026-10-27, `measurement.py`, `responder.py:139-145`.
 
-- **Frontier small models** — Gemini 3.5 Flash and Flash-Lite, Claude Haiku 5.5, GPT-5.4-mini. Tuned for strict JSON against a long schema and multi-step tool calling. Modest speed gain over `gemini-3.7-flash`.
-- **Open-weight models on custom silicon** — gpt-oss-120b and Qwen on Cerebras or Groq. The typing half of a vendor turn drops from tens of seconds to a few. First-try conformance against an unfamiliar vendor catalog schema is the open question.
-- **Strongest open-weight models** — GLM-5.3, Kimi K3, MiMo-V2.6-Pro. One row in the trial only if the second class fails on quality; no fast host confirmed.
+### 2.2 Models
 
-Not in the first round: Celeris-1 and the Mercury diffusion models top the raw speed charts, and nothing found says they do tool calling. Groq retired its Llama 3.x models in August 2026; older guides recommending Llama are stale.
+Price per million tokens, input / output / cached input (provider). Speed as output tokens per second and time to first token (third-party).
 
-Candidate measures, per model, on the recorded live prompts: time to first token on the real system prompt; output tokens per second; first-try validation pass rate against the vendor catalog. Thinking off or low across the board so first-token times compare. A first-try failure costs a whole second generation, so a faster model with a higher failure rate can be slower on average.
+| Model · host | Price | Least thinking | Artificial Analysis | OpenRouter | Context / output |
+| --- | --- | --- | --- | --- | --- |
+| `gemini-3.8-flash` · Google | 0.75 / 3.75 / 0.075 to 2026-12-31, then 1.50 / 7.50 / 0.15 [1] | `low`; `minimal` refused; thinking not fully off [3][4] | at `high`: 132.6, 27.26 s; `low` not measured [31] | 72, 3.19 s [33] | 1,048,576 / 65,536 [2] |
+| `gemini-3.6-flash` · Google | 0.75 / 3.75 / 0.075, doubling on 2027-01-01 [1] | `minimal` [3] | at `high`: 202.5, 14.40 s [31] | — | 1,048,576 / 65,536 [2] |
+| `gemini-3.5-flash-lite` · Google | 0.30 / 2.50 / 0.03 [1] | `minimal`, its default [3] | 460.6, 6.63 s, level not stated [31] | — | 1,048,576 / 65,536 [2] |
+| `gemini-3.1-flash-lite` · Google | 0.25 / 1.50 / 0.025 [1] | `minimal`, its default [3] | not found | — | 1,048,576 / 65,536 [2] |
+| `gemini-4-argon` · Google | 2.00 / 10.00 / 0.10 to 2026-11-30, then 4.00 / 20.00 / 0.20 [1] | `low`; thinking cannot be disabled [3] | at `high`: 82.0, 46.64 s [31] | — | 1,048,576 shared / 65,536 [2] |
+| Claude Haiku 5.5 · Anthropic | 0.10 / 0.50 / 0.01 up to 100k prompt tokens; 0.50 / 2.50 / 0.05 above [8] | thinking `disabled`, effort `low` [10][11] | at `low`: 185.0, 7.51 s; `medium` 175.1, 10.36 s [31] | 159, 1.91 s [33] | 1M / 128K [7] |
+| Claude Sonnet 5.5 · Anthropic | 2 / 10 / 0.10 [8] | `between_tools`, effort `low`; `disabled` refused [10][11] | at `low`: 109.4, 1.29 s [31] | 95, 1.86 s [33] | 1M / 128K [7] |
+| Claude Opus 5.5 · Anthropic | 4 / 20 / 0.20; fast mode 8 / 40 [8][13] | effort `low`; `disabled` refused [10][11] | at `low`: 82.1, 5.24 s [31] | — | 1M / 128K [7] |
+| Claude Fable 5.1 · Anthropic | 10 / 50 / 0.25 [8] | effort `low`; `disabled` refused [10][11] | at `max`: 66.4, 132.23 s [31] | — | 1M / 128K [7] |
+| gpt-oss-120b · Cerebras | 0.35 / 0.75; a cached token at the full price [21][22] | a reasoning model, run at `low` | at `low`: 1,991, 0.37 s [31] | 476, 0.38 s [33] | 131k / 40k [21] |
+| gpt-oss-120b · Groq | 0.15 / 0.60 / 0.075 [24] | as above | at `low`: 471, 0.67 s [31] | 325, 0.20 s [33] | 131,072 / 65,536 [24] |
+| GLM-5.3-Flash · Together | 0.15 / 0.50 / 0.03 [26][27] | not read | 253, 0.67 s [31] | 168, 0.55 s [33] | 1,048,575 [26] |
+| MiniMax M3.1 Flash · Together | 0.15 / 0.60 / 0.015 [26][27] | not read | 225, 0.57 s [31] | 191, 0.67 s [33] | 1,048,576 [26] |
+| DeepSeek V4.1 Flash 1017 · Together | 0.30 / 1.20 / 0.006 [26][27] | not read | at `max`: 347, 0.32 s [31] | 269, 0.22 s [33] | 1,000,000 [26] |
+| GPT-6 Luna · OpenAI | 0.10 / 0.50 / 0.01 [28] | `none` | at `low`: 121, 2.60 s; without reasoning 116, 0.89 s [31] | 66, 2.54 s [33] | 1.05M / 128K [28] |
 
-Reaching a candidate: LiteLLM by provider prefix through ADK's `LiteLlm` wrapper; the model string is the only Gemini-specific thing in the kit's `modes.py`. The orchestrator's seam is `apps/orchestrator/src/planner/getModel.ts` on the Vercel AI SDK, not part of this phase.
+Ours, one prompt and one sample each (17.2): the Planner on Sonnet 5.5 3.7 s at `default` and 5.3 s at `low`, on Haiku 5.5 5.4 s at `default` and 8.4 s at `low` with one retry; the Synthesizer at `low` on Haiku 5.5 5.9 s, on Sonnet 5.5 8.9 s. On `gemini-3.8-flash` called directly, the `low` thinking level 1.6 s to first token, a zero budget not honoured (17.3).
+
+Reach: Google and Anthropic on both seams as they are; a third provider is one official AI SDK package and one registry entry on the orchestrator — `@ai-sdk/cerebras`, `@ai-sdk/groq`, `@ai-sdk/togetherai`, `@ai-sdk/openai`, each on the `@ai-sdk/provider` release that the current `ai`, `@ai-sdk/google` and `@ai-sdk/anthropic` share [30] (task 17.2 decision 1) — and a road the kit does not have (task 17.1 decision 1). Groq's gpt-oss models make no parallel tool calls [25]. Cerebras's strict JSON schema allows at most 5,000 characters of schema text [23].
+
+### 2.3 The Planner and the Synthesizer
+
+**Prompt caching**
+- Evidence: both system prompts are fixed at boot with every per-turn part after them, nothing marks a cache and nothing records usage, so whether Gemini's implicit cache serves them today is unknown (ours, section 2.1). Gemini caches implicitly from 4,096 prompt tokens on 3.8 Flash, a cached token at a tenth of the input price, no saving guaranteed; explicit caching on Gemini 3 adds storage, 0.50 per million tokens an hour on 3.8 Flash [1][5] (provider). Claude caches only what a request marks, from 512 tokens on Haiku 5.5 and Sonnet 5.5, read at 0.1× the input price — 0.05× on Sonnet 5.5 and Opus 5.5 — and written at 1.25× for five minutes; a change of the effort or thinking setting invalidates it [8][9] (provider). The AI SDK marks it with `providerOptions.anthropic.cacheControl` on the system message and reports cached reads as `usage.inputTokenDetails.cacheReadTokens` on both providers [15][16] (provider). Anthropic's launch post: a 100k-token prompt from 11.5 s to 2.4 s to first token, a 10k-token one from 1.6 s to 1.1 s [14] (provider's claim).
+- Code: the model seam, `apps/orchestrator/src/model/` — `a2uiverse`.
+- Provider and key: Anthropic for the marking; Gemini as it is.
+- Wait · saving · spend: pending 17.5.
+
+**The Store search in fewer rounds**
+- Evidence: a Planner attempt takes up to five steps — the three readers, the search, the answer — each sending the whole conversation again, system prompt first; the AI SDK runs one step's tool calls concurrently, the model choosing whether to make several in one step (ours, `src/planner/planner.ts:42-43, 101-109`; [17] provider). Plans that searched the Store took 28 s, 33 s and 41 s, and 66 s over three searches (ours, task 15.11).
+- Code: the Planner — `a2uiverse`.
+- Provider and key: none new.
+- Wait · saving · spend: pending 17.5.
+
+**The model and the effort**
+- Evidence: section 2.2. The Synthesizer at `default` effort on the current model is one row (phase decision 7).
+- Code: configuration on Google and Anthropic; a package and a registry entry for a third provider — `a2uiverse`.
+- Provider and key: per row.
+- Wait · saving · spend: pending 17.5.
+
+**Native structured output**
+- Evidence: the Planner and the Synthesizer write JSON as text, validated after, one retry carrying the failure (ours, `planner.ts:41, 127-154`; `synthesizer.ts:64, 138-168`). Schema-constrained output is offered on both providers; on Anthropic a schema's first use waits for its grammar to compile, kept 24 hours, and a change of output format invalidates the prompt cache [12] (provider). On Haiku 5.5 with thinking off, a request for JSON output can skip a tool call the model needs [10] (provider).
+- Code: the Planner and the Synthesizer — `a2uiverse`.
+- Provider and key: none new.
+- Wait · saving · spend: pending 17.5, the first-try rate being the baseline's.
+
+**A compact output format**
+- Evidence: upstream A2UI's Express writes components as one-line assignments, compiled to A2UI JSON, claimed 55–70% fewer output tokens, targeting v1.0, v0.9 and v0.9.1 [34] (provider). Upstream's own evaluation on `gemini-3.5-flash` at a thinking budget of zero, medians: Express 307 output tokens against 958 for direct JSON, 9.30 s against 5.54 s, schema accuracy 0.961 for both, no reason for the slower time recorded [35] (third-party). OpenAI's latency guide: halving output tokens cuts about 50% of latency, halving the prompt 1–5% [29] (provider's claim, for its own models). The Planner's layout surface is A2UI in the shell catalog; of the Synthesizer's document only the tree is (SPEC §5.2, §5.6).
+- Code: the Planner's prompt and the orchestrator's parse — `a2uiverse`.
+- Provider and key: none new.
+- Wait · saving · spend: pending 17.5.
+
+**A faster serving tier**
+- Evidence: Gemini's priority inference costs 75–100% more than standard, for billing tiers 2 and 3, its latency "seconds" against standard's "seconds to minutes" [6] (provider's claim); on OpenRouter, `gemini-3.8-flash` on AI Studio's priority tier 2.79 s to first token against 3.19 s on standard [33] (third-party). Opus 5.5's fast mode raises output tokens per second up to 2.5×, not the time to first token, at 8 / 40 [8][13] (provider's claim).
+- Code: a provider option at the model seam — `a2uiverse`.
+- Provider and key: Google, on a higher billing tier; Anthropic.
+- Wait · saving · spend: pending 17.5.
+
+### 2.4 The agent kit
+
+**Prompt caching on Claude**
+- Evidence: on Gemini the implicit cache already serves — Linear's beat 1 re-read a 25–32k-token prompt on each of its three requests, Gemini's cache serving most of it from the second (ours, 17.3). On Claude nothing is cached: ADK's Anthropic class places cache breakpoints from 2.8 on, only under an app-level context cache config [18][19] (provider), and the kit builds ADK's Runner with no App (ours, `responder.py:139-145`); GitHub, Gmail and Calendar lock google-adk 2.5.0, whose Anthropic class places none (ours, each app's `uv.lock`). Claude's rules and prices as in the Planner's row [8][9].
+- Code: the kit and every app's google-adk lock — `a2uiverse-apps`.
+- Provider and key: Anthropic.
+- Wait · saving · spend: pending 17.5.
+
+**Tool calls in one step**
+- Evidence: a turn makes one model request per tool round and one for the paint, three on Linear's beat 1 — two tool calls, then the paint (ours, 17.3). ADK runs the tool calls of one response concurrently, an async tool not blocking the rest [20] (provider); the kit asks for one tool per turn only in its correction after a malformed function call (ours, `executor_llm.py:71-75`).
+- Code: the kit — `a2uiverse-apps`.
+- Provider and key: none new.
+- Wait · saving · spend: pending 17.5.
+
+**A smaller prompt**
+- Evidence: GitHub's catalog schema is about 216.5k of its prompt's 300k characters (ours, section 2.1). A catalog subset per turn through upstream's `ComponentPruningTransformer`, and the catalog as a skill the model loads on demand, are named in a reply to discussion #2779 [38] (third-party). GitHub's agent loads every MCP toolset, each tool's definition riding every request (ours, `github/agent/app/mcp.py:33`) — the app's own file (phase decision 4).
+- Code: the kit — `a2uiverse-apps`.
+- Provider and key: none new.
+- Wait · saving · spend: pending 17.5.
+
+**The model and the thinking tier**
+- Evidence: section 2.2, Gemini by name and Claude as `anthropic/…` on the kit.
+- Code: configuration; a third provider a road the kit does not have — `a2uiverse-apps`.
+- Provider and key: per row.
+- Wait · saving · spend: pending 17.5.
+
+**A compact output format**
+- Evidence: Express as in the Planner's row [34][35]; in upstream's Python SDK, Express does not stream, only direct JSON does [36] (provider). The kit streams a paint as it parses it (ours, `responder.py:187-192`).
+- Code: the kit — `a2uiverse-apps`.
+- Provider and key: none new.
+- Wait · saving · spend: pending 17.5.
+
+**Templates on frequent presses**
+- Evidence: in live mode every press inside a fragment is one full generation (ours, `docs/design/agent-kit.md`, step 2). Upstream issue #657, template-based inference, open at P2 since 2026-02-23, its template-schema child #721 closed as not planned on 2026-10-15 [37]; replies in discussions #1207, #2779 and #3068 name a fixed tree with data updates on hot paths, or the model picking a template and filling its data [38][39] (third-party). No measurement found.
+- Code: the kit — `a2uiverse-apps`.
+- Provider and key: none new.
+- Wait · saving · spend: pending 17.5.
+
+### 2.5 Defects found
+
+- The kit's `low` on a Claude model sends a thinking budget of zero, which ADK's Anthropic class maps to thinking disabled (ours, `modes.py:53-72`; google-adk `anthropic_llm.py:190-191`); Sonnet 5.5, Opus 5.5 and Fable 5.1 refuse disabled thinking with a 400, Haiku 5.5 accepts it [10] (provider). The record does not name the Claude model 17.1's proof ran on.
+- ADK's Anthropic class caps a response at 8,192 output tokens by default (ours, google-adk 2.8.0 `anthropic_llm.py:932`); the Claude models allow 128K [7] (provider).
+- `@ai-sdk/google` 4.0.106 resolves the least thinking level on Gemini 4 Argon to `minimal` (ours, read in its source, not run), which Argon refuses [3] (provider).
 
 ### Sources
 
-1. [Fastest LLMs, October 2026 — BenchLM](https://benchlm.ai/llm-speed)
-2. [Fastest LLM Inference APIs in 2026: TTFT and Throughput Guide — Inworld](https://inworld.ai/resources/fastest-llm-inference-api)
-3. [Best LLM for Voice Agents in 2026 — Layer3 Labs](https://www.layer3labs.io/guides/best-llm-for-voice-agents)
-4. [2026 LLM API Latency Benchmarks: TTFT + Tokens/sec](https://www.kunalganglani.com/blog/llm-api-latency-benchmarks-2026)
-5. [AI Inference Speed Comparison: Tokens Per Second by Provider — Deploybase](https://deploybase.ai/articles/ai-inference-speed-comparison-tokens-per-second-by-provider)
-6. [Structured Outputs — Cerebras Inference docs](https://inference-docs.cerebras.ai/capabilities/structured-outputs)
-7. [Tool Calling — Cerebras Inference docs](https://inference-docs.cerebras.ai/capabilities/tool-use)
-8. [ChatGroq `with_structured_output` — LangChain reference](https://reference.langchain.com/python/langchain-groq/chat_models/ChatGroq/with_structured_output)
-9. [Groq provider — promptfoo](https://www.promptfoo.dev/docs/providers/groq/)
-10. [Groq provider catalog — OpenClaw docs](https://docs.openclaw.ai/providers/groq)
-11. [Artificial Analysis model leaderboard](https://artificialanalysis.ai/leaderboards/models)
-12. [LLM Leaderboard, October 2026 — ModelGrep](https://modelgrep.com/leaderboard)
-13. [Fastest AI in 2026: Speed Benchmarks — fast.io](https://fast.io/resources/fastest-ai-2026/)
-14. [Fastest LLM Inference Provider for AI Agents 2026 — OpenBenchmarks](https://openbenchmarks.com/inference/fastest-inference-provider-for-my-ai-agent)
-15. [Groq changelog](https://console.groq.com/docs/changelog)
+All read on 2026-10-28.
 
-### Upstream threads on the same question
+1. [Gemini Developer API pricing](https://ai.google.dev/gemini-api/docs/pricing) — provider
+2. [Gemini models](https://ai.google.dev/gemini-api/docs/models), and each model's page under it — provider
+3. [Thinking — Gemini API](https://ai.google.dev/gemini-api/docs/generate-content/thinking) — provider
+4. [What's new in Gemini 3.8 Flash](https://ai.google.dev/gemini-api/docs/whats-new-gemini-3.8) — provider
+5. [Context caching — Gemini API](https://ai.google.dev/gemini-api/docs/generate-content/caching) — provider
+6. [Priority inference — Gemini API](https://ai.google.dev/gemini-api/docs/generate-content/priority-inference) — provider
+7. [Models overview — Claude](https://platform.claude.com/docs/en/about-claude/models/overview) — provider
+8. [Pricing — Claude](https://platform.claude.com/docs/en/about-claude/pricing) — provider
+9. [Prompt caching — Claude](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) — provider
+10. [Thinking — Claude](https://platform.claude.com/docs/en/build-with-claude/thinking) — provider
+11. [Effort — Claude](https://platform.claude.com/docs/en/build-with-claude/effort) — provider
+12. [Structured outputs — Claude](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) — provider
+13. [Fast mode — Claude](https://platform.claude.com/docs/en/build-with-claude/fast-mode) — provider
+14. [Prompt caching, the launch post](https://claude.com/blog/prompt-caching) — provider
+15. [Google provider — AI SDK](https://ai-sdk.dev/providers/ai-sdk-providers/google) — provider
+16. [Anthropic provider — AI SDK](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic) — provider
+17. [Tool calling — AI SDK](https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling) — provider
+18. [Context caching — ADK](https://adk.dev/context/caching/) — provider
+19. [ADK Python changelog](https://github.com/google/adk-python/blob/main/CHANGELOG.md), its 2.8.0 entry — provider
+20. [Tool performance — ADK](https://adk.dev/tools-custom/performance/) — provider
+21. [OpenAI GPT OSS — Cerebras](https://inference-docs.cerebras.ai/models/openai-oss) — provider
+22. [Prompt caching — Cerebras](https://inference-docs.cerebras.ai/capabilities/prompt-caching) — provider
+23. [Structured outputs — Cerebras](https://inference-docs.cerebras.ai/capabilities/structured-outputs) — provider
+24. [GPT-OSS 120B — Groq](https://console.groq.com/docs/model/openai/gpt-oss-120b) — provider
+25. [Tool use — Groq](https://console.groq.com/docs/tool-use) — provider
+26. [Available models — Together](https://docs.together.ai/docs/serverless/models) — provider
+27. [Pricing — Together](https://www.together.ai/pricing) — provider
+28. [Pricing — OpenAI](https://developers.openai.com/api/docs/pricing), and [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) — provider
+29. [Latency optimization — OpenAI](https://developers.openai.com/api/docs/guides/latency-optimization) — provider
+30. The npm registry's entries for `@ai-sdk/cerebras`, `@ai-sdk/groq`, `@ai-sdk/togetherai` and `@ai-sdk/openai` — provider
+31. Artificial Analysis, each model's providers page under `https://artificialanalysis.ai/models/` — third-party
+32. [Performance benchmarking methodology — Artificial Analysis](https://artificialanalysis.ai/methodology/performance-benchmarking) — third-party
+33. OpenRouter, each model's page under `https://openrouter.ai/` — third-party
+34. Upstream A2UI, `specification/proposals/express/a2ui_express.md` at `upstream/main` `ccf5dc20d` — provider
+35. Upstream A2UI, `eval/iterative_format_optimizer/baselines/{direct_json,express}/budget_0_run_meta.json` at `ccf5dc20d` — third-party
+36. Upstream A2UI, `python/a2ui_agent/agent_development.md` at `ccf5dc20d` — provider
+37. [Issue #657, Implement Template based inference](https://github.com/a2ui-project/a2ui/issues/657), and [#721](https://github.com/a2ui-project/a2ui/issues/721) — third-party
+38. [Discussion #2779](https://github.com/a2ui-project/a2ui/discussions/2779) — third-party
+39. [Discussion #1207](https://github.com/a2ui-project/a2ui/discussions/1207) and [#3068](https://github.com/a2ui-project/a2ui/discussions/3068) — third-party
 
-- [Discussion #2095](https://github.com/a2ui-project/a2ui/discussions/2095) — a UX designer asks what problems A2UI uniquely solves. The answer that formed: A2UI earns its place when agent and host are independently developed, the task UI cannot be enumerated ahead, and the host keeps control of security, accessibility and actions; "probably unnecessary for a product with a small, known set of workflows."
-- [Discussion #3068](https://github.com/a2ui-project/a2ui/discussions/3068) — what A2UI adds when latency favors deterministic UI. The reply: the value is the contract, not rendering; compose the tree ahead, swap data at runtime.
-- [Discussion #2779](https://github.com/a2ui-project/a2ui/discussions/2779) — deterministic recipes for frequent updates, a decision step for ambiguous requests, a catalog subset for composition. Names TypeSafe's Jev. No replies.
-- [Discussion #1207](https://github.com/a2ui-project/a2ui/discussions/1207) — a maintainer's answer to slow, varying generation: custom catalogs for well-known requirements, or pre-made A2UI JSON retrieved by context.
-- [Issue #657](https://github.com/a2ui-project/a2ui/issues/657) — template-based inference with a formalized template format, open, a candidate for the top priority tier.
-- [Issue #1826](https://github.com/a2ui-project/a2ui/issues/1826) — "Gen UI is feeling less responsive than I hoped!", with the measurements in §1.
-- Upstream's compact inference formats, on the `upstream/main` ref under `specification/proposals/`: Express (positional DSL, 55–70% fewer output tokens claimed), Elemental (HTML-like markup), Atom (S-expressions, a further 25–50% under Express, containers emitted before children). All target A2UI v1.0.
 
 ---
 
