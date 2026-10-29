@@ -333,3 +333,4 @@ Fires when `@a2ui/react` publishes a `/v1_0` entry point — not when the v1.0 s
 - The deterministic GitHub answers an open on its "My Open Pull Requests" list with no visible change: no deterministic flow paints a pull request, so a pull request's page is seen only live (found in 16.11)
 - GitHub's catalog loads about 80 stylesheets one by one, Primer's per component: through the tunnel its Store sample waits about 10 s on a fresh page, and a build loaded on first use holds its first paint the same way, about 10 s for Linear's (found in 16.11)
 - Calendar's fragment shows an event's time with no zone, "Today, 11:00 – 12:00", while the timeline beside it shows the same event at 8:00 PM local time; Gmail names UTC on its own. Seen on the deterministic roster (found in 16.11)
+- "Is main green right now? Ask CircleCI and GitHub.", live: GitHub renders an overlay, and the whole view of CircleCI + GitHub + the merged view looks weird (found in 17.5)
