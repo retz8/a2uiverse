@@ -69,37 +69,37 @@ Reach: Google and Anthropic on both seams as they are; a third provider is one o
 - Evidence: both system prompts are fixed at boot with every per-turn part after them, nothing marks a cache and nothing records usage, so whether Gemini's implicit cache serves them today is unknown (ours, section 2.1). Gemini caches implicitly from 4,096 prompt tokens on 3.8 Flash, a cached token at a tenth of the input price, no saving guaranteed; explicit caching on Gemini 3 adds storage, 0.50 per million tokens an hour on 3.8 Flash [1][5] (provider). Claude caches only what a request marks, from 512 tokens on Haiku 5.5 and Sonnet 5.5, read at 0.1× the input price — 0.05× on Sonnet 5.5 and Opus 5.5 — and written at 1.25× for five minutes; a change of the effort or thinking setting invalidates it [8][9] (provider). The AI SDK marks it with `providerOptions.anthropic.cacheControl` on the system message and reports cached reads as `usage.inputTokenDetails.cacheReadTokens` on both providers [15][16] (provider). Anthropic's launch post: a 100k-token prompt from 11.5 s to 2.4 s to first token, a 10k-token one from 1.6 s to 1.1 s [14] (provider's claim).
 - Code: the model seam, `apps/orchestrator/src/model/` — `a2uiverse`.
 - Provider and key: Anthropic for the marking; Gemini as it is.
-- Wait · saving · spend: pending 17.5.
+- Wait · saving · spend: the prompt's part of a plan and a merge. The Planner's requests cached on 4 of 21 in the baseline, 29,533–29,569 of about 32k prompt tokens when they did, the Synthesizer's on none (ours, section 4.3). A plan's time follows its output, a median 102 tokens a second, so the prompt and the first token leave at most about 1 s of the control's 6.6 s plan (ours, section 4). On Gemini the saving is the price: about $0.18 a pass on the Planner's and the Synthesizer's uncached prompts at a tenth of the input price [1]. On Claude it is marked with a Claude model. Spend: none of its own.
 
 **The Store search in fewer rounds**
 - Evidence: a Planner attempt takes up to five steps — the three readers, the search, the answer — each sending the whole conversation again, system prompt first; the AI SDK runs one step's tool calls concurrently, the model choosing whether to make several in one step (ours, `src/planner/planner.ts:42-43, 101-109`; [17] provider). Plans that searched the Store took 28 s, 33 s and 41 s, and 66 s over three searches (ours, task 15.11).
 - Code: the Planner — `a2uiverse`.
 - Provider and key: none new.
-- Wait · saving · spend: pending 17.5.
+- Wait · saving · spend: the camera comparison's plan, 21.5 s at the median — its request ending in the Store search 3.5–4.3 s and the search 17–22 ms, before the plan's own request, 16.5–27.4 s (ours, section 4.2). Fewer rounds save at most that first request, 3.5–4.3 s on the one prompt that searches. Spend: the camera comparison end to end three times, its Planner requests and Shop A $0.07–0.10 a pass: about $0.25 (ours, the extract).
 
 **The model and the effort**
 - Evidence: section 2.2. The Synthesizer at `default` effort on the current model is one row (phase decision 7).
 - Code: configuration on Google and Anthropic; a package and a registry entry for a third provider — `a2uiverse`.
 - Provider and key: per row.
-- Wait · saving · spend: pending 17.5.
+- Wait · saving · spend: the plan, 6.7–54.8 s at the median, and the dead air, 11.0–28.1 s. The Planner's time follows its output, a median 102 tokens a second, 83% of it reasoning at `low`, its text a median 506 tokens (ours, section 4): a model writing the plan without thinking leaves about the text, some 5 s at that speed; 17.2's sense put the Planner on Sonnet 5.5 at 3.7–5.3 s and on Haiku 5.5 at 5.4–8.4 s (ours, one sample each); `gemini-3.8-flash` offers nothing below `low` [3][4]. The Synthesizer reasons almost nothing at `low`, 3,397 tokens over 12 requests, and writes its merged views, 1,899–4,547 tokens, at 132–181 tokens a second (ours, section 4): its dead air falls with a model's output speed — 460.6 tokens a second on `gemini-3.5-flash-lite`, 185.0 on Haiku 5.5 at `low` [31] (third-party). At `default` the model thinks as it decides [3]. Spend: three end-to-end passes, the rest of the stack at the baseline's cost of a pass less the seam measured, $2.42 a pass for the Planner and $2.55 for the Synthesizer (passes 2 and 3, section 4.3), the seam at its model's price on the baseline's counts — the Planner's 223,200 prompt and 18,700 output tokens a pass, Sonnet 5.5 $0.63, Haiku 5.5 $0.03, `gemini-3.5-flash-lite` $0.11; the Synthesizer's 76,800 and 8,500, Sonnet 5.5 $0.24, Haiku 5.5 $0.01, `gemini-3.5-flash-lite` $0.04 [1][8]. A Planner model $7.35–9.15; a Synthesizer model $7.68–8.37.
 
 **Native structured output**
 - Evidence: the Planner and the Synthesizer write JSON as text, validated after, one retry carrying the failure (ours, `planner.ts:41, 127-154`; `synthesizer.ts:64, 138-168`). Schema-constrained output is offered on both providers; on Anthropic a schema's first use waits for its grammar to compile, kept 24 hours, and a change of output format invalidates the prompt cache [12] (provider). On Haiku 5.5 with thinking off, a request for JSON output can skip a tool call the model needs [10] (provider).
 - Code: the Planner and the Synthesizer — `a2uiverse`.
 - Provider and key: none new.
-- Wait · saving · spend: pending 17.5, the first-try rate being the baseline's.
+- Wait · saving · spend: the retry. The Planner's plans were accepted on the first try 18 of 18; the Synthesizer's merges 7 of 9, one refused for a match claim whose fact did not hold, one for a schema error in its sorts, that retry 23.3 s of dead air (ours, the baseline's journal). Schema-constrained output answers the second kind: one retry in nine merges. Spend: three end-to-end passes, the rest of the stack at the baseline's cost of a pass less the seam measured, $2.42 a pass for the Planner and $2.55 for the Synthesizer (passes 2 and 3, section 4.3), the seam at its model's price on the baseline's counts, about $7.90.
 
 **A compact output format**
 - Evidence: upstream A2UI's Express writes components as one-line assignments, compiled to A2UI JSON, claimed 55–70% fewer output tokens, targeting v1.0, v0.9 and v0.9.1 [34] (provider). Upstream's own evaluation on `gemini-3.5-flash` at a thinking budget of zero, medians: Express 307 output tokens against 958 for direct JSON, 9.30 s against 5.54 s, schema accuracy 0.961 for both, no reason for the slower time recorded [35] (third-party). OpenAI's latency guide: halving output tokens cuts about 50% of latency, halving the prompt 1–5% [29] (provider's claim, for its own models). The Planner's layout surface is A2UI in the shell catalog; of the Synthesizer's document only the tree is (SPEC §5.2, §5.6).
 - Code: the Planner's prompt and the orchestrator's parse — `a2uiverse`.
 - Provider and key: none new.
-- Wait · saving · spend: pending 17.5.
+- Wait · saving · spend: the output. The Planner's text is a median 506 tokens, 17% of its output (ours, section 4): 55–70% fewer is about 280–350 tokens, some 3 s at a median 102 tokens a second. The Synthesizer's merged views are 1,899–4,547 tokens, of which only the tree is A2UI. Upstream's own run had Express slower than direct JSON [35]. Spend: three end-to-end passes, the rest of the stack at the baseline's cost of a pass less the seam measured, $2.42 a pass for the Planner and $2.55 for the Synthesizer (passes 2 and 3, section 4.3), the seam at its model's price on the baseline's counts, about $7.90.
 
 **A faster serving tier**
 - Evidence: Gemini's priority inference costs 75–100% more than standard, for billing tiers 2 and 3, its latency "seconds" against standard's "seconds to minutes" [6] (provider's claim); on OpenRouter, `gemini-3.8-flash` on AI Studio's priority tier 2.79 s to first token against 3.19 s on standard [33] (third-party). Opus 5.5's fast mode raises output tokens per second up to 2.5×, not the time to first token, at 8 / 40 [8][13] (provider's claim).
 - Code: a provider option at the model seam — `a2uiverse`.
 - Provider and key: Google, on a higher billing tier; Anthropic.
-- Wait · saving · spend: pending 17.5.
+- Wait · saving · spend: the plan and the merge follow their output (ours, section 4); the one figure for Gemini's priority tier is the time to first token, 0.4 s sooner [33] (third-party), none for the output speed. Spend: three end-to-end passes, the rest of the stack at the baseline's cost of a pass less the seam measured, $2.42 a pass for the Planner and $2.55 for the Synthesizer (passes 2 and 3, section 4.3), the seam at its model's price on the baseline's counts, about $7.90, the measured seam 75–100% dearer [6].
 
 ### 2.4 The agent kit
 
@@ -107,43 +107,54 @@ Reach: Google and Anthropic on both seams as they are; a third provider is one o
 - Evidence: on Gemini the implicit cache already serves — Linear's beat 1 re-read a 25–32k-token prompt on each of its three requests, Gemini's cache serving most of it from the second (ours, 17.3). On Claude nothing is cached: ADK's Anthropic class places cache breakpoints from 2.8 on, only under an app-level context cache config [18][19] (provider), and the kit builds ADK's Runner with no App (ours, `responder.py:139-145`); GitHub, Gmail and Calendar lock google-adk 2.5.0, whose Anthropic class places none (ours, each app's `uv.lock`). Claude's rules and prices as in the Planner's row [8][9].
 - Code: the kit and every app's google-adk lock — `a2uiverse-apps`.
 - Provider and key: Anthropic.
-- Wait · saving · spend: pending 17.5.
+- Wait · saving · spend: on Gemini the apps' prompts are cached already, 43–85% of their prompt tokens (ours, section 4.3); the lever stands only with Claude on the kit, where nothing is cached and GitHub's tool rounds send a median 145,944 prompt tokens each (ours, the extract). Spend: with a Claude model on the kit.
 
 **Tool calls in one step**
 - Evidence: a turn makes one model request per tool round and one for the paint, three on Linear's beat 1 — two tool calls, then the paint (ours, 17.3). ADK runs the tool calls of one response concurrently, an async tool not blocking the rest [20] (provider); the kit asks for one tool per turn only in its correction after a malformed function call (ours, `executor_llm.py:71-75`).
 - Code: the kit — `a2uiverse-apps`.
 - Provider and key: none new.
-- Wait · saving · spend: pending 17.5.
+- Wait · saving · spend: the apps' tool rounds. 249 of their 257 tool-call responses called one tool; a round's first token took a median 2.5–5.3 s by app; a run made 0–32 rounds, 0–241 s of model time, Gmail on prompt 10 the most (ours, section 4 and the extract). The saving is the rounds folded together, each about its first token; how many of a run's calls stand apart from one another is not measured. Spend: GitHub's and Linear's recorded beats agent alone (phase decision 8) — GitHub's beats 8 and 9, Linear's 1, 2 and 3's proposal and confirm — three times without the lever and three with, at the baseline's cost of a run, a median $0.25 on GitHub and $0.07 on Linear: about $4.65 (ours, the extract).
 
 **A smaller prompt**
 - Evidence: GitHub's catalog schema is about 216.5k of its prompt's 300k characters (ours, section 2.1). A catalog subset per turn through upstream's `ComponentPruningTransformer`, and the catalog as a skill the model loads on demand, are named in a reply to discussion #2779 [38] (third-party). GitHub's agent loads every MCP toolset, each tool's definition riding every request (ours, `github/agent/app/mcp.py:33`) — the app's own file (phase decision 4).
 - Code: the kit — `a2uiverse-apps`.
 - Provider and key: none new.
-- Wait · saving · spend: pending 17.5.
+- Wait · saving · spend: a round's first token barely follows the prompt's size, most of it cached — medians of 2.5 s on Shop A's 15k-token rounds, 4.6 s on Linear's 23k, 3.6 s on CircleCI's 28k, 5.3 s on Gmail's 115k, 4.9 s on GitHub's 146k (ours, the extract): a second a round at most. The cost follows it: GitHub's prompt tokens were $2.99 of the passes' $8.74 (ours, section 4.3). Spend: as tool calls in one step, about $4.65.
 
 **The model and the thinking tier**
 - Evidence: section 2.2, Gemini by name and Claude as `anthropic/…` on the kit.
 - Code: configuration; a third provider a road the kit does not have — `a2uiverse-apps`.
 - Provider and key: per row.
-- Wait · saving · spend: pending 17.5.
+- Wait · saving · spend: the apps' paint, the longest part of the longest leg. A run's request ending in text waited a median 48.5 s for its first token (8.3–118.9), thinking a median 6,470 tokens, about 142 a second, at the kit's `default`, then generated for a median 8.8 s (ours, section 4). On the direct check the `low` level left no thinking and 1.6 s to first token, against 18k thinking tokens and 123 s with nothing set (ours, 17.3); the Planner at `low` still reasons a median 1,766 tokens on its own prompt (ours, section 4). The saving is most of the paint's first token, up to about 45 s a run. `low` is configuration, `MODEL_EFFORT=low`. Claude on the kit waits on section 2.5's defects and an uncached prompt. Spend: as tool calls in one step, about $4.65.
 
 **A compact output format**
 - Evidence: Express as in the Planner's row [34][35]; in upstream's Python SDK, Express does not stream, only direct JSON does [36] (provider). The kit streams a paint as it parses it (ours, `responder.py:187-192`).
 - Code: the kit — `a2uiverse-apps`.
 - Provider and key: none new.
-- Wait · saving · spend: pending 17.5.
+- Wait · saving · spend: the paint's generation, a median 1,656 output tokens in 8.8 s, about 176 a second (ours, section 4): 55–70% fewer is some 5–6 s a paint [34]. Express does not stream [36], so the kit's first batch waits for the whole paint. Spend: as tool calls in one step, about $4.65.
 
 **Templates on frequent presses**
 - Evidence: in live mode every press inside a fragment is one full generation (ours, `docs/design/agent-kit.md`, step 2). Upstream issue #657, template-based inference, open at P2 since 2026-02-23, its template-schema child #721 closed as not planned on 2026-10-15 [37]; replies in discussions #1207, #2779 and #3068 name a fixed tree with data updates on hot paths, or the model picking a template and filling its data [38][39] (third-party). No measurement found.
 - Code: the kit — `a2uiverse-apps`.
 - Provider and key: none new.
-- Wait · saving · spend: pending 17.5.
+- Wait · saving · spend: the presses; the baseline presses nothing (task-17.5 decision 7), so it has no number to read a saving against. Spend: not estimated.
 
 ### 2.5 Defects found
 
 - The kit's `low` on a Claude model sends a thinking budget of zero, which ADK's Anthropic class maps to thinking disabled (ours, `modes.py:53-72`; google-adk `anthropic_llm.py:190-191`); Sonnet 5.5, Opus 5.5 and Fable 5.1 refuse disabled thinking with a 400, Haiku 5.5 accepts it [10] (provider). The record does not name the Claude model 17.1's proof ran on.
 - ADK's Anthropic class caps a response at 8,192 output tokens by default (ours, google-adk 2.8.0 `anthropic_llm.py:932`); the Claude models allow 128K [7] (provider).
 - `@ai-sdk/google` 4.0.106 resolves the least thinking level on Gemini 4 Argon to `minimal` (ours, read in its source, not run), which Argon refuses [3] (provider).
+
+### 2.6 The recommendation
+
+Each lever's saving read against the baseline's split of the wait (section 4), within the Gemini and Claude keys held today. Recommended:
+
+| Lever | Side | The wait it attacks | Expected saving | Code · repo | Key | Measuring spend |
+| --- | --- | --- | --- | --- | --- | --- |
+| The thinking tier `low` | the kit | the paint's first token, a median 48.5 s an app's run | most of it, up to about 45 s a run (ours, 17.3 and section 4) | configuration · `a2uiverse-apps` | Gemini | about $4.65 |
+| The Planner on Claude Sonnet 5.5 | the Planner | the plan, 6.7–54.8 s at the median | to about 3.7–5.3 s (ours, 17.2's one sample and section 4) | configuration · `a2uiverse` | Claude | $9.15 |
+
+Together about $13.80. The rest, each with its spend above: the Synthesizer's model, $7.68–8.37; tool calls in one step, about $4.65, its saving unmeasured; the Store search in fewer rounds, about $0.25, at most 3.5–4.3 s on one prompt; prompt caching on its own, about 1 s a plan and $0.18 a pass; native structured output, one retry in nine merges; a compact output format, about 3 s a plan and 5–6 s a paint, the kit's streaming lost; a faster serving tier, no source for its output speed; a smaller prompt, a second a round; templates on presses, no press measured; Claude on the kit, behind section 2.5's defects.
 
 ### Sources
 
