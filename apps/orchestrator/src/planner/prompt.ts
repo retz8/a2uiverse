@@ -51,20 +51,19 @@ const EXAMPLES_FRAMING =
   'The examples below show the form of a layout surface for the kinds of turn: agents dispatched with a merged view over them — a timeline across their entries, and a merged view over one kind of thing with its join hypothesis — a command over the same cards that one agent answers alone, a status question in one app’s own noun merged over every agent that holds a part of it, a question about the platform answered from a reader, a capability gap offered from the Store, a merged view beside an offer, an install asked for, and an account choice for a command over an app with two accounts that names neither. Their agents and reader results are fixtures chosen to make the form legible; they are not the agents of the current turn and never a document to reuse.';
 
 function renderExample(example: LayoutExample): string {
-  const body = JSON.stringify(
-    {
-      intent: example.intent,
-      agents: example.agents,
-      ...(example.readers ? {readers: example.readers} : {}),
-      output: example.output,
-    },
-    null,
-    2,
-  );
+  const body = JSON.stringify({
+    intent: example.intent,
+    agents: example.agents,
+    ...(example.readers ? {readers: example.readers} : {}),
+    output: example.output,
+  });
   return `---BEGIN ${example.name}---\n${body}\n---END ${example.name}---`;
 }
 
-/** The system prompt: role · rules · UI guidance · catalog and output schema · examples. */
+/**
+ * The system prompt: role · rules · UI guidance · catalog and output schema · examples, its JSON
+ * written compact (task-17.6 decision 2).
+ */
 export function plannerSystemPrompt(
   files: PlannerFiles,
   examples: readonly LayoutExample[] = LAYOUT_EXAMPLES,
@@ -73,8 +72,8 @@ export function plannerSystemPrompt(
     PLANNER_ROLE,
     `## Rules:\n${files.rules.trim()}`,
     `## UI Description:\n${files.guidance.trim()}`,
-    `### Catalog Schema:\n${JSON.stringify(files.catalog, null, 2)}`,
-    `### Output Schema:\n${JSON.stringify(LAYOUT_SURFACE_SCHEMA, null, 2)}`,
+    `### Catalog Schema:\n${JSON.stringify(files.catalog)}`,
+    `### Output Schema:\n${JSON.stringify(LAYOUT_SURFACE_SCHEMA)}`,
   ];
   if (examples.length > 0) {
     parts.push(`### Examples:\n${EXAMPLES_FRAMING}\n\n${examples.map(renderExample).join('\n\n')}`);

@@ -12,6 +12,7 @@ import {A2UI_EXTENSION_URI_V091} from '../src/agentCard.js';
 import type {PlanRecord, SynthesisRecord} from '../src/journal/types.js';
 import type {LayoutSurface} from '../src/planner/document.js';
 import type {Planner} from '../src/planner/planner.js';
+import {PLAN_CACHE_FILE} from '../src/planner/planCache.js';
 import {FakeEmbedder} from '@a2uiverse/embedder';
 import {nowhere} from './fakeMarketplace.js';
 import {FakePlanner, layoutFor, MalformedPlanner, ThrowingPlanner} from './fakePlanner.js';
@@ -91,6 +92,8 @@ async function boot(
     /** The accounts held per app (task 12.4); none unless a test says otherwise. */
     accounts?: AccountStore;
     shortlistCap?: number;
+    /** The plan cache (task-17.6 decision 10); off unless a test turns it on. */
+    planCache?: boolean;
   } = {},
 ) {
   for (const appId of APPS) {
@@ -118,6 +121,7 @@ async function boot(
       plannerModelId: 'test-model',
       plannerEffort: 'low',
       shortlistCap: options.shortlistCap ?? 5,
+      planCache: options.planCache ?? false,
       synthesizerModelId: 'test-model',
       synthesizerEffort: 'low',
       softDeadlineMs: options.softDeadlineMs ?? 10_000,
@@ -1052,6 +1056,35 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     const finalAt = Date.parse(line.finalAt as string);
     expect(finalAt).toBeGreaterThanOrEqual(Date.parse(line.at as string));
     expect(finalAt).toBeGreaterThanOrEqual(Date.parse(synthesis.release!.at));
+  });
+
+  test("a plan's cache key is on its journal line, and a clean turn stores the plan beside the journal (task-17.6 decisions 8, 11)", async () => {
+    const fake = planner();
+    const keyed: Planner = {
+      plan: async input => {
+        const outcome = await fake.plan(input);
+        return outcome.kind === 'planned' ? {...outcome, cache: {key: 'k1'}} : outcome;
+      },
+    };
+    const {client} = await boot({
+      planner: keyed,
+      synthesizer: new FakeSynthesizer(),
+      scripts: scripts(),
+      planCache: true,
+    });
+    const events = await collect(client, utterance('compare camera prices'));
+    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    const [line] = await journalLines(1);
+    const plan = line.plan as PlanRecord;
+    expect(plan.cache).toEqual({key: 'k1'});
+    await vi.waitFor(async () => {
+      const stored = JSON.parse(await readFile(join(dir, PLAN_CACHE_FILE), 'utf8')) as {
+        plans: {key: string; text: string}[];
+      };
+      expect(stored.plans).toEqual([
+        expect.objectContaining({key: 'k1', text: plan.attempts.at(-1)!.text}),
+      ]);
+    });
   });
 
   test('a decline collapses the synthesis slot and sends no payload', async () => {

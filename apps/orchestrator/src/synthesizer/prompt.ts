@@ -107,15 +107,19 @@ function renderExample(example: SynthesisExample): string {
     from: `${s.name} (${s.source})`,
     data: s.data,
   }));
-  const body = JSON.stringify(
-    {intent: example.intent, request: example.request, sources, output: example.output},
-    null,
-    2,
-  );
+  const body = JSON.stringify({
+    intent: example.intent,
+    request: example.request,
+    sources,
+    output: example.output,
+  });
   return `---BEGIN ${example.name}---\n${body}\n---END ${example.name}---`;
 }
 
-/** The system prompt: role · rules · UI guidance · catalog and output schema · examples. */
+/**
+ * The system prompt: role · rules · UI guidance · catalog and output schema · examples, its JSON
+ * written compact (task-17.6 decision 2).
+ */
 export function synthesizerSystemPrompt(
   files: SynthesizerFiles,
   examples: readonly SynthesisExample[] = SYNTHESIS_EXAMPLES,
@@ -124,8 +128,8 @@ export function synthesizerSystemPrompt(
     SYNTHESIZER_ROLE,
     `## Composition:\n${files.rules.trim()}`,
     `## UI Description:\n${files.guidance.trim()}`,
-    `### Catalog Schema:\n${JSON.stringify(files.catalog, null, 2)}`,
-    `### Output Schema:\n${JSON.stringify(SYNTHESIZE_DATA_MODEL_SCHEMA, null, 2)}`,
+    `### Catalog Schema:\n${JSON.stringify(files.catalog)}`,
+    `### Output Schema:\n${JSON.stringify(SYNTHESIZE_DATA_MODEL_SCHEMA)}`,
   ];
   if (examples.length > 0) {
     parts.push(`### Examples:\n${EXAMPLES_FRAMING}\n\n${examples.map(renderExample).join('\n\n')}`);

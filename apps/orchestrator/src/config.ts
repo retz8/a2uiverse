@@ -24,6 +24,11 @@ export interface Config {
   plannerEffort: 'low' | 'default';
   /** Router shortlist cap (`A2UIVERSE_SHORTLIST_CAP`). */
   shortlistCap: number;
+  /**
+   * The plan cache (`A2UIVERSE_PLAN_CACHE`, task-17.6 decision 10): `on` by default; `off` for a
+   * measured pass, which sends the same prompts again.
+   */
+  planCache: boolean;
   /** Synthesizer model (`A2UIVERSE_SYNTHESIZER_MODEL`), the Planner's form; follows `A2UIVERSE_PLANNER_MODEL` when set, else its own default. */
   synthesizerModelId: string;
   /** Synthesizer effort (`A2UIVERSE_SYNTHESIZER_EFFORT`); `low` by default — dead air is measured first. */
@@ -87,6 +92,7 @@ export function loadConfig(env: Env = process.env): Config {
     ),
     plannerEffort: parseEffort(env.A2UIVERSE_PLANNER_EFFORT, 'A2UIVERSE_PLANNER_EFFORT'),
     shortlistCap: parseCap(env.A2UIVERSE_SHORTLIST_CAP),
+    planCache: parseSwitch(env.A2UIVERSE_PLAN_CACHE, 'A2UIVERSE_PLAN_CACHE'),
     synthesizerModelId: parseModel(
       env.A2UIVERSE_SYNTHESIZER_MODEL ??
         env.A2UIVERSE_PLANNER_MODEL ??
@@ -141,6 +147,12 @@ function parseEffort(raw: string | undefined, key: string): 'low' | 'default' {
   if (raw === undefined || raw === 'low') return 'low';
   if (raw === 'default') return 'default';
   throw new Error(`${key}: expected "low" or "default", got "${raw}"`);
+}
+
+function parseSwitch(raw: string | undefined, key: string): boolean {
+  if (raw === undefined || raw === 'on') return true;
+  if (raw === 'off') return false;
+  throw new Error(`${key}: expected "on" or "off", got "${raw}"`);
 }
 
 function parseCap(raw: string | undefined): number {

@@ -222,7 +222,7 @@ describe('the Planner’s files and prompt', () => {
     expect(example.output.dispatch).toEqual([
       {chooseAccount: 'gmail', request: expect.stringMatching(/Bob/)},
     ]);
-    expect(plannerSystemPrompt(files)).toContain('"chooseAccount": "gmail"');
+    expect(plannerSystemPrompt(files)).toContain('"chooseAccount":"gmail"');
   });
 
   test('the three kinds of turn are each shown: a fan-out with a merged view, a platform answer from a reader, a gap', () => {

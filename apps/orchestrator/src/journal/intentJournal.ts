@@ -6,6 +6,7 @@ import type {Embedder} from '@a2uiverse/embedder';
 import type {PublisherJournalEntry} from '../marketplace/publisher.js';
 import type {RegistryJournal, RegistryJournalEntry} from '../registry/registry.js';
 import type {SignInRecord} from '../vault/vault.js';
+import {logLine} from '../log.js';
 import {describe} from './descriptor.js';
 import {emptyTouches, mergeTouches, type SurfaceTouches} from './surfaces.js';
 import type {JournalEntry, PlanRecord, StepRecord, SynthesisRecord} from './types.js';
@@ -65,10 +66,13 @@ export class IntentJournal implements RegistryJournal {
   readonly #filePath: string;
   readonly #embedder: Embedder | undefined;
   readonly #recent = new Map<string, JournalEntry[]>();
+  readonly #closed: ((entry: JournalEntry) => void) | undefined;
 
-  constructor(filePath: string, embedder?: Embedder) {
+  /** `closed` hears each turn as it closes, the plan cache among its listeners (task-17.6 decision 8). */
+  constructor(filePath: string, embedder?: Embedder, closed?: (entry: JournalEntry) => void) {
     this.#filePath = filePath;
     this.#embedder = embedder;
+    this.#closed = closed;
   }
 
   open(turn: OpenTurn): JournalTurn {
@@ -128,6 +132,13 @@ export class IntentJournal implements RegistryJournal {
         closed = true;
         entry.outcome = outcome;
         this.#remember(entry);
+        try {
+          this.#closed?.(entry);
+        } catch (err) {
+          logLine(
+            `journal: a listener on a closed turn threw — ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
         entry.embedding = await this.#embed(entry.descriptor);
         await this.#append(entry);
       },

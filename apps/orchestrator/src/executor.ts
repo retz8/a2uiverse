@@ -458,7 +458,9 @@ export class OrchestratorExecutor implements AgentExecutor {
     }
     if (signal.aborted) return closed();
     const planMs = Date.now() - openedAt;
-    logLine(`plan task=${ctx.taskId} ${outcome.kind} ${planMs} ms`);
+    const fromCache =
+      outcome.kind === 'planned' && outcome.cache?.hit ? ' from the plan cache' : '';
+    logLine(`plan task=${ctx.taskId} ${outcome.kind} ${planMs} ms${fromCache}`);
     if (outcome.kind === 'malformed') {
       turn.plan({
         outcome: outcome.kind,
@@ -502,6 +504,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       toolCalls: outcome.toolCalls,
       planMs,
       ...planMeasure(outcome, shortlistMs),
+      ...(outcome.cache ? {cache: outcome.cache} : {}),
     });
     const session = readClientSession(ctx.userMessage.metadata)?.session;
     if (session !== undefined) state.session = session;

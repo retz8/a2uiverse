@@ -12,12 +12,14 @@ import type {StepResult, ToolSet} from 'ai';
 import {logLine} from '../log.js';
 import type {Seam} from './getModel.js';
 
-/** The four counts the provider's usage is read for, each absent when the provider gave none. */
+/** The counts the provider's usage is read for, each absent when the provider gave none. */
 export interface RequestUsage {
   promptTokens?: number;
   outputTokens?: number;
   reasoningTokens?: number;
   cachedTokens?: number;
+  /** The prompt tokens written to the provider's cache, which Claude bills apart (task-17.6 decision 11). */
+  cacheWriteTokens?: number;
 }
 
 /**
@@ -95,6 +97,9 @@ function usageOf(usage: StepResult<ToolSet>['usage'] | undefined): RequestUsage 
       : {}),
     ...(usage.inputTokenDetails?.cacheReadTokens !== undefined
       ? {cachedTokens: usage.inputTokenDetails.cacheReadTokens}
+      : {}),
+    ...(usage.inputTokenDetails?.cacheWriteTokens !== undefined
+      ? {cacheWriteTokens: usage.inputTokenDetails.cacheWriteTokens}
       : {}),
   };
   return Object.keys(counts).length > 0 ? counts : undefined;
@@ -183,6 +188,7 @@ export function requestLine(
           ['outputTokens', 'output'],
           ['reasoningTokens', 'reasoning'],
           ['cachedTokens', 'cached'],
+          ['cacheWriteTokens', 'cache-written'],
         ] as const
       )
         .filter(([key]) => record.usage?.[key] !== undefined)

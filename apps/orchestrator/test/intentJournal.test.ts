@@ -1,7 +1,7 @@
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {afterEach, beforeEach, describe, expect, test} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import type {Message} from '@a2a-js/sdk';
 import {IntentJournal} from '../src/journal/intentJournal.js';
 import type {DispatchRecord} from '../src/agentsPool/types.js';
@@ -264,5 +264,37 @@ describe('publisher entries (task-14.4 decision 17)', () => {
         by: 'page',
       },
     ]);
+  });
+});
+
+describe('a closed turn heard (task-17.6 decision 8)', () => {
+  test('the listener hears each turn once as it closes, with its plan and its dispatches', async () => {
+    const heard: string[] = [];
+    const journal = new IntentJournal(join(dir, 'intent-journal.jsonl'), undefined, entry =>
+      heard.push(`${entry.turnId} ${entry.plan?.cache?.key} ${entry.dispatch.length}`),
+    );
+    const turn = journal.open({turnId: 't1', clientContextId: 'c1', message: utterance});
+    turn.plan({outcome: 'planned', attempts: [], toolCalls: [], planMs: 1, cache: {key: 'k'}});
+    turn.dispatched(record);
+    await turn.close('completed');
+    await turn.close('completed');
+    expect(heard).toEqual(['t1 k 1']);
+  });
+
+  test('a listener that throws is a log line; the turn is still written', async () => {
+    const file = join(dir, 'intent-journal.jsonl');
+    const lines: string[] = [];
+    const spy = vi.spyOn(console, 'log').mockImplementation(line => void lines.push(String(line)));
+    const journal = new IntentJournal(file, undefined, () => {
+      throw new Error('boom');
+    });
+    await journal
+      .open({turnId: 't1', clientContextId: 'c1', message: utterance})
+      .close('completed');
+    spy.mockRestore();
+    expect(await readFile(file, 'utf8')).toContain('"turnId":"t1"');
+    expect(lines.some(line => line.includes('a listener on a closed turn threw — boom'))).toBe(
+      true,
+    );
   });
 });

@@ -7,6 +7,7 @@ import type {TurnKind} from './descriptor.js';
 import type {SurfaceTouches} from './surfaces.js';
 import type {Effort} from '../model/getModel.js';
 import type {ModelRequestRecord} from '../model/requests.js';
+import type {PlanCacheMark} from '../planner/planCache.js';
 
 /**
  * One tool call the Planner made — a reader, or the Store's search — which, with what, and what it
@@ -45,6 +46,11 @@ export interface PlanRecord {
   effort?: Effort;
   /** Each model request of the plan, on the clock `planMs` runs on (task-17.5 decisions 1–3). */
   requests?: ModelRequestRecord[];
+  /**
+   * The plan cache's key for this plan's request, `hit` when the cache served it (task-17.6
+   * decisions 7, 11); absent when the cache is off or the plan called a tool.
+   */
+  cache?: PlanCacheMark;
 }
 
 /**

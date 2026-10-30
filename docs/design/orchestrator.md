@@ -199,7 +199,7 @@ In the recording, GitHub's answer reached the client at 6.07 s, Linear's at 6.08
 
 The line also says what the turn's model calls cost. This recording predates that, so here are the fields by name:
 
-- **On the plan:** `shortlistMs`, the Router's share of `planMs`; `effort`, the tier the Planner ran at; and `requests`, one record per model request. Each tool call on the plan carries its `ms` beside its words and its answer.
+- **On the plan:** `shortlistMs`, the Router's share of `planMs`; `effort`, the tier the Planner ran at; and `requests`, one record per model request. Each tool call on the plan carries its `ms` beside its words and its answer. `cache`, with the plan cache on and no tool called, holds the request's key, and `hit: true` when the plan cache served the plan, no request made.
 - **On the synthesis:** its own `effort` and `requests`.
 - **`finalAt`:** when the final `completed` left, the moment the screen settled.
 
@@ -211,7 +211,7 @@ A request record:
   "model": {"provider": "google.generative-ai", "modelId": "gemini-3.8-flash"},
   "startMs": "…", "endMs": "…", "modelMs": "…",                     // the plan's from the question arriving, the synthesis's from its release
   "ended": "toolCall", "finish": "tool-calls", "tools": ["search_store"],
-  "usage": {"promptTokens": "…", "outputTokens": "…", "reasoningTokens": "…", "cachedTokens": "…"}  // each absent when the provider gave none
+  "usage": {"promptTokens": "…", "outputTokens": "…", "reasoningTokens": "…", "cachedTokens": "…", "cacheWriteTokens": "…"}  // each absent when the provider gave none; Claude bills writes apart
 }
 ```
 
@@ -374,6 +374,38 @@ flowchart LR
 
 The title the Planner writes is clipped to 48 characters before it's sent, and a clip is logged and journaled.
 
+### Plan cache and prompt caches
+
+Two kinds of cache stand between a question and the models. Neither ever breaks a turn: a cache that can't be read, written, made or renewed leaves the turn to plan and merge as it would without it.
+
+**The plan cache** (`src/planner/planCache.ts`) hands back a plan the Planner already wrote when the very same request comes again: the morning's "show my open pull requests", asked with the same apps and accounts.
+
+```mermaid
+flowchart LR
+    Q["The question and<br/>the shortlisted cards"] --> K["The key: a hash of<br/>the whole request the<br/>model would receive"]
+    K -->|"held, under 7 days"| V["The validator,<br/>run again"]
+    V -->|"accepted"| P["The plan,<br/>no model called"]
+    V -->|"refused"| X["Thrown out"]
+    X --> M["The model"]
+    K -->|"not held"| M
+    M --> P2["The plan"]
+    P2 -->|"no tool called, and the<br/>turn closes clean"| S["Stored"]
+```
+
+- **The key is the whole request**: the fixed system prompt, the tools, the turn as built (the utterance, every shortlisted card with its accounts and sign-in state, the platform's card), the model and the effort, hashed. A hit is a request byte for byte the same, so an app update that changes its card, a new sign-in, an edited prompt or another model misses on its own, with no version to keep. Cloudflare's AI Gateway keys its cache the same way, a SHA-256 hash over the provider, the endpoint, the model and the full request body, its caching applying "only to identical requests" ([AI Gateway caching](https://developers.cloudflare.com/ai-gateway/features/caching/)).
+- **Exact, never similar.** Another wording of the same question misses. Matching by similarity would hit more often, but static similarity thresholds "result in unexpected error rates" ([vCache](https://arxiv.org/abs/2502.03771), ICLR 2026), and pure semantic caching breaks down "when output validity depends on time, asset, or sensor parameters" ([Evaluating Temporal Semantic Caching and Workflow Optimization in Agentic Plan-Execute Pipelines](https://arxiv.org/abs/2605.20630), May 2026). How often a person asks the same thing word for word isn't measured on A2UIVerse; of 13,060 queries 114 people sent Yahoo's search engine over a year, 33% were an exact repeat of the same person's earlier query ([Teevan et al.](https://people.csail.mit.edu/teevan/work/publications/papers/sigir07.pdf), SIGIR 2007).
+- **Stored after a clean turn.** A plan the model wrote is stored once its turn closes with every app it asked answered, or asking for a sign-in. The journal hears each turn as it closes and hands it to the cache. A plan that called a tool, a reader or the Store's search, carries that moment's answer and is never stored. [Agentic Plan Caching](https://arxiv.org/abs/2506.14852) (NeurIPS 2025) reuses plans extracted "from completed agent executions"; this cache waits for a clean one.
+- **Thrown out once it proves wrong.** A stored plan the validator refuses on reuse, against the apps installed now, or one an app it asked fails on, is dropped, and the next identical question is planned afresh. The AWS database blog's caching guide removes entries "when the underlying data changes" and deletes one once "an error in a cached response is rectified" ([Optimize LLM response costs and latency with effective caching](https://aws.amazon.com/blogs/database/optimize-llm-response-costs-and-latency-with-effective-caching/), February 2026).
+- **On disk, 200 plans, 7 days.** `STATE_DIR/plan-cache.json` survives a restart; the least recently used plan leaves past 200, and none older than 7 days is reused. Both numbers are starting values with no source behind them. The same AWS guide sets an expiry by "the volatility of the underlying information", and a plan holds no app data, only the requests it sends. The journal's `cache` mark counts the hits to set them again.
+- **Off for a measured pass.** `A2UIVERSE_PLAN_CACHE=off`: a pass that sends the same prompts three times would hit on the second and the third.
+
+**The prompt caches** hold each model's fixed system prompt, the same on every turn, in its provider's cache, set up in the model seam (`src/model/getModel.ts`). Every JSON part of both fixed prompts, the catalog schema, the output schema and the examples, is written compact, with no indentation. Measured on 2026-10-30 ([the Phase 17 notes](../../_dev/docs/phase-17-model-trial-notes.md), section 5), a plan's request with one app shortlisted is 20,484 tokens on Gemini and 30,388 on Claude, and the Synthesizer's, with a one-line turn, 14,014 on Gemini.
+
+- **Gemini: an explicit cache** (`src/model/geminiCache.ts`). Gemini caches by itself, implicitly, with "no cost saving guarantee" ([Context caching](https://ai.google.dev/gemini-api/docs/generate-content/caching)); in the Phase 17 baseline that served the Planner on 4 of 21 requests and the Synthesizer on none. An explicit cache holds the system prompt, the tools and their config, and a request names the cache in their place; Gemini refuses a request that sends them beside it ("CachedContent can not be used with GenerateContent request setting system_instruction, tools or tool_config"). The seam wraps the Google provider's fetch, so the cache holds exactly the JSON the provider would have sent. The first request goes whole and creates the cache beside it without waiting for it; each later one names it and pushes its expiry an hour out, without waiting either; an expired cache, or a refused or failed cache call, sends that request whole and makes a new one. Explicit caching is "currently in Beta". On Gemini the gain is price, a cached token at a tenth of an input token: the requests naming the cache took 3.7–4.5 s, the whole ones 3.4–4.2 s, three each.
+- **Claude: one mark, an hour.** Claude caches only what a request marks. The seam marks the end of the system prompt, which covers the tools ahead of it, since the prefix runs "`tools`, `system`, then `messages`", with the one-hour lifetime, "refreshed for no additional cost each time the cached content is used" ([Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)). A second request read 30,168 tokens from it on Haiku 5.5 and on Sonnet 5.5, 1.4 s against 1.7 s and 2.5 s against 3.0 s, one sample each.
+
+The seam's other Claude setting: the effort tier `low` is sent as the least thinking the model accepts with effort `low` — `between_tools` on Sonnet 5.5, thinking off on Haiku 5.5 — read from the Anthropic package's own table of the models; left to the SDK's own reading, `low` on Sonnet 5.5 kept the API's default effort, `high`.
+
 ### Painting the layout
 
 `src/composition/shellPainter.ts` is a **pure function** from the composition's state to A2UI parts. It keeps the Planner's components and ids in order, and writes in what only the shell owns:
@@ -520,7 +552,7 @@ merge task=4922aa90-… released (settled)
 
 (The recorded run's lines, Linear's alone of the three apps.)
 
-Each model request of the Planner and the Synthesizer adds a line of its own as it ends, the kit's agents logging theirs the same way: the seam, the task, the attempt and the step, the model, the time waiting on it and where the request started on its clock, how it ended with each tool's time, then the usage. A searching plan's step reads `Planner request task=<task> 1.2 on gemini-3.8-flash: model <ms> ms at <ms> ms, ended in toolCall (search_store <ms> ms), <n> prompt / <n> output / <n> reasoning / <n> cached tokens`.
+Each model request of the Planner and the Synthesizer adds a line of its own as it ends, the kit's agents logging theirs the same way: the seam, the task, the attempt and the step, the model, the time waiting on it and where the request started on its clock, how it ended with each tool's time, then the usage. A searching plan's step reads `Planner request task=<task> 1.2 on gemini-3.8-flash: model <ms> ms at <ms> ms, ended in toolCall (search_store <ms> ms), <n> prompt / <n> output / <n> reasoning / <n> cached tokens`; a request that wrote to Claude's cache adds `/ <n> cache-written`. A plan the plan cache served makes no request; its line reads `plan task=<task> planned <ms> ms from the plan cache`.
 
 ### Id spaces
 
@@ -598,6 +630,8 @@ For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay
 | **Retry sends again the click that failed, unless an update dropped the catalog its surface was drawn in** | Retry after a failed click shows what the click opened; after such an update, the app paints afresh instead of in a catalog it no longer holds | A slot keeps the failed click until something there completes; after such an update, what the click opened is lost and the app's first answer shows |
 | **One press at a time into a fragment** | A second click never sends a write twice | A click made while another runs is refused, and has to be made again once it ends |
 | **The person's local time said in words in every request** | An app works out "tomorrow" on the person's own day, and nothing A2UIVerse-specific rides its wire | A click's own message carries no sentence, so an app must keep the exact times it drafted rather than work a relative date out again |
+| **The plan cache matches the whole request, exactly** | A repeated question skips the plan; a hit is the very request the model answered before, checked again | Another wording misses |
+| **Each provider's prompt cache on the fixed prompt, Gemini's made and kept by the seam** | Gemini's cached tokens guaranteed at a tenth of the price, Claude's read at a twentieth on Sonnet 5.5; no turn waits on a cache | Gemini's cache stored by the hour while used, on a Beta API, its expiry pushed out by one more call a turn |
 | **Everything keyed by source, the app parsed out only where the app is meant** | Two accounts of one app are two slots, two conversations and two copies of the data with no special case | Each lookup of the card, URL or name parses the source first |
 
 ## Trying it without a model
@@ -625,7 +659,8 @@ All paths are under `apps/orchestrator/src/`.
 | The shell catalog's schema face: its names, keep-sets, relation functions and update lines | `@a2uiverse/shell-catalog/schema`, which loads `@a2ui/web_core`; the orchestrator depends on web_core at `0.14.0` exactly, the version the shell catalog names as its peer |
 | Embeddings, the corpus document, cosine and rank | `packages/embedder/` — the `@a2uiverse/embedder` package, shared with the marketplace |
 | Routing | `router/router.ts` |
-| The Planner | `planner/` (`planner.ts`, `validate.ts`, `prompt.ts`, `planner.md`, `examples.ts`, `readers.ts`, `platformReaders.ts`, `storeSearch.ts`, `document.ts`, `getModel.ts`) |
+| The Planner | `planner/` (`planner.ts`, `validate.ts`, `prompt.ts`, `planner.md`, `examples.ts`, `readers.ts`, `platformReaders.ts`, `storeSearch.ts`, `planCache.ts`, `document.ts`) |
+| The model seam, the prompt caches and Claude's least effort | `model/getModel.ts`, `model/geminiCache.ts` |
 | The Synthesizer | `synthesizer/` (see [`synthesis.md`](synthesis.md)) |
 | Sign-in: the AuthVault, its routes and pages (see [`authority.md`](authority.md)) | `vault/` (`vault.ts`, `store.ts`, `schemes.ts`, `oauth.ts`, `routes.ts`, `pages.ts`) |
 | The trusted page's relay, the publisher and the write guard (see [`trusted-page.md`](trusted-page.md)) | `marketplace/` (`routes.ts`, `publisher.ts`, `artifacts.ts`), `writeGuard.ts` |
@@ -658,6 +693,8 @@ All paths are under `apps/orchestrator/src/`.
 | **Composition** | Everything the orchestrator holds about one question's answer; one per context |
 | **Parent** | The context a question was asked from, when it was asked from an older answer |
 | **Shell** | A2UIVerse's own UI, painted by the orchestrator: the layout (`shell:main`) and the merged view (`shell:synthesis`) |
+| **Plan cache** | Plans the Planner wrote, handed back when the very same request comes again, kept beside the journal |
+| **Prompt cache** | A provider's own cache of a model's fixed system prompt: Gemini's explicit cache, Claude's cache mark |
 | **Source** | An app and the account it paints under: `gmail.2`, or the bare app id for an app that needs no sign-in. What every slot, partition and conversation is keyed by |
 | **Stamp** | `metadata.a2uiverse` on every event: the `source` it came from and its `role` |
 | **Router** | Ranks the apps' cards against a question with an embedding model |

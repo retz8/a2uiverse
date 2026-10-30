@@ -76,8 +76,8 @@ describe('the system prompt', () => {
   test('carries the rules and the guidance verbatim, the pruned catalog, and the output schema', () => {
     expect(prompt).toContain(files.rules.trim());
     expect(prompt).toContain(files.guidance.trim());
-    expect(prompt).toContain(JSON.stringify(files.catalog, null, 2));
-    expect(prompt).toContain('"title": "SynthesizeDataModel"');
+    expect(prompt).toContain(JSON.stringify(files.catalog));
+    expect(prompt).toContain('"title":"SynthesizeDataModel"');
   });
 
   test('shows no component or function outside the keep-set', () => {
@@ -86,10 +86,10 @@ describe('the system prompt', () => {
       prompt.indexOf('### Output Schema:'),
     );
     for (const name of ['Slot', 'Attribution', 'Frame', 'Button', 'TextField']) {
-      expect(catalog).not.toContain(`"${name}": {`);
+      expect(catalog).not.toContain(`"${name}":{`);
     }
     expect(catalog).not.toContain('"openStore"');
-    expect(catalog).toContain('"DerivedValue": {');
+    expect(catalog).toContain('"DerivedValue":{');
   });
 
   test('renders every example under a BEGIN/END fence with its intent, request, sources and output', () => {
@@ -99,7 +99,7 @@ describe('the system prompt', () => {
       expect(prompt).toContain(example.intent);
       expect(prompt).toContain(example.request);
     }
-    expect(prompt).toContain('"surface": "gmail:needs-attention"');
+    expect(prompt).toContain('"surface":"gmail:needs-attention"');
   });
 
   test('examples are overridable, and none renders no section', () => {

@@ -14,6 +14,7 @@ import {TransformersEmbedder, type Embedder} from '@a2uiverse/embedder';
 import {OrchestratorExecutor} from './executor.js';
 import {IntentJournal} from './journal/intentJournal.js';
 import {getModel, keyFor, keyVariableFor, parseModelName, reasoningFor} from './model/getModel.js';
+import {PLAN_CACHE_FILE, PlanCache} from './planner/planCache.js';
 import {ModelPlanner, type Planner} from './planner/planner.js';
 import {platformReaders} from './planner/platformReaders.js';
 import {plannerSystemPrompt, readPlannerFiles} from './planner/prompt.js';
@@ -91,7 +92,15 @@ export function buildOrchestrator({
   const card = buildAgentCard(config.baseUrl);
   const embedder =
     overrides?.embedder ?? new TransformersEmbedder({cacheDir: join(config.stateDir, 'models')});
-  const journal = new IntentJournal(join(config.stateDir, JOURNAL_FILE), embedder);
+  // The plan cache beside the journal, settled by each turn as it closes (task-17.6 decisions 8–10).
+  const planCache = config.planCache
+    ? new PlanCache(join(config.stateDir, PLAN_CACHE_FILE))
+    : undefined;
+  const journal = new IntentJournal(
+    join(config.stateDir, JOURNAL_FILE),
+    embedder,
+    planCache && (entry => planCache.settle(entry)),
+  );
   // The registry is the orchestrator's persisted state, booted from alone (task-11.4 decision 8).
   // One platform card, two readers (phase-6 decision 1): the client fetches it; the Registry
   // indexes it.
@@ -151,7 +160,7 @@ export function buildOrchestrator({
     search: words => marketplace.search(words),
     installed: () => registry.installed().map(record => record.id),
   });
-  const planner = overrides?.planner ?? plannerFrom(config, readers, sources, store);
+  const planner = overrides?.planner ?? plannerFrom(config, readers, sources, store, planCache);
   const synthesizer = synthesizerFrom(config, overrides?.synthesisModel);
   const router = new Router(registry, embedder, {shortlistCap: config.shortlistCap});
   // The update on the canvas (task 15.5): the check before every dispatch, the catch after a
@@ -273,6 +282,7 @@ function plannerFrom(
   readers: PlatformReaders,
   sources: Sources,
   store: StoreSearch,
+  cache: PlanCache | undefined,
 ): Planner {
   const {provider} = parseModelName(config.plannerModelId, 'A2UIVERSE_PLANNER_MODEL');
   if (!keyFor(provider, config)) {
@@ -293,6 +303,7 @@ function plannerFrom(
     readers,
     sourcesOf: appId => sources.of(appId),
     store,
+    ...(cache ? {cache} : {}),
   });
 }
 

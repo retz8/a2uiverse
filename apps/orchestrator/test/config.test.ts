@@ -148,3 +148,14 @@ describe('loadConfig — the model seam (task-17.2 decisions 2, 3, 6)', () => {
     );
   });
 });
+
+describe('loadConfig — the plan cache (task-17.6 decision 10)', () => {
+  test('on by default; off by one setting; anything else stops the boot', () => {
+    expect(loadConfig({}).planCache).toBe(true);
+    expect(loadConfig({A2UIVERSE_PLAN_CACHE: 'on'}).planCache).toBe(true);
+    expect(loadConfig({A2UIVERSE_PLAN_CACHE: 'off'}).planCache).toBe(false);
+    expect(() => loadConfig({A2UIVERSE_PLAN_CACHE: 'no'})).toThrow(
+      /A2UIVERSE_PLAN_CACHE: expected "on" or "off", got "no"/,
+    );
+  });
+});

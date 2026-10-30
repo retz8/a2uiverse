@@ -11,6 +11,7 @@ import {extractTaggedBlock} from '../authoring/taggedBlock.js';
 import type {ToolCallRecord} from '../journal/types.js';
 import type {ShortlistEntry} from '../router/router.js';
 import type {LayoutSurface} from './document.js';
+import {planKey, type PlanCache, type PlanCacheMark} from './planCache.js';
 import {buildPlannerTurn, buildRetryTurn, LAYOUT_SURFACE_TAG, type SourcesOf} from './prompt.js';
 import {readerTools, type PlatformReaders} from './readers.js';
 import {searchesOf, type StoreSearch} from './storeSearch.js';
@@ -49,6 +50,8 @@ export type PlanOutcome = PlanMeasure &
         document: LayoutSurface;
         attempts: PlanAttempt[];
         toolCalls: ToolCallRecord[];
+        /** The plan cache's mark (task-17.6 decisions 7, 11): absent when it is off or a tool was called. */
+        cache?: PlanCacheMark;
       }
     | {kind: 'malformed'; attempts: PlanAttempt[]; toolCalls: ToolCallRecord[]}
   );
@@ -72,7 +75,8 @@ export const MAX_STEPS = 5;
  * findings appended — and a second failure is `malformed`. Each attempt has a five-step budget;
  * running out of it without a block is a failed attempt like any other. Beside the readers, the
  * marketplace's search when it is wired (task-15.4 decision 1); a gap is checked against this
- * plan's searches, both attempts' (decision 3).
+ * plan's searches, both attempts' (decision 3). With the plan cache, the very same request is
+ * answered from it, re-checked by the validator, and no model is called (task-17.6 decision 7).
  */
 export class ModelPlanner implements Planner {
   readonly #model: LanguageModel;
@@ -83,6 +87,7 @@ export class ModelPlanner implements Planner {
   readonly #readers: PlatformReaders;
   readonly #sourcesOf: SourcesOf;
   readonly #store: StoreSearch | undefined;
+  readonly #cache: PlanCache | undefined;
 
   constructor(options: {
     model: LanguageModel;
@@ -101,6 +106,8 @@ export class ModelPlanner implements Planner {
     sourcesOf?: SourcesOf;
     /** The marketplace's search (task-15.4 decision 1); none, and the Planner cannot search. */
     store?: StoreSearch;
+    /** The plan cache (task-17.6 decision 10); none, and every plan is the model's. */
+    cache?: PlanCache;
   }) {
     this.#model = options.model;
     this.#reasoning = options.reasoning;
@@ -110,6 +117,7 @@ export class ModelPlanner implements Planner {
     this.#readers = options.readers;
     this.#sourcesOf = options.sourcesOf ?? (appId => [{source: appId}]);
     this.#store = options.store;
+    this.#cache = options.cache;
   }
 
   async plan(input: PlanInput): Promise<PlanOutcome> {
@@ -124,9 +132,34 @@ export class ModelPlanner implements Planner {
       ...(this.#effort ? {effort: this.#effort} : {}),
       requests,
     });
-    let messages: ModelMessage[] = [
-      {role: 'user', content: buildPlannerTurn(input, this.#sourcesOf)},
-    ];
+    const turn = buildPlannerTurn(input, this.#sourcesOf);
+    const key =
+      this.#cache !== undefined
+        ? await planKey({
+            model: this.#model,
+            ...(this.#reasoning ? {reasoning: this.#reasoning} : {}),
+            system: this.#system,
+            tools,
+            turn,
+          })
+        : undefined;
+    if (key !== undefined) {
+      const text = this.#cache?.get(key);
+      if (text !== undefined) {
+        const accepted = this.#accept(text, shortlist, []);
+        if (accepted.ok) {
+          return {
+            kind: 'planned',
+            document: accepted.document,
+            attempts: [{text, errors: []}],
+            toolCalls: [],
+            cache: {key, hit: true},
+          };
+        }
+        this.#cache?.evict(key, `refused on reuse: ${accepted.errors.join('; ')}`);
+      }
+    }
+    let messages: ModelMessage[] = [{role: 'user', content: turn}];
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       // Each step measured as it ends, from the SDK's own step result (task-17.5 decision 2).
       const measurement = new AttemptMeasurement('Planner', attempt + 1, input.clock);
@@ -166,7 +199,16 @@ export class ModelPlanner implements Planner {
       const accepted = this.#accept(result.text, shortlist, toolCalls);
       attempts.push({text: result.text, errors: accepted.errors});
       if (accepted.ok) {
-        return {kind: 'planned', document: accepted.document, attempts, toolCalls, ...measured()};
+        // Only a plan that called no tool is kept: a reader's or the Store's answer is the moment's.
+        const cache = key !== undefined && toolCalls.length === 0 ? {cache: {key}} : {};
+        return {
+          kind: 'planned',
+          document: accepted.document,
+          attempts,
+          toolCalls,
+          ...cache,
+          ...measured(),
+        };
       }
       messages.push({role: 'user', content: buildRetryTurn(accepted.errors)});
     }

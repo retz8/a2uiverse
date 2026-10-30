@@ -3,9 +3,11 @@
  * the effort tier carried as the AI SDK's reasoning option, one key per provider.
  */
 import {createAnthropic} from '@ai-sdk/anthropic';
+import {getModelCapabilities} from '@ai-sdk/anthropic/internal';
 import {createGoogleGenerativeAI} from '@ai-sdk/google';
 import {createProviderRegistry, type LanguageModel, type LanguageModelMiddleware} from 'ai';
 import {logLine} from '../log.js';
+import {geminiCacheFetch} from './geminiCache.js';
 
 /** Recorded default of the effort tunable (SPEC decision 9); the fan-out stance needs this rung (task 7.8). */
 export const DEFAULT_PLANNER_MODEL_ID = 'gemini-3.8-flash';
@@ -121,18 +123,93 @@ export interface ModelSettings {
 
 /**
  * The provider registry (task-17.2 decision 1): the SDK's own, Google and Anthropic registered,
- * the kit's slash between provider and model, every call's warnings logged for the seam.
+ * the kit's slash between provider and model, every call's warnings logged for the seam. Each
+ * provider holds the seam's fixed prompt in its own cache (task-17.6 decisions 3–5): Google's
+ * fetch through Gemini's explicit cache, Claude's system prompt marked.
  */
 export function getModel(settings: ModelSettings): LanguageModel {
   const {provider, model} = parseModelName(settings.modelId, 'model');
   const registry = createProviderRegistry(
     {
-      google: createGoogleGenerativeAI({apiKey: settings.keys.googleApiKey}),
+      google: createGoogleGenerativeAI({
+        apiKey: settings.keys.googleApiKey,
+        fetch: geminiCacheFetch({seam: settings.seam}),
+      }),
       anthropic: createAnthropic({apiKey: settings.keys.anthropicApiKey}),
     },
-    {separator: '/', languageModelMiddleware: warningsLog(settings.seam)},
+    {
+      separator: '/',
+      languageModelMiddleware: [
+        warningsLog(settings.seam),
+        ...(provider === 'anthropic' ? [claudeSeam()] : []),
+      ],
+    },
   );
   return registry.languageModel(`${provider}/${model}`);
+}
+
+/** Claude's prompt cache on the fixed system prompt: one mark, an hour (task-17.6 decision 5). */
+export const CLAUDE_CACHE_CONTROL = {type: 'ephemeral', ttl: '1h'} as const;
+
+type CallParams = Parameters<NonNullable<LanguageModelMiddleware['transformParams']>>[0]['params'];
+
+/**
+ * Claude's side of the seam: the last system message — the seam's fixed prompt, the turn after it
+ * — marked for the prompt cache, the tools ahead of it covered by the same mark (task-17.6
+ * decision 5); and `low`, the SDK's `none`, sent as the least thinking the model accepts with
+ * effort `low` (decision 6).
+ */
+export function claudeSeam(): LanguageModelMiddleware {
+  return {
+    specificationVersion: 'v4',
+    transformParams: async ({params, model}) => {
+      const least = params.reasoning === 'none' ? leastThinking(model.modelId) : undefined;
+      return {
+        ...params,
+        prompt: markFixedPrompt(params.prompt),
+        ...(least
+          ? {
+              providerOptions: {
+                ...params.providerOptions,
+                anthropic: {...params.providerOptions?.anthropic, ...least},
+              },
+            }
+          : {}),
+      };
+    },
+  };
+}
+
+function markFixedPrompt(prompt: CallParams['prompt']): CallParams['prompt'] {
+  const last = prompt.findLastIndex(message => message.role === 'system');
+  if (last < 0) return prompt;
+  return prompt.map((message, i) =>
+    i === last
+      ? {
+          ...message,
+          providerOptions: {
+            ...message.providerOptions,
+            anthropic: {...message.providerOptions?.anthropic, cacheControl: CLAUDE_CACHE_CONTROL},
+          },
+        }
+      : message,
+  );
+}
+
+/**
+ * The least thinking a Claude model accepts, with effort `low` (task-17.6 decision 6), read from
+ * the SDK's own table of the models: `between_tools` where the model offers it, no setting where
+ * thinking cannot be turned off, otherwise off. A model with no effort setting — none adaptive —
+ * keeps the SDK's own reading of `none`.
+ */
+export function leastThinking(
+  modelId: string,
+): {thinking?: {type: string}; effort: 'low'} | undefined {
+  const can = getModelCapabilities(modelId);
+  if (!can.supportsAdaptiveThinking) return undefined;
+  if (can.supportsBetweenToolsThinking) return {thinking: {type: 'between_tools'}, effort: 'low'};
+  if (can.rejectsThinkingDisabled) return {effort: 'low'};
+  return {thinking: {type: 'disabled'}, effort: 'low'};
 }
 
 /**
