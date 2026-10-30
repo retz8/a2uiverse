@@ -9,6 +9,7 @@ Every run that spent model tokens to measure A2UIVerse, in the order they ran: w
 | 2026-10-29 | 17.5 | [The baseline](#2026-10-29--175--the-baseline) | `gemini-3.8-flash` | $8.74 |
 | 2026-10-30 | 17.6 | [The cache strategy's live check](#2026-10-30--176--the-cache-strategys-live-check) | `gemini-3.8-flash`, Claude Haiku 5.5, Claude Sonnet 5.5 | $0.21 |
 | 2026-10-30 | 17.7 | [The Planner on Claude](#2026-10-30--177--the-planner-on-claude) | Claude Sonnet 5.5, Claude Haiku 5.5, `gemini-3.8-flash` | $4.75 |
+| 2026-10-30 | 17.8 | [The kit's thinking tier `low`](#2026-10-30--178--the-kits-thinking-tier-low) | `gemini-3.8-flash` | $1.38 |
 
 ---
 
@@ -185,3 +186,49 @@ The checks of task-17.7 decision 5 — the apps asked, and where the baseline pl
 Chosen on 2026-10-30: Claude Sonnet 5.5 for the Planner, on its one pass (task-17.7 decision 6); its default set in 17.11.
 
 Data: [`phase-17-planner-on-claude-extract.json`](phase-17-planner-on-claude-extract.json), each turn's numbers, no text any model wrote and no data any app returned.
+
+## 2026-10-30 · 17.8 · The kit's thinking tier `low`
+
+The agent kit at its `default` tier, no thinking setting, and at `low`, Gemini's low thinking level (task 17.8), on 2026-10-30: GitHub's recorded beats 8 and 9 and Linear's conversation — beat 1, beat 2, beat 3's proposal and its confirm — driven agent alone through the beat driver against each agent live on `gemini-3.8-flash`, one attempt per beat, signed in through Claude-in-Chrome on the tunnel. `default` first, then `low`, both agents restarted between; A2U-5 set back to In Review before each Linear run. One pass on each tier; passes two and three not run (task-17.8 decision 1). Each `low` answer read beside the same pass's `default` answer (task-17.8 decision 2). Each number is that one pass's, in seconds on the turn's clock from the prompt arriving at the agent. Each turn's numbers: `phase-17-kit-thinking-low-extract.json` beside these notes.
+
+### Per beat
+
+| Beat | Answer's first token, `default` · `low` | First screen | Turn's end | Thinking on the answer, tokens | Requests |
+| --- | --- | --- | --- | --- | --- |
+| GitHub 8, "What pull requests need my attention today?…" | 53.9, refused · 28.8 | 118.7 · 74.1 | 143.3 · 82.5 | 9,269 · 3,783 | 10 · 5 |
+| GitHub 9, "Show my open pull requests and active branches…" | 41.9 · 39.1, refused | 91.5 · 110.2 | 106.5 · 147.9 | 6,964 · 6,619 | 8 · 10 |
+| Linear 1, "Show my in-progress and assigned issues…" | 56.9 · 1.7 | 73.3 · 14.1 | 80.2 · 21.6 | 7,866 · 0 | 3 · 4 |
+| Linear 2, "Open A2U-5." | 29.0 · 2.7 | 37.7 · 6.1 | 50.0 · 18.9 | 4,607 · 0 | 2 · 2 |
+| Linear 3, "Move it to In Progress." | 15.6 · 1.6 | 20.4 · 4.2 | 26.9 · 10.5 | 2,302 · 0 | 2 · 2 |
+| Linear 3, "Yes, move it." | 11.2 · 1.7 | 21.9 · 10.8 | 34.4 · 24.1 | 1,503 · 0 | 3 · 3 |
+
+- **The answer's first token**: the wait of the request that drew the screen for its first token; on a refused answer, its first attempt's. The correction after a refusal drew the screen at 6.8 s on GitHub 8 at `default` and 6.4 s on GitHub 9 at `low`.
+- **Linear at `low`**: no request reported a thinking token; at `default` its tool calls thought 73–487 tokens and its answers 1,503–7,866.
+- **GitHub at `low`**: every request reported thinking — its tool calls 24–967 tokens, as at `default`'s 44–1,061, and its answers 3,783 and 6,619. Both agents sent Gemini's low thinking level. GitHub's requests carried 106,524–189,272 prompt tokens, Linear's 25,105–55,797.
+- **GitHub's runs**: the two tiers' runs made different tool calls — on beat 8 four rounds at `low` and eight at `default`, on beat 9 eight and seven — and one correction each; those moved GitHub's first screen and end more than its thinking did.
+
+### The answers beside `default`'s
+
+The checks of task-17.8 decision 7, and the rest read.
+
+- **First try**: 5 of 6 on each tier. GitHub's catalog refused one answer on each — beat 8 at `default`, beat 9 at `low` — for the same component property, a page header's title area in a `small` variant the catalog does not allow.
+- **What the prompt asks on the screen**: all twelve. Each field the prompt names on GitHub 8 and 9 and Linear 1; A2U-5's details on beat 2; a question to confirm the move on the proposal; A2U-5 shown In Progress on the confirm, and found so in Linear after each.
+- **Read**: the same pull request on GitHub 8 and the same nine on GitHub 9, the same four issues on Linear 1. Linear's four screens the same components bound to the same fields on both tiers. GitHub 8 at `low` a plain heading in place of the page header, one "Review requested" badge on the header in place of one a row, no author line; GitHub 9 at `low` a title naming the active branches, each pull request's review status naming who commented, where `default`'s said whether a review is required, the date and time written out in place of a formatted one. The verdict: each of the six held up at `low`.
+
+### Tokens, first tries and the cost
+
+| | Requests | Prompt tokens | Cached | Output tokens | Thinking tokens | Cost |
+| --- | --- | --- | --- | --- | --- | --- |
+| GitHub, `default` | 18 | 2,500,017 | 2,133,626 | 7,900 | 21,544 | $0.55 |
+| Linear, `default` | 10 | 428,067 | 366,110 | 7,332 | 17,712 | $0.17 |
+| GitHub, `low` | 15 | 2,072,302 | 1,600,749 | 8,867 | 14,409 | $0.56 |
+| Linear, `low` | 11 | 334,310 | 256,817 | 7,507 | 0 | $0.11 |
+
+- **What it cost**: $1.38 — `default`'s run $0.71, `low`'s $0.67. At `gemini-3.8-flash`'s $0.75 / $3.75 / $0.075 per million input, output and cached tokens until 2026-12-31, thinking billed as output ([Gemini Developer API pricing](https://ai.google.dev/gemini-api/docs/pricing)).
+- Each tier's first turn on each agent — GitHub 8, Linear 1 — is the first after the agent started, marked in the extract.
+
+### The choice
+
+Chosen on 2026-10-30: `low` for the kit, on its one pass (task-17.8 decision 8); its default set in 17.11. Linear's answers at `low` on prompts that ask the model to judge, which its recorded beats do not, read in 17.11's prompts 4 and 10.
+
+Data: [`phase-17-kit-thinking-low-extract.json`](phase-17-kit-thinking-low-extract.json), each turn's numbers, no text any model wrote and no data any app returned.
