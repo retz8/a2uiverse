@@ -1,6 +1,6 @@
 # Phase 17 notes — the latency survey and A2UI-unique prompts
 
-The write-up of Phase 17, the latency phase. Where the time goes, the survey of the levers with their sources, and the prompts that exercise what only a composition across independent agents can answer. Every run's results, the baseline among them, are in [`experiments.md`](experiments.md).
+The write-up of Phase 17, the latency phase. Where the time goes, the survey of the levers with their sources, and the prompts that exercise what only a composition across independent agents can answer. Every run's results, the baseline among them, are in [`latency-and-token-experiment-results.md`](latency-and-token-experiment-results.md).
 
 ---
 

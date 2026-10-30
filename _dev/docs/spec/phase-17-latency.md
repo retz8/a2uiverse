@@ -54,7 +54,7 @@ A kit lever is built and measured on GitHub and Linear. Gmail and CircleCI show 
 
 `_dev/docs/phase-17-model-trial-notes.md` is carried forward as the phase's write-up: the survey replaces its candidate section, the baseline and each lever append their results, the default decision closes it.
 
-*Amended on 2026-10-30.* Each run's results — the baseline's, each lever's, the acceptance's — land in `_dev/docs/experiments.md`, one entry per run; the notes keep the survey, the prompts and the default decision. The feature — naming a model by its provider on the kit and on the orchestrator, the keys, the effort — is documented in the agent-kit and orchestrator design records and READMEs.
+*Amended on 2026-10-30.* Each run's results — the baseline's, each lever's, the acceptance's — land in `_dev/docs/latency-and-token-experiment-results.md`, one entry per run; the notes keep the survey, the prompts and the default decision. The feature — naming a model by its provider on the kit and on the orchestrator, the keys, the effort — is documented in the agent-kit and orchestrator design records and READMEs.
 
 ### 10. Before and after, no target
 

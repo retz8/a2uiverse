@@ -1,4 +1,4 @@
-# Experiments
+# Latency and token experiment results
 
 Every run that spent model tokens to measure A2UIVerse, in the order they ran: what it asked, how it ran, what it cost, what it found, and where its data is. The phase it serves states why it ran; the decision it fed is that phase's.
 
