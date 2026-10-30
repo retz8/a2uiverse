@@ -1,0 +1,4481 @@
+{
+  "what": "Task 17.7: the Planner on Claude Sonnet 5.5 and on Claude Haiku 5.5, one pass each over the six end-to-end prompts, timed on the orchestrator from the utterance arriving; each request of the Planner, the Synthesizer and the apps; no text any model wrote, no data any app returned.",
+  "ran": "2026-10-30, through the tunnel by Claude-in-Chrome; the Planner on claude-sonnet-5-5, then claude-haiku-5-5, at low, the orchestrator restarted between; the Synthesizer on gemini-3.8-flash at low; the apps on gemini-3.8-flash at the kit default effort, live; the plan cache off",
+  "turns": [
+    {
+      "planner": "claude-sonnet-5-5",
+      "pass": 1,
+      "prompt": "p1",
+      "utterance": "Which of my open pull requests are blocked on something outside GitHub?",
+      "turnId": "cdd6bac9-18d9-456e-ba51-887bcb2f3d7a",
+      "counted": true,
+      "at": "2026-10-30T10:21:13.647Z",
+      "outcome": "completed",
+      "finalMs": 240617,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 7636,
+        "shortlistMs": 7,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "claude-sonnet-5-5",
+            "startMs": 8,
+            "modelMs": 7600,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 33722,
+              "outputTokens": 853,
+              "reasoningTokens": 0,
+              "cachedTokens": 0,
+              "cacheWriteTokens": 30416
+            }
+          }
+        ]
+      },
+      "dispatch": [
+        {
+          "source": "linear.2",
+          "app": "linear",
+          "outcome": "completed",
+          "startMs": 7639,
+          "firstPaintMs": 73109,
+          "settledMs": 80045,
+          "endMs": 80045
+        },
+        {
+          "source": "circleci.1",
+          "app": "circleci",
+          "outcome": "completed",
+          "startMs": 7640,
+          "firstPaintMs": 147154,
+          "settledMs": 161716,
+          "endMs": 161716
+        },
+        {
+          "source": "github.2",
+          "app": "github",
+          "outcome": "completed",
+          "startMs": 7638,
+          "firstPaintMs": 193388,
+          "settledMs": 213041,
+          "endMs": 213041
+        }
+      ],
+      "synthesis": {
+        "outcome": "synthesized",
+        "release": "home",
+        "releaseMs": 213041,
+        "deadAirMs": 27576,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "gemini-3.8-flash",
+            "startMs": 1,
+            "modelMs": 27555,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 17694,
+              "outputTokens": 4549,
+              "reasoningTokens": 0,
+              "cachedTokens": 0
+            }
+          }
+        ]
+      },
+      "agents": {
+        "linear": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 5723,
+            "generationMs": 44,
+            "ended": "toolCall",
+            "tools": [
+              "list_issues"
+            ],
+            "usage": {
+              "promptTokens": 22212,
+              "outputTokens": 17,
+              "thoughtsTokens": 366
+            },
+            "endMs": 19815
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 5196,
+            "generationMs": 1315,
+            "ended": "toolCall",
+            "tools": [
+              "get_issue"
+            ],
+            "usage": {
+              "promptTokens": 24616,
+              "outputTokens": 284,
+              "thoughtsTokens": 378,
+              "cachedTokens": 22209
+            },
+            "endMs": 28069
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 2387,
+            "generationMs": 359,
+            "ended": "toolCall",
+            "tools": [
+              "list_comments"
+            ],
+            "usage": {
+              "promptTokens": 26347,
+              "outputTokens": 84,
+              "thoughtsTokens": 23,
+              "cachedTokens": 22548
+            },
+            "endMs": 31693
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 40765,
+            "generationMs": 7559,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 27205,
+              "outputTokens": 1364,
+              "thoughtsTokens": 5727,
+              "cachedTokens": 24278
+            },
+            "endMs": 80040
+          }
+        ],
+        "github": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 7055,
+            "generationMs": 218,
+            "ended": "toolCall",
+            "tools": [
+              "get_me",
+              "search_pull_requests"
+            ],
+            "usage": {
+              "promptTokens": 106615,
+              "outputTokens": 36,
+              "thoughtsTokens": 359
+            },
+            "endMs": 24945
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 15260,
+            "generationMs": 2110,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 128289,
+              "outputTokens": 384,
+              "thoughtsTokens": 1783,
+              "cachedTokens": 106682
+            },
+            "endMs": 44489
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 23299,
+            "generationMs": 2079,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 144699,
+              "outputTokens": 402,
+              "thoughtsTokens": 137,
+              "cachedTokens": 128280
+            },
+            "endMs": 71557
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 11469,
+            "generationMs": 1165,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 150669,
+              "outputTokens": 268,
+              "thoughtsTokens": 273,
+              "cachedTokens": 144651
+            },
+            "endMs": 85343
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 16951,
+            "generationMs": 371,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 157611,
+              "outputTokens": 92,
+              "thoughtsTokens": 25,
+              "cachedTokens": 150650
+            },
+            "endMs": 103791
+          },
+          {
+            "attempt": 1,
+            "step": 6,
+            "firstTokenMs": 88803,
+            "generationMs": 20366,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 158338,
+              "outputTokens": 3622,
+              "thoughtsTokens": 12351,
+              "cachedTokens": 155555
+            },
+            "endMs": 213040
+          }
+        ],
+        "circleci": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 11505,
+            "generationMs": 4,
+            "ended": "toolCall",
+            "tools": [
+              "list_projects"
+            ],
+            "usage": {
+              "promptTokens": 22490,
+              "outputTokens": 10,
+              "thoughtsTokens": 556
+            },
+            "endMs": 27096
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 3114,
+            "generationMs": 57,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 23116,
+              "outputTokens": 54,
+              "thoughtsTokens": 131,
+              "cachedTokens": 20434
+            },
+            "endMs": 31197
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 4027,
+            "generationMs": 71,
+            "ended": "toolCall",
+            "tools": [
+              "list_run_workflows"
+            ],
+            "usage": {
+              "promptTokens": 25680,
+              "outputTokens": 51,
+              "thoughtsTokens": 296,
+              "cachedTokens": 23115
+            },
+            "endMs": 35896
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 2568,
+            "generationMs": 65,
+            "ended": "toolCall",
+            "tools": [
+              "list_workflow_jobs"
+            ],
+            "usage": {
+              "promptTokens": 26313,
+              "outputTokens": 49,
+              "thoughtsTokens": 50,
+              "cachedTokens": 23630
+            },
+            "endMs": 39164
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 2858,
+            "generationMs": 69,
+            "ended": "toolCall",
+            "tools": [
+              "list_run_workflows"
+            ],
+            "usage": {
+              "promptTokens": 26881,
+              "outputTokens": 49,
+              "thoughtsTokens": 66,
+              "cachedTokens": 24264
+            },
+            "endMs": 42714
+          },
+          {
+            "attempt": 1,
+            "step": 6,
+            "firstTokenMs": 4122,
+            "generationMs": 84,
+            "ended": "toolCall",
+            "tools": [
+              "list_workflow_jobs"
+            ],
+            "usage": {
+              "promptTokens": 27279,
+              "outputTokens": 48,
+              "thoughtsTokens": 39,
+              "cachedTokens": 24832
+            },
+            "endMs": 47184
+          },
+          {
+            "attempt": 1,
+            "step": 7,
+            "firstTokenMs": 2854,
+            "generationMs": 66,
+            "ended": "toolCall",
+            "tools": [
+              "list_run_workflows"
+            ],
+            "usage": {
+              "promptTokens": 27835,
+              "outputTokens": 49,
+              "thoughtsTokens": 43,
+              "cachedTokens": 25231
+            },
+            "endMs": 50721
+          },
+          {
+            "attempt": 1,
+            "step": 8,
+            "firstTokenMs": 2794,
+            "generationMs": 73,
+            "ended": "toolCall",
+            "tools": [
+              "list_workflow_jobs"
+            ],
+            "usage": {
+              "promptTokens": 28214,
+              "outputTokens": 52,
+              "thoughtsTokens": 43,
+              "cachedTokens": 25787
+            },
+            "endMs": 54217
+          },
+          {
+            "attempt": 1,
+            "step": 9,
+            "firstTokenMs": 2846,
+            "generationMs": 71,
+            "ended": "toolCall",
+            "tools": [
+              "list_run_workflows"
+            ],
+            "usage": {
+              "promptTokens": 28783,
+              "outputTokens": 50,
+              "thoughtsTokens": 44,
+              "cachedTokens": 26168
+            },
+            "endMs": 57765
+          },
+          {
+            "attempt": 1,
+            "step": 10,
+            "firstTokenMs": 2688,
+            "generationMs": 63,
+            "ended": "toolCall",
+            "tools": [
+              "list_workflow_jobs"
+            ],
+            "usage": {
+              "promptTokens": 29166,
+              "outputTokens": 53,
+              "thoughtsTokens": 44,
+              "cachedTokens": 26736
+            },
+            "endMs": 61163
+          },
+          {
+            "attempt": 1,
+            "step": 11,
+            "firstTokenMs": 2623,
+            "generationMs": 63,
+            "ended": "toolCall",
+            "tools": [
+              "list_run_workflows"
+            ],
+            "usage": {
+              "promptTokens": 29740,
+              "outputTokens": 50,
+              "thoughtsTokens": 44,
+              "cachedTokens": 27121
+            },
+            "endMs": 64108
+          },
+          {
+            "attempt": 1,
+            "step": 12,
+            "firstTokenMs": 2562,
+            "generationMs": 58,
+            "ended": "toolCall",
+            "tools": [
+              "list_workflow_jobs"
+            ],
+            "usage": {
+              "promptTokens": 30119,
+              "outputTokens": 49,
+              "thoughtsTokens": 39,
+              "cachedTokens": 27694
+            },
+            "endMs": 67351
+          },
+          {
+            "attempt": 1,
+            "step": 13,
+            "firstTokenMs": 79186,
+            "generationMs": 15145,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 30678,
+              "outputTokens": 2746,
+              "thoughtsTokens": 11079,
+              "cachedTokens": 28075
+            },
+            "endMs": 161713
+          }
+        ]
+      },
+      "mark": "first turn after the orchestrator booted"
+    },
+    {
+      "planner": "claude-sonnet-5-5",
+      "pass": 1,
+      "prompt": "p4",
+      "utterance": "Help me close out A2U-7: show the issue, its pull request and its CI run, and let me act on each.",
+      "turnId": "f8474f02-ba8e-4e33-9734-2627c22407b8",
+      "counted": true,
+      "at": "2026-10-30T10:25:30.408Z",
+      "outcome": "completed",
+      "finalMs": 173191,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 6694,
+        "shortlistMs": 5,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "claude-sonnet-5-5",
+            "startMs": 5,
+            "modelMs": 6686,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 33749,
+              "outputTokens": 812,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          }
+        ]
+      },
+      "dispatch": [
+        {
+          "source": "linear.2",
+          "app": "linear",
+          "outcome": "completed",
+          "startMs": 6695,
+          "firstPaintMs": 53538,
+          "settledMs": 66747,
+          "endMs": 66747
+        },
+        {
+          "source": "github.2",
+          "app": "github",
+          "outcome": "completed",
+          "startMs": 6696,
+          "settledMs": 103321,
+          "endMs": 103320
+        },
+        {
+          "source": "circleci.1",
+          "app": "circleci",
+          "outcome": "completed",
+          "startMs": 6696,
+          "firstPaintMs": 149272,
+          "settledMs": 164962,
+          "endMs": 164962
+        }
+      ],
+      "synthesis": {
+        "outcome": "synthesized",
+        "release": "settled",
+        "releaseMs": 164962,
+        "deadAirMs": 8229,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "gemini-3.8-flash",
+            "startMs": 0,
+            "modelMs": 8224,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 15071,
+              "outputTokens": 829,
+              "reasoningTokens": 0,
+              "cachedTokens": 14006
+            }
+          }
+        ]
+      },
+      "agents": {
+        "circleci": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 4115,
+            "generationMs": 78,
+            "ended": "toolCall",
+            "tools": [
+              "list_projects"
+            ],
+            "usage": {
+              "promptTokens": 22507,
+              "outputTokens": 10,
+              "thoughtsTokens": 252
+            },
+            "endMs": 12281
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 7255,
+            "generationMs": 68,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 22829,
+              "outputTokens": 55,
+              "thoughtsTokens": 98,
+              "cachedTokens": 20450
+            },
+            "endMs": 20251
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 5101,
+            "generationMs": 63,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 27594,
+              "outputTokens": 55,
+              "thoughtsTokens": 205,
+              "cachedTokens": 22835
+            },
+            "endMs": 26335
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 2670,
+            "generationMs": 78,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 42272,
+              "outputTokens": 14,
+              "thoughtsTokens": 40,
+              "cachedTokens": 27620
+            },
+            "endMs": 29724
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 11052,
+            "generationMs": 112,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 46938,
+              "outputTokens": 56,
+              "thoughtsTokens": 1428,
+              "cachedTokens": 42273
+            },
+            "endMs": 41752
+          },
+          {
+            "attempt": 1,
+            "step": 6,
+            "firstTokenMs": 13642,
+            "generationMs": 94,
+            "ended": "toolCall",
+            "tools": [
+              "get_run"
+            ],
+            "usage": {
+              "promptTokens": 62840,
+              "outputTokens": 48,
+              "thoughtsTokens": 952,
+              "cachedTokens": 46959
+            },
+            "endMs": 56143
+          },
+          {
+            "attempt": 1,
+            "step": 7,
+            "firstTokenMs": 5059,
+            "generationMs": 92,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 64437,
+              "outputTokens": 63,
+              "thoughtsTokens": 337,
+              "cachedTokens": 60787
+            },
+            "endMs": 61939
+          },
+          {
+            "attempt": 1,
+            "step": 8,
+            "firstTokenMs": 7135,
+            "generationMs": 103,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 65410,
+              "outputTokens": 60,
+              "thoughtsTokens": 716,
+              "cachedTokens": 62383
+            },
+            "endMs": 69823
+          },
+          {
+            "attempt": 1,
+            "step": 9,
+            "firstTokenMs": 2645,
+            "generationMs": 127,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 66227,
+              "outputTokens": 60,
+              "thoughtsTokens": 23,
+              "cachedTokens": 63356
+            },
+            "endMs": 73379
+          },
+          {
+            "attempt": 1,
+            "step": 10,
+            "firstTokenMs": 7268,
+            "generationMs": 136,
+            "ended": "toolCall",
+            "tools": [
+              "list_run_workflows"
+            ],
+            "usage": {
+              "promptTokens": 66351,
+              "outputTokens": 50,
+              "thoughtsTokens": 617,
+              "cachedTokens": 64172
+            },
+            "endMs": 81406
+          },
+          {
+            "attempt": 1,
+            "step": 11,
+            "firstTokenMs": 2803,
+            "generationMs": 96,
+            "ended": "toolCall",
+            "tools": [
+              "list_workflow_jobs"
+            ],
+            "usage": {
+              "promptTokens": 67304,
+              "outputTokens": 51,
+              "thoughtsTokens": 50,
+              "cachedTokens": 64298
+            },
+            "endMs": 84914
+          },
+          {
+            "attempt": 1,
+            "step": 12,
+            "firstTokenMs": 63790,
+            "generationMs": 16222,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 67881,
+              "outputTokens": 2851,
+              "thoughtsTokens": 9160,
+              "cachedTokens": 65251
+            },
+            "endMs": 164960
+          }
+        ],
+        "linear": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 4092,
+            "generationMs": 190,
+            "ended": "toolCall",
+            "tools": [
+              "get_issue",
+              "list_comments"
+            ],
+            "usage": {
+              "promptTokens": 22219,
+              "outputTokens": 41,
+              "thoughtsTokens": 222
+            },
+            "endMs": 12306
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 40600,
+            "generationMs": 13806,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 23511,
+              "outputTokens": 2311,
+              "thoughtsTokens": 5932,
+              "cachedTokens": 20158
+            },
+            "endMs": 66745
+          }
+        ],
+        "github": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 6141,
+            "generationMs": 88,
+            "ended": "toolCall",
+            "tools": [
+              "search_issues"
+            ],
+            "usage": {
+              "promptTokens": 106626,
+              "outputTokens": 20,
+              "thoughtsTokens": 208
+            },
+            "endMs": 16780
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 3217,
+            "generationMs": 92,
+            "ended": "toolCall",
+            "tools": [
+              "search_code"
+            ],
+            "usage": {
+              "promptTokens": 114627,
+              "outputTokens": 20,
+              "thoughtsTokens": 94,
+              "cachedTokens": 106650
+            },
+            "endMs": 22193
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 3298,
+            "generationMs": 101,
+            "ended": "toolCall",
+            "tools": [
+              "get_me"
+            ],
+            "usage": {
+              "promptTokens": 155800,
+              "outputTokens": 10,
+              "thoughtsTokens": 21,
+              "cachedTokens": 114750
+            },
+            "endMs": 26571
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 2870,
+            "generationMs": 119,
+            "ended": "toolCall",
+            "tools": [
+              "projects_list"
+            ],
+            "usage": {
+              "promptTokens": 156172,
+              "outputTokens": 26,
+              "thoughtsTokens": 17,
+              "cachedTokens": 153748
+            },
+            "endMs": 30330
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 3209,
+            "generationMs": 93,
+            "ended": "toolCall",
+            "tools": [
+              "list_notifications"
+            ],
+            "usage": {
+              "promptTokens": 156293,
+              "outputTokens": 10,
+              "thoughtsTokens": 15,
+              "cachedTokens": 154119
+            },
+            "endMs": 38920
+          },
+          {
+            "attempt": 1,
+            "step": 6,
+            "firstTokenMs": 3386,
+            "generationMs": 100,
+            "ended": "toolCall",
+            "tools": [
+              "search_pull_requests"
+            ],
+            "usage": {
+              "promptTokens": 156346,
+              "outputTokens": 22,
+              "thoughtsTokens": 200,
+              "cachedTokens": 154240
+            },
+            "endMs": 44947
+          },
+          {
+            "attempt": 1,
+            "step": 7,
+            "firstTokenMs": 5172,
+            "generationMs": 132,
+            "ended": "toolCall",
+            "tools": [
+              "search_issues"
+            ],
+            "usage": {
+              "promptTokens": 257016,
+              "outputTokens": 37,
+              "thoughtsTokens": 190,
+              "cachedTokens": 156550
+            },
+            "endMs": 51582
+          },
+          {
+            "attempt": 1,
+            "step": 8,
+            "firstTokenMs": 3201,
+            "generationMs": 120,
+            "ended": "toolCall",
+            "tools": [
+              "list_pull_requests"
+            ],
+            "usage": {
+              "promptTokens": 257471,
+              "outputTokens": 35,
+              "thoughtsTokens": 19,
+              "cachedTokens": 254961
+            },
+            "endMs": 56016
+          },
+          {
+            "attempt": 1,
+            "step": 9,
+            "firstTokenMs": 3925,
+            "generationMs": 94,
+            "ended": "toolCall",
+            "tools": [
+              "search_repositories"
+            ],
+            "usage": {
+              "promptTokens": 260775,
+              "outputTokens": 20,
+              "thoughtsTokens": 163,
+              "cachedTokens": 257468
+            },
+            "endMs": 62927
+          },
+          {
+            "attempt": 1,
+            "step": 10,
+            "firstTokenMs": 3474,
+            "generationMs": 124,
+            "ended": "toolCall",
+            "tools": [
+              "list_pull_requests"
+            ],
+            "usage": {
+              "promptTokens": 267361,
+              "outputTokens": 36,
+              "thoughtsTokens": 35,
+              "cachedTokens": 260779
+            },
+            "endMs": 68593
+          },
+          {
+            "attempt": 1,
+            "step": 11,
+            "firstTokenMs": 4500,
+            "generationMs": 109,
+            "ended": "toolCall",
+            "tools": [
+              "list_branches"
+            ],
+            "usage": {
+              "promptTokens": 316384,
+              "outputTokens": 27,
+              "thoughtsTokens": 40,
+              "cachedTokens": 267441
+            },
+            "endMs": 74466
+          },
+          {
+            "attempt": 1,
+            "step": 12,
+            "firstTokenMs": 5363,
+            "generationMs": 116,
+            "ended": "toolCall",
+            "tools": [
+              "search_commits"
+            ],
+            "usage": {
+              "promptTokens": 316770,
+              "outputTokens": 30,
+              "thoughtsTokens": 26,
+              "cachedTokens": 314328
+            },
+            "endMs": 80978
+          },
+          {
+            "attempt": 1,
+            "step": 13,
+            "firstTokenMs": 5321,
+            "generationMs": 123,
+            "ended": "toolCall",
+            "tools": [
+              "get_commit"
+            ],
+            "usage": {
+              "promptTokens": 318768,
+              "outputTokens": 77,
+              "thoughtsTokens": 216,
+              "cachedTokens": 314717
+            },
+            "endMs": 87848
+          },
+          {
+            "attempt": 1,
+            "step": 14,
+            "firstTokenMs": 3891,
+            "generationMs": 139,
+            "ended": "toolCall",
+            "tools": [
+              "get_file_contents"
+            ],
+            "usage": {
+              "promptTokens": 327917,
+              "outputTokens": 54,
+              "thoughtsTokens": 97,
+              "cachedTokens": 318775
+            },
+            "endMs": 93285
+          },
+          {
+            "attempt": 1,
+            "step": 15,
+            "firstTokenMs": 4763,
+            "generationMs": 111,
+            "ended": "toolCall",
+            "tools": [
+              "get_file_contents"
+            ],
+            "usage": {
+              "promptTokens": 330095,
+              "outputTokens": 56,
+              "thoughtsTokens": 274,
+              "cachedTokens": 327911
+            },
+            "endMs": 99720
+          }
+        ]
+      }
+    },
+    {
+      "planner": "claude-sonnet-5-5",
+      "pass": 1,
+      "prompt": "p6",
+      "utterance": "Is main green right now? Ask CircleCI and GitHub.",
+      "turnId": "b7302232-d162-45b0-9305-e9e27290dbb5",
+      "counted": true,
+      "at": "2026-10-30T10:28:38.860Z",
+      "outcome": "completed",
+      "finalMs": 237776,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 6395,
+        "shortlistMs": 6,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "claude-sonnet-5-5",
+            "startMs": 6,
+            "modelMs": 6387,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 33737,
+              "outputTokens": 682,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          }
+        ]
+      },
+      "dispatch": [
+        {
+          "source": "circleci.1",
+          "app": "circleci",
+          "outcome": "completed",
+          "startMs": 6396,
+          "firstPaintMs": 65821,
+          "settledMs": 80491,
+          "endMs": 80491
+        },
+        {
+          "source": "github.2",
+          "app": "github",
+          "outcome": "completed",
+          "startMs": 6396,
+          "firstPaintMs": 194618,
+          "settledMs": 219454,
+          "endMs": 219454
+        }
+      ],
+      "synthesis": {
+        "outcome": "synthesized",
+        "release": "settled",
+        "releaseMs": 219454,
+        "deadAirMs": 18322,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "gemini-3.8-flash",
+            "startMs": 0,
+            "modelMs": 18317,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 16608,
+              "outputTokens": 2857,
+              "reasoningTokens": 0,
+              "cachedTokens": 14006
+            }
+          }
+        ]
+      },
+      "agents": {
+        "circleci": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 3854,
+            "generationMs": 77,
+            "ended": "toolCall",
+            "tools": [
+              "list_projects"
+            ],
+            "usage": {
+              "promptTokens": 22505,
+              "outputTokens": 10,
+              "thoughtsTokens": 209
+            },
+            "endMs": 11669
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 3242,
+            "generationMs": 68,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 22783,
+              "outputTokens": 60,
+              "thoughtsTokens": 164,
+              "cachedTokens": 20448
+            },
+            "endMs": 15636
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 3451,
+            "generationMs": 1240,
+            "ended": "toolCall",
+            "tools": [
+              "list_run_workflows"
+            ],
+            "usage": {
+              "promptTokens": 25280,
+              "outputTokens": 252,
+              "thoughtsTokens": 229,
+              "cachedTokens": 22782
+            },
+            "endMs": 21005
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 44153,
+            "generationMs": 15307,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 27184,
+              "outputTokens": 2665,
+              "thoughtsTokens": 6473,
+              "cachedTokens": 23208
+            },
+            "endMs": 80489
+          }
+        ],
+        "github": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 11800,
+            "generationMs": 104,
+            "ended": "toolCall",
+            "tools": [
+              "get_me"
+            ],
+            "usage": {
+              "promptTokens": 106619,
+              "outputTokens": 10,
+              "thoughtsTokens": 1061
+            },
+            "endMs": 20947
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 3915,
+            "generationMs": 97,
+            "ended": "toolCall",
+            "tools": [
+              "search_pull_requests"
+            ],
+            "usage": {
+              "promptTokens": 108031,
+              "outputTokens": 25,
+              "thoughtsTokens": 81,
+              "cachedTokens": 104574
+            },
+            "endMs": 27050
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 14668,
+            "generationMs": 1307,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 172515,
+              "outputTokens": 246,
+              "thoughtsTokens": 919,
+              "cachedTokens": 108210
+            },
+            "endMs": 44604
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 4829,
+            "generationMs": 91,
+            "ended": "toolCall",
+            "tools": [
+              "list_commits"
+            ],
+            "usage": {
+              "promptTokens": 180291,
+              "outputTokens": 32,
+              "thoughtsTokens": 266,
+              "cachedTokens": 172489
+            },
+            "endMs": 50902
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 5696,
+            "generationMs": 108,
+            "ended": "toolCall",
+            "tools": [
+              "search_commits"
+            ],
+            "usage": {
+              "promptTokens": 182633,
+              "outputTokens": 27,
+              "thoughtsTokens": 324,
+              "cachedTokens": 180288
+            },
+            "endMs": 58034
+          },
+          {
+            "attempt": 1,
+            "step": 6,
+            "firstTokenMs": 29210,
+            "generationMs": 105,
+            "ended": "toolCall",
+            "tools": [
+              "get_commit"
+            ],
+            "usage": {
+              "promptTokens": 198356,
+              "outputTokens": 69,
+              "thoughtsTokens": 134,
+              "cachedTokens": 182668
+            },
+            "endMs": 88631
+          },
+          {
+            "attempt": 1,
+            "step": 7,
+            "firstTokenMs": 4355,
+            "generationMs": 130,
+            "ended": "toolCall",
+            "tools": [
+              "list_commits"
+            ],
+            "usage": {
+              "promptTokens": 199393,
+              "outputTokens": 57,
+              "thoughtsTokens": 109,
+              "cachedTokens": 196305
+            },
+            "endMs": 94349
+          },
+          {
+            "attempt": 1,
+            "step": 8,
+            "firstTokenMs": 9835,
+            "generationMs": 423,
+            "ended": "toolCall",
+            "tools": [
+              "list_commits"
+            ],
+            "usage": {
+              "promptTokens": 201640,
+              "outputTokens": 118,
+              "thoughtsTokens": 256,
+              "cachedTokens": 199389
+            },
+            "endMs": 106036
+          },
+          {
+            "attempt": 1,
+            "step": 9,
+            "firstTokenMs": 9102,
+            "generationMs": 112,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 204328,
+              "outputTokens": 43,
+              "thoughtsTokens": 1036,
+              "cachedTokens": 201630
+            },
+            "endMs": 116734
+          },
+          {
+            "attempt": 1,
+            "step": 10,
+            "firstTokenMs": 3904,
+            "generationMs": 114,
+            "ended": "toolCall",
+            "tools": [
+              "list_commits"
+            ],
+            "usage": {
+              "promptTokens": 207362,
+              "outputTokens": 58,
+              "thoughtsTokens": 61,
+              "cachedTokens": 204327
+            },
+            "endMs": 121927
+          },
+          {
+            "attempt": 1,
+            "step": 11,
+            "firstTokenMs": 72132,
+            "generationMs": 25277,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 208257,
+              "outputTokens": 4560,
+              "thoughtsTokens": 10867,
+              "cachedTokens": 205311
+            },
+            "endMs": 219452
+          }
+        ]
+      }
+    },
+    {
+      "planner": "claude-sonnet-5-5",
+      "pass": 1,
+      "prompt": "p10",
+      "utterance": "Across both my Gmail accounts, which threads mention a Linear issue, and what state is it in?",
+      "turnId": "94e4d404-7564-4648-8377-1f62fed57506",
+      "counted": true,
+      "at": "2026-10-30T10:32:54.211Z",
+      "outcome": "completed",
+      "finalMs": 166685,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 6561,
+        "shortlistMs": 6,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "claude-sonnet-5-5",
+            "startMs": 6,
+            "modelMs": 6550,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 33290,
+              "outputTokens": 747,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          }
+        ]
+      },
+      "dispatch": [
+        {
+          "source": "linear.2",
+          "app": "linear",
+          "outcome": "completed",
+          "startMs": 6564,
+          "firstPaintMs": 72059,
+          "settledMs": 83781,
+          "endMs": 83781
+        },
+        {
+          "source": "gmail.2",
+          "app": "gmail",
+          "outcome": "completed",
+          "startMs": 6562,
+          "firstPaintMs": 108275,
+          "settledMs": 116817,
+          "endMs": 116816
+        },
+        {
+          "source": "gmail.3",
+          "app": "gmail",
+          "outcome": "completed",
+          "startMs": 6564,
+          "firstPaintMs": 163774,
+          "settledMs": 166685,
+          "endMs": 166684
+        }
+      ],
+      "synthesis": {
+        "outcome": "synthesized",
+        "release": "soft-deadline",
+        "releaseMs": 126820,
+        "deadAirMs": 15289,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "gemini-3.8-flash",
+            "startMs": 0,
+            "modelMs": 15284,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 15688,
+              "outputTokens": 2288,
+              "reasoningTokens": 0,
+              "cachedTokens": 14006
+            }
+          }
+        ]
+      },
+      "agents": {
+        "linear": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 4051,
+            "generationMs": 114,
+            "ended": "toolCall",
+            "tools": [
+              "list_teams",
+              "list_issues"
+            ],
+            "usage": {
+              "promptTokens": 22202,
+              "outputTokens": 27,
+              "thoughtsTokens": 239
+            },
+            "endMs": 11743
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 2172,
+            "generationMs": 66,
+            "ended": "toolCall",
+            "tools": [
+              "list_issues"
+            ],
+            "usage": {
+              "promptTokens": 24639,
+              "outputTokens": 19,
+              "thoughtsTokens": 24,
+              "cachedTokens": 22192
+            },
+            "endMs": 14307
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 57090,
+            "generationMs": 12358,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 28624,
+              "outputTokens": 2190,
+              "thoughtsTokens": 8243,
+              "cachedTokens": 24642
+            },
+            "endMs": 83779
+          }
+        ],
+        "gmail": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 4742,
+            "generationMs": 82,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 39093,
+              "outputTokens": 20,
+              "thoughtsTokens": 257
+            },
+            "endMs": 19697
+          },
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 4575,
+            "generationMs": 72,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 39093,
+              "outputTokens": 20,
+              "thoughtsTokens": 313
+            },
+            "endMs": 20217
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 3265,
+            "generationMs": 85,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 55917,
+              "outputTokens": 20,
+              "thoughtsTokens": 55,
+              "cachedTokens": 39111
+            },
+            "endMs": 24895
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 5020,
+            "generationMs": 67,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 64156,
+              "outputTokens": 20,
+              "thoughtsTokens": 245,
+              "cachedTokens": 39119
+            },
+            "endMs": 26538
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 3016,
+            "generationMs": 94,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 56100,
+              "outputTokens": 18,
+              "thoughtsTokens": 29,
+              "cachedTokens": 53861
+            },
+            "endMs": 28734
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 2469,
+            "generationMs": 75,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 56255,
+              "outputTokens": 29,
+              "thoughtsTokens": 42,
+              "cachedTokens": 54044
+            },
+            "endMs": 32611
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 5671,
+            "generationMs": 86,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 78879,
+              "outputTokens": 17,
+              "thoughtsTokens": 550,
+              "cachedTokens": 64165
+            },
+            "endMs": 34800
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 2536,
+            "generationMs": 82,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 56434,
+              "outputTokens": 25,
+              "thoughtsTokens": 19,
+              "cachedTokens": 54199
+            },
+            "endMs": 36978
+          },
+          {
+            "attempt": 1,
+            "step": 6,
+            "firstTokenMs": 2898,
+            "generationMs": 80,
+            "ended": "toolCall",
+            "tools": [
+              "list_drafts"
+            ],
+            "usage": {
+              "promptTokens": 74041,
+              "outputTokens": 22,
+              "thoughtsTokens": 18,
+              "cachedTokens": 56455
+            },
+            "endMs": 42071
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 6649,
+            "generationMs": 98,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 104580,
+              "outputTokens": 22,
+              "thoughtsTokens": 621,
+              "cachedTokens": 78897
+            },
+            "endMs": 43066
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 3074,
+            "generationMs": 92,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 111748,
+              "outputTokens": 39,
+              "thoughtsTokens": 70,
+              "cachedTokens": 104577
+            },
+            "endMs": 46613
+          },
+          {
+            "attempt": 1,
+            "step": 7,
+            "firstTokenMs": 4439,
+            "generationMs": 78,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 98941,
+              "outputTokens": 40,
+              "thoughtsTokens": 192,
+              "cachedTokens": 74067
+            },
+            "endMs": 47963
+          },
+          {
+            "attempt": 1,
+            "step": 8,
+            "firstTokenMs": 4487,
+            "generationMs": 111,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 103846,
+              "outputTokens": 21,
+              "thoughtsTokens": 263,
+              "cachedTokens": 98938
+            },
+            "endMs": 54811
+          },
+          {
+            "attempt": 1,
+            "step": 6,
+            "firstTokenMs": 7589,
+            "generationMs": 86,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 113051,
+              "outputTokens": 40,
+              "thoughtsTokens": 826,
+              "cachedTokens": 109691
+            },
+            "endMs": 55568
+          },
+          {
+            "attempt": 1,
+            "step": 7,
+            "firstTokenMs": 2712,
+            "generationMs": 92,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 115177,
+              "outputTokens": 38,
+              "thoughtsTokens": 19,
+              "cachedTokens": 113043
+            },
+            "endMs": 59495
+          },
+          {
+            "attempt": 1,
+            "step": 9,
+            "firstTokenMs": 4211,
+            "generationMs": 88,
+            "ended": "toolCall",
+            "tools": [
+              "list_labels"
+            ],
+            "usage": {
+              "promptTokens": 120621,
+              "outputTokens": 10,
+              "thoughtsTokens": 174,
+              "cachedTokens": 103858
+            },
+            "endMs": 60419
+          },
+          {
+            "attempt": 1,
+            "step": 8,
+            "firstTokenMs": 2973,
+            "generationMs": 86,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 116460,
+              "outputTokens": 40,
+              "thoughtsTokens": 39,
+              "cachedTokens": 113906
+            },
+            "endMs": 62932
+          },
+          {
+            "attempt": 1,
+            "step": 10,
+            "firstTokenMs": 3760,
+            "generationMs": 106,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 122966,
+              "outputTokens": 18,
+              "thoughtsTokens": 134,
+              "cachedTokens": 120614
+            },
+            "endMs": 65365
+          },
+          {
+            "attempt": 1,
+            "step": 9,
+            "firstTokenMs": 2587,
+            "generationMs": 105,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 117897,
+              "outputTokens": 40,
+              "thoughtsTokens": 21,
+              "cachedTokens": 115223
+            },
+            "endMs": 66791
+          },
+          {
+            "attempt": 1,
+            "step": 11,
+            "firstTokenMs": 2763,
+            "generationMs": 90,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 129767,
+              "outputTokens": 41,
+              "thoughtsTokens": 69,
+              "cachedTokens": 122965
+            },
+            "endMs": 69458
+          },
+          {
+            "attempt": 1,
+            "step": 12,
+            "firstTokenMs": 3450,
+            "generationMs": 99,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 134774,
+              "outputTokens": 22,
+              "thoughtsTokens": 61,
+              "cachedTokens": 129764
+            },
+            "endMs": 75759
+          },
+          {
+            "attempt": 1,
+            "step": 13,
+            "firstTokenMs": 4647,
+            "generationMs": 103,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 155807,
+              "outputTokens": 59,
+              "thoughtsTokens": 266,
+              "cachedTokens": 134791
+            },
+            "endMs": 81191
+          },
+          {
+            "attempt": 1,
+            "step": 14,
+            "firstTokenMs": 2864,
+            "generationMs": 103,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 156240,
+              "outputTokens": 23,
+              "thoughtsTokens": 60,
+              "cachedTokens": 153750
+            },
+            "endMs": 85737
+          },
+          {
+            "attempt": 1,
+            "step": 15,
+            "firstTokenMs": 13509,
+            "generationMs": 147,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 159659,
+              "outputTokens": 26,
+              "thoughtsTokens": 1412,
+              "cachedTokens": 156234
+            },
+            "endMs": 101105
+          },
+          {
+            "attempt": 1,
+            "step": 16,
+            "firstTokenMs": 3968,
+            "generationMs": 125,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 182571,
+              "outputTokens": 45,
+              "thoughtsTokens": 87,
+              "cachedTokens": 159678
+            },
+            "endMs": 107868
+          },
+          {
+            "attempt": 1,
+            "step": 10,
+            "firstTokenMs": 40824,
+            "generationMs": 9179,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 119273,
+              "outputTokens": 1780,
+              "thoughtsTokens": 5779,
+              "cachedTokens": 116529
+            },
+            "endMs": 116814
+          },
+          {
+            "attempt": 1,
+            "step": 17,
+            "firstTokenMs": 18686,
+            "generationMs": 149,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 201233,
+              "outputTokens": 38,
+              "thoughtsTokens": 2283,
+              "cachedTokens": 182583
+            },
+            "endMs": 128085
+          },
+          {
+            "attempt": 1,
+            "step": 18,
+            "firstTokenMs": 35163,
+            "generationMs": 3420,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 204506,
+              "outputTokens": 687,
+              "thoughtsTokens": 5137,
+              "cachedTokens": 201227
+            },
+            "endMs": 166682
+          }
+        ]
+      }
+    },
+    {
+      "planner": "claude-sonnet-5-5",
+      "pass": 1,
+      "prompt": "control",
+      "utterance": "show my open pull requests",
+      "turnId": "29ddb6f2-3954-482b-8f70-02bcc6d79022",
+      "counted": true,
+      "at": "2026-10-30T10:35:57.520Z",
+      "outcome": "completed",
+      "finalMs": 207319,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 3677,
+        "shortlistMs": 2,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "claude-sonnet-5-5",
+            "startMs": 2,
+            "modelMs": 3672,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 33707,
+              "outputTokens": 207,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          }
+        ]
+      },
+      "dispatch": [
+        {
+          "source": "github.2",
+          "app": "github",
+          "outcome": "completed",
+          "startMs": 3677,
+          "firstPaintMs": 192713,
+          "settledMs": 207319,
+          "endMs": 207319
+        }
+      ],
+      "agents": {
+        "github": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 4724,
+            "generationMs": 110,
+            "ended": "toolCall",
+            "tools": [
+              "get_me"
+            ],
+            "usage": {
+              "promptTokens": 106602,
+              "outputTokens": 10,
+              "thoughtsTokens": 138
+            },
+            "endMs": 11172
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 3273,
+            "generationMs": 123,
+            "ended": "toolCall",
+            "tools": [
+              "search_pull_requests"
+            ],
+            "usage": {
+              "promptTokens": 107091,
+              "outputTokens": 28,
+              "thoughtsTokens": 51,
+              "cachedTokens": 104553
+            },
+            "endMs": 16528
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 8169,
+            "generationMs": 99,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 128110,
+              "outputTokens": 44,
+              "thoughtsTokens": 709,
+              "cachedTokens": 107164
+            },
+            "endMs": 26852
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 3558,
+            "generationMs": 105,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 130530,
+              "outputTokens": 46,
+              "thoughtsTokens": 18,
+              "cachedTokens": 128109
+            },
+            "endMs": 32186
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 3882,
+            "generationMs": 101,
+            "ended": "toolCall",
+            "tools": [
+              "search_pull_requests"
+            ],
+            "usage": {
+              "promptTokens": 130924,
+              "outputTokens": 31,
+              "thoughtsTokens": 66,
+              "cachedTokens": 128479
+            },
+            "endMs": 37300
+          },
+          {
+            "attempt": 1,
+            "step": 6,
+            "firstTokenMs": 8648,
+            "generationMs": 119,
+            "ended": "toolCall",
+            "tools": [
+              "search_pull_requests"
+            ],
+            "usage": {
+              "promptTokens": 131173,
+              "outputTokens": 33,
+              "thoughtsTokens": 21,
+              "cachedTokens": 128873
+            },
+            "endMs": 47256
+          },
+          {
+            "attempt": 1,
+            "step": 7,
+            "firstTokenMs": 3129,
+            "generationMs": 109,
+            "ended": "toolCall",
+            "tools": [
+              "search_pull_requests"
+            ],
+            "usage": {
+              "promptTokens": 131379,
+              "outputTokens": 31,
+              "thoughtsTokens": 9,
+              "cachedTokens": 129122
+            },
+            "endMs": 52158
+          },
+          {
+            "attempt": 1,
+            "step": 8,
+            "firstTokenMs": 5448,
+            "generationMs": 109,
+            "ended": "toolCall",
+            "tools": [
+              "search_pull_requests"
+            ],
+            "usage": {
+              "promptTokens": 149519,
+              "outputTokens": 31,
+              "thoughtsTokens": 146,
+              "cachedTokens": 131436
+            },
+            "endMs": 59530
+          },
+          {
+            "attempt": 1,
+            "step": 9,
+            "firstTokenMs": 3790,
+            "generationMs": 102,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 170636,
+              "outputTokens": 42,
+              "thoughtsTokens": 111,
+              "cachedTokens": 149579
+            },
+            "endMs": 64804
+          },
+          {
+            "attempt": 1,
+            "step": 10,
+            "firstTokenMs": 7022,
+            "generationMs": 105,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 170819,
+              "outputTokens": 40,
+              "thoughtsTokens": 11,
+              "cachedTokens": 168583
+            },
+            "endMs": 73332
+          },
+          {
+            "attempt": 1,
+            "step": 11,
+            "firstTokenMs": 4029,
+            "generationMs": 95,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 171541,
+              "outputTokens": 40,
+              "thoughtsTokens": 36,
+              "cachedTokens": 168768
+            },
+            "endMs": 78759
+          },
+          {
+            "attempt": 1,
+            "step": 12,
+            "firstTokenMs": 3778,
+            "generationMs": 92,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 172289,
+              "outputTokens": 40,
+              "thoughtsTokens": 5,
+              "cachedTokens": 169490
+            },
+            "endMs": 84048
+          },
+          {
+            "attempt": 1,
+            "step": 13,
+            "firstTokenMs": 5149,
+            "generationMs": 109,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 173008,
+              "outputTokens": 46,
+              "thoughtsTokens": 245,
+              "cachedTokens": 170238
+            },
+            "endMs": 90800
+          },
+          {
+            "attempt": 1,
+            "step": 14,
+            "firstTokenMs": 2854,
+            "generationMs": 117,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 173329,
+              "outputTokens": 46,
+              "thoughtsTokens": 10,
+              "cachedTokens": 170956
+            },
+            "endMs": 95226
+          },
+          {
+            "attempt": 1,
+            "step": 15,
+            "firstTokenMs": 3167,
+            "generationMs": 134,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 173415,
+              "outputTokens": 46,
+              "thoughtsTokens": 10,
+              "cachedTokens": 171276
+            },
+            "endMs": 99903
+          },
+          {
+            "attempt": 1,
+            "step": 16,
+            "firstTokenMs": 3381,
+            "generationMs": 123,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 174978,
+              "outputTokens": 46,
+              "thoughtsTokens": 10,
+              "cachedTokens": 172309
+            },
+            "endMs": 105200
+          },
+          {
+            "attempt": 1,
+            "step": 17,
+            "firstTokenMs": 3659,
+            "generationMs": 115,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 176913,
+              "outputTokens": 46,
+              "thoughtsTokens": 10,
+              "cachedTokens": 173469
+            },
+            "endMs": 110665
+          },
+          {
+            "attempt": 1,
+            "step": 18,
+            "firstTokenMs": 81447,
+            "generationMs": 15137,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 178550,
+              "outputTokens": 2707,
+              "thoughtsTokens": 12111,
+              "cachedTokens": 174866
+            },
+            "endMs": 207317
+          }
+        ]
+      }
+    },
+    {
+      "planner": "claude-sonnet-5-5",
+      "pass": 1,
+      "prompt": "camera",
+      "utterance": "Compare camera prices at Shop A and Shop B.",
+      "turnId": "f2edb1ff-13a9-4212-9145-3ae9fed75bc7",
+      "counted": true,
+      "at": "2026-10-30T10:40:15.928Z",
+      "outcome": "completed",
+      "finalMs": 50989,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 6148,
+        "shortlistMs": 5,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [
+          {
+            "name": "search_store",
+            "ms": 21
+          }
+        ],
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "claude-sonnet-5-5",
+            "startMs": 5,
+            "modelMs": 2443,
+            "ended": "toolCall",
+            "finish": "tool-calls",
+            "tools": [
+              "search_store"
+            ],
+            "usage": {
+              "promptTokens": 33483,
+              "outputTokens": 90,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "model": "claude-sonnet-5-5",
+            "startMs": 2470,
+            "modelMs": 3671,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 33911,
+              "outputTokens": 444,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          }
+        ]
+      },
+      "dispatch": [
+        {
+          "source": "shop-a",
+          "app": "shop-a",
+          "outcome": "completed",
+          "startMs": 6150,
+          "firstPaintMs": 45275,
+          "settledMs": 50989,
+          "endMs": 50989
+        }
+      ],
+      "synthesis": {
+        "outcome": "skipped",
+        "collapse": "few",
+        "attempts": 0,
+        "requests": []
+      },
+      "agents": {
+        "shop-a": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 3329,
+            "generationMs": 56,
+            "ended": "toolCall",
+            "tools": [
+              "list_cameras"
+            ],
+            "usage": {
+              "promptTokens": 15449,
+              "outputTokens": 10,
+              "thoughtsTokens": 159
+            },
+            "endMs": 9573
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 35032,
+            "generationMs": 6368,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 15761,
+              "outputTokens": 1158,
+              "thoughtsTokens": 5208,
+              "cachedTokens": 13393
+            },
+            "endMs": 50987
+          }
+        ]
+      }
+    },
+    {
+      "planner": "claude-haiku-5-5",
+      "pass": 1,
+      "prompt": "p1",
+      "utterance": "Which of my open pull requests are blocked on something outside GitHub?",
+      "turnId": "c28d1aa7-6d23-4cf3-90d4-f9cf7a068c57",
+      "counted": true,
+      "at": "2026-10-30T10:42:10.370Z",
+      "outcome": "completed",
+      "finalMs": 173545,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 3906,
+        "shortlistMs": 4,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "claude-haiku-5-5",
+            "startMs": 4,
+            "modelMs": 3877,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 33722,
+              "outputTokens": 745,
+              "reasoningTokens": 0,
+              "cachedTokens": 0,
+              "cacheWriteTokens": 30416
+            }
+          }
+        ]
+      },
+      "dispatch": [
+        {
+          "source": "linear.2",
+          "app": "linear",
+          "outcome": "completed",
+          "startMs": 3910,
+          "firstPaintMs": 117246,
+          "settledMs": 123370,
+          "endMs": 123369
+        },
+        {
+          "source": "github.2",
+          "app": "github",
+          "outcome": "completed",
+          "startMs": 3909,
+          "firstPaintMs": 151773,
+          "settledMs": 161704,
+          "endMs": 161704
+        },
+        {
+          "source": "circleci.1",
+          "app": "circleci",
+          "outcome": "completed",
+          "startMs": 3910,
+          "firstPaintMs": 148531,
+          "settledMs": 162035,
+          "endMs": 162035
+        }
+      ],
+      "synthesis": {
+        "outcome": "synthesized",
+        "release": "settled",
+        "releaseMs": 162036,
+        "deadAirMs": 11509,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "gemini-3.8-flash",
+            "startMs": 1,
+            "modelMs": 11483,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 16149,
+              "outputTokens": 1800,
+              "reasoningTokens": 0,
+              "cachedTokens": 0
+            }
+          }
+        ]
+      },
+      "agents": {
+        "circleci": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 3618,
+            "generationMs": 66,
+            "ended": "toolCall",
+            "tools": [
+              "list_projects"
+            ],
+            "usage": {
+              "promptTokens": 22493,
+              "outputTokens": 10,
+              "thoughtsTokens": 221
+            },
+            "endMs": 9124
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 4297,
+            "generationMs": 71,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 22784,
+              "outputTokens": 55,
+              "thoughtsTokens": 281,
+              "cachedTokens": 20436
+            },
+            "endMs": 14330
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 4461,
+            "generationMs": 81,
+            "ended": "toolCall",
+            "tools": [
+              "get_run"
+            ],
+            "usage": {
+              "promptTokens": 31966,
+              "outputTokens": 49,
+              "thoughtsTokens": 298,
+              "cachedTokens": 22801
+            },
+            "endMs": 19186
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 33491,
+            "generationMs": 94,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 32892,
+              "outputTokens": 56,
+              "thoughtsTokens": 4465,
+              "cachedTokens": 29915
+            },
+            "endMs": 53381
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 5485,
+            "generationMs": 79,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 37454,
+              "outputTokens": 61,
+              "thoughtsTokens": 38,
+              "cachedTokens": 32896
+            },
+            "endMs": 59582
+          },
+          {
+            "attempt": 1,
+            "step": 6,
+            "firstTokenMs": 2461,
+            "generationMs": 91,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 42165,
+              "outputTokens": 14,
+              "thoughtsTokens": 26,
+              "cachedTokens": 37458
+            },
+            "endMs": 62495
+          },
+          {
+            "attempt": 1,
+            "step": 7,
+            "firstTokenMs": 17300,
+            "generationMs": 98,
+            "ended": "toolCall",
+            "tools": [
+              "list_run_workflows"
+            ],
+            "usage": {
+              "promptTokens": 46817,
+              "outputTokens": 51,
+              "thoughtsTokens": 2199,
+              "cachedTokens": 42168
+            },
+            "endMs": 80528
+          },
+          {
+            "attempt": 1,
+            "step": 8,
+            "firstTokenMs": 2384,
+            "generationMs": 101,
+            "ended": "toolCall",
+            "tools": [
+              "list_run_workflows"
+            ],
+            "usage": {
+              "promptTokens": 49353,
+              "outputTokens": 49,
+              "thoughtsTokens": 13,
+              "cachedTokens": 46814
+            },
+            "endMs": 83606
+          },
+          {
+            "attempt": 1,
+            "step": 9,
+            "firstTokenMs": 6195,
+            "generationMs": 105,
+            "ended": "toolCall",
+            "tools": [
+              "list_run_workflows"
+            ],
+            "usage": {
+              "promptTokens": 49698,
+              "outputTokens": 49,
+              "thoughtsTokens": 116,
+              "cachedTokens": 47300
+            },
+            "endMs": 90527
+          },
+          {
+            "attempt": 1,
+            "step": 10,
+            "firstTokenMs": 2529,
+            "generationMs": 84,
+            "ended": "toolCall",
+            "tools": [
+              "list_run_workflows"
+            ],
+            "usage": {
+              "promptTokens": 50150,
+              "outputTokens": 50,
+              "thoughtsTokens": 48,
+              "cachedTokens": 47646
+            },
+            "endMs": 93756
+          },
+          {
+            "attempt": 1,
+            "step": 11,
+            "firstTokenMs": 24187,
+            "generationMs": 94,
+            "ended": "toolCall",
+            "tools": [
+              "list_run_workflows"
+            ],
+            "usage": {
+              "promptTokens": 50535,
+              "outputTokens": 50,
+              "thoughtsTokens": 3535,
+              "cachedTokens": 48098
+            },
+            "endMs": 118685
+          },
+          {
+            "attempt": 1,
+            "step": 12,
+            "firstTokenMs": 29240,
+            "generationMs": 14083,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 54405,
+              "outputTokens": 2522,
+              "thoughtsTokens": 4479,
+              "cachedTokens": 50538
+            },
+            "endMs": 162033
+          }
+        ],
+        "linear": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 4691,
+            "generationMs": 63,
+            "ended": "toolCall",
+            "tools": [
+              "list_teams"
+            ],
+            "usage": {
+              "promptTokens": 22216,
+              "outputTokens": 10,
+              "thoughtsTokens": 228
+            },
+            "endMs": 10090
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 3306,
+            "generationMs": 62,
+            "ended": "toolCall",
+            "tools": [
+              "list_issue_statuses"
+            ],
+            "usage": {
+              "promptTokens": 22606,
+              "outputTokens": 21,
+              "thoughtsTokens": 72,
+              "cachedTokens": 20159
+            },
+            "endMs": 13742
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 6309,
+            "generationMs": 60,
+            "ended": "toolCall",
+            "tools": [
+              "list_issue_labels"
+            ],
+            "usage": {
+              "promptTokens": 23044,
+              "outputTokens": 21,
+              "thoughtsTokens": 83,
+              "cachedTokens": 20555
+            },
+            "endMs": 20627
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 3038,
+            "generationMs": 57,
+            "ended": "toolCall",
+            "tools": [
+              "list_issues"
+            ],
+            "usage": {
+              "promptTokens": 23360,
+              "outputTokens": 66,
+              "thoughtsTokens": 13,
+              "cachedTokens": 20993
+            },
+            "endMs": 24104
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 3714,
+            "generationMs": 56,
+            "ended": "toolCall",
+            "tools": [
+              "get_issue"
+            ],
+            "usage": {
+              "promptTokens": 24329,
+              "outputTokens": 71,
+              "thoughtsTokens": 101,
+              "cachedTokens": 22056
+            },
+            "endMs": 28233
+          },
+          {
+            "attempt": 1,
+            "step": 6,
+            "firstTokenMs": 3225,
+            "generationMs": 56,
+            "ended": "toolCall",
+            "tools": [
+              "get_issue"
+            ],
+            "usage": {
+              "promptTokens": 24737,
+              "outputTokens": 71,
+              "thoughtsTokens": 71,
+              "cachedTokens": 22674
+            },
+            "endMs": 31876
+          },
+          {
+            "attempt": 1,
+            "step": 7,
+            "firstTokenMs": 2943,
+            "generationMs": 65,
+            "ended": "toolCall",
+            "tools": [
+              "get_issue"
+            ],
+            "usage": {
+              "promptTokens": 25175,
+              "outputTokens": 71,
+              "thoughtsTokens": 64,
+              "cachedTokens": 22689
+            },
+            "endMs": 35202
+          },
+          {
+            "attempt": 1,
+            "step": 8,
+            "firstTokenMs": 4940,
+            "generationMs": 68,
+            "ended": "toolCall",
+            "tools": [
+              "get_issue"
+            ],
+            "usage": {
+              "promptTokens": 25535,
+              "outputTokens": 71,
+              "thoughtsTokens": 31,
+              "cachedTokens": 23128
+            },
+            "endMs": 40496
+          },
+          {
+            "attempt": 1,
+            "step": 9,
+            "firstTokenMs": 10244,
+            "generationMs": 60,
+            "ended": "toolCall",
+            "tools": [
+              "get_issue"
+            ],
+            "usage": {
+              "promptTokens": 25955,
+              "outputTokens": 52,
+              "thoughtsTokens": 230,
+              "cachedTokens": 23489
+            },
+            "endMs": 51202
+          },
+          {
+            "attempt": 1,
+            "step": 10,
+            "firstTokenMs": 48349,
+            "generationMs": 69,
+            "ended": "toolCall",
+            "tools": [
+              "get_issue"
+            ],
+            "usage": {
+              "promptTokens": 26311,
+              "outputTokens": 52,
+              "thoughtsTokens": 6971,
+              "cachedTokens": 23909
+            },
+            "endMs": 100205
+          },
+          {
+            "attempt": 1,
+            "step": 11,
+            "firstTokenMs": 16198,
+            "generationMs": 6943,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 33407,
+              "outputTokens": 1204,
+              "thoughtsTokens": 2004,
+              "cachedTokens": 26336
+            },
+            "endMs": 123365
+          }
+        ],
+        "github": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 4298,
+            "generationMs": 101,
+            "ended": "toolCall",
+            "tools": [
+              "get_me"
+            ],
+            "usage": {
+              "promptTokens": 106651,
+              "outputTokens": 10,
+              "thoughtsTokens": 176
+            },
+            "endMs": 10963
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 2792,
+            "generationMs": 107,
+            "ended": "toolCall",
+            "tools": [
+              "search_pull_requests"
+            ],
+            "usage": {
+              "promptTokens": 107178,
+              "outputTokens": 28,
+              "thoughtsTokens": 50,
+              "cachedTokens": 104602
+            },
+            "endMs": 15720
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 7788,
+            "generationMs": 104,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 128196,
+              "outputTokens": 40,
+              "thoughtsTokens": 852,
+              "cachedTokens": 107251
+            },
+            "endMs": 24948
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 8489,
+            "generationMs": 121,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 129758,
+              "outputTokens": 44,
+              "thoughtsTokens": 14,
+              "cachedTokens": 126150
+            },
+            "endMs": 35069
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 2711,
+            "generationMs": 80,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 130040,
+              "outputTokens": 42,
+              "thoughtsTokens": 17,
+              "cachedTokens": 127707
+            },
+            "endMs": 39106
+          },
+          {
+            "attempt": 1,
+            "step": 6,
+            "firstTokenMs": 4431,
+            "generationMs": 92,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 130612,
+              "outputTokens": 40,
+              "thoughtsTokens": 270,
+              "cachedTokens": 127990
+            },
+            "endMs": 44880
+          },
+          {
+            "attempt": 1,
+            "step": 7,
+            "firstTokenMs": 2766,
+            "generationMs": 104,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 131594,
+              "outputTokens": 42,
+              "thoughtsTokens": 17,
+              "cachedTokens": 128564
+            },
+            "endMs": 49205
+          },
+          {
+            "attempt": 1,
+            "step": 8,
+            "firstTokenMs": 3947,
+            "generationMs": 102,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 132161,
+              "outputTokens": 42,
+              "thoughtsTokens": 11,
+              "cachedTokens": 129545
+            },
+            "endMs": 54551
+          },
+          {
+            "attempt": 1,
+            "step": 9,
+            "firstTokenMs": 3495,
+            "generationMs": 101,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 132497,
+              "outputTokens": 40,
+              "thoughtsTokens": 71,
+              "cachedTokens": 130111
+            },
+            "endMs": 59290
+          },
+          {
+            "attempt": 1,
+            "step": 10,
+            "firstTokenMs": 2962,
+            "generationMs": 98,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 133282,
+              "outputTokens": 42,
+              "thoughtsTokens": 9,
+              "cachedTokens": 130449
+            },
+            "endMs": 63426
+          },
+          {
+            "attempt": 1,
+            "step": 11,
+            "firstTokenMs": 3304,
+            "generationMs": 96,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 133613,
+              "outputTokens": 44,
+              "thoughtsTokens": 111,
+              "cachedTokens": 131232
+            },
+            "endMs": 68765
+          },
+          {
+            "attempt": 1,
+            "step": 12,
+            "firstTokenMs": 2869,
+            "generationMs": 109,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 136376,
+              "outputTokens": 46,
+              "thoughtsTokens": 14,
+              "cachedTokens": 133615
+            },
+            "endMs": 73938
+          },
+          {
+            "attempt": 1,
+            "step": 13,
+            "firstTokenMs": 2815,
+            "generationMs": 96,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 136707,
+              "outputTokens": 48,
+              "thoughtsTokens": 13,
+              "cachedTokens": 134326
+            },
+            "endMs": 79053
+          },
+          {
+            "attempt": 1,
+            "step": 14,
+            "firstTokenMs": 23303,
+            "generationMs": 99,
+            "ended": "toolCall",
+            "tools": [
+              "list_pull_requests"
+            ],
+            "usage": {
+              "promptTokens": 138159,
+              "outputTokens": 35,
+              "thoughtsTokens": 3310,
+              "cachedTokens": 134662
+            },
+            "endMs": 103566
+          },
+          {
+            "attempt": 1,
+            "step": 15,
+            "firstTokenMs": 3301,
+            "generationMs": 102,
+            "ended": "toolCall",
+            "tools": [
+              "pull_request_read"
+            ],
+            "usage": {
+              "promptTokens": 142790,
+              "outputTokens": 42,
+              "thoughtsTokens": 31,
+              "cachedTokens": 138169
+            },
+            "endMs": 108508
+          },
+          {
+            "attempt": 1,
+            "step": 16,
+            "firstTokenMs": 42623,
+            "generationMs": 10509,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 143376,
+              "outputTokens": 2083,
+              "thoughtsTokens": 3519,
+              "cachedTokens": 140741
+            },
+            "endMs": 161702
+          }
+        ]
+      },
+      "mark": "first turn after the orchestrator booted"
+    },
+    {
+      "planner": "claude-haiku-5-5",
+      "pass": 1,
+      "prompt": "p4",
+      "utterance": "Help me close out A2U-7: show the issue, its pull request and its CI run, and let me act on each.",
+      "turnId": "5fe29162-8697-45a3-8a32-ec70f1d9edfa",
+      "counted": true,
+      "at": "2026-10-30T10:45:22.367Z",
+      "outcome": "failed",
+      "plan": {
+        "outcome": "malformed",
+        "planMs": 5991,
+        "shortlistMs": 6,
+        "effort": "low",
+        "attempts": 2,
+        "refused": 2,
+        "tools": [],
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "claude-haiku-5-5",
+            "startMs": 7,
+            "modelMs": 3612,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 33749,
+              "outputTokens": 569,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          },
+          {
+            "attempt": 2,
+            "step": 1,
+            "model": "claude-haiku-5-5",
+            "startMs": 3623,
+            "modelMs": 2365,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 34412,
+              "outputTokens": 554,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          }
+        ]
+      },
+      "dispatch": [],
+      "agents": {}
+    },
+    {
+      "planner": "claude-haiku-5-5",
+      "pass": 1,
+      "prompt": "p6",
+      "utterance": "Is main green right now? Ask CircleCI and GitHub.",
+      "turnId": "c5b2a19a-885e-4b49-8ac3-4d41fac65c0a",
+      "counted": true,
+      "at": "2026-10-30T10:45:49.845Z",
+      "outcome": "completed",
+      "finalMs": 121795,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 2997,
+        "shortlistMs": 5,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "claude-haiku-5-5",
+            "startMs": 6,
+            "modelMs": 2990,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 33737,
+              "outputTokens": 295,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          }
+        ]
+      },
+      "dispatch": [
+        {
+          "source": "circleci.1",
+          "app": "circleci",
+          "outcome": "completed",
+          "startMs": 2998,
+          "firstPaintMs": 56868,
+          "settledMs": 63536,
+          "endMs": 63536
+        },
+        {
+          "source": "github.2",
+          "app": "github",
+          "outcome": "completed",
+          "startMs": 2998,
+          "firstPaintMs": 114460,
+          "settledMs": 121795,
+          "endMs": 121794
+        }
+      ],
+      "agents": {
+        "circleci": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 3218,
+            "generationMs": 66,
+            "ended": "toolCall",
+            "tools": [
+              "list_projects"
+            ],
+            "usage": {
+              "promptTokens": 22502,
+              "outputTokens": 10,
+              "thoughtsTokens": 140
+            },
+            "endMs": 7678
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 3156,
+            "generationMs": 66,
+            "ended": "toolCall",
+            "tools": [
+              "list_runs"
+            ],
+            "usage": {
+              "promptTokens": 22712,
+              "outputTokens": 60,
+              "thoughtsTokens": 121,
+              "cachedTokens": 20445
+            },
+            "endMs": 11667
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 2566,
+            "generationMs": 67,
+            "ended": "toolCall",
+            "tools": [
+              "list_run_workflows"
+            ],
+            "usage": {
+              "promptTokens": 25166,
+              "outputTokens": 50,
+              "thoughtsTokens": 24,
+              "cachedTokens": 22711
+            },
+            "endMs": 14890
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 2695,
+            "generationMs": 69,
+            "ended": "toolCall",
+            "tools": [
+              "list_workflow_jobs"
+            ],
+            "usage": {
+              "promptTokens": 25527,
+              "outputTokens": 51,
+              "thoughtsTokens": 45,
+              "cachedTokens": 23116
+            },
+            "endMs": 18289
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 37690,
+            "generationMs": 7531,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 26096,
+              "outputTokens": 1301,
+              "thoughtsTokens": 5050,
+              "cachedTokens": 23478
+            },
+            "endMs": 63534
+          }
+        ],
+        "github": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 13956,
+            "generationMs": 110,
+            "ended": "toolCall",
+            "tools": [
+              "get_me"
+            ],
+            "usage": {
+              "promptTokens": 106606,
+              "outputTokens": 10,
+              "thoughtsTokens": 1391
+            },
+            "endMs": 19709
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 15153,
+            "generationMs": 106,
+            "ended": "toolCall",
+            "tools": [
+              "search_repositories"
+            ],
+            "usage": {
+              "promptTokens": 108347,
+              "outputTokens": 40,
+              "thoughtsTokens": 1706,
+              "cachedTokens": 104563
+            },
+            "endMs": 36170
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 77599,
+            "generationMs": 7980,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 111491,
+              "outputTokens": 1379,
+              "thoughtsTokens": 11267,
+              "cachedTokens": 108351
+            },
+            "endMs": 121793
+          }
+        ]
+      }
+    },
+    {
+      "planner": "claude-haiku-5-5",
+      "pass": 1,
+      "prompt": "p10",
+      "utterance": "Across both my Gmail accounts, which threads mention a Linear issue, and what state is it in?",
+      "turnId": "bd6bbf3e-7d1f-413e-a488-2244cfab7432",
+      "counted": true,
+      "at": "2026-10-30T10:48:05.885Z",
+      "outcome": "completed",
+      "finalMs": 278310,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 5701,
+        "shortlistMs": 3,
+        "effort": "low",
+        "attempts": 2,
+        "refused": 1,
+        "tools": [],
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "claude-haiku-5-5",
+            "startMs": 3,
+            "modelMs": 3250,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 33290,
+              "outputTokens": 728,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          },
+          {
+            "attempt": 2,
+            "step": 1,
+            "model": "claude-haiku-5-5",
+            "startMs": 3255,
+            "modelMs": 2443,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 34112,
+              "outputTokens": 691,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          }
+        ]
+      },
+      "dispatch": [
+        {
+          "source": "linear.2",
+          "app": "linear",
+          "outcome": "completed",
+          "startMs": 5702,
+          "settledMs": 29793,
+          "endMs": 29793
+        },
+        {
+          "source": "gmail.3",
+          "app": "gmail",
+          "outcome": "completed",
+          "startMs": 5702,
+          "firstPaintMs": 198423,
+          "settledMs": 206168,
+          "endMs": 206167
+        },
+        {
+          "source": "gmail.2",
+          "app": "gmail",
+          "outcome": "completed",
+          "startMs": 5701,
+          "firstPaintMs": 245758,
+          "settledMs": 256711,
+          "endMs": 256711
+        }
+      ],
+      "synthesis": {
+        "outcome": "synthesized",
+        "release": "settled",
+        "releaseMs": 256711,
+        "deadAirMs": 21599,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "gemini-3.8-flash",
+            "startMs": 1,
+            "modelMs": 21587,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 15267,
+              "outputTokens": 3285,
+              "reasoningTokens": 0,
+              "cachedTokens": 14006
+            }
+          }
+        ]
+      },
+      "agents": {
+        "gmail": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 3862,
+            "generationMs": 77,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 39091,
+              "outputTokens": 16,
+              "thoughtsTokens": 214
+            },
+            "endMs": 11909
+          },
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 5730,
+            "generationMs": 78,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 39091,
+              "outputTokens": 16,
+              "thoughtsTokens": 376
+            },
+            "endMs": 15155
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 4272,
+            "generationMs": 72,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 64107,
+              "outputTokens": 20,
+              "thoughtsTokens": 100,
+              "cachedTokens": 39117
+            },
+            "endMs": 17887
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 5191,
+            "generationMs": 77,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 55974,
+              "outputTokens": 18,
+              "thoughtsTokens": 130
+            },
+            "endMs": 21801
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 6770,
+            "generationMs": 94,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 78685,
+              "outputTokens": 39,
+              "thoughtsTokens": 597,
+              "cachedTokens": 64116
+            },
+            "endMs": 26018
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 3666,
+            "generationMs": 80,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 56230,
+              "outputTokens": 16,
+              "thoughtsTokens": 97,
+              "cachedTokens": 53918
+            },
+            "endMs": 27664
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 3800,
+            "generationMs": 75,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 80515,
+              "outputTokens": 17,
+              "thoughtsTokens": 90,
+              "cachedTokens": 76630
+            },
+            "endMs": 31596
+          },
+          {
+            "attempt": 1,
+            "step": 4,
+            "firstTokenMs": 3841,
+            "generationMs": 75,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 73906,
+              "outputTokens": 18,
+              "thoughtsTokens": 27,
+              "cachedTokens": 56247
+            },
+            "endMs": 32824
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 6480,
+            "generationMs": 78,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 74059,
+              "outputTokens": 25,
+              "thoughtsTokens": 37,
+              "cachedTokens": 71849
+            },
+            "endMs": 40918
+          },
+          {
+            "attempt": 1,
+            "step": 5,
+            "firstTokenMs": 12432,
+            "generationMs": 91,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 105756,
+              "outputTokens": 18,
+              "thoughtsTokens": 822,
+              "cachedTokens": 80534
+            },
+            "endMs": 44752
+          },
+          {
+            "attempt": 1,
+            "step": 6,
+            "firstTokenMs": 4545,
+            "generationMs": 93,
+            "ended": "toolCall",
+            "tools": [
+              "get_message"
+            ],
+            "usage": {
+              "promptTokens": 90612,
+              "outputTokens": 40,
+              "thoughtsTokens": 141,
+              "cachedTokens": 74073
+            },
+            "endMs": 46831
+          },
+          {
+            "attempt": 1,
+            "step": 6,
+            "firstTokenMs": 5063,
+            "generationMs": 105,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 108538,
+              "outputTokens": 41,
+              "thoughtsTokens": 267,
+              "cachedTokens": 105749
+            },
+            "endMs": 51201
+          },
+          {
+            "attempt": 1,
+            "step": 7,
+            "firstTokenMs": 4386,
+            "generationMs": 90,
+            "ended": "toolCall",
+            "tools": [
+              "get_message"
+            ],
+            "usage": {
+              "promptTokens": 95259,
+              "outputTokens": 39,
+              "thoughtsTokens": 60,
+              "cachedTokens": 90609
+            },
+            "endMs": 52601
+          },
+          {
+            "attempt": 1,
+            "step": 7,
+            "firstTokenMs": 5304,
+            "generationMs": 82,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 110213,
+              "outputTokens": 41,
+              "thoughtsTokens": 22,
+              "cachedTokens": 106482
+            },
+            "endMs": 57840
+          },
+          {
+            "attempt": 1,
+            "step": 8,
+            "firstTokenMs": 4051,
+            "generationMs": 93,
+            "ended": "toolCall",
+            "tools": [
+              "list_drafts"
+            ],
+            "usage": {
+              "promptTokens": 99976,
+              "outputTokens": 28,
+              "thoughtsTokens": 30,
+              "cachedTokens": 95256
+            },
+            "endMs": 58033
+          },
+          {
+            "attempt": 1,
+            "step": 9,
+            "firstTokenMs": 3411,
+            "generationMs": 93,
+            "ended": "toolCall",
+            "tools": [
+              "list_drafts"
+            ],
+            "usage": {
+              "promptTokens": 100143,
+              "outputTokens": 22,
+              "thoughtsTokens": 21,
+              "cachedTokens": 97919
+            },
+            "endMs": 63528
+          },
+          {
+            "attempt": 1,
+            "step": 8,
+            "firstTokenMs": 4703,
+            "generationMs": 96,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 111629,
+              "outputTokens": 20,
+              "thoughtsTokens": 247,
+              "cachedTokens": 108835
+            },
+            "endMs": 63982
+          },
+          {
+            "attempt": 1,
+            "step": 10,
+            "firstTokenMs": 5047,
+            "generationMs": 86,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 125046,
+              "outputTokens": 19,
+              "thoughtsTokens": 217,
+              "cachedTokens": 100167
+            },
+            "endMs": 70097
+          },
+          {
+            "attempt": 1,
+            "step": 9,
+            "firstTokenMs": 9564,
+            "generationMs": 96,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 113839,
+              "outputTokens": 16,
+              "thoughtsTokens": 926,
+              "cachedTokens": 111622
+            },
+            "endMs": 75328
+          },
+          {
+            "attempt": 1,
+            "step": 11,
+            "firstTokenMs": 2689,
+            "generationMs": 89,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 125390,
+              "outputTokens": 25,
+              "thoughtsTokens": 17,
+              "cachedTokens": 122989
+            },
+            "endMs": 75381
+          },
+          {
+            "attempt": 1,
+            "step": 10,
+            "firstTokenMs": 5730,
+            "generationMs": 89,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 139567,
+              "outputTokens": 41,
+              "thoughtsTokens": 350,
+              "cachedTokens": 113861
+            },
+            "endMs": 82446
+          },
+          {
+            "attempt": 1,
+            "step": 12,
+            "firstTokenMs": 6058,
+            "generationMs": 115,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 143264,
+              "outputTokens": 23,
+              "thoughtsTokens": 267,
+              "cachedTokens": 125404
+            },
+            "endMs": 84097
+          },
+          {
+            "attempt": 1,
+            "step": 11,
+            "firstTokenMs": 3686,
+            "generationMs": 106,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 141311,
+              "outputTokens": 39,
+              "thoughtsTokens": 33,
+              "cachedTokens": 137511
+            },
+            "endMs": 87380
+          },
+          {
+            "attempt": 1,
+            "step": 13,
+            "firstTokenMs": 3616,
+            "generationMs": 95,
+            "ended": "toolCall",
+            "tools": [
+              "list_labels"
+            ],
+            "usage": {
+              "promptTokens": 162177,
+              "outputTokens": 10,
+              "thoughtsTokens": 42,
+              "cachedTokens": 143277
+            },
+            "endMs": 89080
+          },
+          {
+            "attempt": 1,
+            "step": 14,
+            "firstTokenMs": 5799,
+            "generationMs": 99,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 164390,
+              "outputTokens": 20,
+              "thoughtsTokens": 50,
+              "cachedTokens": 162169
+            },
+            "endMs": 96374
+          },
+          {
+            "attempt": 1,
+            "step": 12,
+            "firstTokenMs": 10978,
+            "generationMs": 113,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 142917,
+              "outputTokens": 40,
+              "thoughtsTokens": 1282,
+              "cachedTokens": 139948
+            },
+            "endMs": 99769
+          },
+          {
+            "attempt": 1,
+            "step": 15,
+            "firstTokenMs": 2840,
+            "generationMs": 89,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 164568,
+              "outputTokens": 19,
+              "thoughtsTokens": 17,
+              "cachedTokens": 162333
+            },
+            "endMs": 100856
+          },
+          {
+            "attempt": 1,
+            "step": 16,
+            "firstTokenMs": 4224,
+            "generationMs": 132,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 166883,
+              "outputTokens": 18,
+              "thoughtsTokens": 134,
+              "cachedTokens": 164561
+            },
+            "endMs": 106931
+          },
+          {
+            "attempt": 1,
+            "step": 17,
+            "firstTokenMs": 3537,
+            "generationMs": 93,
+            "ended": "toolCall",
+            "tools": [
+              "get_message"
+            ],
+            "usage": {
+              "promptTokens": 173684,
+              "outputTokens": 41,
+              "thoughtsTokens": 58,
+              "cachedTokens": 166882
+            },
+            "endMs": 111823
+          },
+          {
+            "attempt": 1,
+            "step": 18,
+            "firstTokenMs": 6279,
+            "generationMs": 116,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 178471,
+              "outputTokens": 22,
+              "thoughtsTokens": 435,
+              "cachedTokens": 173680
+            },
+            "endMs": 118997
+          },
+          {
+            "attempt": 1,
+            "step": 13,
+            "firstTokenMs": 23496,
+            "generationMs": 96,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 146555,
+              "outputTokens": 19,
+              "thoughtsTokens": 3229,
+              "cachedTokens": 142912
+            },
+            "endMs": 124846
+          },
+          {
+            "attempt": 1,
+            "step": 19,
+            "firstTokenMs": 4511,
+            "generationMs": 125,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 179036,
+              "outputTokens": 41,
+              "thoughtsTokens": 107,
+              "cachedTokens": 176414
+            },
+            "endMs": 125995
+          },
+          {
+            "attempt": 1,
+            "step": 14,
+            "firstTokenMs": 6920,
+            "generationMs": 95,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 151564,
+              "outputTokens": 40,
+              "thoughtsTokens": 531,
+              "cachedTokens": 146552
+            },
+            "endMs": 132320
+          },
+          {
+            "attempt": 1,
+            "step": 20,
+            "firstTokenMs": 6684,
+            "generationMs": 114,
+            "ended": "toolCall",
+            "tools": [
+              "search_threads"
+            ],
+            "usage": {
+              "promptTokens": 197714,
+              "outputTokens": 17,
+              "thoughtsTokens": 450,
+              "cachedTokens": 179051
+            },
+            "endMs": 135011
+          },
+          {
+            "attempt": 1,
+            "step": 15,
+            "firstTokenMs": 3344,
+            "generationMs": 89,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 153395,
+              "outputTokens": 38,
+              "thoughtsTokens": 19,
+              "cachedTokens": 149509
+            },
+            "endMs": 136893
+          },
+          {
+            "attempt": 1,
+            "step": 16,
+            "firstTokenMs": 59882,
+            "generationMs": 120,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 154678,
+              "outputTokens": 40,
+              "thoughtsTokens": 8119,
+              "cachedTokens": 152124
+            },
+            "endMs": 198159
+          },
+          {
+            "attempt": 1,
+            "step": 17,
+            "firstTokenMs": 5979,
+            "generationMs": 113,
+            "ended": "toolCall",
+            "tools": [
+              "get_thread"
+            ],
+            "usage": {
+              "promptTokens": 164195,
+              "outputTokens": 40,
+              "thoughtsTokens": 21,
+              "cachedTokens": 154682
+            },
+            "endMs": 205512
+          },
+          {
+            "attempt": 1,
+            "step": 21,
+            "firstTokenMs": 62702,
+            "generationMs": 8437,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 210584,
+              "outputTokens": 1453,
+              "thoughtsTokens": 8599,
+              "cachedTokens": 197721
+            },
+            "endMs": 206165
+          },
+          {
+            "attempt": 1,
+            "step": 18,
+            "firstTokenMs": 39446,
+            "generationMs": 11740,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 165571,
+              "outputTokens": 2054,
+              "thoughtsTokens": 4730,
+              "cachedTokens": 162827
+            },
+            "endMs": 256710
+          }
+        ],
+        "linear": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 6616,
+            "generationMs": 64,
+            "ended": "toolCall",
+            "tools": [
+              "list_issues"
+            ],
+            "usage": {
+              "promptTokens": 22209,
+              "outputTokens": 15,
+              "thoughtsTokens": 583
+            },
+            "endMs": 13824
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 7629,
+            "generationMs": 55,
+            "ended": "toolCall",
+            "tools": [
+              "list_comments"
+            ],
+            "usage": {
+              "promptTokens": 26749,
+              "outputTokens": 21,
+              "thoughtsTokens": 784,
+              "cachedTokens": 22212
+            },
+            "endMs": 22282
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 7327,
+            "generationMs": 174,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 27590,
+              "outputTokens": 37,
+              "thoughtsTokens": 749,
+              "cachedTokens": 24698
+            },
+            "endMs": 29784
+          }
+        ]
+      }
+    },
+    {
+      "planner": "claude-haiku-5-5",
+      "pass": 1,
+      "prompt": "control",
+      "utterance": "show my open pull requests",
+      "turnId": "6a157b37-ad00-445e-825f-614a9b41f507",
+      "counted": true,
+      "at": "2026-10-30T10:53:01.053Z",
+      "outcome": "completed",
+      "finalMs": 99725,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 2287,
+        "shortlistMs": 3,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "claude-haiku-5-5",
+            "startMs": 3,
+            "modelMs": 2279,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 33707,
+              "outputTokens": 170,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          }
+        ]
+      },
+      "dispatch": [
+        {
+          "source": "github.2",
+          "app": "github",
+          "outcome": "completed",
+          "startMs": 2294,
+          "firstPaintMs": 80889,
+          "settledMs": 99725,
+          "endMs": 99725
+        }
+      ],
+      "agents": {
+        "github": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "firstTokenMs": 5473,
+            "generationMs": 101,
+            "ended": "toolCall",
+            "tools": [
+              "get_me"
+            ],
+            "usage": {
+              "promptTokens": 106612,
+              "outputTokens": 10,
+              "thoughtsTokens": 285
+            },
+            "endMs": 10524
+          },
+          {
+            "attempt": 1,
+            "step": 2,
+            "firstTokenMs": 4392,
+            "generationMs": 277,
+            "ended": "toolCall",
+            "tools": [
+              "search_pull_requests"
+            ],
+            "usage": {
+              "promptTokens": 107248,
+              "outputTokens": 58,
+              "thoughtsTokens": 75,
+              "cachedTokens": 104564
+            },
+            "endMs": 17074
+          },
+          {
+            "attempt": 1,
+            "step": 3,
+            "firstTokenMs": 63154,
+            "generationMs": 19414,
+            "ended": "text",
+            "usage": {
+              "promptTokens": 130062,
+              "outputTokens": 3462,
+              "thoughtsTokens": 9950,
+              "cachedTokens": 107320
+            },
+            "endMs": 99723
+          }
+        ]
+      }
+    },
+    {
+      "planner": "claude-haiku-5-5",
+      "pass": 1,
+      "prompt": "camera",
+      "utterance": "Compare camera prices at Shop A and Shop B.",
+      "turnId": "ff62de4e-fab0-461c-a668-be55d565e777",
+      "counted": true,
+      "at": "2026-10-30T10:55:21.879Z",
+      "outcome": "failed",
+      "plan": {
+        "outcome": "malformed",
+        "planMs": 5571,
+        "shortlistMs": 4,
+        "effort": "low",
+        "attempts": 2,
+        "refused": 2,
+        "tools": [
+          {
+            "name": "search_store",
+            "ms": 19
+          }
+        ],
+        "requests": [
+          {
+            "attempt": 1,
+            "step": 1,
+            "model": "claude-haiku-5-5",
+            "startMs": 4,
+            "modelMs": 2255,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 33483,
+              "outputTokens": 419,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          },
+          {
+            "attempt": 2,
+            "step": 1,
+            "model": "claude-haiku-5-5",
+            "startMs": 2263,
+            "modelMs": 1200,
+            "ended": "toolCall",
+            "finish": "tool-calls",
+            "tools": [
+              "search_store"
+            ],
+            "usage": {
+              "promptTokens": 34086,
+              "outputTokens": 74,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          },
+          {
+            "attempt": 2,
+            "step": 2,
+            "model": "claude-haiku-5-5",
+            "startMs": 3484,
+            "modelMs": 2083,
+            "ended": "text",
+            "finish": "stop",
+            "usage": {
+              "promptTokens": 34498,
+              "outputTokens": 511,
+              "reasoningTokens": 0,
+              "cachedTokens": 30416,
+              "cacheWriteTokens": 0
+            }
+          }
+        ]
+      },
+      "dispatch": [],
+      "agents": {}
+    }
+  ]
+}

@@ -8,6 +8,7 @@ Every run that spent model tokens to measure A2UIVerse, in the order they ran: w
 | 2026-10-27 | 17.3 | [The kit's measurement on Linear, and Gemini's thinking settings](#2026-10-27--173--the-kits-measurement-on-linear-and-geminis-thinking-settings) | `gemini-3.8-flash` | not recorded |
 | 2026-10-29 | 17.5 | [The baseline](#2026-10-29--175--the-baseline) | `gemini-3.8-flash` | $8.74 |
 | 2026-10-30 | 17.6 | [The cache strategy's live check](#2026-10-30--176--the-cache-strategys-live-check) | `gemini-3.8-flash`, Claude Haiku 5.5, Claude Sonnet 5.5 | $0.21 |
+| 2026-10-30 | 17.7 | [The Planner on Claude](#2026-10-30--177--the-planner-on-claude) | Claude Sonnet 5.5, Claude Haiku 5.5, `gemini-3.8-flash` | $4.75 |
 
 ---
 
@@ -115,3 +116,72 @@ Checked live on 2026-10-30 through the orchestrator's own model seam, each seam'
 - Gemini's 20.1 s was taken again, three requests each way: whole 3.4–4.2 s, naming the cache 3.7–4.5 s, 181–196 output tokens each (ours): no difference in time. One of the whole requests was served 18,433 tokens by the implicit cache.
 - Gemini refuses a request naming a cache with a system instruction beside it: 400, "CachedContent can not be used with GenerateContent request setting system_instruction, tools or tool_config" (ours).
 - Claude accepted `between_tools` thinking at effort `low` on Sonnet 5.5 and thinking off at effort `low` on Haiku 5.5, with no warning and no reasoning tokens (ours).
+
+## 2026-10-30 · 17.7 · The Planner on Claude
+
+The Planner on Claude Sonnet 5.5 and on Claude Haiku 5.5, read against the baseline (task 17.7), on 2026-10-30: the Planner at `low` — thinking between tool calls at effort `low` on Sonnet 5.5, thinking off at effort `low` on Haiku 5.5 — with 17.6's compact prompts and one-hour cache; the Synthesizer on `gemini-3.8-flash` at `low`; the vendor agents live on `gemini-3.8-flash` at the kit's default effort; the plan cache off. The six prompts run as the baseline ran them, one pass on each model, Sonnet 5.5 first, the orchestrator restarted between; passes two and three not run (task-17.7 decision 3). Each number is that one pass's, in seconds on the orchestrator's clock from the utterance arriving. Each turn's numbers: `phase-17-planner-on-claude-extract.json` beside these notes.
+
+### Plan time
+
+| Prompt | Baseline, `gemini-3.8-flash`, median (range) | Sonnet 5.5 | Haiku 5.5 |
+| --- | --- | --- | --- |
+| 1, pull requests blocked outside GitHub | 23.2 (20.9–26.3) | 7.6 | 3.9 |
+| 4, closing out A2U-7 | 54.8 (27.0–74.0) | 6.7 | 6.0, refused twice |
+| 6, is main green | 20.3 (14.7–23.8) | 6.4 | 3.0 |
+| 10, both Gmail accounts | 51.4 (40.0–58.4) | 6.6 | 5.7, valid on the retry |
+| Control, "show my open pull requests" | 6.7 (6.6–7.9) | 3.7 | 2.3 |
+| The camera comparison | 21.5 (20.8–31.6) | 6.1 | 5.6, refused twice |
+
+- **Sonnet 5.5**: one request a plan, the camera comparison's two — its request ending in the Store search 2.4 s, the search 21 ms, then the plan's own 3.7 s. Every plan below the fastest of the baseline's three on its prompt.
+- **No reasoning**: no request of either model reported a reasoning token. Sonnet 5.5's plans wrote 207–853 output tokens; the baseline's reasoned a median 1,766 tokens before a median 506 of text.
+
+### Per prompt, Sonnet 5.5
+
+| Prompt | First paint, per app | Dead air | Settled screen | The merge |
+| --- | --- | --- | --- | --- |
+| 1 | Linear 73.1 · CircleCI 147.2 · GitHub 193.4 | 27.6 | 240.6 | merged, released by the home source |
+| 4 | Linear 53.5 · CircleCI 149.3; GitHub answered in words | 8.2 | 173.2 | merged once every app settled |
+| 6 | CircleCI 65.8 · GitHub 194.6 | 18.3 | 237.8 | merged once every app settled |
+| 10 | Linear 72.1 · the first Gmail account 108.3 · the second 163.8 | 15.3 | 166.7 | merged, released by the soft deadline |
+| Control | GitHub 192.7 | — | 207.3 | none planned |
+| Camera | Shop A 45.3 | — | 51.0 | none: Shop B offered from the Store |
+
+### Per prompt, Haiku 5.5
+
+| Prompt | First paint, per app | Dead air | Settled screen | The merge |
+| --- | --- | --- | --- | --- |
+| 1 | Linear 117.2 · CircleCI 148.5 · GitHub 151.8 | 11.5 | 173.5 | merged once every app settled |
+| 4 | the plan refused twice, the turn failed | — | — | — |
+| 6 | CircleCI 56.9 · GitHub 114.5 | — | 121.8 | none planned |
+| 10 | the second Gmail account 198.4 · the first 245.8; Linear answered in words | 21.6 | 278.3 | merged once every app settled |
+| Control | GitHub 80.9 | — | 99.7 | none planned |
+| Camera | the plan refused twice, the turn failed | — | — | — |
+
+### The plans beside the baseline's
+
+The checks of task-17.7 decision 5 — the apps asked, and where the baseline planned a merge, one planned on the same join — each plan read beside the baseline's three passes on its prompt.
+
+- **Sonnet 5.5**, held up on all six. The same apps as the baseline on every prompt. The baseline's join on 1 — GitHub's pull requests home, Linear's issues and CircleCI's runs; on 4 — Linear's issues home, GitHub's pull requests and CircleCI's runs, as the baseline's first and third passes; on 10 — both Gmail accounts' threads and Linear's issues, no home, as the baseline's third pass; on the camera comparison — Shop A's cameras, Shop B a gap offered from the Store. On 6 a merge planned, as the baseline's each pass, on CircleCI's runs home and GitHub's pull requests, where the baseline's held no join twice and CircleCI's runs with GitHub's commits, no home, once. Its merges went through on 4 and 6, where the baseline's collapsed twice on 4 and declined twice on 6.
+- **Haiku 5.5**, did not hold up on 4, 6 and the camera comparison. The same apps on 1, 6, 10 and the control, and the baseline's join on 1 and 10. On 6 no merge planned, where the baseline planned one each pass. Prompt 4 refused twice: the first answer with a property the plan's schema does not allow, the second writing each source with its account's address beside it. The camera comparison refused twice: the first naming Shop B a gap without searching the Store, the second, after the search, joining on Shop B as a dispatched source.
+
+### Tokens, first tries and the cost
+
+| | Requests | Prompt tokens | Cache read | Cache written | Output tokens, reasoning included | Cost |
+| --- | --- | --- | --- | --- | --- | --- |
+| Planner, Sonnet 5.5 | 7 | 235,599 | 182,496 | 30,416 | 3,835 (0) | $0.22 |
+| Synthesizer, Sonnet 5.5's pass | 4 | 65,061 | 42,018 | — | 10,523 (0) | $0.06 |
+| The apps, Sonnet 5.5's pass | 118 | 13,483,379 | 11,955,334 | — | 158,640 (124,363) | $2.64 |
+| Planner, Haiku 5.5 | 10 | 338,796 | 273,744 | 30,416 | 4,756 (0) | $0.015 |
+| Synthesizer, Haiku 5.5's pass | 2 | 31,416 | 14,006 | — | 5,085 (0) | $0.03 |
+| The apps, Haiku 5.5's pass | 92 | 8,577,877 | 7,546,160 | — | 117,560 (99,153) | $1.78 |
+
+- **What it cost**: $4.75 — Sonnet 5.5's pass $2.92, Haiku 5.5's $1.83, its two failed turns asking no app. At `gemini-3.8-flash`'s $0.75 / $3.75 / $0.075 per million input, output and cached tokens until 2026-12-31 ([Gemini Developer API pricing](https://ai.google.dev/gemini-api/docs/pricing)); Sonnet 5.5's $2 / $10 / $0.10 and Haiku 5.5's $0.10 / $0.50 / $0.01 ([Pricing — Claude](https://platform.claude.com/docs/en/about-claude/pricing)); a one-hour cache write at twice the input price ([Prompt caching — Claude](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)).
+- **The prompt caches**: each Claude model wrote 30,416 tokens on its pass's first plan, and every later Planner request read them. The Synthesizer's cache was created beside the first merge after each boot, and every later merge read 14,006 tokens from it.
+- **First tries**: the Planner on Sonnet 5.5 6 of 6 plans; on Haiku 5.5 3 of 6, one valid on the retry, two refused twice. The Synthesizer 6 of 6 merges that called the model.
+- Each pass's first turn is the first after the orchestrator booted, marked in the extract.
+
+### The choice
+
+Chosen on 2026-10-30: Claude Sonnet 5.5 for the Planner, on its one pass (task-17.7 decision 6); its default set in 17.11.
+
+Data: [`phase-17-planner-on-claude-extract.json`](phase-17-planner-on-claude-extract.json), each turn's numbers, no text any model wrote and no data any app returned.
