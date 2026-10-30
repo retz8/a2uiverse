@@ -160,7 +160,7 @@ Chosen on 2026-10-30: the recommendation, the Planner on Claude tried on both So
 
 | Lever | Sub-task | Measuring spend |
 | --- | --- | --- |
-| The cache strategy, the Planner's and the Synthesizer's prompts on both providers | 17.6 | none of its own, measured in 17.7's passes on Claude |
+| The cache strategy, the Planner's and the Synthesizer's prompts on both providers, and other novel ideas for their latency and tokens | 17.6 | none of its own, measured in 17.7's passes on Claude |
 | The Planner on Claude Sonnet 5.5 and on Claude Haiku 5.5, with 17.6's cache | 17.7 | $9.15 and $7.35 |
 | The kit's thinking tier `low` | 17.8 | about $4.65 |
 
