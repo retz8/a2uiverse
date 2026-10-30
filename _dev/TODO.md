@@ -283,6 +283,7 @@ Spec: `_dev/docs/spec/phase-17-latency.md`.
 
 ## Phase 18 — Ecosystem run
 Publish a new app → discover → install → compose with an existing one → act inside it. One sitting, no code changes; the deliverable is the recording (M12). The new app is an upstream A2UI sample agent, installed unchanged through the Store: an A2UI agent built outside A2UIVerse composing as it is.
+Before it, an off-phase chore: the developer words on the screen the Backlog holds — a press held back (found in 12.13) and a plan refused twice (found in 17.7).
 
 ## Phase 19 — v1.0 soft migration
 Only if the v1.0 migration has not landed by then. A2UIVerse supports both v1.0 and v0.9.1 at its agent-facing edge — a v1.0 agent accepted beside v0.9.1 ones, v1.0 possibly not fully functioning — the mark that A2UIVerse plans to migrate to v1.0 once upstream is ready. The delta register written in v1.0's vocabulary.
@@ -319,6 +320,7 @@ Fires when `@a2ui/react` publishes a `/v1_0` entry point — not when the v1.0 s
 - An orchestrator booted while the agents are down keeps every app unroutable for the run: the launcher's reinstall of an unchanged app does not probe its card again; only an orchestrator restart does (found in 12.13)
 - `pnpm verify` in `a2uiverse-apps` does not run the Python agents' tests: each agent's `uv run pytest` runs apart, and the prompt goldens failed under it while the gate was green (found in 12.13)
 - The client's notice for a press held back still reads "Hold on — a paint is in flight. Try again when it lands.": developer words on the screen (found in 12.13)
+- A plan refused twice puts the validator's findings on the screen — "the Planner's answer was refused 2 times: /dispatch/2/join/nouns/shop-b: 'shop-b' is not a dispatched source": developer words on the screen; the turn fails with the findings by task-6.4 decision 6, the journal and the log holding them already (found in 17.7)
 - After a page reload the first question typed was lost several times in the deterministic half (the text cleared, Enter did nothing); in the live half every lost question traced to the browser tab being hidden. Not reproduced by hand (found in 12.13; seen again in 12.14, the add-account question lost on its first ask after the sign-in window's tab)
 - Calendar's card wraps "AM" onto a line of its own at content width (found in 12.13)
 - The journal records a press that ended asking for more access as a failed dispatch (found in 12.13)
