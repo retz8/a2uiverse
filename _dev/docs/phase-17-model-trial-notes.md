@@ -156,12 +156,13 @@ Each lever's saving read against the baseline's split of the wait (section 4), w
 
 Together about $13.80. The rest, each with its spend above: the Synthesizer's model, $7.68–8.37; tool calls in one step, about $4.65, its saving unmeasured; the Store search in fewer rounds, about $0.25, at most 3.5–4.3 s on one prompt; prompt caching on its own, no saving in time seen and $0.18 a pass; native structured output, one retry in nine merges; a compact output format, about 2–3 s a plan and 5–6 s a paint, the kit's streaming lost; a faster serving tier, no source for its output speed; a smaller prompt, a second a round; templates on presses, no press measured; Claude on the kit, behind section 2.5's defects.
 
-Chosen on 2026-10-30: the recommendation, the Planner on Claude tried on both Sonnet 5.5 and Haiku 5.5.
+Chosen on 2026-10-30: the recommendation, the Planner on Claude tried on both Sonnet 5.5 and Haiku 5.5, with the cache strategy beside Claude's cache.
 
 | Lever | Sub-task | Measuring spend |
 | --- | --- | --- |
-| The Planner on Claude Sonnet 5.5 and on Claude Haiku 5.5 | 17.6 | $9.15 and $7.35 |
-| The kit's thinking tier `low` | 17.7 | about $4.65 |
+| The cache strategy, the Planner's and the Synthesizer's prompts on both providers | 17.6 | none of its own, measured in 17.7's passes on Claude |
+| The Planner on Claude Sonnet 5.5 and on Claude Haiku 5.5, with 17.6's cache | 17.7 | $9.15 and $7.35 |
+| The kit's thinking tier `low` | 17.8 | about $4.65 |
 
 Together about $21.15.
 
