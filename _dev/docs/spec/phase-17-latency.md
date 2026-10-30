@@ -8,7 +8,7 @@ The wait the person feels on a turn — the plan before any slot, the vendors' a
 - A survey of the levers of the day for the Planner, the Synthesizer and the agent kit, before any lever moves.
 - A baseline of where the time goes today, end to end and per agent, with the measurement the kit lacks and the one the orchestrator lacks added.
 - The levers chosen from the survey, each built, measured and decided in its own sub-task.
-- The Planner's dispatch list streamed ahead of its layout tree, so vendors start before the layout completes.
+- The Planner's dispatch list streamed ahead of its layout tree, so vendors start before the layout completes, and the layout arriving as the model writes it.
 - The synthesis fragment streamed into its reserved slot.
 - The thinking budget and the effort as a dimension of every model the phase measures.
 - The end-to-end runs over the A2UI-unique prompts in the notes that run on data the repos already hold — 1, 4, 6 and 10 — one single-app control, and the camera comparison, a plan that searches the Store; the prompts needing a seeded inbox — 2, 3 and 8 — and the flight question optional.
@@ -65,6 +65,8 @@ The acceptance re-runs the end-to-end prompts through the tunnel after everythin
 ### 11. Doc edits the phase carries
 
 SPEC §9.4's mode names, which the kit spells `stub` and `live`; §16's dead-air consequence and §5.5's streaming line once the streaming items land; the TODO's worktree line.
+
+*Amended on 2026-10-31.* §4.5's layout plan timing and §5.6's Planner output too, as the Planner's streaming leaves them (task-17.9 decision 12).
 
 ## Invariants
 
