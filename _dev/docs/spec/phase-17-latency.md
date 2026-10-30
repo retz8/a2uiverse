@@ -50,6 +50,8 @@ Plan time, dead air and the first-try rate are measured over the end-to-end prom
 
 A kit lever is built and measured on GitHub and Linear. Gmail and CircleCI show what landed through the end-to-end prompts; Calendar is covered by its tests. A kit lever is judged by its paints read beside the recorded beat for the same prompt and by its first-try validation rate against the vendor's catalog.
 
+*Amended on 2026-10-30.* A kit lever's paints are read beside a run without the lever in the same pass, not beside the committed recordings (task-17.8 decision 2).
+
 ### 9. The write-up
 
 `_dev/docs/phase-17-model-trial-notes.md` is carried forward as the phase's write-up: the survey replaces its candidate section, the baseline and each lever append their results, the default decision closes it.
