@@ -325,3 +325,19 @@ Over the three passes, pass 1's first try of prompt 10 and the request its Allow
 
 - Pass 1's prompt 1 is the first turn after the orchestrator booted, marked in the extract; its shortlist took 5 ms.
 - Pass 1's first try of prompt 10: the second Gmail account's sign-in did not yet hold reading its email, and its fragment asked for it. The person allowed it and the prompt was sent again (task-17.5 decision 12). The first try is in the extract, marked, and out of the medians.
+
+## 5. The cache strategy (17.6)
+
+Checked live on 2026-10-30 through the orchestrator's own model seam, each seam's fixed prompt sent twice per model with its JSON compact, the output held to 200 tokens: $0.21 of the $0.50 cap (ours).
+
+| Seam · model | Prompt tokens | First request | Second request |
+| --- | --- | --- | --- |
+| Planner · `gemini-3.8-flash` | 20,484 | whole, 3.5 s, the cache created beside it | 20,386 read from the cache, 20.1 s |
+| Synthesizer · `gemini-3.8-flash` | 14,014 | whole, 3.0 s | 14,006 read from the cache, 2.7 s |
+| Planner · Claude Haiku 5.5 | 30,388 | 30,168 written to the cache, 1.7 s | 30,168 read, 1.4 s |
+| Planner · Claude Sonnet 5.5 | 30,388 | 30,168 written to the cache, 3.0 s | 30,168 read, 2.5 s |
+
+- The Planner's request, one app shortlisted: 20,484 tokens on Gemini, 30,388 on Claude, Claude's tokenizer counting the same request at about 1.48 times Gemini's (ours).
+- Gemini's 20.1 s was taken again, three requests each way: whole 3.4–4.2 s, naming the cache 3.7–4.5 s, 181–196 output tokens each (ours): no difference in time. One of the whole requests was served 18,433 tokens by the implicit cache.
+- Gemini refuses a request naming a cache with a system instruction beside it: 400, "CachedContent can not be used with GenerateContent request setting system_instruction, tools or tool_config" (ours).
+- Claude accepted `between_tools` thinking at effort `low` on Sonnet 5.5 and thinking off at effort `low` on Haiku 5.5, with no warning and no reasoning tokens (ours).
