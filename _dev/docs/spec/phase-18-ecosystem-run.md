@@ -75,6 +75,8 @@ The Planner on Claude Sonnet 5.5 at `low`, the Synthesizer on `gemini-3.8-flash`
 
 A stage that breaks is retaken from a reset the log describes: the question stage after an uninstall from the App Library; the booking stage on a new question; the publish stage after unpublish, a claimed name being spent, so a retake claims another. The GIFs published are the takes that reached the stage's end; the sitting log names every take and why it was retaken. One sitting means one day on one platform state moving forward, not one unbroken take.
 
+*Amended on 2026-11-01.* The marketplace keeps an app id with the publisher who first published it, an unpublish releasing nothing, so a publish retake claims the same name: after the unpublish and the sign-out on Publish, the publisher's record is removed from the marketplace's ledger with the marketplace stopped, the marketplace started again, and `a2ui-samples-mirror` claimed again (18.4 decision 8).
+
 ## Invariants
 
 - The sample is never changed; the sitting changes no code.
