@@ -283,14 +283,15 @@ Spec: `_dev/docs/spec/phase-17-latency.md`.
 
 ## Phase 18 — Ecosystem run [WIP]
 Publish a new app → discover → install → compose with an existing one → act inside it. One sitting, no code changes; the deliverable is the recording (M12). The new app is an upstream A2UI sample agent, installed unchanged through the Store: an A2UI agent built outside A2UIVerse composing as it is.
-Precondition, off-phase: the two developer-worded notices the Backlog holds — a press held back (found in 12.13), a plan refused twice (found in 17.7) — any time before 18.2.
 Spec: `_dev/docs/spec/phase-18-ecosystem-run.md`.
 
-- [ ] **18.1** The sample beside the platform — the restaurant finder running from a worktree of the fork at `upstream/main`, as its README says, on its default model; its card fetched, installed from its URL alone, one turn through the hub and a press inside it; anything found recorded, a sample finding as an upstream finding (parallel with the chore)
-- [ ] **18.2** The dry run — the whole sitting once from the state it starts from, through the tunnel by Claude in Chrome: the claim and the publish on the trusted page, the question through the gap, the install from the offer, Calendar beside it, the booking to its confirmation; the question's words and the storyboard settled; what breaks named (after 18.1 and the chore)
-- [ ] **18.3** Platform fixes the dry run forces — one sub-task per finding, added here as found, the dry run repeated after each; none if nothing breaks (after 18.2)
-- [ ] **18.4** The recording — the sitting live on the defaults untouched, one GIF per stage with stills into `docs/images/`; a stage that breaks retaken from a reset the log describes, every take named (after 18.3)
-- [ ] **18.5** README + sitting log — the root README's section for the ecosystem run with the GIFs and stills, "Where it's headed" past M12; the sitting log in `_dev/docs/` with the day, the commit, the settings, each stage's instants from the journal and every take (after 18.4)
+- [ ] **18.1** A press held back, in plain words — the client's notice "Hold on — a paint is in flight. Try again when it lands." said for customers (found in 12.13) (parallel with 18.2, 18.3)
+- [ ] **18.2** A plan refused twice, in plain words — the validator's findings off the screen, which the journal and the log already hold; the screen's words for customers (found in 17.7) (parallel with 18.1, 18.3)
+- [ ] **18.3** The sample beside the platform — the restaurant finder running from a worktree of the fork at `upstream/main`, as its README says, on its default model; its card fetched, installed from its URL alone, one turn through the hub and a press inside it; anything found recorded, a sample finding as an upstream finding (parallel with 18.1, 18.2)
+- [ ] **18.4** The dry run — the whole sitting once from the state it starts from, through the tunnel by Claude in Chrome: the claim and the publish on the trusted page, the question through the gap, the install from the offer, Calendar beside it, the booking to its confirmation; the question's words and the storyboard settled; what breaks named (after 18.1–18.3)
+- [ ] **18.5** Platform fixes the dry run forces — one sub-task per finding, added here as found, the dry run repeated after each; none if nothing breaks (after 18.4)
+- [ ] **18.6** The recording — the sitting live on the defaults untouched, one GIF per stage with stills into `docs/images/`; a stage that breaks retaken from a reset the log describes, every take named (after 18.5)
+- [ ] **18.7** README + sitting log — the root README's section for the ecosystem run with the GIFs and stills, "Where it's headed" past M12; the sitting log in `_dev/docs/` with the day, the commit, the settings, each stage's instants from the journal and every take (after 18.6)
 
 ## Phase 19 — v1.0 soft migration
 Only if the v1.0 migration has not landed by then. A2UIVerse supports both v1.0 and v0.9.1 at its agent-facing edge — a v1.0 agent accepted beside v0.9.1 ones, v1.0 possibly not fully functioning — the mark that A2UIVerse plans to migrate to v1.0 once upstream is ready. The delta register written in v1.0's vocabulary.

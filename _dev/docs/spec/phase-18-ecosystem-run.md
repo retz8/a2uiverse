@@ -8,7 +8,7 @@ Publish a new app → discover → install → compose with an existing one → 
 - A dry run of the whole sitting before the recording; the platform fixes it forces, landed before the sitting.
 - The recording — GIFs with stills — in the root README.
 - The sitting log in `_dev/docs/`.
-- Precondition, off-phase: the two developer-worded notices the Backlog holds — a press held back (found in 12.13) and a plan refused twice (found in 17.7) — done any time before the dry run.
+- The two developer-worded notices the Backlog holds — a press held back (found in 12.13) and a plan refused twice (found in 17.7) — said in plain words, before the dry run.
 - Out: a merge; the sign-in on the recording; any change to the sample; Phase 20's use of the recording.
 
 ## Locked decisions
@@ -53,9 +53,11 @@ The root README gains a section of its own for the ecosystem run, with the GIFs 
 
 A finding on the platform is fixed as a sub-task of this phase before the sitting, and the dry run repeated. A finding in the sample is never fixed here: it is recorded in `_dev/a2ui-findings.md` and taken upstream on its own track, and the run falls to the Node restaurant finder if the Python one cannot compose unchanged. The sitting itself changes no code.
 
-### 11. The chore is off-phase
+### 11. The two notices are sub-tasks of the phase, before the dry run
 
 The two developer-worded notices are a standalone chore on `main`, with no spec, done any time before the dry run. This spec names it as a precondition only; the plain words are the chore's own call.
+
+*Amended on 2026-10-31.* The two notices are sub-tasks of this phase, one each, done before the dry run; the plain words are each sub-task's own call.
 
 ### 12. The sample runs from a worktree at `upstream/main`, as its README says
 
