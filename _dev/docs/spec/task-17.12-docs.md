@@ -16,13 +16,19 @@ The phase written where a reader finds it: bring your own model, the keys and th
 
 A section of the root `a2uiverse` README, "How fast it answers", after "How it works". It opens with one line naming the two measurements — six questions on 2026-10-29, and again on 2026-10-31 after a round of latency work — and names no phase.
 
+*Amended on 2026-10-31.* The section shows what runs today and how it runs, not the before and after: the before and after stay in `_dev/docs/latency-and-token-experiment-results.md`. It opens with the settings (decision 3), then the 2026-10-31 run alone.
+
 ### 2. The six-question table
 
 The six questions in plain words, each with its plan, its first app on screen and its whole screen settled, before → after: the baseline's median of three passes on 2026-10-29 beside the acceptance's pass on 2026-10-31. Under the table, one line on Gemini spend a pass, and one line on the reading's limits: one pass against a median of three, the repos' data moved since, and "is main green" slower for GitHub's refused answer, its cause since fixed.
 
+*Amended on 2026-10-31.* The six questions on the acceptance's pass of 2026-10-31 alone: each with its plan, its first app on screen, its whole screen settled, its tokens in with the share read from a cache, and its tokens out, thinking included. Under the table: where the wait goes — the apps' runs beside the plans and the merges; where the tokens go — the apps' requests, a plan's and a merge's, and what the six cost on each provider; and GitHub's refused answer on "is main green", its cause since fixed.
+
 ### 3. Each setting, one line
 
 The Planner's, the Synthesizer's and the apps' settings, model and effort, each one line: the setting, its reason with its number, and the variables that change it. One sentence says they are defaults, with one example of naming another model.
+
+*Amended on 2026-10-31.* A table, one row each for the Planner, the Synthesizer and the apps: the model, the effort, the variables that set them and a link to the design record holding the reason. It says they are defaults and what `low` means, with one example of naming another model; the reasons and their comparisons stay in the design records.
 
 ### 4. Other models, as the code takes them
 

@@ -195,28 +195,32 @@ A pnpm workspace with Turborepo over it. Each package's README has its own comma
 
 ## How fast it answers
 
-Six questions were timed on 2026-10-29, and again on 2026-10-31 after a round of latency work, in seconds from the question reaching the orchestrator, before → after:
+Each model and its effort is a default, set by a variable:
 
-| Question                                                                                            | Plan       | First app on screen | Whole screen settled |
-| --------------------------------------------------------------------------------------------------- | ---------- | ------------------- | -------------------- |
-| "Which of my open pull requests are blocked on something outside GitHub?"                           | 23.2 → 7.1 | 118.2 → 19.8        | 217.4 → 172.9        |
-| "Help me close out A2U-7: show the issue, its pull request and its CI run, and let me act on each." | 54.8 → 7.5 | 186.2 → 14.6        | 198.4 → 148.3        |
-| "Is main green right now? Ask CircleCI and GitHub."                                                 | 20.3 → 6.0 | 81.3 → 68.5         | 126.2 → 153.8        |
-| "Across both my Gmail accounts, which threads mention a Linear issue, and what state is it in?"     | 51.4 → 6.8 | 104.0 → 55.7        | 237.8 → 93.8         |
-| "Show my open pull requests"                                                                        | 6.7 → 2.2  | 128.9 → 75.0        | 143.7 → 105.8        |
-| "Compare camera prices at Shop A and Shop B.", Shop B not installed                                 | 21.5 → 5.4 | 63.5 → 10.3         | 69.7 → 15.8          |
+| Part        | Model              | Effort | Set by                                                        | Why                                                                           |
+| ----------- | ------------------ | ------ | ------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Planner     | Claude Sonnet 5.5  | `low`  | `A2UIVERSE_PLANNER_MODEL`, `A2UIVERSE_PLANNER_EFFORT`         | [orchestrator](docs/design/orchestrator.md#model-seam-and-the-planners-model) |
+| Synthesizer | `gemini-3.8-flash` | `low`  | `A2UIVERSE_SYNTHESIZER_MODEL`, `A2UIVERSE_SYNTHESIZER_EFFORT` | [synthesis](docs/design/synthesis.md#synthesizers-model-and-effort)           |
+| The apps    | `gemini-3.8-flash` | `low`  | `MODEL_NAME`, `MODEL_EFFORT`, in each agent's `.env`          | [agent kit](docs/design/agent-kit.md#model-and-thinking-tier)                 |
 
-Gemini cost $2.91 for the six before, every model call on it, and $2.30 after, beside $0.23 of Claude for the Planner.\
-Before is the median of three runs and after is one; the repositories' data moved between the two; and "Is main green" settled later because GitHub's answer was refused twice, a cause since fixed.\
-[Every run, in full](_dev/docs/latency-and-token-experiment-results.md).
+`low` is the least thinking the model accepts. The Planner and the Synthesizer take any Gemini model, or any Claude model as `anthropic/<model>`: `A2UIVERSE_SYNTHESIZER_MODEL=anthropic/claude-sonnet-5-5` in the orchestrator's `.env` puts the Synthesizer on Claude, for one. The apps take any Gemini model; Claude runs on them with the limits [the kit's README](https://github.com/retz8/a2uiverse-apps/tree/main/agent-kit#quick-start) lists.
 
-The settings the after ran on:
+On these defaults, six questions were each asked once on 2026-10-31, the apps live on real data, timed in seconds from the question reaching the orchestrator:
 
-- **Planner: Claude Sonnet 5.5 at `low`.** It planned in 2.2–7.5 s where `gemini-3.8-flash` took a median 6.7–54.8 s, asking the same apps and planning the same joins on all six; at `low` it reasons no token. `A2UIVERSE_PLANNER_MODEL`, `A2UIVERSE_PLANNER_EFFORT`. [Why](docs/design/orchestrator.md#model-seam-and-the-planners-model)
-- **Synthesizer: `gemini-3.8-flash` at `low`.** Over the same recorded answers, Claude Sonnet 5.5 merged in 10.7–15.3 s against Gemini's 18.3–24.2 s, but matched one pull request in three to its CI run where Gemini matched all three. `A2UIVERSE_SYNTHESIZER_MODEL`, `A2UIVERSE_SYNTHESIZER_EFFORT`. [Why](docs/design/synthesis.md#synthesizers-model-and-effort)
-- **Apps: `gemini-3.8-flash` at `low`.** At `low` an app's answer began at a median 3.2 s, against 48.5 s when the model thought as long as it liked. `MODEL_NAME`, `MODEL_EFFORT`, in each agent's `.env`. [Why](docs/design/agent-kit.md#model-and-thinking-tier)
+| Question                                                                                            | Plan | First app on screen | Whole screen settled | Tokens in         | Tokens out, thinking included |
+| --------------------------------------------------------------------------------------------------- | ---- | ------------------- | -------------------- | ----------------- | ----------------------------- |
+| "Which of my open pull requests are blocked on something outside GitHub?"                           | 7.1  | 19.8                | 172.9                | 1.36M, 79% cached | 31.8k                         |
+| "Help me close out A2U-7: show the issue, its pull request and its CI run, and let me act on each." | 7.5  | 14.6                | 148.3                | 5.49M, 92% cached | 11.1k                         |
+| "Is main green right now? Ask CircleCI and GitHub."                                                 | 6.0  | 68.5                | 153.8                | 2.75M, 91% cached | 27.0k                         |
+| "Across both my Gmail accounts, which threads mention a Linear issue, and what state is it in?"     | 6.8  | 55.7                | 93.8                 | 2.21M, 84% cached | 13.0k                         |
+| "Show my open pull requests"                                                                        | 2.2  | 75.0                | 105.8                | 1.15M, 83% cached | 11.4k                         |
+| "Compare camera prices at Shop A and Shop B.", Shop B not installed                                 | 5.4  | 10.3                | 15.8                 | 99.7k, 75% cached | 1.7k                          |
 
-Each is a default: `A2UIVERSE_SYNTHESIZER_MODEL=anthropic/claude-sonnet-5-5` in the orchestrator's `.env` puts the Synthesizer on Claude, for one. The Planner and the Synthesizer take any Gemini model, or any Claude model as `anthropic/<model>`. The apps take any Gemini model; Claude runs on them with the limits [the kit's README](https://github.com/retz8/a2uiverse-apps/tree/main/agent-kit#quick-start) lists.
+- **Most of the wait is the apps**, each working through its own service: an app's run took 10.4–152.0 s, a plan 2.2–7.5 s and a merge 11.4–14.7 s.
+- **Most of the tokens are the apps' too**: each of an app's model requests, one per tool round, sends its whole prompt again, most of it read from Gemini's cache. A plan takes about 34k tokens in, twice that when it searches the Store, and a merge 15–18k. The six cost $2.53: $0.23 on Claude, $2.30 on Gemini.
+- On "Is main green" GitHub's answer was refused twice, a cause since fixed.
+
+[Every measured run, with its setup](_dev/docs/latency-and-token-experiment-results.md).
 
 ## Built on
 
