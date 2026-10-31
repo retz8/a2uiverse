@@ -212,11 +212,15 @@ test('a column whose source waits for Include keeps its authored dashes and says
   expect(consoleError.mock.calls).toEqual([]);
 });
 
-test('the first column reads on one line, the others wrap under a cap; the table scrolls sideways when it cannot fit (task-8.7 decision 29)', () => {
-  expect(bodyCellStyle(0)).toMatchObject({whiteSpace: 'nowrap'});
-  expect(bodyCellStyle(0)).not.toHaveProperty('maxWidth');
+test('every column wraps under a cap, the first keeping room for a short name; the table scrolls sideways when it cannot fit (task-8.7 decision 29)', () => {
+  expect(bodyCellStyle(0)).toMatchObject({
+    maxWidth: '56ch',
+    overflowWrap: 'anywhere',
+    minWidth: '16ch',
+  });
   expect(bodyCellStyle(1)).toMatchObject({maxWidth: '56ch', overflowWrap: 'anywhere'});
-  expect(bodyCellStyle(1)).not.toHaveProperty('whiteSpace');
+  expect(bodyCellStyle(1)).not.toHaveProperty('minWidth');
+  for (const index of [0, 1]) expect(bodyCellStyle(index)).not.toHaveProperty('whiteSpace');
 });
 
 test('a column whose source asks for more access says so (task-12.13 decision 50)', () => {

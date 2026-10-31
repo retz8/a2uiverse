@@ -86,6 +86,8 @@ Eight components exist only in the shell catalog. In the example:
 
 `Table` exists because the basic catalog can only draw a list as a heading `Row` over a `Column` of `Row`s, and a `Row` sizes its children by their content, so the columns never line up. A table is the one shape whose columns align by construction. The renderer hosts every component in an element of its own, which can't stand between a `<tbody>` and its `<tr>`, so `Table` draws each `TableRow` child's `<tr>` itself and renders only the cells' content through the renderer, inside each `<td>`.
 
+Every column wraps, each capped at 56 characters, so one column of long text can't take the width from the rest. The first column names the row's own thing and keeps room for 16 characters, so a short name like "Google Calendar" stays on one line beside a long column. A table that still can't fit its slot scrolls sideways inside it rather than crushing a column.
+
 `Attribution` is written by the orchestrator, never by a model: the Planner writes the `Slot`s, and the orchestrator wraps every app's `Slot` in an `Attribution` it fills from its registry. Its props are plain literals and never data-bound, so a fragment can't rebind who it claims to be.
 
 ### 4. Keep-sets: each author sees only its part

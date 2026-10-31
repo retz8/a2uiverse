@@ -205,9 +205,10 @@ export function headingCellStyle(index: number): CSSProperties {
 }
 
 /**
- * A body cell: 40px, over the row divider. The first column names the row's own thing and reads
- * on one line; every other column wraps, capped so one long-text column cannot take the whole
- * width from the rest (task-8.7 decision 29).
+ * A body cell: 40px, over the row divider. Every column wraps, capped so one long-text column
+ * cannot take the whole width from the rest; the first column names the row's own thing and keeps
+ * room for a short name on one line (task-8.7 decision 29, the first column wrapping since
+ * task 17.10's live check).
  */
 export function bodyCellStyle(index: number): CSSProperties {
   return {
@@ -217,7 +218,9 @@ export function bodyCellStyle(index: number): CSSProperties {
     height: 40,
     verticalAlign: 'middle',
     boxShadow: 'inset 0 -1px var(--a2v-line-2, var(--gray-a3))',
-    ...(index === 0 ? {whiteSpace: 'nowrap'} : {maxWidth: '56ch', overflowWrap: 'anywhere'}),
+    maxWidth: '56ch',
+    overflowWrap: 'anywhere',
+    ...(index === 0 ? {minWidth: '16ch'} : {}),
   };
 }
 
