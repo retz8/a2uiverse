@@ -11,6 +11,7 @@ Every run that spent model tokens to measure A2UIVerse, in the order they ran: w
 | 2026-10-30 | 17.7 | [The Planner on Claude](#2026-10-30--177--the-planner-on-claude) | Claude Sonnet 5.5, Claude Haiku 5.5, `gemini-3.8-flash` | $4.75 |
 | 2026-10-30 | 17.8 | [The kit's thinking tier `low`](#2026-10-30--178--the-kits-thinking-tier-low) | `gemini-3.8-flash` | $1.38 |
 | 2026-10-31 | 17.9 | [The Planner's answer streamed, checked live](#2026-10-31--179--the-planners-answer-streamed-checked-live) | Claude Sonnet 5.5, `gemini-3.8-flash`, `gemini-3.7-flash` | $0.95 |
+| 2026-10-31 | 17.10 | [The synthesis fragment streamed, checked live](#2026-10-31--1710--the-synthesis-fragment-streamed-checked-live) | Claude Sonnet 5.5, `gemini-3.8-flash`, `gemini-3.7-flash` | $0.91 |
 
 ---
 
@@ -286,3 +287,48 @@ The 25 plans recorded before 17.9, estimated, not measured (ours): where each ac
 - **What it cost**: $0.95. Sonnet 5.5 at $2 / $10 / $0.10 per million input, output and cached tokens, a one-hour cache write at twice the input price ([Pricing — Claude](https://platform.claude.com/docs/en/about-claude/pricing), [Prompt caching — Claude](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)); the Gemini requests at `gemini-3.8-flash`'s $0.75 / $3.75 / $0.075 until 2026-12-31, thinking billed as output ([Gemini Developer API pricing](https://ai.google.dev/gemini-api/docs/pricing)). The apps ran `gemini-3.7-flash`, which that page does not list; they are priced at `gemini-3.8-flash`'s. GitHub's requests include one press: the Cancel of the question its answer asked.
 - The diagnosis's Planner request missed the Planner's cache and wrote it again; its five small requests were capped at 300–500 output tokens each.
 
+## 2026-10-31 · 17.10 · The synthesis fragment streamed, checked live
+
+The merged view drawn row by row as the Synthesizer writes it (task 17.10), checked live on 2026-10-31 through the tunnel by Claude-in-Chrome (task-17.10 decision 11): the orchestrator on the `phase-17/latency` branch, the Planner on Claude Sonnet 5.5 at `low`; the Synthesizer on `gemini-3.8-flash` at `low` for two prompts, then on Claude Sonnet 5.5 at `low` for one; the apps in `stub` mode, their model over canned data, on `gemini-3.7-flash`; the plan cache off. One sample each, in seconds on the orchestrator's clock from the merge's release; what the browser drew, sampled every 100 ms in the page. A check that the streaming works, not a measurement: the measured numbers are 17.11's.
+
+| Prompt · Synthesizer | Rows | First token | First row painted (`firstRowMs`) | Accepted (`deadAirMs`) | First row earlier | What the browser drew |
+| --- | --- | --- | --- | --- | --- | --- |
+| "Is main green right now? Ask CircleCI and GitHub." · `gemini-3.8-flash` | 6 | 2.10 | 11.48 | 23.02 | 11.54 | the whole view at once, about 35 s after acceptance |
+| "Which of my open pull requests are blocked on something outside GitHub?" · `gemini-3.8-flash` | 5 | 2.50 | 8.31 | 14.45 | 6.14 | the tree over four skeleton rows, then the five rows 1.3–1.5 s apart, accepted 0.7 s after the last |
+| "Is main green right now? Ask CircleCI and GitHub." · Sonnet 5.5 | 1 | 1.41 | 4.30 | 5.55 | 1.26 | the tree over four skeleton rows, the row, accepted 1.0 s later |
+
+- **What held**: every answer written tree, sorts, data model, note, as asked, and accepted on its first attempt; each row drawn at its sorted place, the fourth of the second prompt's rows landing above the third; the skeleton rows four, three, two, one, one, gone at acceptance; the merge's working words and the slot's busy mark held until acceptance. Nothing failed mid-stream and nothing was thrown away, so the takedown, the retry and the remake were not seen live; the scripted tests cover them.
+- **The first prompt was not seen streaming**: the orchestrator painted its first row at 11.48 s and accepted it at 23.02 s, and the browser drew nothing of it until about 35 s after acceptance, then the whole view at once. The cause is not established. The client's catalog gate holds an answer behind a paint whose catalog is still loading, and GitHub's question was the answer's first GitHub paint; but on a later reload every catalog loaded within 10 s of the page opening, and this page had been open 43 s before the question. The tunnel holding the answer's stream is the other candidate. The browser's resource-timing buffer was full, so the first page's load times were not kept.
+- **On Sonnet 5.5** the one row came 1.26 s before the answer's end, its JSON handed over in bursts as 17.9 found.
+- **Sign-in**: Linear's and both Gmail accounts' `stub` sign-ins had run out; they were left signed out, so the second prompt joined GitHub and CircleCI alone.
+
+### Before and after
+
+Before 17.10 the merged view was drawn once the Synthesizer's answer was complete and checked, at `deadAirMs`; the streaming leaves the Synthesizer's writing as it was, so each merge's own `deadAirMs` is its before (ours).
+
+| Prompt · Synthesizer | The view drawn, before (`deadAirMs`) | The first row drawn, after (`firstRowMs`) | Earlier | Earlier, of the wait |
+| --- | --- | --- | --- | --- |
+| "Is main green right now? Ask CircleCI and GitHub." · `gemini-3.8-flash` | 23.02 | 11.48 | 11.54 | 50% |
+| "Which of my open pull requests are blocked on something outside GitHub?" · `gemini-3.8-flash` | 14.45 | 8.31 | 6.14 | 42% |
+| "Is main green right now? Ask CircleCI and GitHub." · Sonnet 5.5 | 5.55 | 4.30 | 1.26 | 23% |
+
+- **What the reader sees in the wait**: before, the reserved slot's four skeleton rows and the merge's working words throughout; after, the tree with its headings and sort control, in the browser 1.4 s and 1.0 s ahead of the first row on the two merges seen streaming, then the rows taking the skeleton rows' places.
+- **Where it gains most**: a long answer written steadily, Gemini's two here. Sonnet 5.5 hands its JSON over in bursts, so its one row came 1.26 s ahead of the end.
+- **What it does not touch**: the accepted view lands when it did. The apps' runs, 53–123 s on this check, are most of each question: on the second prompt the rows 6.14 s earlier are 4% of the question's 143.3 s.
+- **On the screen**: the first prompt's view reached the browser whole, about 35 s after acceptance (above), so two of the three earlier first rows were seen.
+- One sample a prompt; the measured before and after over the six end-to-end prompts is 17.11's.
+
+### Found during the check, and fixed
+
+- **GitHub's question drawn as a modal**: GitHub asks which repository is meant as a `ConfirmationDialog`, which Primer draws over a backdrop. The canvas pins an app's dialog to its slot, and GitHub's slot held nothing else, so the slot had no height and the dialog, centred on it, spilled over the merged view. The dialog also took the keyboard: a question typed into the ask box went to it, and Return pressed its focused Cancel, sent to GitHub as the answer. GitHub's catalog now draws the dialog in place in the view, taking focus only while nothing else on the page holds it. Checked on the third prompt: the question sat in GitHub's slot beside CircleCI's view, and typing reached the ask box.
+- **The merged view's first column on one line**: the shell catalog's `Table` kept its first column from wrapping (task-8.7 decision 29). The first prompt's Synthesizer put whole commit messages there, so that column ran 2,491 px wide in a 1,769 px slot, the table scrolled sideways, and the other four columns were squeezed until a date took five lines and a row 116 px. Every column now wraps under the 56-character cap, the first keeping room for 16 characters; checked in the browser on the same view, every column inside the slot, the rows 76 px.
+
+| | Requests | Prompt tokens | Cache read | Cache written | Output tokens, reasoning included | Cost |
+| --- | --- | --- | --- | --- | --- | --- |
+| Planner, Sonnet 5.5 | 3 | 101,316 | 60,948 | 30,474 | 2,142 (0) | $0.17 |
+| Synthesizer, `gemini-3.8-flash` | 2 | 32,377 | 14,074 | — | 6,245 (0) | $0.04 |
+| Synthesizer, Sonnet 5.5 | 1 | 20,532 | 0 | 19,950 | 807 (0) | $0.09 |
+| GitHub, `gemini-3.7-flash` | 9 | 685,189 | 442,852 | — | 34,921 (30,535) | $0.35 |
+| CircleCI, `gemini-3.7-flash` | 25 | 615,342 | 495,358 | — | 35,865 (28,169) | $0.26 |
+
+- **What it cost**: $0.91, against the $2.3 estimated and put to the person before it ran. Priced as in 17.9's entry: Sonnet 5.5 at $2 / $10 / $0.10 per million input, output and cached tokens, a one-hour cache write at twice the input price ([Pricing — Claude](https://platform.claude.com/docs/en/about-claude/pricing), [Prompt caching — Claude](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)); the Gemini requests at `gemini-3.8-flash`'s $0.75 / $3.75 / $0.075, thinking billed as output ([Gemini Developer API pricing](https://ai.google.dev/gemini-api/docs/pricing)), the apps' `gemini-3.7-flash` priced the same. GitHub's requests include the Cancel the trapped keyboard sent; Linear and Gmail made no model request.
