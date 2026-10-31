@@ -10,6 +10,7 @@ Every run that spent model tokens to measure A2UIVerse, in the order they ran: w
 | 2026-10-30 | 17.6 | [The cache strategy's live check](#2026-10-30--176--the-cache-strategys-live-check) | `gemini-3.8-flash`, Claude Haiku 5.5, Claude Sonnet 5.5 | $0.21 |
 | 2026-10-30 | 17.7 | [The Planner on Claude](#2026-10-30--177--the-planner-on-claude) | Claude Sonnet 5.5, Claude Haiku 5.5, `gemini-3.8-flash` | $4.75 |
 | 2026-10-30 | 17.8 | [The kit's thinking tier `low`](#2026-10-30--178--the-kits-thinking-tier-low) | `gemini-3.8-flash` | $1.38 |
+| 2026-10-31 | 17.9 | [The Planner's answer streamed, checked live](#2026-10-31--179--the-planners-answer-streamed-checked-live) | Claude Sonnet 5.5, `gemini-3.8-flash`, `gemini-3.7-flash` | $0.95 |
 
 ---
 
@@ -232,3 +233,56 @@ The checks of task-17.8 decision 7, and the rest read.
 Chosen on 2026-10-30: `low` for the kit, on its one pass (task-17.8 decision 8); its default set in 17.11. Linear's answers at `low` on prompts that ask the model to judge, which its recorded beats do not, read in 17.11's prompts 4 and 10.
 
 Data: [`phase-17-kit-thinking-low-extract.json`](phase-17-kit-thinking-low-extract.json), each turn's numbers, no text any model wrote and no data any app returned.
+
+## 2026-10-31 · 17.9 · The Planner's answer streamed, checked live
+
+The Planner's answer read as the model writes it (task 17.9), checked live on 2026-10-31 through the tunnel by Claude-in-Chrome (task-17.9 decision 9): the orchestrator on the `phase-17/latency` branch, the Planner on Claude Sonnet 5.5 at `low` for three prompts, then on `gemini-3.8-flash` at `low` for one; the Synthesizer on `gemini-3.8-flash` at `low`; the apps in `stub` mode, their model over canned data, on `gemini-3.7-flash`; the plan cache off. One sample each, in seconds on the orchestrator's clock from the utterance arriving. A check that the streaming works, not a measurement: the measured numbers are 17.11's.
+
+| Prompt · Planner | First token | The list committed, the apps asked | The layout's first piece | The layout checked (`planMs`) |
+| --- | --- | --- | --- | --- |
+| "show my open pull requests" · Sonnet 5.5 | 1.76 | 3.05 | 3.07 | 3.08 |
+| "Is main green right now? Ask CircleCI and GitHub." · Sonnet 5.5 | 1.55 | 4.82 | 5.60 | 5.62 |
+| "what apps do I have?" · Sonnet 5.5 | 1.80; after its reader call, 7.83 | 7.84 | 7.85 | 7.86 |
+| "show my open pull requests" · `gemini-3.8-flash` | 5.09 | 5.51 | 5.76 | 6.07 |
+
+- **What held**: every plan valid on the first try, written title, dispatch list, data model, tree, as asked; each layout drawn from its first piece and checked whole; every app's answer in its slot, the merged view landing on the second prompt over CircleCI's and GitHub's. No app answered before its layout was checked — they took 109–139 s — so nothing was held live; the scripted tests cover the hold.
+- **Sonnet 5.5 hands its JSON over in bursts** (ours). Writing prose, a bare request streamed a text delta about every 35 ms; writing JSON, in a tag or not, it handed over 10–12 deltas at once every 0.4–0.8 s. A Planner request replayed with the Planner's system prompt and readers streamed its prose, then nothing for 0.6 s, then its block of 185 characters in one burst at its end, the orchestrator taking each delta as it came. So a short block arrives whole at its end: the list committed 0.8 s ahead of the plan's end on the merge prompt, about 20 ms on the other two. Replayed offline through the reader and the checks, the same three answers commit their lists at 70%, 79% and 2% of their text and tell each component as written.
+- **On Gemini** the first token came after 390 reasoning tokens Gemini does not stream; the list then committed 0.56 s and the first piece 0.31 s ahead of the plan's end.
+- **Sign-in**: GitHub's and CircleCI's `stub` accounts had run out; each slot drew its sign-in tile at first paint, signed in with the app's fake account, and resumed.
+
+### Before and after
+
+Before 17.9 the apps were asked, and the layout drawn, once the plan was complete and checked, at `planMs`; the Planner's streaming leaves the model's writing as it was, so each turn's own `planMs` is its before (ours).
+
+| Prompt · Planner | `planMs`: the apps asked and the layout drawn, before | The apps asked, after | Earlier | The layout's first piece, after | Earlier |
+| --- | --- | --- | --- | --- | --- |
+| "show my open pull requests" · Sonnet 5.5 | 3.08 | 3.05 | 0.04 | 3.07 | 0.01 |
+| "Is main green right now? Ask CircleCI and GitHub." · Sonnet 5.5 | 5.62 | 4.82 | 0.80, 14% of `planMs` | 5.60 | 0.01 |
+| "what apps do I have?" · Sonnet 5.5 | 7.86 | no app asked | — | 7.85 | 0.01 |
+| "show my open pull requests" · `gemini-3.8-flash` | 6.07 | 5.51 | 0.55, 9% | 5.76 | 0.30 |
+
+The 25 plans recorded before 17.9, estimated, not measured (ours): where each accepted answer's dispatch list and first component end in its text, the text after them converted to seconds at this check's rates while the answer streamed — Sonnet 5.5 406 and 441 characters a second on two turns, taken as 424; `gemini-3.8-flash` 600 on one.
+
+| Plans | The list ends at, of the answer | The apps asked earlier | The first piece earlier | `planMs` | Earlier, of `planMs` |
+| --- | --- | --- | --- | --- | --- |
+| 17.5's baseline, `gemini-3.8-flash`, 19 | median 63% (48–69%) | median 1.2 s (0.5–1.5) | median 0.9 s (0.2–1.2) | median 23.8 s (6.6–74.0) | 5% |
+| 17.7's pass, Sonnet 5.5, 6 | median 80% (68–81%) | median 0.9 s (0.4–1.1) | median 0.7 s (0.2–0.9) | median 6.5 s (3.7–7.6) | 14% |
+
+- **Sonnet 5.5's bursts take from it**: on this check's two turns that asked an app, the same estimate gave 0.35 s and 0.86 s where 0.04 s and 0.80 s were measured.
+- **The title**: those answers wrote it last; asked first, it moves ahead of the list, about 50 characters, some 0.1 s less.
+- **What it does not touch**: the time a model reasons before it writes, most of a long plan on 17.5's baseline.
+- **The settled screen**: the apps asked about a second sooner move it by about as much, 0.5–1.7% of 17.5's medians, 69.7–237.8 s, whose apps' runs were 42.6–184.3 s.
+- One sample a prompt, the rates from two turns and one; the measured before and after over the six end-to-end prompts is 17.11's.
+
+| | Requests | Prompt tokens | Cache read | Cache written | Output tokens, reasoning included | Cost |
+| --- | --- | --- | --- | --- | --- | --- |
+| Planner, Sonnet 5.5 | 4 | 139,585 | 91,422 | 30,474 | 1,801 (0) | $0.18 |
+| Planner, `gemini-3.8-flash` | 1 | 22,923 | 0 | — | 575 (390) | $0.02 |
+| Synthesizer, `gemini-3.8-flash` | 1 | 15,879 | 0 | — | 3,072 (0) | $0.02 |
+| GitHub, `gemini-3.7-flash` | 16 | 1,257,992 | 979,076 | — | 55,951 (47,884) | $0.49 |
+| CircleCI, `gemini-3.7-flash` | 11 | 275,931 | 228,614 | — | 12,068 (9,312) | $0.10 |
+| The streaming diagnosed, Sonnet 5.5 | 6 | 30,454 and five under 100 | 0 | 30,226 | at most 2,154 | $0.14 |
+
+- **What it cost**: $0.95. Sonnet 5.5 at $2 / $10 / $0.10 per million input, output and cached tokens, a one-hour cache write at twice the input price ([Pricing — Claude](https://platform.claude.com/docs/en/about-claude/pricing), [Prompt caching — Claude](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)); the Gemini requests at `gemini-3.8-flash`'s $0.75 / $3.75 / $0.075 until 2026-12-31, thinking billed as output ([Gemini Developer API pricing](https://ai.google.dev/gemini-api/docs/pricing)). The apps ran `gemini-3.7-flash`, which that page does not list; they are priced at `gemini-3.8-flash`'s. GitHub's requests include one press: the Cancel of the question its answer asked.
+- The diagnosis's Planner request missed the Planner's cache and wrote it again; its five small requests were capped at 300–500 output tokens each.
+
