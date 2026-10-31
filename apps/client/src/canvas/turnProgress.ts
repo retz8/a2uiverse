@@ -101,13 +101,18 @@ export function updateWords(
   return UPDATE_SHORT_WORDS[updateLineOf(update.state)];
 }
 
+/** The source whose placed fragment is the surface `surfaceId`; undefined for a surface in no slot. */
+export function sourceOfSurface(state: CanvasState, surfaceId: string): string | undefined {
+  return [...state.placement].find(([, placed]) => placed.surfaceId === surfaceId)?.[0];
+}
+
 /**
  * The source of the fragment holding `surfaceId`, while a press the reader made on that source —
  * Allow's resume, a Retry — still runs: a press inside the fragment then would send its write a
  * second time (task-12.13 decision 46).
  */
 export function pressBusy(state: CanvasState, surfaceId: string): string | undefined {
-  const source = [...state.placement].find(([, placed]) => placed.surfaceId === surfaceId)?.[0];
+  const source = sourceOfSurface(state, surfaceId);
   if (source === undefined) return undefined;
   const busy = state.presses.some(
     press =>

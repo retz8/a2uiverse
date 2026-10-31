@@ -6,8 +6,9 @@
  * on whether or not it is the canvas on screen — its streams arrive, its synthesis evaluates, its
  * presses finish — and nothing ends it but its close.
  *
- * Interaction policy while a paint is in flight: agent-bound surface actions are blocked with a
- * status cue.
+ * Interaction policy while a paint is in flight: agent-bound surface actions are held back with a
+ * notice in plain words (task 18.1) — the pressed app's own busy line when it is itself still
+ * redrawing from an earlier press in it, the screen's otherwise.
  *
  * The fragment's way back (task 9.7) lives here too: the canvas's history — each source's stack
  * and the wiring remembered per combination — fed by the turn runner, and the step press that
@@ -43,7 +44,7 @@ import type {ResolvedCatalog} from '../catalogs/clientCatalogs';
 import type {BuildSource} from '../catalogs/loader';
 import {BuildProcessor, createPaintBuilds} from '../catalogs/paintBuilds';
 import {createCanvasStore, type CanvasStore, type RosterEntry} from './canvasStore';
-import {pressBusy} from './turnProgress';
+import {pressBusy, sourceOfSurface} from './turnProgress';
 import type {FragmentFailure, TurnRunner} from './turn/canvasTurn';
 import {createTurnRunner} from './turn/canvasTurn';
 import type {PaintCause} from './turn/cause';
@@ -57,7 +58,8 @@ import {createFragmentHistory} from './history/fragmentHistory';
 import {capturePaint} from './history/paintCopy';
 import type {TrustedPageState} from './trail/trailStore';
 
-const BLOCKED_CUE = 'Hold on — a paint is in flight. Try again when it lands.';
+/** A press held back while the screen is still loading (task 18.1). */
+const SCREEN_LOADING_WORDS = 'This screen is still loading. Try again once it has finished.';
 /** The `sourceComponentId` of a shell action a `functionCall` raised: no component was in scope. */
 export const FUNCTION_CALL_SOURCE = 'functionCall';
 
@@ -524,16 +526,20 @@ export function createCanvasRuntime({
     const state = store.getState();
     answeredIn(action.surfaceId);
     if (state.inFlight) {
-      // Agent-bound actions are blocked while a paint is in flight — a status cue, not a fire.
-      store.showNotice(BLOCKED_CUE);
+      // Held back while a paint is in flight — a notice, not a fire. The pressed app's own busy
+      // line when it is itself still redrawing from an earlier press in it (task-18.1 decision 1);
+      // the screen's otherwise, an app whose stream has ended while the turn runs on included
+      // (decision 3).
+      const {source, settled} = state.inFlight;
+      const own =
+        source !== undefined && !settled && source === sourceOfSurface(state, action.surfaceId);
+      store.showNotice(own ? busyWords(source) : SCREEN_LOADING_WORDS);
       return;
     }
     // One press at a time into a fragment (task-12.13 decision 46), as the orchestrator holds.
     const busy = pressBusy(state, action.surfaceId);
     if (busy !== undefined) {
-      store.showNotice(
-        `${sourceName(busy) ?? 'This app'} is still working on that. Try again once it has finished.`,
-      );
+      store.showNotice(busyWords(busy));
       return;
     }
     return sendCausedAction(action, {kind: 'surface-action', payload: {action}});
@@ -545,6 +551,10 @@ export function createCanvasRuntime({
    */
   const bindingIndex = createBindingIndex();
   const navigator = createNavigator(bindingIndex);
+
+  /** An app busy with an earlier press of the reader's — the words the orchestrator refuses with too. */
+  const busyWords = (source: string) =>
+    `${sourceName(source) ?? 'This app'} is still working on that. Try again once it has finished.`;
 
   /**
    * A source's name as this canvas's shell paint has it (task-7.5 decision 11, task-12.4

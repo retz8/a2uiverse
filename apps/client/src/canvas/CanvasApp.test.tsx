@@ -1,13 +1,14 @@
 /**
  * The canvas page: the canvas on screen + palette + progress line + ambient notice
  * assembled over the A2A transport and the turn runner, with the ?beat= fixture-replay
- * affordance, the interaction policy (blocked actions with a cue),
+ * affordance, the interaction policy (a press held back, with a notice in plain words),
  * and the trail — every question a canvas of its own, a past canvas a tab (task 9.6).
  */
 import {describe, it, expect, afterEach} from 'vitest';
 import {render, screen, cleanup, fireEvent, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type {MessageSendParams, Part, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2AMessageSender} from '../a2a/client';
 import {CATALOGS} from '../../tests/helpers';
 import {snapshotCatalogId, snapshotCatalogs} from '../../tests/snapshot';
@@ -71,6 +72,66 @@ function eventOf(
     },
   };
 }
+
+/** One event of a composed stream: its messages under the stamp the orchestrator puts on it. */
+function stamped(
+  messages: Record<string, unknown>[],
+  stamp: Record<string, unknown>,
+  final = false,
+): TaskStatusUpdateEvent {
+  const event = eventOf(messages);
+  return {
+    ...event,
+    final,
+    status: {...event.status, state: final ? 'completed' : 'working'},
+    metadata: {a2uiverse: stamp},
+  };
+}
+
+const SHELL_STAMP = {source: 'shell', role: 'shell'};
+const GMAIL_STAMP = {source: 'gmail', role: 'fragment'};
+
+/** The layout surface with one slot, Gmail's, as the shell painter emits it. */
+const GMAIL_LAYOUT = [
+  {version: 'v0.9', createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}},
+  {
+    version: 'v0.9',
+    updateComponents: {
+      surfaceId: 'shell:main',
+      components: [
+        {id: 'root', component: 'Column', children: ['attribution-slot-gmail']},
+        {
+          id: 'attribution-slot-gmail',
+          component: 'Attribution',
+          displayName: 'Gmail',
+          source: 'gmail',
+          child: 'slot-gmail',
+        },
+        {id: 'slot-gmail', component: 'Slot', source: 'gmail', state: 'pending', label: 'Gmail'},
+      ],
+    },
+  },
+];
+
+/** Gmail's fragment: one button to press inside it. */
+const GMAIL_FRAGMENT = [
+  {version: 'v0.9', createSurface: {surfaceId: 'gmail:inbox', catalogId: CATALOG_ID}},
+  {
+    version: 'v0.9',
+    updateComponents: {
+      surfaceId: 'gmail:inbox',
+      components: [
+        {
+          id: 'root',
+          component: 'Button',
+          child: 'label',
+          action: {event: {name: 'book', context: {}}},
+        },
+        {id: 'label', component: 'Text', text: 'Book'},
+      ],
+    },
+  },
+];
 
 /** Every send yields `script[i]` (gated when `gated`), in call order. */
 function scriptedSender(script: TaskStatusUpdateEvent[], gated = false) {
@@ -252,7 +313,7 @@ describe('CanvasApp', () => {
     expect(screen.queryByText('Which repository?')).toBeNull();
   });
 
-  it('blocks agent-bound surface actions while a paint is in flight, with a status cue', async () => {
+  it('holds a press back while the screen is still loading, and says so in plain words (task 18.1)', async () => {
     // First send resolves immediately with the actionable surface; the second stays gated so
     // the click's paint is observably in flight when the third click arrives.
     const sent: MessageSendParams[] = [];
@@ -281,9 +342,63 @@ describe('CanvasApp', () => {
     await userEvent.click(button);
 
     expect(sent).toHaveLength(2);
-    expect(screen.getByTestId('canvas-notice')).toHaveTextContent(/paint is in flight/i);
+    expect(screen.getByTestId('canvas-notice')).toHaveTextContent(
+      'This screen is still loading. Try again once it has finished.',
+    );
     release();
     expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
+  });
+
+  it('a press held back while its own app is still redrawing borrows the busy line; the screen line once that app is done (task 18.1)', async () => {
+    const sent: MessageSendParams[] = [];
+    let releaseSettled: () => void = () => {};
+    let releaseEnd: () => void = () => {};
+    const settledGate = new Promise<void>(resolve => {
+      releaseSettled = resolve;
+    });
+    const endGate = new Promise<void>(resolve => {
+      releaseEnd = resolve;
+    });
+    const sender: A2AMessageSender = {
+      async *sendMessageStream(params) {
+        const index = sent.length;
+        sent.push(params);
+        if (index === 0) {
+          yield stamped(GMAIL_LAYOUT, SHELL_STAMP);
+          yield stamped(GMAIL_FRAGMENT, GMAIL_STAMP);
+          yield stamped([], {...GMAIL_STAMP, settled: true});
+          yield stamped([], SHELL_STAMP, true);
+          return;
+        }
+        // The press's answer: Gmail's own stream ends first, the turn runs on until released.
+        await settledGate;
+        yield stamped([], {...GMAIL_STAMP, settled: true});
+        await endGate;
+        yield stamped([], SHELL_STAMP, true);
+      },
+    };
+    renderCanvas(sender);
+    await ask('what needs my attention');
+    const book = await screen.findByRole('button', {name: 'Book'});
+    await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
+
+    await userEvent.click(book);
+    await waitFor(() => expect(sent).toHaveLength(2));
+    await userEvent.click(book);
+    expect(sent).toHaveLength(2);
+    expect(screen.getByTestId('canvas-notice')).toHaveTextContent(
+      'Gmail is still working on that. Try again once it has finished.',
+    );
+
+    // Gmail is done while the turn runs on: the app is no longer the reason, the screen is.
+    releaseSettled();
+    await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
+    await userEvent.click(book);
+    expect(sent).toHaveLength(2);
+    expect(screen.getByTestId('canvas-notice')).toHaveTextContent(
+      'This screen is still loading. Try again once it has finished.',
+    );
+    releaseEnd();
   });
 
   it('?beat= accepts a comma-separated list and replays the beats in sequence', async () => {
