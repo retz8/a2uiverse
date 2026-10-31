@@ -6,6 +6,7 @@ import type {Embedder} from '@a2uiverse/embedder';
 import type {PublisherJournalEntry} from '../marketplace/publisher.js';
 import type {RegistryJournal, RegistryJournalEntry} from '../registry/registry.js';
 import type {SignInRecord} from '../vault/vault.js';
+import {logLine} from '../log.js';
 import {describe} from './descriptor.js';
 import {emptyTouches, mergeTouches, type SurfaceTouches} from './surfaces.js';
 import type {JournalEntry, PlanRecord, StepRecord, SynthesisRecord} from './types.js';
@@ -32,6 +33,8 @@ export interface JournalTurn {
   refused(reason: string): void;
   /** A step in a fragment's history: where it landed and what it cost. */
   step(record: StepRecord): void;
+  /** The instant the turn's final `completed` left (task-17.5 decision 4). */
+  answered(at: number): void;
   /**
    * Appends the entry, once: a second close does nothing. A turn still listening past its final
    * closes when the listening ends, so what arrives after the hard cap is on its line. Never
@@ -63,10 +66,13 @@ export class IntentJournal implements RegistryJournal {
   readonly #filePath: string;
   readonly #embedder: Embedder | undefined;
   readonly #recent = new Map<string, JournalEntry[]>();
+  readonly #closed: ((entry: JournalEntry) => void) | undefined;
 
-  constructor(filePath: string, embedder?: Embedder) {
+  /** `closed` hears each turn as it closes, the plan cache among its listeners (task-17.6 decision 8). */
+  constructor(filePath: string, embedder?: Embedder, closed?: (entry: JournalEntry) => void) {
     this.#filePath = filePath;
     this.#embedder = embedder;
+    this.#closed = closed;
   }
 
   open(turn: OpenTurn): JournalTurn {
@@ -118,11 +124,21 @@ export class IntentJournal implements RegistryJournal {
       step: record => {
         entry.step = record;
       },
+      answered: at => {
+        entry.finalAt = new Date(at).toISOString();
+      },
       close: async outcome => {
         if (closed) return;
         closed = true;
         entry.outcome = outcome;
         this.#remember(entry);
+        try {
+          this.#closed?.(entry);
+        } catch (err) {
+          logLine(
+            `journal: a listener on a closed turn threw — ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
         entry.embedding = await this.#embed(entry.descriptor);
         await this.#append(entry);
       },

@@ -34,6 +34,7 @@ export {
   UPDATE_SLOT_STATES,
   type UpdateSlotState,
 } from './slot-state.js';
+export {SynthesisStreamingContext} from './synthesis-streaming.js';
 export {AppActContext, type AppActSlot, type AppActState, type AppActStatus} from './app-act.js';
 export {SignInContext, type SignInResolver} from './sign-in.js';
 // The sign-in waiting form, for the App Library's sign-in with no canvas (task-14.2 decision 11).

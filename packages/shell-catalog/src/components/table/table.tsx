@@ -16,6 +16,7 @@ import {
   type SourceSlotState,
   type UpdateSlotState,
 } from '../../slot-state.js';
+import {SynthesisStreamingContext} from '../../synthesis-streaming.js';
 import {mapChildList, renderChildList, type BuildChild} from '../shared/child-list.js';
 import {SkeletonBar} from '../shared/skeleton.js';
 import {TableApi, TableRowApi} from './table.schema.js';
@@ -87,6 +88,50 @@ export function ColumnHeading({column, reserved}: {column: string; reserved?: Re
   );
 }
 
+/** The rows the reserved merged view draws as skeleton bars, which the view's rows take one for one. */
+export const RESERVED_ROWS = 4;
+
+/** The skeleton rows' bar widths, per row and column, as the merged view's board draws them. */
+const SKELETON_WIDTHS = [
+  [62, 64, 36, 70, 58, 72],
+  [48, 64, 36, 70, 58, 68],
+  [56, 64, 16, 16, 16, 68],
+  [70, 64, 36, 70, 58, 64],
+];
+
+/**
+ * Rows of skeleton bars in the table's own geometry: the reserved merged view's four (task-7.15),
+ * and the rows still to come below a view drawn as it is written (task-17.10 decision 4). `from`
+ * says which of the four widths the first one takes, so a row below the view's last keeps its
+ * place's shape.
+ */
+export function SkeletonRows({
+  count,
+  columns,
+  from = 0,
+}: {
+  count: number;
+  columns: number;
+  from?: number;
+}) {
+  return (
+    <>
+      {Array.from({length: count}, (_, row) => {
+        const widths = SKELETON_WIDTHS[(from + row) % SKELETON_WIDTHS.length]!;
+        return (
+          <Table.Row key={`skeleton-${row}`} data-skeleton-row="">
+            {Array.from({length: columns}, (_, index) => (
+              <Table.Cell key={index} style={bodyCellStyle(index)}>
+                <SkeletonBar width={`${widths[index % widths.length]}%`} height={8} />
+              </Table.Cell>
+            ))}
+          </Table.Row>
+        );
+      })}
+    </>
+  );
+}
+
 /**
  * `Table` on Radix `Table`, `ghost` variant at size 1, drawn to the merged view's board (task-7.15,
  * the design canvas's F3): no box around it, a 32px heading row in the muted register over a
@@ -98,18 +143,26 @@ export function ColumnHeading({column, reserved}: {column: string; reserved?: Re
  * for that source is pending, failed, late or needs sign-in (tasks 8.2, 8.5, 12.3): its heading
  * says so; while pending its cells draw a skeleton bar, while failed or needing sign-in the empty
  * dash, in place of the authored cell, and while late the authored cells stand — the Synthesizer's own dashes until an Include writes real cells.
+ *
+ * While the host says the merged view is still being written (task-17.10 decision 4), the rows
+ * take the reserved slot's four skeleton rows' places one for one, and one skeleton row stays
+ * below the last; it goes once the document is accepted. `rows` is how many the table holds.
  */
 export function TableView({
   columns,
   columnSources,
+  rows = 0,
   children,
 }: {
   columns: string[];
   columnSources?: (string | null)[];
+  rows?: number;
   children?: ReactNode;
 }) {
   const resolve = useContext(SlotStateContext);
+  const streaming = useContext(SynthesisStreamingContext);
   const reserved = columns.map((_, index) => reservedColumnState(resolve, columnSources?.[index]));
+  const toCome = streaming ? Math.max(RESERVED_ROWS - rows, 1) : 0;
   return (
     // A table that cannot fit its slot scrolls sideways inside it rather than crushing a column
     // (task-8.7 decision 29).
@@ -125,6 +178,7 @@ export function TableView({
       </Table.Header>
       <Table.Body>
         <InTableContext.Provider value={{reserved}}>{children}</InTableContext.Provider>
+        {toCome > 0 && <SkeletonRows count={toCome} columns={columns.length} from={rows} />}
       </Table.Body>
     </Table.Root>
   );
@@ -151,9 +205,10 @@ export function headingCellStyle(index: number): CSSProperties {
 }
 
 /**
- * A body cell: 40px, over the row divider. The first column names the row's own thing and reads
- * on one line; every other column wraps, capped so one long-text column cannot take the whole
- * width from the rest (task-8.7 decision 29).
+ * A body cell: 40px, over the row divider. Every column wraps, capped so one long-text column
+ * cannot take the whole width from the rest; the first column names the row's own thing and keeps
+ * room for a short name on one line (task-8.7 decision 29, the first column wrapping since
+ * task 17.10's live check).
  */
 export function bodyCellStyle(index: number): CSSProperties {
   return {
@@ -163,7 +218,9 @@ export function bodyCellStyle(index: number): CSSProperties {
     height: 40,
     verticalAlign: 'middle',
     boxShadow: 'inset 0 -1px var(--a2v-line-2, var(--gray-a3))',
-    ...(index === 0 ? {whiteSpace: 'nowrap'} : {maxWidth: '56ch', overflowWrap: 'anywhere'}),
+    maxWidth: '56ch',
+    overflowWrap: 'anywhere',
+    ...(index === 0 ? {minWidth: '16ch'} : {}),
   };
 }
 
@@ -251,9 +308,10 @@ function TableNodeView({node, buildChild}: NodeViewProps) {
     columnSources?: (string | null)[];
     children?: unknown;
   };
+  const rows = childNodes(children);
   return (
-    <TableView columns={columns} columnSources={columnSources}>
-      {childNodes(children).map(row =>
+    <TableView columns={columns} columnSources={columnSources} rows={rows.length}>
+      {rows.map(row =>
         row.type === TableRowApi.name ? (
           <TableRowNode key={row.id} row={row} buildChild={buildChild} />
         ) : (

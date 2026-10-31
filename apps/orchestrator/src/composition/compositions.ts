@@ -60,6 +60,14 @@ export class Compositions {
     return record ? {kind: 'closed', record} : undefined;
   }
 
+  /**
+   * A composition whose plan broke once its sources were asked (task-17.9 decision 2): let go with
+   * no record, as a plan that breaks before it leaves none.
+   */
+  discard(contextId: string): void {
+    this.#open.delete(contextId);
+  }
+
   /** A composition closed before it was planned: what its utterance turn knew, kept as its record. */
   closeUnplanned(contextId: string, record: ClosedComposition): void {
     this.#closed.set(contextId, record);

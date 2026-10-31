@@ -183,6 +183,12 @@ export interface CanvasState {
    */
   mergeHeld: boolean;
   /**
+   * The merged view is being drawn as the Synthesizer writes it (task-17.10 decision 10): its
+   * payload arrived marked partial, and the document as accepted has not. Its line keeps working
+   * and the view stays busy, a skeleton row below its last.
+   */
+  mergeStreaming: boolean;
+  /**
    * The notice stack: one entry per source that has spoken this turn, plus at most one for the
    * shell. Plural because a fan-out has several voices, and buffered per source because their
    * chunks interleave on the wire.
@@ -256,6 +262,8 @@ export interface CanvasStore {
   removePress(key: number): void;
   setMergeFollowingStep(following: boolean): void;
   setMergeHeld(held: boolean): void;
+  /** The merged view's payload arrived partial, or whole; the view taken down is whole no more. */
+  setMergeStreaming(streaming: boolean): void;
   /** The composition retired: its roster, slot states, merge facts and presses go with it. */
   resetComposition(): void;
   reportError(text: string): void;
@@ -325,6 +333,7 @@ export function createCanvasStore(): CanvasStore {
     presses: [],
     mergeFollowingStep: false,
     mergeHeld: false,
+    mergeStreaming: false,
     notices: [],
     roster: [],
     prose: new Map(),
@@ -449,6 +458,9 @@ export function createCanvasStore(): CanvasStore {
     setMergeHeld: held => {
       if (state.mergeHeld !== held) set({mergeHeld: held});
     },
+    setMergeStreaming: streaming => {
+      if (state.mergeStreaming !== streaming) set({mergeStreaming: streaming});
+    },
     resetComposition: () =>
       set({
         roster: [],
@@ -462,6 +474,7 @@ export function createCanvasStore(): CanvasStore {
         presses: [],
         mergeFollowingStep: false,
         mergeHeld: false,
+        mergeStreaming: false,
         updates: new Map(),
         appActs: new Map(),
       }),

@@ -206,8 +206,11 @@ when the data no longer supports it, and say what changed in the note.
 
 ## The answer
 
-Answer with exactly one JSON document — a synthesis (`tree`, `dataModel`, `sorts`, `note`) or a
+Answer with exactly one JSON document — a synthesis (`tree`, `sorts`, `dataModel`, `note`) or a
 decline (`declined`, `reason`) — inside one `<synthesize-data-model>` … `</synthesize-data-model>`
-block, and nothing outside the block. The document must validate against the output schema you
-were given. When your previous answer is handed back with errors, fix those errors in that document
-rather than writing a new one.
+block, and nothing outside the block. Write a synthesis's members in that order — the tree first,
+then the sorts, then the data model, the note last: the view is drawn as you write it, the tree
+and the sorts first and each row of the data model as it is finished, so a row written before the
+tree waits for it. The document must validate against the output schema you were given. When your
+previous answer is handed back with errors, fix those errors in that document rather than writing
+a new one.

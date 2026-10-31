@@ -26,12 +26,13 @@ pnpm --filter @a2uiverse/client preview:snapshot
 
 Open **http://localhost:4173/?beat=27** for the session in the GIF above, replayed from a recording with no orchestrator, no apps and no model; the apps' catalogs come from the registry snapshot the command builds. `?beat=trail` replays four questions on two branches, `?beat=26` the way back inside an app, `?beat=31` an app offered from the Store in the slot that needs it, and `?page=store` opens the Store over a fixed world of the seven apps.
 
-**For real**, with **Node 22** or newer (Corepack resolves the pinned pnpm), [uv](https://docs.astral.sh/uv/), a [Gemini API key](https://aistudio.google.com/apikey), and [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) checked out beside this repo:
+**For real**, with **Node 22** or newer (Corepack resolves the pinned pnpm), [uv](https://docs.astral.sh/uv/), a [Claude API key](https://platform.claude.com/docs/en/get-api-key) and a [Gemini API key](https://aistudio.google.com/apikey), and [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) checked out beside this repo:
 
 ```bash
 git clone https://github.com/retz8/a2uiverse-apps ../a2uiverse-apps
 pnpm install
-echo "GOOGLE_API_KEY=<your key>" > apps/orchestrator/.env
+echo "ANTHROPIC_API_KEY=<your Claude key>" > apps/orchestrator/.env   # the Planner
+echo "GOOGLE_API_KEY=<your Gemini key>" >> apps/orchestrator/.env     # the Synthesizer
 pnpm dev:all        # the apps and the platform, the apps installed
 ```
 
@@ -140,14 +141,14 @@ flowchart LR
     O <-->|A2A| L["Linear agent"]
     O <-->|A2A| G["GitHub agent"]
     O <-->|A2A| CI["CircleCI agent"]
-    O -.->|model calls| M["Gemini<br/>Planner and Synthesizer"]
+    O -.->|model calls| M["Planner: Claude<br/>Synthesizer: Gemini"]
     O -.->|the Planner's Store search, install by id,<br/>the update check, the Store and Publish relayed| MK["Marketplace"]
 ```
 
 The client talks only to the orchestrator, and the orchestrator to the apps. One question goes like this:
 
 1. **Router** ranks the installed apps' agent cards against the question, with a small embedding model, and hands a shortlist on.
-2. **Planner**, the first model call, picks the apps, writes each one's request, and designs the layout. For what no installed app can do, it searches the Store and offers the apps it found in that slot. The layout reaches the client before any app is asked.
+2. **Planner**, the first model call, picks the apps, writes each one's request, and designs the layout. For what no installed app can do, it searches the Store and offers the apps it found in that slot. Its answer is read as it's written: the apps are asked as soon as the plan names them, while the layout is still being written, and the layout reaches the client piece by piece, whole before any app's answer is shown.
 3. **Apps** are asked in parallel, and each answer is relayed into its slot as it arrives. The client draws it with that app's own catalog.
 4. **Synthesizer**, the second model call, runs once the apps have answered, when the plan reserved a merged view. It writes the view as formulas over the apps' data.
 5. **Client** evaluates the formulas, and again on every change, with no model call.
@@ -192,6 +193,37 @@ A pnpm workspace with Turborepo over it. Each package's README has its own comma
 
 </details>
 
+## How fast it answers
+
+Each model and its effort is a default, set by a variable:
+
+| Part        | Model              | Effort | Set by                                                        | Why                                                                           |
+| ----------- | ------------------ | ------ | ------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Planner     | Claude Sonnet 5.5  | `low`  | `A2UIVERSE_PLANNER_MODEL`, `A2UIVERSE_PLANNER_EFFORT`         | [orchestrator](docs/design/orchestrator.md#model-seam-and-the-planners-model) |
+| Synthesizer | `gemini-3.8-flash` | `low`  | `A2UIVERSE_SYNTHESIZER_MODEL`, `A2UIVERSE_SYNTHESIZER_EFFORT` | [synthesis](docs/design/synthesis.md#synthesizers-model-and-effort)           |
+| The apps    | `gemini-3.8-flash` | `low`  | `MODEL_NAME`, `MODEL_EFFORT`, in each agent's `.env`          | [agent kit](docs/design/agent-kit.md#model-and-thinking-tier)                 |
+
+`low` is the least thinking the model accepts. The Planner and the Synthesizer take any Gemini model, or any Claude model as `anthropic/<model>`: `A2UIVERSE_SYNTHESIZER_MODEL=anthropic/claude-sonnet-5-5` in the orchestrator's `.env` puts the Synthesizer on Claude, for one. The apps take any Gemini model; Claude runs on them with the limits [the kit's README](https://github.com/retz8/a2uiverse-apps/tree/main/agent-kit#quick-start) lists.
+
+On these defaults, six questions were each asked once on 2026-10-31, the apps live on real data, timed in seconds from the question reaching the orchestrator:
+
+| Question                                                                                            | Plan | First app on screen | Whole screen settled | Tokens in         | Tokens out, thinking included |
+| --------------------------------------------------------------------------------------------------- | ---- | ------------------- | -------------------- | ----------------- | ----------------------------- |
+| "Which of my open pull requests are blocked on something outside GitHub?"                           | 7.1  | 19.8                | 172.9                | 1.36M, 79% cached | 31.8k                         |
+| "Help me close out A2U-7: show the issue, its pull request and its CI run, and let me act on each." | 7.5  | 14.6                | 148.3                | 5.49M, 92% cached | 11.1k                         |
+| "Is main green right now? Ask CircleCI and GitHub."                                                 | 6.0  | 68.5                | 153.8                | 2.75M, 91% cached | 27.0k                         |
+| "Across both my Gmail accounts, which threads mention a Linear issue, and what state is it in?"     | 6.8  | 55.7                | 93.8                 | 2.21M, 84% cached | 13.0k                         |
+| "Show my open pull requests"                                                                        | 2.2  | 75.0                | 105.8                | 1.15M, 83% cached | 11.4k                         |
+| "Compare camera prices at Shop A and Shop B.", Shop B not installed                                 | 5.4  | 10.3                | 15.8                 | 99.7k, 75% cached | 1.7k                          |
+
+- **Most of the wait is the apps**, each working through its own service: an app's run took 10.4–152.0 s, a plan 2.2–7.5 s and a merge 11.4–14.7 s.
+- **Most of the tokens are the apps' too**: each of an app's model requests, one per tool round, sends its whole prompt again, most of it read from Gemini's cache. A plan takes about 34k tokens in, twice that when it searches the Store, and a merge 15–18k. The six cost $2.53: $0.23 on Claude, $2.30 on Gemini.
+- On "Is main green" GitHub's answer was refused twice, a cause since fixed.
+
+**In short:** the plan is fast enough, a few seconds, and the apps are asked as soon as it names them. The merge takes longer, 11–15 s, but its rows appear as the Synthesizer writes them, the first at about 9 s. What's left of the wait is the apps' own work.
+
+[Every measured run, with its setup](_dev/docs/latency-and-token-experiment-results.md).
+
 ## Built on
 
 A2UIVerse speaks the A2UI protocol at v0.9.1, on the packages the A2UI project publishes:
@@ -210,7 +242,7 @@ The two npm packages carry local patches, described in the [client README](apps/
 
 What's built so far is the composed screen; installing an app from its card and its packed catalog, or from the marketplace by its id alone; signing in to apps, with several accounts each; the marketplace an app is published to — its index with search, its hosted catalogs, the publish step that tries a new app by asking it to paint its first screen — and the orchestrator telling when a published update is waiting; the one page over the canvas — the Store, the App Library and Publish; and the store loop — a question no installed app can answer offering apps from the Store in its slot, installed there, and an app that has changed updated where it stands. Next:
 
-- **Models beyond Gemini** tried on the apps' agents.
+- **The apps' agents on Claude**, tried once the kit's three limits on it are fixed.
 - **One sitting, end to end**: publish a new app, discover it, install it, compose it with an existing one, and act inside it, with no code changes.
 
 ## Feedback

@@ -9,14 +9,34 @@ import type {Express} from 'express';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {buildOrchestrator} from '../src/app.js';
 import {A2UI_EXTENSION_URI_V091} from '../src/agentCard.js';
-import type {PlanRecord} from '../src/journal/types.js';
+import type {PlanRecord, SynthesisRecord} from '../src/journal/types.js';
 import type {LayoutSurface} from '../src/planner/document.js';
-import type {Planner} from '../src/planner/planner.js';
+import type {Planner, PlanOutcome} from '../src/planner/planner.js';
+import {PLAN_CACHE_FILE} from '../src/planner/planCache.js';
 import {FakeEmbedder} from '@a2uiverse/embedder';
 import {nowhere} from './fakeMarketplace.js';
-import {FakePlanner, layoutFor, MalformedPlanner, ThrowingPlanner} from './fakePlanner.js';
-import {bestPriceView, decline, FakeSynthesizer, HeldSynthesizer} from './fakeSynthesizer.js';
-import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer.js';
+import {
+  commitList,
+  FakePlanner,
+  layoutFor,
+  MalformedPlanner,
+  plannedWith,
+  StreamingPlanner,
+  tellLayout,
+  ThrowingPlanner,
+} from './fakePlanner.js';
+import {
+  bestPriceView,
+  decline,
+  FakeSynthesizer,
+  HeldSynthesizer,
+  StreamingSynthesizer,
+} from './fakeSynthesizer.js';
+import type {
+  SynthesisAnswer,
+  SynthesisCall,
+  SynthesisModel,
+} from '../src/synthesizer/synthesizer.js';
 import {
   BASIC_CATALOG_ID,
   canvasParentMetadata,
@@ -87,6 +107,8 @@ async function boot(
     /** The accounts held per app (task 12.4); none unless a test says otherwise. */
     accounts?: AccountStore;
     shortlistCap?: number;
+    /** The plan cache (task-17.6 decision 10); off unless a test turns it on. */
+    planCache?: boolean;
   } = {},
 ) {
   for (const appId of APPS) {
@@ -110,9 +132,11 @@ async function boot(
       stateDir: dir,
       debugIds: false,
       googleApiKey: undefined,
+      anthropicApiKey: undefined,
       plannerModelId: 'test-model',
       plannerEffort: 'low',
       shortlistCap: options.shortlistCap ?? 5,
+      planCache: options.planCache ?? false,
       synthesizerModelId: 'test-model',
       synthesizerEffort: 'low',
       softDeadlineMs: options.softDeadlineMs ?? 10_000,
@@ -991,6 +1015,91 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     expect(synthesis.attempts[0]!.text).toContain('<synthesize-data-model>');
     expect(synthesis.attempts[0]!.errors).toEqual([]);
     expect(typeof synthesis.deadAirMs).toBe('number');
+  });
+
+  test("the journal line carries the measurement: the shortlist's time, each request of the plan and the merge with its seam's effort, the final's instant (task-17.5 decisions 1–4)", async () => {
+    const request = {
+      attempt: 1,
+      step: 1,
+      model: {provider: 'google.generative-ai', modelId: 'gemini-3.8-flash'},
+      startMs: 12,
+      endMs: 40,
+      modelMs: 28,
+      ended: 'text' as const,
+      finish: 'stop',
+      usage: {promptTokens: 40000, cachedTokens: 36000},
+    };
+    const fake = planner();
+    const measured: Planner = {
+      plan: async input => ({...(await fake.plan(input)), effort: 'low', requests: [request]}),
+    };
+    class MeasuredSynthesizer extends FakeSynthesizer {
+      override async generate(call: SynthesisCall): Promise<SynthesisAnswer> {
+        const answer = await super.generate(call);
+        return {
+          ...answer,
+          step: {
+            model: request.model,
+            modelMs: 30,
+            stepMs: 30,
+            ended: 'text',
+            finish: 'stop',
+            tools: [],
+            usage: {promptTokens: 30000},
+          },
+        };
+      }
+    }
+    const {client} = await boot({
+      planner: measured,
+      synthesizer: new MeasuredSynthesizer(),
+      scripts: scripts(),
+    });
+    const events = await collect(client, utterance('compare camera prices'));
+    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    const [line] = await journalLines(1);
+    const plan = line.plan as PlanRecord;
+    expect(plan.shortlistMs).toEqual(expect.any(Number));
+    expect(plan.shortlistMs!).toBeLessThanOrEqual(plan.planMs);
+    expect(plan.effort).toBe('low');
+    expect(plan.requests).toEqual([request]);
+    const synthesis = line.synthesis as SynthesisRecord;
+    expect(synthesis.requests).toEqual([
+      expect.objectContaining({attempt: 1, step: 1, modelMs: 30, usage: {promptTokens: 30000}}),
+    ]);
+    expect(synthesis.requests![0]!.startMs).toBeLessThanOrEqual(synthesis.deadAirMs!);
+    const finalAt = Date.parse(line.finalAt as string);
+    expect(finalAt).toBeGreaterThanOrEqual(Date.parse(line.at as string));
+    expect(finalAt).toBeGreaterThanOrEqual(Date.parse(synthesis.release!.at));
+  });
+
+  test("a plan's cache key is on its journal line, and a clean turn stores the plan beside the journal (task-17.6 decisions 8, 11)", async () => {
+    const fake = planner();
+    const keyed: Planner = {
+      plan: async input => {
+        const outcome = await fake.plan(input);
+        return outcome.kind === 'planned' ? {...outcome, cache: {key: 'k1'}} : outcome;
+      },
+    };
+    const {client} = await boot({
+      planner: keyed,
+      synthesizer: new FakeSynthesizer(),
+      scripts: scripts(),
+      planCache: true,
+    });
+    const events = await collect(client, utterance('compare camera prices'));
+    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    const [line] = await journalLines(1);
+    const plan = line.plan as PlanRecord;
+    expect(plan.cache).toEqual({key: 'k1'});
+    await vi.waitFor(async () => {
+      const stored = JSON.parse(await readFile(join(dir, PLAN_CACHE_FILE), 'utf8')) as {
+        plans: {key: string; text: string}[];
+      };
+      expect(stored.plans).toEqual([
+        expect.objectContaining({key: 'k1', text: plan.attempts.at(-1)!.text}),
+      ]);
+    });
   });
 
   test('a decline collapses the synthesis slot and sends no payload', async () => {
@@ -3656,5 +3765,541 @@ describe('the store loop (task 15.4)', () => {
       gap: 'calendar',
       installed: {appId: 'calendar', name: 'Google Calendar'},
     });
+  });
+});
+
+describe('the Planner’s answer streamed (task 17.9)', () => {
+  /** The ids of the components a shell paint carries, in order. */
+  const idsOf = (paint: Array<Record<string, unknown>>) =>
+    (
+      (paint.find(d => d.updateComponents)?.updateComponents as {
+        components?: Array<{id: string}>;
+      }) ?? {}
+    ).components?.map(c => c.id) ?? [];
+  const opsOf = (paint: Array<Record<string, unknown>>) =>
+    paint.map(d => Object.keys(d).find(key => key !== 'version'));
+  const isFragment = (e: AnyEvent) => stampOf(e)?.role === 'fragment';
+  /** Whether the source's paint reached the client. */
+  const paintedBy = (events: AnyEvent[], source: string) =>
+    events.some(e => stampOf(e)?.source === source && a2uiDatas(e).some(d => d.createSurface));
+  const isShellPaint = (e: AnyEvent) =>
+    e.kind === 'status-update' && stampOf(e)?.role === 'shell' && a2uiDatas(e).length > 0;
+  const both = (): LayoutSurface => ({title: 'Both apps', ...layoutFor(['github', 'gmail'])});
+  const malformed = (): PlanOutcome => ({
+    kind: 'malformed',
+    attempts: [
+      {text: 'first', errors: ["/tree: no Slot holds source 'gmail', which the dispatch names"]},
+      {text: 'second', errors: ["/tree: no Slot holds source 'gmail', which the dispatch names"]},
+    ],
+    toolCalls: [],
+  });
+
+  test('the sources are dispatched the moment the list is committed, before any layout is written (decision 1)', async () => {
+    const plan = both();
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        await until(
+          () => vendors.github!.requests.length === 1 && vendors.gmail!.requests.length === 1,
+          'both sources asked before the layout is written',
+        );
+        tellLayout(stream, plan);
+        return plannedWith(plan);
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(vendors.github!.requests).toHaveLength(1);
+    expect(vendors.calendar!.requests).toHaveLength(0);
+    expect(paintedBy(events, 'github')).toBe(true);
+  });
+
+  test('the layout reaches the client component by component: created with the first, repainted with each after, painted whole once checked (decision 3)', async () => {
+    const plan = both();
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        tellLayout(stream, plan);
+        return plannedWith(plan);
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    const paints = events
+      .slice(0, events.findIndex(isFragment))
+      .filter(isShellPaint)
+      .map(a2uiDatas);
+    expect(paints.map(idsOf)).toEqual([
+      ['root'],
+      ['root', 'attribution-slot-github', 'slot-github'],
+      ['root', 'attribution-slot-github', 'slot-github', 'attribution-slot-gmail', 'slot-gmail'],
+      ['root', 'attribution-slot-github', 'slot-github', 'attribution-slot-gmail', 'slot-gmail'],
+    ]);
+    expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);
+    for (const paint of paints.slice(1)) expect(opsOf(paint)).toEqual(['updateComponents']);
+    // A parent written before its slot names the slot's marker once the slot is painted.
+    const root = (paint: Array<Record<string, unknown>>) =>
+      (
+        paint.find(d => d.updateComponents)!.updateComponents as {
+          components: Array<{id: string; children?: string[]}>;
+        }
+      ).components[0]!.children;
+    expect(root(paints[0]!)).toEqual(['slot-github', 'slot-gmail']);
+    expect(root(paints[1]!)).toEqual(['attribution-slot-github', 'slot-gmail']);
+    expect(root(paints[3]!)).toEqual(['attribution-slot-github', 'attribution-slot-gmail']);
+    // The title rides the create, ahead of it.
+    const create = events.find(e => isShellPaint(e))!;
+    const meta = (create as TaskStatusUpdateEvent).status.message!.parts[0]!;
+    expect(meta).toMatchObject({metadata: {mimeType: PAINT_META_MIME_TYPE}});
+  });
+
+  test('the data model written after the first component is painted on its own (decision 3)', async () => {
+    const plan: LayoutSurface = {
+      ...both(),
+      dataModel: {greeting: 'Hello'},
+    };
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        stream.piece({component: plan.tree.components[0]!});
+        stream.piece({dataModel: plan.dataModel});
+        for (const component of plan.tree.components.slice(1)) stream.piece({component});
+        return plannedWith(plan);
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    const paints = events.filter(isShellPaint).map(a2uiDatas);
+    expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);
+    expect(paints[1]).toEqual([
+      {version: 'v0.9', updateDataModel: {surfaceId: 'shell:main', value: {greeting: 'Hello'}}},
+    ]);
+  });
+
+  test('what a source sends is held until the layout is complete and checked, then released in order (decision 5)', async () => {
+    const plan = both();
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        tellLayout(stream, plan, 1);
+        // Both sources answer while the layout is still being written.
+        await until(
+          () => vendors.github!.requests.length === 1 && vendors.gmail!.requests.length === 1,
+          'both asked',
+        );
+        await wait(300);
+        for (const component of plan.tree.components.slice(1)) stream.piece({component});
+        return plannedWith(plan);
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    const first = events.findIndex(isFragment);
+    expect(first).toBeGreaterThan(0);
+    const before = events.slice(0, first).filter(isShellPaint);
+    // The create, a repaint per later component, and the layout painted whole.
+    expect(before).toHaveLength(1 + (plan.tree.components.length - 1) + 1);
+    expect(
+      events
+        .slice(first)
+        .filter(isShellPaint)
+        .every(e => idsOf(a2uiDatas(e)).length !== 1),
+    ).toBe(true);
+    expect(paintedBy(events, 'github')).toBe(true);
+    expect(paintedBy(events, 'gmail')).toBe(true);
+    expect(finalOf(events).status.state).toBe('completed');
+  });
+
+  test('a retry’s layout replaces the half-drawn one in one step; the sources were asked once (decisions 2, 7)', async () => {
+    const first = both();
+    const retry: LayoutSurface = {
+      ...first,
+      title: 'Your two apps',
+      tree: {
+        components: [
+          {id: 'root', component: 'Row', children: ['gh', 'gm']},
+          {id: 'gh', component: 'Slot', source: 'github'},
+          {id: 'gm', component: 'Slot', source: 'gmail'},
+        ],
+      },
+    };
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, first);
+        tellLayout(stream, first, 2);
+        return plannedWith(retry, [
+          {
+            text: 'first',
+            errors: ["/tree: no Slot holds source 'gmail', which the dispatch names"],
+          },
+          {text: 'retry', errors: []},
+        ]);
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    const paints = events.filter(isShellPaint).map(a2uiDatas);
+    expect(paints.slice(0, 2).map(idsOf)).toEqual([
+      ['root'],
+      ['root', 'attribution-slot-github', 'slot-github'],
+    ]);
+    expect(opsOf(paints[2]!)).toEqual(['deleteSurface', 'createSurface', 'updateComponents']);
+    expect(paints[2]![0]).toEqual({version: 'v0.9', deleteSurface: {surfaceId: 'shell:main'}});
+    expect(idsOf(paints[2]!)).toEqual(['root', 'attribution-gh', 'gh', 'attribution-gm', 'gm']);
+    // The swap carries the retry's title ahead of its create.
+    const swap = events.filter(isShellPaint)[2] as TaskStatusUpdateEvent;
+    const parts = swap.status.message!.parts;
+    const meta = parts.findIndex(
+      p =>
+        p.kind === 'data' &&
+        (p.data as {paintMeta?: {title?: string}}).paintMeta?.title === 'Your two apps',
+    );
+    const createAt = parts.findIndex(p => p.kind === 'data' && 'createSurface' in p.data);
+    expect(meta).toBeGreaterThanOrEqual(0);
+    expect(meta).toBeLessThan(createAt);
+    expect(paints.slice(3).flatMap(idsOf)).not.toContain('slot-github');
+    expect(events.findIndex(isFragment)).toBeGreaterThan(events.indexOf(swap));
+    expect(vendors.github!.requests).toHaveLength(1);
+    expect(vendors.gmail!.requests).toHaveLength(1);
+    expect(finalOf(events).status.state).toBe('completed');
+  });
+
+  test('a second failure takes the half-drawn layout down and cancels the sources asked; nothing of theirs is shown (decisions 2, 7)', async () => {
+    const plan = both();
+    const {client} = await boot({
+      scripts: {
+        github: after(2_000, deterministicScript),
+        gmail: after(2_000, deterministicScript),
+      },
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        tellLayout(stream, plan, 2);
+        await until(
+          () => vendors.github!.requests.length === 1 && vendors.gmail!.requests.length === 1,
+          'both asked',
+        );
+        return malformed();
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    expect(finalOf(events).status.state).toBe('failed');
+    expect(textsOf(finalOf(events).status.message!)[0]).toContain('refused 2 times');
+    const paints = events.filter(isShellPaint).map(a2uiDatas);
+    expect(paints.at(-1)).toEqual([{version: 'v0.9', deleteSurface: {surfaceId: 'shell:main'}}]);
+    expect(events.some(isFragment)).toBe(false);
+    await until(() => vendors.github!.methods.includes('tasks/cancel'), 'GitHub cancelled');
+    await until(() => vendors.gmail!.methods.includes('tasks/cancel'), 'Gmail cancelled');
+    const [line] = await journalLines(1);
+    expect((line!.plan as PlanRecord).outcome).toBe('malformed');
+    expect((line!.dispatch as Array<{outcome: string}>).map(d => d.outcome)).toEqual([
+      'cancelled',
+      'cancelled',
+    ]);
+    // No composition is left behind for the context.
+    const later = await collect(client, press('retry', ['github'], events[0]!.contextId!));
+    expect(finalOf(later).status.state).toBe('failed');
+  });
+
+  test('a model call failing once the list is committed breaks the turn the same way', async () => {
+    const plan = both();
+    const {client} = await boot({
+      scripts: {
+        github: after(2_000, deterministicScript),
+        gmail: after(2_000, deterministicScript),
+      },
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        tellLayout(stream, plan, 1);
+        await until(() => vendors.github!.requests.length === 1, 'GitHub asked');
+        throw new Error('quota exceeded');
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    expect(finalOf(events).status.state).toBe('failed');
+    expect(textsOf(finalOf(events).status.message!)).toEqual(['quota exceeded']);
+    expect(events.filter(isShellPaint).map(a2uiDatas).at(-1)).toEqual([
+      {version: 'v0.9', deleteSurface: {surfaceId: 'shell:main'}},
+    ]);
+    await until(() => vendors.github!.methods.includes('tasks/cancel'), 'GitHub cancelled');
+  });
+
+  test('closing the composition while its layout is written cancels the plan and the sources asked', async () => {
+    const plan = both();
+    const {client} = await boot({
+      scripts: {
+        github: after(2_000, deterministicScript),
+        gmail: after(2_000, deterministicScript),
+      },
+      planner: new StreamingPlanner(async (stream, input) => {
+        commitList(stream, plan);
+        tellLayout(stream, plan, 1);
+        await until(() => input.signal!.aborted, 'the plan aborted');
+        throw new Error('aborted');
+      }),
+    });
+    const turn = streamOf(client, utterance('both'));
+    await until(() => turn.events.some(isShellPaint), 'the first piece painted');
+    await until(() => vendors.github!.requests.length === 1, 'GitHub asked');
+    const closed = await collect(client, press('close', [], turn.events[0]!.contextId!));
+    expect(finalOf(closed).status.state).toBe('completed');
+    const events = await turn.done;
+    expect(finalOf(events).status.state).toBe('canceled');
+    expect(events.some(isFragment)).toBe(false);
+    await until(() => vendors.github!.methods.includes('tasks/cancel'), 'GitHub cancelled');
+  });
+
+  test('a press on the composition while its layout is written waits for the layout', async () => {
+    const plan = both();
+    const written = gate();
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        tellLayout(stream, plan, 1);
+        await written.opened;
+        for (const component of plan.tree.components.slice(1)) stream.piece({component});
+        return plannedWith(plan);
+      }),
+    });
+    const turn = streamOf(client, utterance('both'));
+    await until(() => turn.events.some(isShellPaint), 'the first piece painted');
+    const retry = streamOf(client, press('retry', ['github'], turn.events[0]!.contextId!));
+    await wait(200);
+    expect(retry.events.some(e => e.kind === 'status-update' && e.final)).toBe(false);
+    written.open();
+    expect(finalOf(await retry.done).status.state).toBe('failed');
+    await turn.done;
+  });
+
+  test('the journal: the instant the first piece left beside planMs, which keeps its meaning — the layout complete and checked (decision 8)', async () => {
+    const plan = both();
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        tellLayout(stream, plan, 1);
+        await wait(150);
+        for (const component of plan.tree.components.slice(1)) stream.piece({component});
+        return plannedWith(plan);
+      }),
+    });
+    await collect(client, utterance('both'));
+    const [line] = await journalLines(1);
+    const record = line!.plan as PlanRecord;
+    expect(record.firstPieceMs).toEqual(expect.any(Number));
+    expect(record.planMs - record.firstPieceMs!).toBeGreaterThanOrEqual(100);
+  });
+
+  test('a plan that arrives whole paints whole and dispatches at once, its first piece the whole layout (decision 11)', async () => {
+    const {client} = await boot({planner: new FakePlanner(() => both())});
+    const events = await collect(client, utterance('both'));
+    const paints = events.filter(isShellPaint).map(a2uiDatas);
+    expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);
+    expect(idsOf(paints[0]!)).toHaveLength(5);
+    const [line] = await journalLines(1);
+    const record = line!.plan as PlanRecord;
+    expect(record.firstPieceMs).toBeGreaterThanOrEqual(record.planMs);
+  });
+});
+
+describe('the synthesis fragment streamed (task 17.10)', () => {
+  const planner = () => new FakePlanner(() => planWithSynthesis(['github', 'gmail']));
+  const scripts = () => ({github: shopScript(camerasA), gmail: shopScript(camerasB)});
+  const opsOf = (event: AnyEvent) =>
+    a2uiDatas(event).map(d => Object.keys(d).find(key => key !== 'version'));
+  const isTakeDown = (e: AnyEvent) =>
+    stampOf(e)?.source === 'shell' &&
+    stampOf(e)?.role === 'fragment' &&
+    a2uiDatas(e).some(d => d.deleteSurface);
+  const isShell = (e: AnyEvent) =>
+    e.kind === 'status-update' && stampOf(e)?.role === 'shell' && a2uiDatas(e).length > 0;
+  const rowsOf = (event: AnyEvent) => payloadOf(event).dataModel.rows as unknown[];
+  /** The best-price view with its second row's operator refused. */
+  const badRow = (call: SynthesisCall): Synthesis => {
+    const document = bestPriceView(call);
+    (document.dataModel.rows as Array<{best: {op: string}}>)[1]!.best.op = 'median';
+    return document;
+  };
+  /** The best-price view on another tree: its sort control under the rows. */
+  const otherTree = (call: SynthesisCall): Synthesis => {
+    const document = bestPriceView(call);
+    document.tree.components[0]!.children = ['rows', 'sort'];
+    return document;
+  };
+
+  test('the tree paints the view into its reserved slot with its rows to come, each row rides an event of its own, and the document as accepted lands as the payload alone (decisions 1, 3, 4, 9)', async () => {
+    const synthesizer = new StreamingSynthesizer();
+    const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
+    const events = await collect(client, utterance('compare camera prices'));
+    expect(finalOf(events).status.state).toBe('completed');
+    const paints = synthesisEvents(events);
+    expect(paints).toHaveLength(4);
+    const [first, row1, row2, landed] = paints as [AnyEvent, AnyEvent, AnyEvent, AnyEvent];
+    expect(opsOf(first)).toEqual(['createSurface', 'updateComponents']);
+    expect(payloadOf(first)).toEqual({
+      dataModel: {rows: []},
+      sorts: [expect.objectContaining({path: '/rows'})],
+      partial: true,
+    });
+    for (const piece of [row1, row2]) {
+      expect(opsOf(piece)).toEqual([]);
+      expect((piece as TaskStatusUpdateEvent).status.message).toBeUndefined();
+      expect(payloadOf(piece).partial).toBe(true);
+      expect(stampOf(piece)).toEqual({source: 'shell', role: 'fragment'});
+    }
+    expect(rowsOf(row1)).toHaveLength(1);
+    expect(rowsOf(row2)).toHaveLength(2);
+    expect(opsOf(landed)).toEqual([]);
+    expect(payloadOf(landed)).not.toHaveProperty('partial');
+    expect(rowsOf(landed)).toHaveLength(2);
+    // The merge's set is painted on the slot only once the document is accepted.
+    const slotsBefore = events.slice(0, events.indexOf(landed)).filter(e => isShell(e));
+    for (const paint of slotsBefore.map(a2uiDatas).filter(d => d.length > 0)) {
+      expect(slotsOf(paint)['shell']).not.toHaveProperty('merged');
+    }
+    expect(shellSlotOf(events)).toMatchObject({merged: ['github', 'gmail']});
+    expect(events.some(isTakeDown)).toBe(false);
+    const [line] = await journalLines(1);
+    const record = line!.synthesis as SynthesisRecord;
+    expect(record.outcome).toBe('synthesized');
+    expect(record.firstRowMs).toEqual(expect.any(Number));
+    expect(record.firstRowMs!).toBeLessThanOrEqual(record.deadAirMs!);
+  });
+
+  test('a row failing its own check stops the painting; the retry’s view replaces the half-drawn one in one step (decisions 5, 6)', async () => {
+    const synthesizer = new StreamingSynthesizer([badRow, otherTree]);
+    const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
+    const events = await collect(client, utterance('compare camera prices'));
+    expect(finalOf(events).status.state).toBe('completed');
+    const paints = synthesisEvents(events);
+    expect(paints).toHaveLength(3);
+    const [first, row1, landed] = paints as [AnyEvent, AnyEvent, AnyEvent];
+    expect(opsOf(first)).toEqual(['createSurface', 'updateComponents']);
+    expect(rowsOf(row1)).toHaveLength(1);
+    expect(payloadOf(row1).partial).toBe(true);
+    // The retry's tree, painted whole over the half-drawn one, its payload beside it.
+    expect(opsOf(landed)).toEqual(['createSurface', 'updateComponents']);
+    expect(payloadOf(landed)).not.toHaveProperty('partial');
+    expect(rowsOf(landed)).toHaveLength(2);
+    expect(events.some(isTakeDown)).toBe(false);
+    expect(synthesizer.calls).toHaveLength(2);
+    const [line] = await journalLines(1);
+    const record = line!.synthesis as SynthesisRecord;
+    expect(record.outcome).toBe('synthesized');
+    expect(record.attempts!.map(a => a.errors.length)).toEqual([1, 0]);
+    expect(record.firstRowMs).toEqual(expect.any(Number));
+  });
+
+  test('a second failure collapses the slot to couldn’t be made, then takes the half-drawn view down; Try again makes the merge afresh, landing whole (decisions 6, 7)', async () => {
+    const synthesizer = new StreamingSynthesizer([badRow, badRow, bestPriceView]);
+    const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
+    const contextId = crypto.randomUUID();
+    const events = await collect(client, utterance('compare camera prices', contextId));
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(synthesisEvents(events)).toHaveLength(2);
+    const takeDown = events.findIndex(isTakeDown);
+    expect(takeDown).toBeGreaterThan(0);
+    const collapsed = events.findIndex(
+      e => isShell(e) && slotsOf(a2uiDatas(e))['shell']?.state === 'collapsed',
+    );
+    expect(collapsed).toBeGreaterThan(0);
+    expect(collapsed).toBeLessThan(takeDown);
+    expect(shellSlotOf(events)).toMatchObject({state: 'collapsed', collapse: {cause: 'unmade'}});
+    const [line] = await journalLines(1);
+    expect(line!.synthesis).toMatchObject({outcome: 'malformed', collapse: 'unmade'});
+    expect((line!.synthesis as SynthesisRecord).firstRowMs).toEqual(expect.any(Number));
+
+    const again = await collect(client, press('tryAgain', [], contextId));
+    expect(finalOf(again).status.state).toBe('completed');
+    const paints = synthesisEvents(again);
+    expect(paints).toHaveLength(1);
+    expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);
+    expect(payloadOf(paints[0]!)).not.toHaveProperty('partial');
+    expect(shellSlotOf(again)).toMatchObject({merged: ['github', 'gmail']});
+  });
+
+  test('a model error after the view began takes it down the same way', async () => {
+    // The pieces: the tree, the sorts, the model's opening, the list's, the first row.
+    const synthesizer = new StreamingSynthesizer(bestPriceView, {
+      throwAfter: {piece: 4, error: new Error('quota exceeded')},
+    });
+    const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
+    const events = await collect(client, utterance('compare camera prices'));
+    expect(finalOf(events).status.state).toBe('completed');
+    const paints = synthesisEvents(events);
+    expect(paints).toHaveLength(2);
+    expect(rowsOf(paints[1]!)).toHaveLength(1);
+    expect(events.some(isTakeDown)).toBe(true);
+    expect(shellSlotOf(events)).toMatchObject({state: 'collapsed', collapse: {cause: 'unmade'}});
+    const [line] = await journalLines(1);
+    expect(line!.synthesis).toMatchObject({
+      outcome: 'failed',
+      reason: 'quota exceeded',
+      collapse: 'unmade',
+    });
+  });
+
+  test('a first synthesis thrown away while it streams keeps the half-drawn view; the merge made again lands whole (decision 8)', async () => {
+    const held = gate();
+    // Held before the second row is written: the half-drawn view shows one row meanwhile. The
+    // merge made again writes another tree, so its landing is seen to replace the first.
+    const synthesizer = new StreamingSynthesizer([bestPriceView, otherTree], {
+      hold: piece => (piece === 5 ? held.opened : undefined),
+    });
+    const {client} = await boot({
+      planner: planner(),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA, () => ({path: '/items', value: [camerasA[0]]})),
+        gmail: shopScript(camerasB),
+      },
+    });
+    const contextId = crypto.randomUUID();
+    const turn = streamOf(client, utterance('compare camera prices', contextId));
+    await until(() => synthesisEvents(turn.events).length === 2, 'one row drawn');
+    const action = await collect(client, actionOn('github:s1', contextId));
+    held.open();
+    const events = await turn.done;
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesizer.calls[0]!.signal?.aborted).toBe(true);
+    expect(synthesizer.calls[1]!.onText).toBeUndefined();
+    const paints = synthesisEvents([...events, ...action]);
+    expect(paints).toHaveLength(3);
+    expect(rowsOf(paints[1]!)).toHaveLength(1);
+    // Nothing taken down: the half-drawn view stays until the remade merge replaces it whole.
+    expect([...events, ...action].some(isTakeDown)).toBe(false);
+    expect(opsOf(paints[2]!)).toEqual(['createSurface', 'updateComponents']);
+    expect(payloadOf(paints[2]!)).not.toHaveProperty('partial');
+    expect(rowsOf(paints[2]!)).toHaveLength(1);
+    const lines = await journalLines(2);
+    const line = lines.find(l => l.turnId === events[0]!.id)!;
+    expect(line.synthesis).toMatchObject({
+      outcome: 'synthesized',
+      thrownAway: [{changed: ['github:s1']}],
+      firstRowMs: expect.any(Number),
+    });
+  });
+
+  test('a re-synthesis lands whole: Include folds a late source in with one paint (decision 7)', async () => {
+    const synthesizer = new StreamingSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() =>
+        layoutFor(['github', 'gmail', 'calendar'], {merged: 'Compare.'}),
+      ),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA),
+        gmail: shopScript(camerasB),
+        calendar: after(600, shopScript(camerasA)),
+      },
+      softDeadlineMs: 150,
+    });
+    const contextId = crypto.randomUUID();
+    const plan = await collect(client, utterance('compare', contextId));
+    expect(synthesisEvents(plan).length).toBeGreaterThanOrEqual(4);
+    expect(shellSlotOf(plan)).toMatchObject({late: ['calendar']});
+    const events = await collect(client, press('include', ['calendar'], contextId));
+    expect(finalOf(events).status.state).toBe('completed');
+    const paints = synthesisEvents(events);
+    expect(paints).toHaveLength(1);
+    expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);
+    expect(payloadOf(paints[0]!)).not.toHaveProperty('partial');
+    expect(synthesizer.calls[1]!.onText).toBeUndefined();
+    expect(shellSlotOf(events)).toMatchObject({merged: ['github', 'gmail', 'calendar']});
   });
 });

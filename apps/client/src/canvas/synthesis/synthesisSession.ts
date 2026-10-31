@@ -48,6 +48,11 @@ export interface SynthesisIntake {
   /** The composition left the canvas. */
   retire(): void;
   /**
+   * The merged view was taken down (task-17.10 decisions 6, 8): its payload and its output go,
+   * the reader's sort choices kept for the view that may be made again.
+   */
+  discard?(): void;
+  /**
    * A fragment the merge reads repainted and its re-synthesis is on the way (task-9.9 decision
    * 23): the view keeps its last values rather than re-evaluating over a paint it was not made
    * for. A payload accepted meanwhile still lands.
@@ -91,6 +96,7 @@ export interface SynthesisSession extends SynthesisIntake {
   readonly output: EvaluatedModel | undefined;
   /** Recompute and write; a no-op without a live payload and surface. */
   evaluate(): void;
+  discard(): void;
   hold(): void;
   release(): void;
   dispose(): void;
@@ -198,13 +204,17 @@ export function createSynthesisSession({
     return true;
   };
 
-  const retire: SynthesisIntake['retire'] = () => {
+  const discard = () => {
     unwatchAll();
     payload = undefined;
     surfaceId = undefined;
-    choices.clear();
     output = undefined;
     outputJson = undefined;
+  };
+
+  const retire: SynthesisIntake['retire'] = () => {
+    discard();
+    choices.clear();
   };
 
   // A surface the payload refs may be re-created by a vendor repaint (a fresh data model to
@@ -232,6 +242,7 @@ export function createSynthesisSession({
     accept,
     retire,
     evaluate,
+    discard,
     hold: () => {
       held = true;
     },

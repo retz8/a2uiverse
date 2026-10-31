@@ -86,6 +86,8 @@ Eight components exist only in the shell catalog. In the example:
 
 `Table` exists because the basic catalog can only draw a list as a heading `Row` over a `Column` of `Row`s, and a `Row` sizes its children by their content, so the columns never line up. A table is the one shape whose columns align by construction. The renderer hosts every component in an element of its own, which can't stand between a `<tbody>` and its `<tr>`, so `Table` draws each `TableRow` child's `<tr>` itself and renders only the cells' content through the renderer, inside each `<td>`.
 
+Every column wraps, each capped at 56 characters, so one column of long text can't take the width from the rest. The first column names the row's own thing and keeps room for 16 characters, so a short name like "Google Calendar" stays on one line beside a long column. A table that still can't fit its slot scrolls sideways inside it rather than crushing a column.
+
 `Attribution` is written by the orchestrator, never by a model: the Planner writes the `Slot`s, and the orchestrator wraps every app's `Slot` in an `Attribution` it fills from its registry. Its props are plain literals and never data-bound, so a fragment can't rebind who it claims to be.
 
 ### 4. Keep-sets: each author sees only its part
@@ -115,12 +117,13 @@ The catalog is a library; the **host** is the app that renders with it, here the
   | `onNavigate` | the reader clicks a `DerivedValue`, to land on the element it came from |
   | `sourceName` | a component needs a source's name: the app's, with the account's label when the app has more than one account (`Gmail · alice@example.com`), looked up by the whole source |
 
-- **State that changes as the question runs** goes into five React contexts the host provides:
+- **State that changes as the question runs** goes into six React contexts the host provides:
 
   | Context | What it answers | Read by |
   | --- | --- | --- |
   | `SlotContentContext` | "what's the content for this source?" | `Slot` |
   | `SlotStateContext` | "where does this source's slot stand?" (`pending`, `filled`, `failed`, `collapsed`, `late` while it waits for Include, `authority` while it needs sign-in, `connect` while it needs a pasted key or token, or `more` while its account is asked for more access) | `Table`, the reserved merged view, the collapsed merged view's lines |
+  | `SynthesisStreamingContext` | "is the merged view still being drawn as the Synthesizer writes it?" | `Table`, for the skeleton row below its last; the merged view's `Slot`, for its busy mark |
   | `PressStateContext` | "which presses are on their way, and can a press be made here at all?" | `Slot`, `Attribution` |
   | `FragmentHistoryContext` | "where does this app stand in its back and forward history?" | `Attribution` |
   | `SignInContext` | "is a sign-in window open for this source?" | `Slot`, `Attribution` |
@@ -177,7 +180,7 @@ A `Slot` holds **exactly one** of `source` (whose answer fills it), `gap` (what 
 
 **4. The apps answer.** The client, as host, fills `SlotContentContext`. Each `Slot` asks it for its source's content, and draws that content the moment it's there. The slot keeps the 4rem floor it reserved, so the layout doesn't jump.
 
-**5. The merged view lands.** The Synthesizer's tree for `shell:synthesis` fills the shell slot. In the example it's a `Column` holding a `Row` (an `h5` label "Work items" and a `SortControl`) over a `Table` of `TableRow`s whose cells are all `DerivedValue`s. How the values get into those cells is [`synthesis.md`](synthesis.md)'s subject; this catalog only draws them.
+**5. The merged view lands.** The Synthesizer's tree for `shell:synthesis` fills the shell slot. In the example it's a `Column` holding a `Row` (an `h5` label "Work items" and a `SortControl`) over a `Table` of `TableRow`s whose cells are all `DerivedValue`s. How the values get into those cells is [`synthesis.md`](synthesis.md)'s subject; this catalog only draws them. A question's first merged view arrives as it's written: the tree first, over no rows, then one row at a time. While the host says so through `SynthesisStreamingContext`, the `Table` keeps skeleton rows below the rows it holds — four with none, one fewer per row, never fewer than one — so the rows take the reserved slot's places one for one, and the shell slot stays busy; the last one goes when the host says the document is accepted.
 
 **6. The reader acts.** Each interaction goes out through one of the host's handlers:
 
@@ -427,7 +430,8 @@ Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-th
 | `Attribution`, the arrows and the escalation | `src/components/attribution/attribution.tsx` |
 | `TextField` without `obscured` | `src/components/text-field/text-field.schema.ts` |
 | `DerivedValue` and the join marks | `src/components/derived-value/derived-value.tsx`, `src/components/derived-value/join.ts` |
-| `SortControl`, `Table`, `DataList` | `src/components/sort-control/`, `src/components/table/`, `src/components/data-list/` |
+| `SortControl`, `Table`, `DataList` | `src/components/sort-control/`, `src/components/table/` (the skeleton rows the reserved merged view and a view drawn as it's written share), `src/components/data-list/` |
+| The host's word that the merged view is still being written | `src/synthesis-streaming.ts` |
 | Operators, relations, shell actions | `src/functions/operators.ts`, `src/functions/relations.ts`, `src/functions/shell-actions.ts` |
 | Reading time | `src/components/shared/instant.ts` |
 | The basic components on Radix | `src/components/<name>/`, helpers in `src/components/shared/` |

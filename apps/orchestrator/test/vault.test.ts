@@ -131,6 +131,7 @@ async function boot(options: {
       stateDir: dir,
       debugIds: false,
       googleApiKey: undefined,
+      anthropicApiKey: undefined,
       plannerModelId: 'test-model',
       plannerEffort: 'low',
       shortlistCap: 5,

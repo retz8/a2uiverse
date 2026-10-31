@@ -1,0 +1,608 @@
+{
+  "what": "Task 17.5 baseline: each turn of the three passes, timed on the orchestrator from the utterance arriving; each request of the Planner, the Synthesizer and the apps; no text any model wrote, no data any app returned.",
+  "ran": "2026-10-29, through the tunnel by Claude-in-Chrome; every model gemini-3.8-flash; Planner and Synthesizer at low; the apps at the kit default effort, live",
+  "turns": [
+    {
+      "pass": 1,
+      "prompt": "p1",
+      "utterance": "Which of my open pull requests are blocked on something outside GitHub?",
+      "turnId": "1483145b-0e3c-46d9-905f-138c96101770",
+      "mark": "first turn after the orchestrator booted",
+      "counted": true,
+      "at": "2026-10-29T09:08:12.156Z",
+      "outcome": "completed",
+      "finalMs": 226116,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 26339,
+        "shortlistMs": 5,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":5,"modelMs":26309,"ended":"text","finish":"stop","usage":{"promptTokens":31927,"outputTokens":2873,"reasoningTokens":2106,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"linear.2","app":"linear","outcome":"completed","startMs":26344,"firstPaintMs":118214,"settledMs":124697,"endMs":124697},{"source":"circleci.1","app":"circleci","outcome":"completed","startMs":26344,"firstPaintMs":153647,"settledMs":166169,"endMs":166169},{"source":"github.2","app":"github","outcome":"completed","startMs":26343,"firstPaintMs":151638,"settledMs":172058,"endMs":172058}],
+      "synthesis": {
+        "outcome": "synthesized",
+        "release": "home",
+        "releaseMs": 172058,
+        "deadAirMs": 54058,
+        "effort": "low",
+        "attempts": 2,
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":1,"modelMs":29000,"ended":"text","finish":"stop","usage":{"promptTokens":22520,"outputTokens":4547,"reasoningTokens":0,"cachedTokens":0}},{"attempt":2,"step":1,"model":"gemini-3.8-flash","startMs":29017,"modelMs":25036,"ended":"text","finish":"stop","usage":{"promptTokens":27346,"outputTokens":4540,"reasoningTokens":0,"cachedTokens":0}}]
+      },
+      "agents": {
+        "linear": [{"attempt":1,"step":1,"firstTokenMs":3934,"generationMs":52,"ended":"toolCall","tools":["list_issues"],"usage":{"promptTokens":22207,"outputTokens":17,"thoughtsTokens":234},"endMs":36305},{"attempt":1,"step":2,"firstTokenMs":11349,"generationMs":62,"ended":"toolCall","tools":["list_issues"],"usage":{"promptTokens":24479,"outputTokens":15,"thoughtsTokens":132,"cachedTokens":22204},"endMs":48046},{"attempt":1,"step":3,"firstTokenMs":4986,"generationMs":1379,"ended":"toolCall","tools":["get_issue"],"usage":{"promptTokens":28568,"outputTokens":248,"thoughtsTokens":317},"endMs":54856},{"attempt":1,"step":4,"firstTokenMs":2335,"generationMs":1167,"ended":"toolCall","tools":["get_issue"],"usage":{"promptTokens":30072,"outputTokens":248,"thoughtsTokens":28,"cachedTokens":24457},"endMs":58747},{"attempt":1,"step":5,"firstTokenMs":58963,"generationMs":6951,"ended":"text","usage":{"promptTokens":30776,"outputTokens":1468,"thoughtsTokens":9571,"cachedTokens":28002},"endMs":124675}],
+        "circleci": [{"attempt":1,"step":1,"firstTokenMs":2941,"generationMs":71,"ended":"toolCall","tools":["list_projects"],"usage":{"promptTokens":22503,"outputTokens":10,"thoughtsTokens":100},"endMs":38437},{"attempt":1,"step":2,"firstTokenMs":4987,"generationMs":72,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":22673,"outputTokens":54,"thoughtsTokens":65,"cachedTokens":20446},"endMs":44212},{"attempt":1,"step":3,"firstTokenMs":4720,"generationMs":78,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":25079,"outputTokens":49,"thoughtsTokens":442,"cachedTokens":22672},"endMs":49886},{"attempt":1,"step":4,"firstTokenMs":3600,"generationMs":68,"ended":"toolCall","tools":["list_workflow_jobs"],"usage":{"promptTokens":25853,"outputTokens":48,"thoughtsTokens":41,"cachedTokens":23030},"endMs":54186},{"attempt":1,"step":5,"firstTokenMs":3816,"generationMs":76,"ended":"toolCall","tools":["get_job"],"usage":{"promptTokens":26411,"outputTokens":48,"thoughtsTokens":92,"cachedTokens":23804},"endMs":58819},{"attempt":1,"step":6,"firstTokenMs":3560,"generationMs":75,"ended":"toolCall","tools":["get_job"],"usage":{"promptTokens":27784,"outputTokens":49,"thoughtsTokens":86,"cachedTokens":24366},"endMs":63243},{"attempt":1,"step":7,"firstTokenMs":3157,"generationMs":87,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":29161,"outputTokens":50,"thoughtsTokens":45,"cachedTokens":26549},"endMs":67130},{"attempt":1,"step":8,"firstTokenMs":2709,"generationMs":87,"ended":"toolCall","tools":["list_workflow_jobs"],"usage":{"promptTokens":29543,"outputTokens":51,"thoughtsTokens":44,"cachedTokens":27113},"endMs":70538},{"attempt":1,"step":9,"firstTokenMs":2779,"generationMs":73,"ended":"toolCall","tools":["get_job"],"usage":{"promptTokens":30111,"outputTokens":48,"thoughtsTokens":46,"cachedTokens":27496},"endMs":74174},{"attempt":1,"step":10,"firstTokenMs":3413,"generationMs":75,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":31446,"outputTokens":49,"thoughtsTokens":132,"cachedTokens":28068},"endMs":78314},{"attempt":1,"step":11,"firstTokenMs":3036,"generationMs":94,"ended":"toolCall","tools":["list_workflow_jobs"],"usage":{"promptTokens":31914,"outputTokens":52,"thoughtsTokens":50,"cachedTokens":29399},"endMs":82080},{"attempt":1,"step":12,"firstTokenMs":4120,"generationMs":92,"ended":"toolCall","tools":["get_job_logs"],"usage":{"promptTokens":32490,"outputTokens":58,"thoughtsTokens":180,"cachedTokens":29869},"endMs":86723},{"attempt":1,"step":13,"firstTokenMs":29564,"generationMs":191,"ended":"toolCall","tools":["get_job"],"usage":{"promptTokens":33201,"outputTokens":50,"thoughtsTokens":3705,"cachedTokens":30446},"endMs":117332},{"attempt":1,"step":14,"firstTokenMs":35605,"generationMs":13212,"ended":"text","usage":{"promptTokens":38200,"outputTokens":2375,"thoughtsTokens":5398,"cachedTokens":33217},"endMs":166167}],
+        "github": [{"attempt":1,"step":1,"firstTokenMs":4552,"generationMs":122,"ended":"toolCall","tools":["get_me"],"usage":{"promptTokens":106616,"outputTokens":10,"thoughtsTokens":153},"endMs":40957},{"attempt":1,"step":2,"firstTokenMs":3542,"generationMs":105,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":107120,"outputTokens":28,"thoughtsTokens":47,"cachedTokens":104567},"endMs":46313},{"attempt":1,"step":3,"firstTokenMs":6891,"generationMs":1994,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":130648,"outputTokens":344,"thoughtsTokens":591,"cachedTokens":107201},"endMs":57325},{"attempt":1,"step":4,"firstTokenMs":5697,"generationMs":273,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":143990,"outputTokens":84,"thoughtsTokens":43,"cachedTokens":130635},"endMs":64797},{"attempt":1,"step":5,"firstTokenMs":3677,"generationMs":1452,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":147368,"outputTokens":276,"thoughtsTokens":89,"cachedTokens":143985},"endMs":71444},{"attempt":1,"step":6,"firstTokenMs":8785,"generationMs":770,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":149515,"outputTokens":172,"thoughtsTokens":48,"cachedTokens":147327},"endMs":82247},{"attempt":1,"step":7,"firstTokenMs":68649,"generationMs":21087,"ended":"text","usage":{"promptTokens":151400,"outputTokens":3657,"thoughtsTokens":10379,"cachedTokens":148704},"endMs":172056}]
+      }
+    },
+    {
+      "pass": 1,
+      "prompt": "p4",
+      "utterance": "Help me close out A2U-7: show the issue, its pull request and its CI run, and let me act on each.",
+      "turnId": "84d7c7ae-c9a8-407c-8780-f849bc09b9c5",
+      "counted": true,
+      "at": "2026-10-29T09:12:46.338Z",
+      "outcome": "completed",
+      "finalMs": 198390,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 74043,
+        "shortlistMs": 4,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":4,"modelMs":74035,"ended":"text","finish":"stop","usage":{"promptTokens":31963,"outputTokens":9696,"reasoningTokens":8973,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"circleci.1","app":"circleci","outcome":"completed","startMs":74045,"settledMs":174094,"endMs":174094},{"source":"github.2","app":"github","outcome":"completed","startMs":74045,"settledMs":177068,"endMs":177068},{"source":"linear.2","app":"linear","outcome":"completed","startMs":74044,"firstPaintMs":186168,"settledMs":198390,"endMs":198390}],
+      "synthesis": {
+        "outcome": "skipped",
+        "collapse": "few",
+        "attempts": 0,
+        "requests": []
+      },
+      "agents": {
+        "circleci": [{"attempt":1,"step":1,"firstTokenMs":2776,"generationMs":66,"ended":"toolCall","tools":["list_projects"],"usage":{"promptTokens":22487,"outputTokens":10,"thoughtsTokens":146},"endMs":78383},{"attempt":1,"step":2,"firstTokenMs":2587,"generationMs":62,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":22703,"outputTokens":50,"thoughtsTokens":68,"cachedTokens":20430},"endMs":81842},{"attempt":1,"step":3,"firstTokenMs":3216,"generationMs":62,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":27397,"outputTokens":60,"thoughtsTokens":157,"cachedTokens":22709},"endMs":85370},{"attempt":1,"step":4,"firstTokenMs":4318,"generationMs":72,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":27655,"outputTokens":60,"thoughtsTokens":13,"cachedTokens":25345},"endMs":90362},{"attempt":1,"step":5,"firstTokenMs":2149,"generationMs":80,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":27769,"outputTokens":14,"thoughtsTokens":17,"cachedTokens":25604},"endMs":93259},{"attempt":1,"step":6,"firstTokenMs":1999,"generationMs":76,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":32376,"outputTokens":55,"thoughtsTokens":35,"cachedTokens":27776},"endMs":95918},{"attempt":1,"step":7,"firstTokenMs":4899,"generationMs":90,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":45070,"outputTokens":63,"thoughtsTokens":398,"cachedTokens":32404},"endMs":101507},{"attempt":1,"step":8,"firstTokenMs":3418,"generationMs":84,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":46104,"outputTokens":56,"thoughtsTokens":145,"cachedTokens":43019},"endMs":105690},{"attempt":1,"step":9,"firstTokenMs":17702,"generationMs":100,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":60956,"outputTokens":62,"thoughtsTokens":2934,"cachedTokens":46131},"endMs":124129},{"attempt":1,"step":10,"firstTokenMs":2513,"generationMs":90,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":63993,"outputTokens":25,"thoughtsTokens":44,"cachedTokens":60953},"endMs":127303},{"attempt":1,"step":11,"firstTokenMs":6875,"generationMs":101,"ended":"toolCall","tools":["get_run"],"usage":{"promptTokens":64105,"outputTokens":48,"thoughtsTokens":853,"cachedTokens":61938},"endMs":134920},{"attempt":1,"step":12,"firstTokenMs":26576,"generationMs":110,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":65603,"outputTokens":50,"thoughtsTokens":4355,"cachedTokens":62055},"endMs":162384},{"attempt":1,"step":13,"firstTokenMs":2396,"generationMs":87,"ended":"toolCall","tools":["list_workflow_jobs"],"usage":{"promptTokens":70294,"outputTokens":51,"thoughtsTokens":9,"cachedTokens":65606},"endMs":165486},{"attempt":1,"step":14,"firstTokenMs":8268,"generationMs":329,"ended":"text","usage":{"promptTokens":70830,"outputTokens":45,"thoughtsTokens":1059,"cachedTokens":68241},"endMs":174086}],
+        "github": [{"attempt":1,"step":1,"firstTokenMs":4902,"generationMs":365,"ended":"toolCall","tools":["get_me","search_issues","search_pull_requests"],"usage":{"promptTokens":106605,"outputTokens":52,"thoughtsTokens":179},"endMs":83976},{"attempt":1,"step":2,"firstTokenMs":10018,"generationMs":198,"ended":"toolCall","tools":["list_pull_requests","list_branches"],"usage":{"promptTokens":215394,"outputTokens":62,"thoughtsTokens":219,"cachedTokens":106838},"endMs":95495},{"attempt":1,"step":3,"firstTokenMs":3420,"generationMs":141,"ended":"toolCall","tools":["search_repositories"],"usage":{"promptTokens":219243,"outputTokens":20,"thoughtsTokens":27,"cachedTokens":215385},"endMs":101726},{"attempt":1,"step":4,"firstTokenMs":5719,"generationMs":334,"ended":"toolCall","tools":["search_issues","search_commits","search_code"],"usage":{"promptTokens":225693,"outputTokens":90,"thoughtsTokens":376,"cachedTokens":219248},"endMs":109062},{"attempt":1,"step":5,"firstTokenMs":4301,"generationMs":100,"ended":"toolCall","tools":["get_commit"],"usage":{"promptTokens":228553,"outputTokens":69,"thoughtsTokens":212,"cachedTokens":225674},"endMs":114551},{"attempt":1,"step":6,"firstTokenMs":3737,"generationMs":120,"ended":"toolCall","tools":["get_file_contents"],"usage":{"promptTokens":229757,"outputTokens":56,"thoughtsTokens":63,"cachedTokens":226501},"endMs":119963},{"attempt":1,"step":7,"firstTokenMs":4275,"generationMs":534,"ended":"toolCall","tools":["get_file_contents"],"usage":{"promptTokens":231304,"outputTokens":54,"thoughtsTokens":226,"cachedTokens":228826},"endMs":126110},{"attempt":1,"step":8,"firstTokenMs":7943,"generationMs":110,"ended":"toolCall","tools":["search_commits"],"usage":{"promptTokens":233611,"outputTokens":20,"thoughtsTokens":702,"cachedTokens":231299},"endMs":136995},{"attempt":1,"step":9,"firstTokenMs":7615,"generationMs":273,"ended":"toolCall","tools":["list_pull_requests","list_branches"],"usage":{"promptTokens":259272,"outputTokens":66,"thoughtsTokens":617,"cachedTokens":233661},"endMs":146144},{"attempt":1,"step":10,"firstTokenMs":15107,"generationMs":187,"ended":"toolCall","tools":["search_code"],"usage":{"promptTokens":260111,"outputTokens":62,"thoughtsTokens":1827,"cachedTokens":257210},"endMs":162704},{"attempt":1,"step":11,"firstTokenMs":13625,"generationMs":726,"ended":"text","usage":{"promptTokens":262454,"outputTokens":50,"thoughtsTokens":1339,"cachedTokens":260098},"endMs":177059}],
+        "linear": [{"attempt":1,"step":1,"firstTokenMs":5591,"generationMs":72,"ended":"toolCall","tools":["get_issue"],"usage":{"promptTokens":22205,"outputTokens":70,"thoughtsTokens":365},"endMs":80682},{"attempt":1,"step":2,"firstTokenMs":3224,"generationMs":73,"ended":"toolCall","tools":["list_comments"],"usage":{"promptTokens":22924,"outputTokens":21,"thoughtsTokens":20,"cachedTokens":20149},"endMs":84713},{"attempt":1,"step":3,"firstTokenMs":2419,"generationMs":56,"ended":"toolCall","tools":["list_issue_statuses"],"usage":{"promptTokens":23206,"outputTokens":21,"thoughtsTokens":26,"cachedTokens":20872},"endMs":87473},{"attempt":1,"step":4,"firstTokenMs":97778,"generationMs":13099,"ended":"text","usage":{"promptTokens":23598,"outputTokens":2292,"thoughtsTokens":13050,"cachedTokens":21156},"endMs":198387}]
+      }
+    },
+    {
+      "pass": 1,
+      "prompt": "p6",
+      "utterance": "Is main green right now? Ask CircleCI and GitHub.",
+      "turnId": "34f126eb-3efb-48d0-b75b-844d9016f957",
+      "counted": true,
+      "at": "2026-10-29T09:22:59.306Z",
+      "outcome": "completed",
+      "finalMs": 126202,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 14744,
+        "shortlistMs": 3,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":3,"modelMs":14738,"ended":"text","finish":"stop","usage":{"promptTokens":31946,"outputTokens":1442,"reasoningTokens":1024,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"circleci.1","app":"circleci","outcome":"completed","startMs":14744,"firstPaintMs":81295,"settledMs":96329,"endMs":96329},{"source":"github.2","app":"github","outcome":"completed","startMs":14745,"firstPaintMs":111583,"settledMs":115163,"endMs":115163}],
+      "synthesis": {
+        "outcome": "declined",
+        "collapse": "declined",
+        "release": "settled",
+        "releaseMs": 115163,
+        "deadAirMs": 11039,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":0,"modelMs":11038,"ended":"text","finish":"stop","usage":{"promptTokens":19859,"outputTokens":1256,"reasoningTokens":1183,"cachedTokens":0}}]
+      },
+      "agents": {
+        "circleci": [{"attempt":1,"step":1,"firstTokenMs":3187,"generationMs":69,"ended":"toolCall","tools":["list_projects"],"usage":{"promptTokens":22488,"outputTokens":10,"thoughtsTokens":130},"endMs":19471},{"attempt":1,"step":2,"firstTokenMs":4737,"generationMs":62,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":22688,"outputTokens":60,"thoughtsTokens":60,"cachedTokens":20431},"endMs":24941},{"attempt":1,"step":3,"firstTokenMs":3820,"generationMs":72,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":25081,"outputTokens":50,"thoughtsTokens":256,"cachedTokens":22687},"endMs":29466},{"attempt":1,"step":4,"firstTokenMs":3179,"generationMs":76,"ended":"toolCall","tools":["list_workflow_jobs"],"usage":{"promptTokens":25674,"outputTokens":51,"thoughtsTokens":131,"cachedTokens":23031},"endMs":33392},{"attempt":1,"step":5,"firstTokenMs":47083,"generationMs":15819,"ended":"text","usage":{"promptTokens":26329,"outputTokens":2717,"thoughtsTokens":7112,"cachedTokens":23625},"endMs":96327}],
+        "github": [{"attempt":1,"step":1,"firstTokenMs":13699,"generationMs":112,"ended":"toolCall","tools":["get_me"],"usage":{"promptTokens":106600,"outputTokens":10,"thoughtsTokens":1289},"endMs":31036},{"attempt":1,"step":2,"firstTokenMs":17522,"generationMs":112,"ended":"toolCall","tools":["search_repositories"],"usage":{"promptTokens":108240,"outputTokens":20,"thoughtsTokens":2211,"cachedTokens":104556},"endMs":51864},{"attempt":1,"step":3,"firstTokenMs":58988,"generationMs":4290,"ended":"text","usage":{"promptTokens":116874,"outputTokens":737,"thoughtsTokens":7948,"cachedTokens":108267},"endMs":115162}]
+      }
+    },
+    {
+      "pass": 1,
+      "prompt": "p10",
+      "utterance": "Across both my Gmail accounts, which threads mention a Linear issue, and what state is it in?",
+      "turnId": "e90deab5-d8be-46b4-940d-ca866faa2f69",
+      "mark": "setup failure: the second Gmail account needed more access; not counted, sent again",
+      "counted": false,
+      "at": "2026-10-29T09:25:30.601Z",
+      "outcome": "completed",
+      "finalMs": 201746,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 27848,
+        "shortlistMs": 13,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":13,"modelMs":27830,"ended":"text","finish":"stop","usage":{"promptTokens":31580,"outputTokens":3332,"reasoningTokens":2664,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"gmail.3","app":"gmail","outcome":"failed","startMs":27851,"settledMs":85307,"endMs":85307},{"source":"linear.2","app":"linear","outcome":"completed","startMs":27851,"firstPaintMs":107128,"settledMs":113160,"endMs":113160},{"source":"gmail.2","app":"gmail","outcome":"completed","startMs":27850,"firstPaintMs":170062,"settledMs":188630,"endMs":188630}],
+      "synthesis": {
+        "outcome": "declined",
+        "collapse": "declined",
+        "release": "settled",
+        "releaseMs": 188630,
+        "deadAirMs": 13115,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":1,"modelMs":13111,"ended":"text","finish":"stop","usage":{"promptTokens":20392,"outputTokens":1518,"reasoningTokens":1433,"cachedTokens":0}}]
+      },
+      "agents": {
+        "gmail": [{"attempt":1,"step":1,"firstTokenMs":3710,"generationMs":78,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":38874,"outputTokens":16,"thoughtsTokens":182},"endMs":42629},{"attempt":1,"step":1,"firstTokenMs":4625,"generationMs":71,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":38874,"outputTokens":16,"thoughtsTokens":196},"endMs":43198},{"attempt":1,"step":2,"firstTokenMs":4204,"generationMs":75,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":55563,"outputTokens":30,"thoughtsTokens":79,"cachedTokens":38892},"endMs":48260},{"attempt":1,"step":2,"firstTokenMs":4114,"generationMs":74,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":63872,"outputTokens":18,"thoughtsTokens":154,"cachedTokens":38900},"endMs":49030},{"attempt":1,"step":3,"firstTokenMs":8663,"generationMs":74,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":55780,"outputTokens":20,"thoughtsTokens":111,"cachedTokens":53507},"endMs":57905},{"attempt":1,"step":3,"firstTokenMs":10071,"generationMs":74,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":78502,"outputTokens":22,"thoughtsTokens":462,"cachedTokens":63881},"endMs":60853},{"attempt":1,"step":4,"firstTokenMs":6825,"generationMs":89,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":56019,"outputTokens":18,"thoughtsTokens":16,"cachedTokens":53724},"endMs":66832},{"attempt":1,"step":4,"firstTokenMs":5904,"generationMs":90,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":85511,"outputTokens":39,"thoughtsTokens":48,"cachedTokens":78501},"endMs":68062},{"attempt":1,"step":5,"firstTokenMs":3410,"generationMs":80,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":62702,"outputTokens":18,"thoughtsTokens":17,"cachedTokens":56022},"endMs":72961},{"attempt":1,"step":5,"firstTokenMs":6384,"generationMs":85,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":86792,"outputTokens":19,"thoughtsTokens":553,"cachedTokens":83455},"endMs":76446},{"attempt":1,"step":6,"firstTokenMs":4911,"generationMs":76,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":79406,"outputTokens":34,"thoughtsTokens":171,"cachedTokens":62720},"endMs":80717},{"attempt":1,"step":7,"firstTokenMs":4449,"generationMs":109,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":97897,"outputTokens":39,"thoughtsTokens":160,"cachedTokens":79423},"endMs":85303},{"attempt":1,"step":6,"firstTokenMs":18067,"generationMs":101,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":112498,"outputTokens":40,"thoughtsTokens":2238,"cachedTokens":86812},"endMs":95105},{"attempt":1,"step":7,"firstTokenMs":4308,"generationMs":96,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":117092,"outputTokens":40,"thoughtsTokens":150,"cachedTokens":112493},"endMs":100673},{"attempt":1,"step":8,"firstTokenMs":5514,"generationMs":99,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":118542,"outputTokens":38,"thoughtsTokens":19,"cachedTokens":115036},"endMs":106958},{"attempt":1,"step":9,"firstTokenMs":3719,"generationMs":88,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":119825,"outputTokens":40,"thoughtsTokens":39,"cachedTokens":117271},"endMs":111924},{"attempt":1,"step":10,"firstTokenMs":3244,"generationMs":104,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":121262,"outputTokens":40,"thoughtsTokens":21,"cachedTokens":118588},"endMs":116420},{"attempt":1,"step":11,"firstTokenMs":8453,"generationMs":100,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":122638,"outputTokens":24,"thoughtsTokens":789,"cachedTokens":119894},"endMs":126454},{"attempt":1,"step":12,"firstTokenMs":42957,"generationMs":19192,"ended":"text","usage":{"promptTokens":126753,"outputTokens":1478,"thoughtsTokens":6323,"cachedTokens":122634},"endMs":188624}],
+        "linear": [{"attempt":1,"step":1,"firstTokenMs":5805,"generationMs":131,"ended":"toolCall","tools":["list_issues","list_teams"],"usage":{"promptTokens":22193,"outputTokens":63,"thoughtsTokens":413},"endMs":34815},{"attempt":1,"step":2,"firstTokenMs":2619,"generationMs":61,"ended":"toolCall","tools":["list_issues"],"usage":{"promptTokens":23181,"outputTokens":51,"thoughtsTokens":81,"cachedTokens":20131},"endMs":37824},{"attempt":1,"step":3,"firstTokenMs":5357,"generationMs":66,"ended":"toolCall","tools":["get_user"],"usage":{"promptTokens":24025,"outputTokens":16,"thoughtsTokens":554,"cachedTokens":21132},"endMs":43880},{"attempt":1,"step":4,"firstTokenMs":62557,"generationMs":6714,"ended":"text","usage":{"promptTokens":24838,"outputTokens":1251,"thoughtsTokens":9425,"cachedTokens":22059},"endMs":113159}]
+      }
+    },
+    {
+      "pass": 1,
+      "prompt": "p10",
+      "utterance": "Across both my Gmail accounts, which threads mention a Linear issue, and what state is it in?",
+      "turnId": "6d7f9d18-bee3-44fd-b212-b8d693a36539",
+      "mark": "sent again",
+      "counted": true,
+      "at": "2026-10-29T09:31:41.716Z",
+      "outcome": "completed",
+      "finalMs": 237821,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 40036,
+        "shortlistMs": 6,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":6,"modelMs":40023,"ended":"text","finish":"stop","usage":{"promptTokens":31580,"outputTokens":3750,"reasoningTokens":3027,"cachedTokens":29533}}]
+      },
+      "dispatch": [{"source":"linear.2","app":"linear","outcome":"completed","startMs":40037,"firstPaintMs":75105,"settledMs":80807,"endMs":80807},{"source":"gmail.3","app":"gmail","outcome":"completed","startMs":40037,"settledMs":161488,"endMs":161488},{"source":"gmail.2","app":"gmail","outcome":"completed","startMs":40037,"firstPaintMs":215255,"settledMs":224361,"endMs":224361}],
+      "synthesis": {
+        "outcome": "synthesized",
+        "release": "settled",
+        "releaseMs": 224361,
+        "deadAirMs": 13460,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":1,"modelMs":13455,"ended":"text","finish":"stop","usage":{"promptTokens":20409,"outputTokens":1899,"reasoningTokens":0,"cachedTokens":0}}]
+      },
+      "agents": {
+        "linear": [{"attempt":1,"step":1,"firstTokenMs":3423,"generationMs":64,"ended":"toolCall","tools":["list_issues"],"usage":{"promptTokens":22200,"outputTokens":17,"thoughtsTokens":196},"endMs":44635},{"attempt":1,"step":2,"firstTokenMs":29896,"generationMs":6260,"ended":"text","usage":{"promptTokens":24434,"outputTokens":1251,"thoughtsTokens":4713,"cachedTokens":22197},"endMs":80805}],
+        "gmail": [{"attempt":1,"step":11,"firstTokenMs":3643,"generationMs":130,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":156944,"outputTokens":39,"thoughtsTokens":99,"cachedTokens":152047},"endMs":41193},{"attempt":1,"step":1,"firstTokenMs":4139,"generationMs":72,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":38894,"outputTokens":20,"thoughtsTokens":182},"endMs":47328},{"attempt":1,"step":12,"firstTokenMs":3596,"generationMs":164,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":161905,"outputTokens":22,"thoughtsTokens":105,"cachedTokens":156939},"endMs":47851},{"attempt":1,"step":1,"firstTokenMs":4837,"generationMs":68,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":38894,"outputTokens":20,"thoughtsTokens":276},"endMs":48587},{"attempt":1,"step":2,"firstTokenMs":6877,"generationMs":101,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":63882,"outputTokens":20,"thoughtsTokens":190,"cachedTokens":38920},"endMs":56048},{"attempt":1,"step":13,"firstTokenMs":5391,"generationMs":106,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":178560,"outputTokens":18,"thoughtsTokens":282,"cachedTokens":161914},"endMs":56662},{"attempt":1,"step":2,"firstTokenMs":7043,"generationMs":77,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":55681,"outputTokens":18,"thoughtsTokens":126},"endMs":58130},{"attempt":1,"step":3,"firstTokenMs":2872,"generationMs":89,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":55933,"outputTokens":16,"thoughtsTokens":38,"cachedTokens":53625},"endMs":63210},{"attempt":1,"step":3,"firstTokenMs":6729,"generationMs":82,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":78550,"outputTokens":17,"thoughtsTokens":495,"cachedTokens":63891},"endMs":64664},{"attempt":1,"step":4,"firstTokenMs":4550,"generationMs":82,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":72478,"outputTokens":40,"thoughtsTokens":209,"cachedTokens":55949},"endMs":68602},{"attempt":1,"step":14,"firstTokenMs":10473,"generationMs":128,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":197483,"outputTokens":20,"thoughtsTokens":482,"cachedTokens":178570},"endMs":70846},{"attempt":1,"step":5,"firstTokenMs":3885,"generationMs":85,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":77400,"outputTokens":16,"thoughtsTokens":138,"cachedTokens":72475},"endMs":74652},{"attempt":1,"step":4,"firstTokenMs":8545,"generationMs":96,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":104196,"outputTokens":22,"thoughtsTokens":926,"cachedTokens":78568},"endMs":74777},{"attempt":1,"step":5,"firstTokenMs":2857,"generationMs":83,"ended":"toolCall","tools":["get_message"],"usage":{"promptTokens":111669,"outputTokens":39,"thoughtsTokens":50,"cachedTokens":104194},"endMs":78915},{"attempt":1,"step":6,"firstTokenMs":3216,"generationMs":78,"ended":"toolCall","tools":["list_drafts"],"usage":{"promptTokens":95117,"outputTokens":11,"thoughtsTokens":68,"cachedTokens":77414},"endMs":79879},{"attempt":1,"step":7,"firstTokenMs":2897,"generationMs":104,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":101042,"outputTokens":25,"thoughtsTokens":34,"cachedTokens":95115},"endMs":84272},{"attempt":1,"step":15,"firstTokenMs":10565,"generationMs":110,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":216110,"outputTokens":29,"thoughtsTokens":984,"cachedTokens":197492},"endMs":84379},{"attempt":1,"step":6,"firstTokenMs":11032,"generationMs":87,"ended":"toolCall","tools":["get_message"],"usage":{"promptTokens":112745,"outputTokens":40,"thoughtsTokens":1109},"endMs":91293},{"attempt":1,"step":8,"firstTokenMs":4625,"generationMs":96,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":117592,"outputTokens":41,"thoughtsTokens":85,"cachedTokens":101053},"endMs":91471},{"attempt":1,"step":7,"firstTokenMs":5446,"generationMs":98,"ended":"toolCall","tools":["get_message"],"usage":{"promptTokens":115004,"outputTokens":40,"thoughtsTokens":359,"cachedTokens":112737},"endMs":97279},{"attempt":1,"step":9,"firstTokenMs":5973,"generationMs":100,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":136248,"outputTokens":20,"thoughtsTokens":254,"cachedTokens":38798},"endMs":98290},{"attempt":1,"step":8,"firstTokenMs":3149,"generationMs":96,"ended":"toolCall","tools":["get_message"],"usage":{"promptTokens":116454,"outputTokens":38,"thoughtsTokens":19,"cachedTokens":113883},"endMs":101750},{"attempt":1,"step":10,"firstTokenMs":4129,"generationMs":95,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":136630,"outputTokens":17,"thoughtsTokens":126,"cachedTokens":134191},"endMs":104384},{"attempt":1,"step":16,"firstTokenMs":16464,"generationMs":160,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":233828,"outputTokens":16,"thoughtsTokens":1749,"cachedTokens":216117},"endMs":104421},{"attempt":1,"step":9,"firstTokenMs":4800,"generationMs":111,"ended":"toolCall","tools":["get_message"],"usage":{"promptTokens":117532,"outputTokens":40,"thoughtsTokens":235,"cachedTokens":115391},"endMs":107186},{"attempt":1,"step":10,"firstTokenMs":4165,"generationMs":131,"ended":"toolCall","tools":["get_message"],"usage":{"promptTokens":125135,"outputTokens":38,"thoughtsTokens":193,"cachedTokens":117532},"endMs":112673},{"attempt":1,"step":11,"firstTokenMs":4082,"generationMs":82,"ended":"toolCall","tools":["get_message"],"usage":{"promptTokens":126387,"outputTokens":40,"thoughtsTokens":39,"cachedTokens":123079},"endMs":118015},{"attempt":1,"step":12,"firstTokenMs":4023,"generationMs":99,"ended":"toolCall","tools":["get_message"],"usage":{"promptTokens":127615,"outputTokens":40,"thoughtsTokens":21,"cachedTokens":125355},"endMs":123282},{"attempt":1,"step":11,"firstTokenMs":21169,"generationMs":120,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":158326,"outputTokens":39,"thoughtsTokens":2341,"cachedTokens":136645},"endMs":128206},{"attempt":1,"step":12,"firstTokenMs":3564,"generationMs":112,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":165529,"outputTokens":38,"thoughtsTokens":24,"cachedTokens":158324},"endMs":132578},{"attempt":1,"step":17,"firstTokenMs":24896,"generationMs":3824,"ended":"text","usage":{"promptTokens":251254,"outputTokens":668,"thoughtsTokens":3124,"cachedTokens":233834},"endMs":133153},{"attempt":1,"step":13,"firstTokenMs":15121,"generationMs":90,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":171346,"outputTokens":20,"thoughtsTokens":1632,"cachedTokens":165525},"endMs":151157},{"attempt":1,"step":14,"firstTokenMs":10145,"generationMs":172,"ended":"text","usage":{"promptTokens":226479,"outputTokens":22,"thoughtsTokens":801,"cachedTokens":171388},"endMs":161475},{"attempt":1,"step":13,"firstTokenMs":38239,"generationMs":81,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":128782,"outputTokens":21,"thoughtsTokens":5034,"cachedTokens":126455},"endMs":163122},{"attempt":1,"step":14,"firstTokenMs":51535,"generationMs":9678,"ended":"text","usage":{"promptTokens":139217,"outputTokens":1656,"thoughtsTokens":7271,"cachedTokens":128788},"endMs":224358}]
+      }
+    },
+    {
+      "pass": 1,
+      "prompt": "control",
+      "utterance": "show my open pull requests",
+      "turnId": "53cd5e28-853b-4146-a429-887fd2a5aedf",
+      "counted": true,
+      "at": "2026-10-29T09:36:05.258Z",
+      "outcome": "completed",
+      "finalMs": 143685,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 6641,
+        "shortlistMs": 6,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":6,"modelMs":6631,"ended":"text","finish":"stop","usage":{"promptTokens":31919,"outputTokens":556,"reasoningTokens":371,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"github.2","app":"github","outcome":"completed","startMs":6642,"firstPaintMs":128851,"settledMs":143685,"endMs":143685}],
+      "agents": {
+        "github": [{"attempt":1,"step":1,"firstTokenMs":6005,"generationMs":107,"ended":"toolCall","tools":["get_me"],"usage":{"promptTokens":106598,"outputTokens":10,"thoughtsTokens":405},"endMs":15266},{"attempt":1,"step":2,"firstTokenMs":4177,"generationMs":90,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":107354,"outputTokens":28,"thoughtsTokens":50,"cachedTokens":104551},"endMs":21534},{"attempt":1,"step":3,"firstTokenMs":106677,"generationMs":15401,"ended":"text","usage":{"promptTokens":130885,"outputTokens":2684,"thoughtsTokens":15122,"cachedTokens":107435},"endMs":143683}]
+      }
+    },
+    {
+      "pass": 1,
+      "prompt": "camera",
+      "utterance": "Compare camera prices at Shop A and Shop B.",
+      "turnId": "c05fc303-a8c1-40ce-a497-0cd6a1ebf1bb",
+      "counted": true,
+      "at": "2026-10-29T09:39:22.664Z",
+      "outcome": "completed",
+      "finalMs": 64150,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 21518,
+        "shortlistMs": 2,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [{"name":"search_store","ms":22}],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":3,"modelMs":3533,"ended":"toolCall","finish":"tool-calls","tools":["search_store"],"usage":{"promptTokens":31729,"outputTokens":126,"reasoningTokens":109,"cachedTokens":0}},{"attempt":1,"step":2,"model":"gemini-3.8-flash","startMs":3561,"modelMs":17954,"ended":"text","finish":"stop","usage":{"promptTokens":32108,"outputTokens":2411,"reasoningTokens":1905,"cachedTokens":29568}}]
+      },
+      "dispatch": [{"source":"shop-a","app":"shop-a","outcome":"completed","startMs":21518,"firstPaintMs":58294,"settledMs":64150,"endMs":64150}],
+      "synthesis": {
+        "outcome": "skipped",
+        "collapse": "few",
+        "attempts": 0,
+        "requests": []
+      },
+      "agents": {
+        "shop-a": [{"attempt":1,"step":1,"firstTokenMs":2539,"generationMs":53,"ended":"toolCall","tools":["list_cameras"],"usage":{"promptTokens":15445,"outputTokens":10,"thoughtsTokens":60},"endMs":24138},{"attempt":1,"step":2,"firstTokenMs":33494,"generationMs":6494,"ended":"text","usage":{"promptTokens":15658,"outputTokens":1146,"thoughtsTokens":4998,"cachedTokens":13388},"endMs":64148}]
+      }
+    },
+    {
+      "pass": 2,
+      "prompt": "p1",
+      "utterance": "Which of my open pull requests are blocked on something outside GitHub?",
+      "turnId": "7244bd74-5997-4040-95e8-f575be95ebdb",
+      "counted": true,
+      "at": "2026-10-29T10:02:13.013Z",
+      "outcome": "completed",
+      "finalMs": 215730,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 23229,
+        "shortlistMs": 7,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":7,"modelMs":23218,"ended":"text","finish":"stop","usage":{"promptTokens":31927,"outputTokens":2979,"reasoningTokens":2228,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"linear.2","app":"linear","outcome":"completed","startMs":23232,"firstPaintMs":109542,"settledMs":115604,"endMs":115604},{"source":"circleci.1","app":"circleci","outcome":"completed","startMs":23232,"firstPaintMs":103031,"settledMs":118152,"endMs":118152},{"source":"github.2","app":"github","outcome":"completed","startMs":23231,"firstPaintMs":168716,"settledMs":189017,"endMs":189017}],
+      "synthesis": {
+        "outcome": "synthesized",
+        "release": "home",
+        "releaseMs": 189017,
+        "deadAirMs": 26713,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":0,"modelMs":26708,"ended":"text","finish":"stop","usage":{"promptTokens":22776,"outputTokens":3695,"reasoningTokens":0,"cachedTokens":0}}]
+      },
+      "agents": {
+        "linear": [{"attempt":1,"step":1,"firstTokenMs":4596,"generationMs":104,"ended":"toolCall","tools":["list_teams","list_issues"],"usage":{"promptTokens":22210,"outputTokens":27,"thoughtsTokens":260},"endMs":29004},{"attempt":1,"step":2,"firstTokenMs":2657,"generationMs":63,"ended":"toolCall","tools":["list_issues"],"usage":{"promptTokens":24668,"outputTokens":19,"thoughtsTokens":45,"cachedTokens":22200},"endMs":32113},{"attempt":1,"step":3,"firstTokenMs":9159,"generationMs":367,"ended":"toolCall","tools":["get_issue"],"usage":{"promptTokens":28674,"outputTokens":100,"thoughtsTokens":299,"cachedTokens":24671},"endMs":41997},{"attempt":1,"step":4,"firstTokenMs":3204,"generationMs":448,"ended":"toolCall","tools":["get_issue"],"usage":{"promptTokens":33160,"outputTokens":100,"thoughtsTokens":71,"cachedTokens":28657},"endMs":45986},{"attempt":1,"step":5,"firstTokenMs":62974,"generationMs":6622,"ended":"text","usage":{"promptTokens":36852,"outputTokens":1212,"thoughtsTokens":9193,"cachedTokens":33142},"endMs":115602}],
+        "circleci": [{"attempt":1,"step":1,"firstTokenMs":3967,"generationMs":76,"ended":"toolCall","tools":["list_projects"],"usage":{"promptTokens":22499,"outputTokens":10,"thoughtsTokens":238},"endMs":28852},{"attempt":1,"step":2,"firstTokenMs":2960,"generationMs":73,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":22807,"outputTokens":50,"thoughtsTokens":104,"cachedTokens":20442},"endMs":32603},{"attempt":1,"step":3,"firstTokenMs":3620,"generationMs":67,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":27537,"outputTokens":49,"thoughtsTokens":212,"cachedTokens":22813},"endMs":36593},{"attempt":1,"step":4,"firstTokenMs":2562,"generationMs":65,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":28081,"outputTokens":49,"thoughtsTokens":12,"cachedTokens":25486},"endMs":39527},{"attempt":1,"step":5,"firstTokenMs":2965,"generationMs":62,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":28429,"outputTokens":50,"thoughtsTokens":111,"cachedTokens":26030},"endMs":43193},{"attempt":1,"step":6,"firstTokenMs":2987,"generationMs":71,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":28879,"outputTokens":50,"thoughtsTokens":12,"cachedTokens":26379},"endMs":46876},{"attempt":1,"step":7,"firstTokenMs":2750,"generationMs":72,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":29226,"outputTokens":50,"thoughtsTokens":41,"cachedTokens":26830},"endMs":50318},{"attempt":1,"step":8,"firstTokenMs":52055,"generationMs":15752,"ended":"text","usage":{"promptTokens":29604,"outputTokens":2669,"thoughtsTokens":7508,"cachedTokens":27177},"endMs":118150}],
+        "github": [{"attempt":1,"step":1,"firstTokenMs":4528,"generationMs":90,"ended":"toolCall","tools":["get_me"],"usage":{"promptTokens":106615,"outputTokens":10,"thoughtsTokens":164},"endMs":30689},{"attempt":1,"step":2,"firstTokenMs":3177,"generationMs":132,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":107130,"outputTokens":28,"thoughtsTokens":52,"cachedTokens":104566},"endMs":35839},{"attempt":1,"step":3,"firstTokenMs":31778,"generationMs":122,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":130663,"outputTokens":38,"thoughtsTokens":152,"cachedTokens":107211},"endMs":68950},{"attempt":1,"step":4,"firstTokenMs":6024,"generationMs":91,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":131006,"outputTokens":44,"thoughtsTokens":450,"cachedTokens":128612},"endMs":77238},{"attempt":1,"step":5,"firstTokenMs":6038,"generationMs":782,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":132934,"outputTokens":176,"thoughtsTokens":437,"cachedTokens":128961},"endMs":86149},{"attempt":1,"step":6,"firstTokenMs":3717,"generationMs":777,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":140567,"outputTokens":168,"thoughtsTokens":86,"cachedTokens":132930},"endMs":92731},{"attempt":1,"step":7,"firstTokenMs":3172,"generationMs":145,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":147354,"outputTokens":40,"thoughtsTokens":16,"cachedTokens":140560},"endMs":98461},{"attempt":1,"step":8,"firstTokenMs":3974,"generationMs":672,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":148084,"outputTokens":138,"thoughtsTokens":91,"cachedTokens":145305},"endMs":104354},{"attempt":1,"step":9,"firstTokenMs":3623,"generationMs":296,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":149658,"outputTokens":92,"thoughtsTokens":44,"cachedTokens":147389},"endMs":109520},{"attempt":1,"step":10,"firstTokenMs":3203,"generationMs":314,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":151756,"outputTokens":92,"thoughtsTokens":32,"cachedTokens":149649},"endMs":114659},{"attempt":1,"step":11,"firstTokenMs":53433,"generationMs":20838,"ended":"text","usage":{"promptTokens":151938,"outputTokens":3805,"thoughtsTokens":7866,"cachedTokens":149697},"endMs":189015}]
+      }
+    },
+    {
+      "pass": 2,
+      "prompt": "p4",
+      "utterance": "Help me close out A2U-7: show the issue, its pull request and its CI run, and let me act on each.",
+      "turnId": "724255e8-1625-480b-86aa-01650ff66526",
+      "counted": true,
+      "at": "2026-10-29T10:06:07.627Z",
+      "outcome": "completed",
+      "finalMs": 172630,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 27002,
+        "shortlistMs": 9,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":9,"modelMs":26990,"ended":"text","finish":"stop","usage":{"promptTokens":31963,"outputTokens":3217,"reasoningTokens":2824,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"circleci.1","app":"circleci","outcome":"completed","startMs":27004,"settledMs":116013,"endMs":116013},{"source":"linear.2","app":"linear","outcome":"completed","startMs":27003,"firstPaintMs":106939,"settledMs":119392,"endMs":119392},{"source":"github.2","app":"github","outcome":"completed","startMs":27004,"settledMs":172630,"endMs":172630}],
+      "agents": {
+        "circleci": [{"attempt":1,"step":1,"firstTokenMs":3018,"generationMs":63,"ended":"toolCall","tools":["list_projects"],"usage":{"promptTokens":22484,"outputTokens":10,"thoughtsTokens":135},"endMs":31443},{"attempt":1,"step":2,"firstTokenMs":3078,"generationMs":78,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":22689,"outputTokens":55,"thoughtsTokens":73,"cachedTokens":20427},"endMs":35504},{"attempt":1,"step":3,"firstTokenMs":3898,"generationMs":82,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":31519,"outputTokens":65,"thoughtsTokens":138,"cachedTokens":22705},"endMs":40095},{"attempt":1,"step":4,"firstTokenMs":5431,"generationMs":80,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":31763,"outputTokens":65,"thoughtsTokens":25,"cachedTokens":29466},"endMs":46220},{"attempt":1,"step":5,"firstTokenMs":5271,"generationMs":77,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":31894,"outputTokens":19,"thoughtsTokens":27,"cachedTokens":29710},"endMs":52425},{"attempt":1,"step":6,"firstTokenMs":9975,"generationMs":80,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":40642,"outputTokens":56,"thoughtsTokens":804,"cachedTokens":31911},"endMs":63360},{"attempt":1,"step":7,"firstTokenMs":4717,"generationMs":86,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":56153,"outputTokens":63,"thoughtsTokens":267,"cachedTokens":40669},"endMs":68802},{"attempt":1,"step":8,"firstTokenMs":15371,"generationMs":111,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":57056,"outputTokens":62,"thoughtsTokens":1753,"cachedTokens":54100},"endMs":84957},{"attempt":1,"step":9,"firstTokenMs":30746,"generationMs":298,"ended":"text","usage":{"promptTokens":58912,"outputTokens":52,"thoughtsTokens":3918,"cachedTokens":56475},"endMs":116003}],
+        "linear": [{"attempt":1,"step":1,"firstTokenMs":4461,"generationMs":185,"ended":"toolCall","tools":["get_issue","list_comments"],"usage":{"promptTokens":22200,"outputTokens":105,"thoughtsTokens":134},"endMs":32802},{"attempt":1,"step":2,"firstTokenMs":3836,"generationMs":60,"ended":"toolCall","tools":["list_issue_statuses"],"usage":{"promptTokens":23017,"outputTokens":21,"thoughtsTokens":56,"cachedTokens":20137},"endMs":36983},{"attempt":1,"step":3,"firstTokenMs":69266,"generationMs":13107,"ended":"text","usage":{"promptTokens":23439,"outputTokens":2334,"thoughtsTokens":9663,"cachedTokens":20967},"endMs":119390}],
+        "github": [{"attempt":1,"step":1,"firstTokenMs":5254,"generationMs":99,"ended":"toolCall","tools":["search_issues"],"usage":{"promptTokens":106596,"outputTokens":20,"thoughtsTokens":171},"endMs":35778},{"attempt":1,"step":2,"firstTokenMs":3551,"generationMs":121,"ended":"toolCall","tools":["search_code"],"usage":{"promptTokens":114560,"outputTokens":20,"thoughtsTokens":50,"cachedTokens":106620},"endMs":41311},{"attempt":1,"step":3,"firstTokenMs":3938,"generationMs":105,"ended":"toolCall","tools":["get_me"],"usage":{"promptTokens":155683,"outputTokens":10,"thoughtsTokens":53,"cachedTokens":114683},"endMs":46349},{"attempt":1,"step":4,"firstTokenMs":3369,"generationMs":114,"ended":"toolCall","tools":["list_notifications"],"usage":{"promptTokens":156087,"outputTokens":20,"thoughtsTokens":53,"cachedTokens":153631},"endMs":51481},{"attempt":1,"step":5,"firstTokenMs":4761,"generationMs":103,"ended":"toolCall","tools":["search_issues"],"usage":{"promptTokens":210459,"outputTokens":38,"thoughtsTokens":120,"cachedTokens":156213},"endMs":58714},{"attempt":1,"step":6,"firstTokenMs":5068,"generationMs":113,"ended":"toolCall","tools":["projects_list"],"usage":{"promptTokens":218390,"outputTokens":28,"thoughtsTokens":155,"cachedTokens":210468},"endMs":65781},{"attempt":1,"step":7,"firstTokenMs":4549,"generationMs":107,"ended":"toolCall","tools":["search_repositories"],"usage":{"promptTokens":218651,"outputTokens":20,"thoughtsTokens":39,"cachedTokens":216335},"endMs":76669},{"attempt":1,"step":8,"firstTokenMs":5416,"generationMs":119,"ended":"toolCall","tools":["list_issues"],"usage":{"promptTokens":225113,"outputTokens":27,"thoughtsTokens":156,"cachedTokens":218657},"endMs":83610},{"attempt":1,"step":9,"firstTokenMs":2644,"generationMs":108,"ended":"toolCall","tools":["search_repositories"],"usage":{"promptTokens":226446,"outputTokens":21,"thoughtsTokens":36,"cachedTokens":223061},"endMs":87471},{"attempt":1,"step":10,"firstTokenMs":3537,"generationMs":109,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":227085,"outputTokens":24,"thoughtsTokens":67,"cachedTokens":224392},"endMs":92831},{"attempt":1,"step":11,"firstTokenMs":5154,"generationMs":133,"ended":"toolCall","tools":["search_commits"],"usage":{"promptTokens":231586,"outputTokens":22,"thoughtsTokens":17,"cachedTokens":227086},"endMs":99342},{"attempt":1,"step":12,"firstTokenMs":5834,"generationMs":96,"ended":"toolCall","tools":["get_commit"],"usage":{"promptTokens":233896,"outputTokens":75,"thoughtsTokens":407,"cachedTokens":231581},"endMs":107668},{"attempt":1,"step":13,"firstTokenMs":12693,"generationMs":146,"ended":"toolCall","tools":["issue_read"],"usage":{"promptTokens":294981,"outputTokens":39,"thoughtsTokens":604,"cachedTokens":234011},"endMs":121950},{"attempt":1,"step":14,"firstTokenMs":4925,"generationMs":111,"ended":"toolCall","tools":["list_pull_requests"],"usage":{"promptTokens":296187,"outputTokens":35,"thoughtsTokens":25,"cachedTokens":292927},"endMs":128270},{"attempt":1,"step":15,"firstTokenMs":7807,"generationMs":103,"ended":"toolCall","tools":["list_branches"],"usage":{"promptTokens":299497,"outputTokens":27,"thoughtsTokens":624,"cachedTokens":296183},"endMs":137374},{"attempt":1,"step":16,"firstTokenMs":5448,"generationMs":104,"ended":"toolCall","tools":["list_branches"],"usage":{"promptTokens":300468,"outputTokens":29,"thoughtsTokens":201,"cachedTokens":297443},"endMs":144144},{"attempt":1,"step":17,"firstTokenMs":3225,"generationMs":111,"ended":"toolCall","tools":["list_pull_requests"],"usage":{"promptTokens":300826,"outputTokens":37,"thoughtsTokens":24,"cachedTokens":298413},"endMs":148473},{"attempt":1,"step":18,"firstTokenMs":23698,"generationMs":449,"ended":"text","usage":{"promptTokens":300917,"outputTokens":54,"thoughtsTokens":3063,"cachedTokens":298770},"endMs":172622}]
+      }
+    },
+    {
+      "pass": 2,
+      "prompt": "p6",
+      "utterance": "Is main green right now? Ask CircleCI and GitHub.",
+      "turnId": "48d01a13-6826-4d36-a866-9498d39ee572",
+      "counted": true,
+      "at": "2026-10-29T10:09:18.541Z",
+      "outcome": "completed",
+      "finalMs": 103697,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 23818,
+        "shortlistMs": 2,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":2,"modelMs":23813,"ended":"text","finish":"stop","usage":{"promptTokens":31946,"outputTokens":1999,"reasoningTokens":1563,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"github.2","app":"github","outcome":"completed","startMs":23820,"firstPaintMs":72922,"settledMs":76355,"endMs":76355},{"source":"circleci.1","app":"circleci","outcome":"completed","startMs":23819,"firstPaintMs":85300,"settledMs":100080,"endMs":100080}],
+      "synthesis": {
+        "outcome": "declined",
+        "collapse": "declined",
+        "release": "settled",
+        "releaseMs": 100080,
+        "deadAirMs": 3616,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":1,"modelMs":3615,"ended":"text","finish":"stop","usage":{"promptTokens":19865,"outputTokens":64,"reasoningTokens":0,"cachedTokens":0}}]
+      },
+      "agents": {
+        "github": [{"attempt":1,"step":1,"firstTokenMs":46859,"generationMs":4017,"ended":"text","usage":{"promptTokens":106609,"outputTokens":739,"thoughtsTokens":6424},"endMs":76353}],
+        "circleci": [{"attempt":1,"step":1,"firstTokenMs":3885,"generationMs":66,"ended":"toolCall","tools":["list_projects"],"usage":{"promptTokens":22494,"outputTokens":10,"thoughtsTokens":222},"endMs":29225},{"attempt":1,"step":2,"firstTokenMs":3368,"generationMs":64,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":22786,"outputTokens":60,"thoughtsTokens":110,"cachedTokens":20437},"endMs":33326},{"attempt":1,"step":3,"firstTokenMs":5343,"generationMs":51,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":25229,"outputTokens":50,"thoughtsTokens":282,"cachedTokens":22785},"endMs":39377},{"attempt":1,"step":4,"firstTokenMs":2558,"generationMs":67,"ended":"toolCall","tools":["list_workflow_jobs"],"usage":{"promptTokens":25848,"outputTokens":51,"thoughtsTokens":68,"cachedTokens":23179},"endMs":42637},{"attempt":1,"step":5,"firstTokenMs":42037,"generationMs":15374,"ended":"text","usage":{"promptTokens":26440,"outputTokens":2727,"thoughtsTokens":6236,"cachedTokens":23799},"endMs":100079}]
+      }
+    },
+    {
+      "pass": 2,
+      "prompt": "p10",
+      "utterance": "Across both my Gmail accounts, which threads mention a Linear issue, and what state is it in?",
+      "turnId": "6c83ce51-4f6c-4652-8274-ce4f8bcf3016",
+      "counted": true,
+      "at": "2026-10-29T10:11:21.200Z",
+      "outcome": "completed",
+      "finalMs": 206655,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 58446,
+        "shortlistMs": 6,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":6,"modelMs":58438,"ended":"text","finish":"stop","usage":{"promptTokens":31580,"outputTokens":7396,"reasoningTokens":6699,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"linear.2","app":"linear","outcome":"completed","startMs":58447,"firstPaintMs":128873,"settledMs":141192,"endMs":141192},{"source":"gmail.2","app":"gmail","outcome":"completed","startMs":58448,"firstPaintMs":138779,"settledMs":146945,"endMs":146945},{"source":"gmail.3","app":"gmail","outcome":"completed","startMs":58449,"firstPaintMs":203630,"settledMs":206655,"endMs":206655}],
+      "synthesis": {
+        "outcome": "synthesized",
+        "release": "soft-deadline",
+        "releaseMs": 156948,
+        "deadAirMs": 15598,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":1,"modelMs":15589,"ended":"text","finish":"stop","usage":{"promptTokens":20882,"outputTokens":2331,"reasoningTokens":0,"cachedTokens":0}}]
+      },
+      "agents": {
+        "linear": [{"attempt":1,"step":1,"firstTokenMs":5875,"generationMs":62,"ended":"toolCall","tools":["list_issues"],"usage":{"promptTokens":22202,"outputTokens":62,"thoughtsTokens":299},"endMs":65409},{"attempt":1,"step":2,"firstTokenMs":2888,"generationMs":64,"ended":"toolCall","tools":["get_user"],"usage":{"promptTokens":23714,"outputTokens":16,"thoughtsTokens":23,"cachedTokens":20148},"endMs":68904},{"attempt":1,"step":3,"firstTokenMs":59357,"generationMs":12904,"ended":"text","usage":{"promptTokens":23996,"outputTokens":2272,"thoughtsTokens":8822,"cachedTokens":21662},"endMs":141190}],
+        "gmail": [{"attempt":1,"step":1,"firstTokenMs":4081,"generationMs":63,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":38880,"outputTokens":20,"thoughtsTokens":172},"endMs":64728},{"attempt":1,"step":1,"firstTokenMs":6056,"generationMs":65,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":38880,"outputTokens":22,"thoughtsTokens":430},"endMs":70076},{"attempt":1,"step":2,"firstTokenMs":12898,"generationMs":70,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":55563,"outputTokens":18,"thoughtsTokens":94,"cachedTokens":38898},"endMs":78256},{"attempt":1,"step":2,"firstTokenMs":7504,"generationMs":69,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":64118,"outputTokens":30,"thoughtsTokens":307,"cachedTokens":38906},"endMs":79507},{"attempt":1,"step":3,"firstTokenMs":5341,"generationMs":73,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":55783,"outputTokens":18,"thoughtsTokens":37,"cachedTokens":53507},"endMs":85065},{"attempt":1,"step":4,"firstTokenMs":2942,"generationMs":90,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":55946,"outputTokens":17,"thoughtsTokens":20,"cachedTokens":53727},"endMs":90636},{"attempt":1,"step":3,"firstTokenMs":10148,"generationMs":95,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":80537,"outputTokens":39,"thoughtsTokens":945},"endMs":90999},{"attempt":1,"step":4,"firstTokenMs":4669,"generationMs":82,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":82715,"outputTokens":40,"thoughtsTokens":158,"cachedTokens":80530},"endMs":96896},{"attempt":1,"step":5,"firstTokenMs":6204,"generationMs":90,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":73982,"outputTokens":20,"thoughtsTokens":395,"cachedTokens":55966},"endMs":98994},{"attempt":1,"step":5,"firstTokenMs":3689,"generationMs":75,"ended":"toolCall","tools":["get_message"],"usage":{"promptTokens":84173,"outputTokens":40,"thoughtsTokens":126,"cachedTokens":81510},"endMs":101845},{"attempt":1,"step":6,"firstTokenMs":4506,"generationMs":73,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":90888,"outputTokens":18,"thoughtsTokens":136,"cachedTokens":73996},"endMs":104831},{"attempt":1,"step":7,"firstTokenMs":4070,"generationMs":84,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":107533,"outputTokens":31,"thoughtsTokens":93,"cachedTokens":90900},"endMs":111478},{"attempt":1,"step":8,"firstTokenMs":3628,"generationMs":88,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":124378,"outputTokens":18,"thoughtsTokens":93,"cachedTokens":107543},"endMs":116944},{"attempt":1,"step":9,"firstTokenMs":5289,"generationMs":102,"ended":"toolCall","tools":["list_drafts"],"usage":{"promptTokens":143112,"outputTokens":17,"thoughtsTokens":41,"cachedTokens":124389},"endMs":123691},{"attempt":1,"step":10,"firstTokenMs":7684,"generationMs":89,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":143279,"outputTokens":19,"thoughtsTokens":602,"cachedTokens":141054},"endMs":132983},{"attempt":1,"step":11,"firstTokenMs":4206,"generationMs":105,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":144008,"outputTokens":23,"thoughtsTokens":44,"cachedTokens":141222},"endMs":139461},{"attempt":1,"step":6,"firstTokenMs":36312,"generationMs":8764,"ended":"text","usage":{"promptTokens":91667,"outputTokens":1712,"thoughtsTokens":5456,"cachedTokens":84173},"endMs":146943},{"attempt":1,"step":12,"firstTokenMs":8354,"generationMs":94,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":158159,"outputTokens":21,"thoughtsTokens":177,"cachedTokens":144015},"endMs":150206},{"attempt":1,"step":13,"firstTokenMs":5388,"generationMs":129,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":174848,"outputTokens":39,"thoughtsTokens":229,"cachedTokens":158168},"endMs":156491},{"attempt":1,"step":14,"firstTokenMs":4631,"generationMs":116,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":179939,"outputTokens":38,"thoughtsTokens":152,"cachedTokens":174844},"endMs":162554},{"attempt":1,"step":15,"firstTokenMs":14869,"generationMs":129,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":185884,"outputTokens":18,"thoughtsTokens":1719,"cachedTokens":179936},"endMs":180045},{"attempt":1,"step":16,"firstTokenMs":22898,"generationMs":3693,"ended":"text","usage":{"promptTokens":209174,"outputTokens":657,"thoughtsTokens":2977,"cachedTokens":185900},"endMs":206652}]
+      }
+    },
+    {
+      "pass": 2,
+      "prompt": "control",
+      "utterance": "show my open pull requests",
+      "turnId": "47b4f1f4-8565-489e-b143-eb4703602580",
+      "counted": true,
+      "at": "2026-10-29T10:15:09.138Z",
+      "outcome": "completed",
+      "finalMs": 101803,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 7943,
+        "shortlistMs": 1,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":1,"modelMs":7941,"ended":"text","finish":"stop","usage":{"promptTokens":31919,"outputTokens":808,"reasoningTokens":623,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"github.2","app":"github","outcome":"completed","startMs":7943,"firstPaintMs":87209,"settledMs":101803,"endMs":101803}],
+      "agents": {
+        "github": [{"attempt":1,"step":1,"firstTokenMs":5920,"generationMs":169,"ended":"toolCall","tools":["get_me","search_pull_requests"],"usage":{"promptTokens":106598,"outputTokens":36,"thoughtsTokens":278},"endMs":17381},{"attempt":1,"step":2,"firstTokenMs":5126,"generationMs":90,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":130704,"outputTokens":30,"thoughtsTokens":67,"cachedTokens":106673},"endMs":23714},{"attempt":1,"step":3,"firstTokenMs":3589,"generationMs":97,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":130954,"outputTokens":32,"thoughtsTokens":53,"cachedTokens":128653},"endMs":29211},{"attempt":1,"step":4,"firstTokenMs":57345,"generationMs":15183,"ended":"text","usage":{"promptTokens":154492,"outputTokens":2722,"thoughtsTokens":8439,"cachedTokens":131023},"endMs":101801}]
+      }
+    },
+    {
+      "pass": 2,
+      "prompt": "camera",
+      "utterance": "Compare camera prices at Shop A and Shop B.",
+      "turnId": "370f8af9-789a-49f1-a4cb-1aab7e6cec58",
+      "counted": true,
+      "at": "2026-10-29T10:17:38.201Z",
+      "outcome": "completed",
+      "finalMs": 111297,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 20806,
+        "shortlistMs": 2,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [{"name":"search_store","ms":21}],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":2,"modelMs":4329,"ended":"toolCall","finish":"tool-calls","tools":["search_store"],"usage":{"promptTokens":31729,"outputTokens":147,"reasoningTokens":130,"cachedTokens":0}},{"attempt":1,"step":2,"model":"gemini-3.8-flash","startMs":4352,"modelMs":16451,"ended":"text","finish":"stop","usage":{"promptTokens":32129,"outputTokens":2204,"reasoningTokens":1696,"cachedTokens":29569}}]
+      },
+      "dispatch": [{"source":"shop-a","app":"shop-a","outcome":"completed","startMs":20808,"firstPaintMs":107163,"settledMs":111297,"endMs":111297}],
+      "synthesis": {
+        "outcome": "skipped",
+        "collapse": "few",
+        "attempts": 0,
+        "requests": []
+      },
+      "agents": {
+        "shop-a": [{"attempt":1,"step":1,"firstTokenMs":2526,"generationMs":74,"ended":"toolCall","tools":["list_cameras"],"usage":{"promptTokens":15444,"outputTokens":10,"thoughtsTokens":92},"endMs":23441},{"attempt":1,"step":2,"firstTokenMs":83083,"generationMs":4755,"ended":"text","usage":{"promptTokens":15689,"outputTokens":823,"thoughtsTokens":12130,"cachedTokens":13388},"endMs":111295}]
+      }
+    },
+    {
+      "pass": 3,
+      "prompt": "p1",
+      "utterance": "Which of my open pull requests are blocked on something outside GitHub?",
+      "turnId": "dfac721e-a3b5-4adf-8a4c-5aa3267a63bf",
+      "counted": true,
+      "at": "2026-10-29T10:20:25.372Z",
+      "outcome": "completed",
+      "finalMs": 217370,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 20949,
+        "shortlistMs": 8,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":8,"modelMs":20937,"ended":"text","finish":"stop","usage":{"promptTokens":31927,"outputTokens":2507,"reasoningTokens":1766,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"linear.2","app":"linear","outcome":"completed","startMs":20950,"firstPaintMs":122490,"settledMs":129087,"endMs":129087},{"source":"circleci.1","app":"circleci","outcome":"completed","startMs":20950,"firstPaintMs":123101,"settledMs":143012,"endMs":143012},{"source":"github.2","app":"github","outcome":"completed","startMs":20949,"firstPaintMs":129539,"settledMs":189225,"endMs":189225}],
+      "synthesis": {
+        "outcome": "synthesized",
+        "release": "home",
+        "releaseMs": 189225,
+        "deadAirMs": 28145,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":0,"modelMs":28140,"ended":"text","finish":"stop","usage":{"promptTokens":23598,"outputTokens":4493,"reasoningTokens":0,"cachedTokens":0}}]
+      },
+      "agents": {
+        "linear": [{"attempt":1,"step":1,"firstTokenMs":8008,"generationMs":60,"ended":"toolCall","tools":["list_issues"],"usage":{"promptTokens":22207,"outputTokens":17,"thoughtsTokens":241},"endMs":30053},{"attempt":1,"step":2,"firstTokenMs":10786,"generationMs":472,"ended":"toolCall","tools":["get_issue"],"usage":{"promptTokens":24486,"outputTokens":100,"thoughtsTokens":90,"cachedTokens":22204},"endMs":41682},{"attempt":1,"step":3,"firstTokenMs":15478,"generationMs":63,"ended":"toolCall","tools":["list_issues"],"usage":{"promptTokens":28763,"outputTokens":15,"thoughtsTokens":54,"cachedTokens":24468},"endMs":57575},{"attempt":1,"step":4,"firstTokenMs":64333,"generationMs":7153,"ended":"text","usage":{"promptTokens":32774,"outputTokens":1370,"thoughtsTokens":8728,"cachedTokens":28767},"endMs":129084}],
+        "circleci": [{"attempt":1,"step":1,"firstTokenMs":4238,"generationMs":74,"ended":"toolCall","tools":["list_projects"],"usage":{"promptTokens":22502,"outputTokens":10,"thoughtsTokens":193},"endMs":26807},{"attempt":1,"step":2,"firstTokenMs":3134,"generationMs":142,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":22765,"outputTokens":50,"thoughtsTokens":105,"cachedTokens":20445},"endMs":30763},{"attempt":1,"step":3,"firstTokenMs":8323,"generationMs":669,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":27496,"outputTokens":148,"thoughtsTokens":895,"cachedTokens":22771},"endMs":40533},{"attempt":1,"step":4,"firstTokenMs":4464,"generationMs":684,"ended":"toolCall","tools":["list_workflow_jobs"],"usage":{"promptTokens":29392,"outputTokens":151,"thoughtsTokens":229,"cachedTokens":25436},"endMs":46354},{"attempt":1,"step":5,"firstTokenMs":6526,"generationMs":75,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":31184,"outputTokens":50,"thoughtsTokens":230,"cachedTokens":28795},"endMs":53571},{"attempt":1,"step":6,"firstTokenMs":3331,"generationMs":70,"ended":"toolCall","tools":["list_workflow_jobs"],"usage":{"promptTokens":31753,"outputTokens":53,"thoughtsTokens":50,"cachedTokens":29137},"endMs":57619},{"attempt":1,"step":7,"firstTokenMs":64858,"generationMs":20514,"ended":"text","usage":{"promptTokens":32333,"outputTokens":3677,"thoughtsTokens":9843,"cachedTokens":29706},"endMs":143010}],
+        "github": [{"attempt":1,"step":1,"firstTokenMs":4867,"generationMs":124,"ended":"toolCall","tools":["get_me"],"usage":{"promptTokens":106609,"outputTokens":10,"thoughtsTokens":190},"endMs":28382},{"attempt":1,"step":2,"firstTokenMs":3006,"generationMs":124,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":107150,"outputTokens":28,"thoughtsTokens":54,"cachedTokens":104561},"endMs":33215},{"attempt":1,"step":3,"firstTokenMs":12719,"generationMs":2636,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":130685,"outputTokens":428,"thoughtsTokens":1395,"cachedTokens":107231},"endMs":50804},{"attempt":1,"step":4,"firstTokenMs":78098,"generationMs":21827,"ended":"text","usage":{"promptTokens":148163,"outputTokens":3824,"thoughtsTokens":11170,"cachedTokens":130672},"endMs":152496},{"attempt":2,"step":1,"firstTokenMs":15172,"generationMs":21485,"ended":"text","usage":{"promptTokens":163216,"outputTokens":3824,"thoughtsTokens":2064,"cachedTokens":148206},"endMs":189223}]
+      }
+    },
+    {
+      "pass": 3,
+      "prompt": "p4",
+      "utterance": "Help me close out A2U-7: show the issue, its pull request and its CI run, and let me act on each.",
+      "turnId": "02b0d95b-4c29-4b3f-9815-6ae557b26dc9",
+      "counted": true,
+      "at": "2026-10-29T10:24:22.141Z",
+      "outcome": "completed",
+      "finalMs": 208468,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 54840,
+        "shortlistMs": 3,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":4,"modelMs":54835,"ended":"text","finish":"stop","usage":{"promptTokens":31963,"outputTokens":7274,"reasoningTokens":6603,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"circleci.1","app":"circleci","outcome":"completed","startMs":54840,"settledMs":157115,"endMs":157115},{"source":"github.2","app":"github","outcome":"completed","startMs":54840,"settledMs":189893,"endMs":189893},{"source":"linear.2","app":"linear","outcome":"completed","startMs":54840,"firstPaintMs":195767,"settledMs":208468,"endMs":208468}],
+      "synthesis": {
+        "outcome": "skipped",
+        "collapse": "few",
+        "attempts": 0,
+        "requests": []
+      },
+      "agents": {
+        "circleci": [{"attempt":1,"step":1,"firstTokenMs":4317,"generationMs":73,"ended":"toolCall","tools":["list_projects"],"usage":{"promptTokens":22492,"outputTokens":10,"thoughtsTokens":92},"endMs":60632},{"attempt":1,"step":2,"firstTokenMs":4412,"generationMs":75,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":22654,"outputTokens":55,"thoughtsTokens":79,"cachedTokens":20435},"endMs":66021},{"attempt":1,"step":3,"firstTokenMs":5142,"generationMs":71,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":31490,"outputTokens":60,"thoughtsTokens":134,"cachedTokens":22670},"endMs":71867},{"attempt":1,"step":4,"firstTokenMs":4401,"generationMs":73,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":31725,"outputTokens":60,"thoughtsTokens":11,"cachedTokens":29437},"endMs":76971},{"attempt":1,"step":5,"firstTokenMs":5733,"generationMs":81,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":31837,"outputTokens":14,"thoughtsTokens":18,"cachedTokens":29672},"endMs":83504},{"attempt":1,"step":6,"firstTokenMs":3358,"generationMs":80,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":36445,"outputTokens":55,"thoughtsTokens":64,"cachedTokens":31842},"endMs":87449},{"attempt":1,"step":7,"firstTokenMs":21733,"generationMs":106,"ended":"toolCall","tools":["get_run"],"usage":{"promptTokens":51215,"outputTokens":48,"thoughtsTokens":2697,"cachedTokens":36474},"endMs":110075},{"attempt":1,"step":8,"firstTokenMs":3028,"generationMs":90,"ended":"toolCall","tools":["get_run"],"usage":{"promptTokens":54450,"outputTokens":47,"thoughtsTokens":57,"cachedTokens":51213},"endMs":113864},{"attempt":1,"step":9,"firstTokenMs":13777,"generationMs":105,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":55119,"outputTokens":56,"thoughtsTokens":1747,"cachedTokens":52397},"endMs":128652},{"attempt":1,"step":10,"firstTokenMs":28213,"generationMs":241,"ended":"text","usage":{"promptTokens":71573,"outputTokens":37,"thoughtsTokens":1478,"cachedTokens":55147},"endMs":157108}],
+        "github": [{"attempt":1,"step":1,"firstTokenMs":5199,"generationMs":143,"ended":"toolCall","tools":["search_issues"],"usage":{"promptTokens":106602,"outputTokens":20,"thoughtsTokens":199},"endMs":63689},{"attempt":1,"step":2,"firstTokenMs":3219,"generationMs":98,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":114594,"outputTokens":24,"thoughtsTokens":64,"cachedTokens":106626},"endMs":68344},{"attempt":1,"step":3,"firstTokenMs":8168,"generationMs":102,"ended":"toolCall","tools":["get_me"],"usage":{"promptTokens":119092,"outputTokens":10,"thoughtsTokens":20,"cachedTokens":114603},"endMs":77499},{"attempt":1,"step":4,"firstTokenMs":2504,"generationMs":101,"ended":"toolCall","tools":["list_notifications"],"usage":{"promptTokens":119463,"outputTokens":10,"thoughtsTokens":19,"cachedTokens":117042},"endMs":81080},{"attempt":1,"step":5,"firstTokenMs":2851,"generationMs":85,"ended":"toolCall","tools":["search_commits"],"usage":{"promptTokens":119520,"outputTokens":20,"thoughtsTokens":54,"cachedTokens":117412},"endMs":86710},{"attempt":1,"step":6,"firstTokenMs":5530,"generationMs":103,"ended":"toolCall","tools":["search_code"],"usage":{"promptTokens":144533,"outputTokens":20,"thoughtsTokens":390,"cachedTokens":119602},"endMs":94345},{"attempt":1,"step":7,"firstTokenMs":10119,"generationMs":123,"ended":"toolCall","tools":["search_code"],"usage":{"promptTokens":186000,"outputTokens":32,"thoughtsTokens":190,"cachedTokens":72190},"endMs":105834},{"attempt":1,"step":8,"firstTokenMs":2828,"generationMs":103,"ended":"toolCall","tools":["search_code"],"usage":{"promptTokens":186450,"outputTokens":30,"thoughtsTokens":26,"cachedTokens":183947},"endMs":110014},{"attempt":1,"step":9,"firstTokenMs":3709,"generationMs":95,"ended":"toolCall","tools":["list_pull_requests"],"usage":{"promptTokens":186734,"outputTokens":37,"thoughtsTokens":44,"cachedTokens":184397},"endMs":115087},{"attempt":1,"step":10,"firstTokenMs":3250,"generationMs":103,"ended":"toolCall","tools":["list_pull_requests"],"usage":{"promptTokens":186845,"outputTokens":35,"thoughtsTokens":39,"cachedTokens":184680},"endMs":119749},{"attempt":1,"step":11,"firstTokenMs":3847,"generationMs":133,"ended":"toolCall","tools":["list_branches"],"usage":{"promptTokens":190169,"outputTokens":27,"thoughtsTokens":165,"cachedTokens":186845},"endMs":124806},{"attempt":1,"step":12,"firstTokenMs":10789,"generationMs":175,"ended":"toolCall","tools":["get_commit"],"usage":{"promptTokens":190681,"outputTokens":69,"thoughtsTokens":367,"cachedTokens":93156},"endMs":137107},{"attempt":1,"step":13,"firstTokenMs":3403,"generationMs":120,"ended":"toolCall","tools":["get_file_contents"],"usage":{"promptTokens":192040,"outputTokens":56,"thoughtsTokens":43,"cachedTokens":188111},"endMs":142188},{"attempt":1,"step":14,"firstTokenMs":11004,"generationMs":115,"ended":"toolCall","tools":["get_file_contents"],"usage":{"promptTokens":193567,"outputTokens":54,"thoughtsTokens":242,"cachedTokens":95507},"endMs":155074},{"attempt":1,"step":15,"firstTokenMs":11539,"generationMs":119,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":195890,"outputTokens":32,"thoughtsTokens":449,"cachedTokens":96953},"endMs":167875},{"attempt":1,"step":16,"firstTokenMs":21789,"generationMs":218,"ended":"text","usage":{"promptTokens":198686,"outputTokens":37,"thoughtsTokens":1802,"cachedTokens":98116},"endMs":189886}],
+        "linear": [{"attempt":1,"step":1,"firstTokenMs":4997,"generationMs":114,"ended":"toolCall","tools":["get_issue","list_comments"],"usage":{"promptTokens":22203,"outputTokens":41,"thoughtsTokens":178},"endMs":61227},{"attempt":1,"step":2,"firstTokenMs":14528,"generationMs":68,"ended":"toolCall","tools":["list_issue_statuses"],"usage":{"promptTokens":23451,"outputTokens":21,"thoughtsTokens":1751,"cachedTokens":20142},"endMs":76151},{"attempt":1,"step":3,"firstTokenMs":118933,"generationMs":13339,"ended":"text","usage":{"promptTokens":25568,"outputTokens":2582,"thoughtsTokens":16980,"cachedTokens":23448},"endMs":208466}]
+      }
+    },
+    {
+      "pass": 3,
+      "prompt": "p6",
+      "utterance": "Is main green right now? Ask CircleCI and GitHub.",
+      "turnId": "059a9d88-d135-40ba-a4cb-410ab762a500",
+      "counted": true,
+      "at": "2026-10-29T10:28:07.249Z",
+      "outcome": "completed",
+      "finalMs": 231838,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 20276,
+        "shortlistMs": 2,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":2,"modelMs":20272,"ended":"text","finish":"stop","usage":{"promptTokens":31946,"outputTokens":2364,"reasoningTokens":1774,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"circleci.1","app":"circleci","outcome":"completed","startMs":20277,"firstPaintMs":92506,"settledMs":105817,"endMs":105817},{"source":"github.2","app":"github","outcome":"completed","startMs":20277,"firstPaintMs":174412,"settledMs":187270,"endMs":187270}],
+      "synthesis": {
+        "outcome": "synthesized",
+        "release": "settled",
+        "releaseMs": 187270,
+        "deadAirMs": 44568,
+        "effort": "low",
+        "attempts": 2,
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":1,"modelMs":21225,"ended":"text","finish":"stop","usage":{"promptTokens":20700,"outputTokens":2811,"reasoningTokens":0,"cachedTokens":0}},{"attempt":2,"step":1,"model":"gemini-3.8-flash","startMs":21227,"modelMs":23337,"ended":"text","finish":"stop","usage":{"promptTokens":24380,"outputTokens":3518,"reasoningTokens":781,"cachedTokens":0}}]
+      },
+      "agents": {
+        "circleci": [{"attempt":1,"step":1,"firstTokenMs":3843,"generationMs":61,"ended":"toolCall","tools":["list_projects"],"usage":{"promptTokens":22500,"outputTokens":10,"thoughtsTokens":157},"endMs":25157},{"attempt":1,"step":2,"firstTokenMs":3489,"generationMs":73,"ended":"toolCall","tools":["list_runs"],"usage":{"promptTokens":22727,"outputTokens":56,"thoughtsTokens":108,"cachedTokens":20443},"endMs":29364},{"attempt":1,"step":3,"firstTokenMs":2670,"generationMs":78,"ended":"toolCall","tools":["list_run_workflows"],"usage":{"promptTokens":27208,"outputTokens":50,"thoughtsTokens":95,"cachedTokens":22732},"endMs":32731},{"attempt":1,"step":4,"firstTokenMs":3124,"generationMs":64,"ended":"toolCall","tools":["list_workflow_jobs"],"usage":{"promptTokens":27640,"outputTokens":51,"thoughtsTokens":64,"cachedTokens":25157},"endMs":36546},{"attempt":1,"step":5,"firstTokenMs":55386,"generationMs":13861,"ended":"text","usage":{"promptTokens":28228,"outputTokens":2530,"thoughtsTokens":8261,"cachedTokens":25590},"endMs":105816}],
+        "github": [{"attempt":1,"step":1,"firstTokenMs":8187,"generationMs":95,"ended":"toolCall","tools":["get_me"],"usage":{"promptTokens":106603,"outputTokens":10,"thoughtsTokens":375},"endMs":31144},{"attempt":1,"step":2,"firstTokenMs":3683,"generationMs":126,"ended":"toolCall","tools":["search_repositories"],"usage":{"promptTokens":107329,"outputTokens":41,"thoughtsTokens":55,"cachedTokens":104555},"endMs":36323},{"attempt":1,"step":3,"firstTokenMs":5845,"generationMs":678,"ended":"toolCall","tools":["list_commits"],"usage":{"promptTokens":109843,"outputTokens":149,"thoughtsTokens":479,"cachedTokens":107330},"endMs":44171},{"attempt":1,"step":4,"firstTokenMs":4516,"generationMs":837,"ended":"toolCall","tools":["actions_list"],"usage":{"promptTokens":116098,"outputTokens":189,"thoughtsTokens":57,"cachedTokens":109838},"endMs":51973},{"attempt":1,"step":5,"firstTokenMs":6325,"generationMs":104,"ended":"toolCall","tools":["get_commit"],"usage":{"promptTokens":122153,"outputTokens":71,"thoughtsTokens":306,"cachedTokens":116092},"endMs":59718},{"attempt":1,"step":6,"firstTokenMs":5530,"generationMs":100,"ended":"toolCall","tools":["actions_list"],"usage":{"promptTokens":123209,"outputTokens":56,"thoughtsTokens":292,"cachedTokens":120107},"endMs":66615},{"attempt":1,"step":7,"firstTokenMs":3881,"generationMs":95,"ended":"toolCall","tools":["actions_list"],"usage":{"promptTokens":125124,"outputTokens":59,"thoughtsTokens":34,"cachedTokens":122528},"endMs":71759},{"attempt":1,"step":8,"firstTokenMs":10721,"generationMs":345,"ended":"toolCall","tools":["actions_list"],"usage":{"promptTokens":127714,"outputTokens":99,"thoughtsTokens":358,"cachedTokens":125126},"endMs":84377},{"attempt":1,"step":9,"firstTokenMs":3559,"generationMs":95,"ended":"toolCall","tools":["actions_list"],"usage":{"promptTokens":128613,"outputTokens":51,"thoughtsTokens":17,"cachedTokens":125660},"endMs":89782},{"attempt":1,"step":10,"firstTokenMs":15825,"generationMs":105,"ended":"toolCall","tools":["list_commits"],"usage":{"promptTokens":131267,"outputTokens":41,"thoughtsTokens":2050,"cachedTokens":128615},"endMs":107084},{"attempt":1,"step":11,"firstTokenMs":66670,"generationMs":13453,"ended":"text","usage":{"promptTokens":134164,"outputTokens":2519,"thoughtsTokens":6470,"cachedTokens":131270},"endMs":187268}]
+      }
+    },
+    {
+      "pass": 3,
+      "prompt": "p10",
+      "utterance": "Across both my Gmail accounts, which threads mention a Linear issue, and what state is it in?",
+      "turnId": "8646249d-bea0-40be-8d73-e4edbde07cca",
+      "counted": true,
+      "at": "2026-10-29T10:32:18.860Z",
+      "outcome": "completed",
+      "finalMs": 239794,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 51359,
+        "shortlistMs": 3,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":3,"modelMs":51353,"ended":"text","finish":"stop","usage":{"promptTokens":31580,"outputTokens":3585,"reasoningTokens":2863,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"linear.2","app":"linear","outcome":"completed","startMs":51361,"firstPaintMs":103988,"settledMs":109783,"endMs":109783},{"source":"gmail.2","app":"gmail","outcome":"completed","startMs":51360,"firstPaintMs":160755,"settledMs":175157,"endMs":175157},{"source":"gmail.3","app":"gmail","outcome":"completed","startMs":51360,"firstPaintMs":236616,"settledMs":239794,"endMs":239794}],
+      "synthesis": {
+        "outcome": "declined",
+        "collapse": "declined",
+        "release": "soft-deadline",
+        "releaseMs": 185161,
+        "deadAirMs": 3262,
+        "effort": "low",
+        "attempts": 1,
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":2,"modelMs":3259,"ended":"text","finish":"stop","usage":{"promptTokens":21320,"outputTokens":161,"reasoningTokens":0,"cachedTokens":0}}]
+      },
+      "agents": {
+        "linear": [{"attempt":1,"step":1,"firstTokenMs":5506,"generationMs":68,"ended":"toolCall","tools":["list_issues"],"usage":{"promptTokens":22200,"outputTokens":49,"thoughtsTokens":321},"endMs":57898},{"attempt":1,"step":2,"firstTokenMs":3010,"generationMs":59,"ended":"toolCall","tools":["list_teams"],"usage":{"promptTokens":22914,"outputTokens":10,"thoughtsTokens":58,"cachedTokens":20144},"endMs":61266},{"attempt":1,"step":3,"firstTokenMs":42066,"generationMs":6438,"ended":"text","usage":{"promptTokens":23133,"outputTokens":1169,"thoughtsTokens":6064,"cachedTokens":20862},"endMs":109781}],
+        "gmail": [{"attempt":1,"step":1,"firstTokenMs":4065,"generationMs":78,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":38892,"outputTokens":20,"thoughtsTokens":120},"endMs":58462},{"attempt":1,"step":1,"firstTokenMs":4146,"generationMs":66,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":38892,"outputTokens":20,"thoughtsTokens":218,"cachedTokens":36846},"endMs":62770},{"attempt":1,"step":2,"firstTokenMs":4001,"generationMs":78,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":63818,"outputTokens":20,"thoughtsTokens":144,"cachedTokens":38918},"endMs":64061},{"attempt":1,"step":2,"firstTokenMs":7167,"generationMs":69,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":55621,"outputTokens":18,"thoughtsTokens":85},"endMs":71410},{"attempt":1,"step":3,"firstTokenMs":9496,"generationMs":82,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":78440,"outputTokens":17,"thoughtsTokens":524,"cachedTokens":63827},"endMs":75308},{"attempt":1,"step":3,"firstTokenMs":5458,"generationMs":73,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":55832,"outputTokens":18,"thoughtsTokens":105,"cachedTokens":53565},"endMs":79111},{"attempt":1,"step":4,"firstTokenMs":8424,"generationMs":116,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":104115,"outputTokens":40,"thoughtsTokens":311,"cachedTokens":78458},"endMs":85098},{"attempt":1,"step":4,"firstTokenMs":3838,"generationMs":75,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":72446,"outputTokens":22,"thoughtsTokens":43,"cachedTokens":55848},"endMs":85287},{"attempt":1,"step":5,"firstTokenMs":4547,"generationMs":93,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":90510,"outputTokens":18,"thoughtsTokens":170,"cachedTokens":72460},"endMs":91389},{"attempt":1,"step":6,"firstTokenMs":3235,"generationMs":113,"ended":"toolCall","tools":["list_drafts"],"usage":{"promptTokens":112251,"outputTokens":11,"thoughtsTokens":28,"cachedTokens":90525},"endMs":95941},{"attempt":1,"step":5,"firstTokenMs":16356,"generationMs":83,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":105726,"outputTokens":39,"thoughtsTokens":2151,"cachedTokens":102059},"endMs":102816},{"attempt":1,"step":7,"firstTokenMs":5754,"generationMs":112,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":118136,"outputTokens":39,"thoughtsTokens":381,"cachedTokens":112248},"endMs":103191},{"attempt":1,"step":8,"firstTokenMs":5598,"generationMs":89,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":123379,"outputTokens":27,"thoughtsTokens":280,"cachedTokens":118132},"endMs":109498},{"attempt":1,"step":6,"firstTokenMs":7967,"generationMs":81,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":109110,"outputTokens":38,"thoughtsTokens":703,"cachedTokens":105720},"endMs":111491},{"attempt":1,"step":9,"firstTokenMs":5920,"generationMs":87,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":123794,"outputTokens":27,"thoughtsTokens":33,"cachedTokens":121322},"endMs":117604},{"attempt":1,"step":10,"firstTokenMs":4541,"generationMs":110,"ended":"toolCall","tools":["list_drafts"],"usage":{"promptTokens":140345,"outputTokens":17,"thoughtsTokens":32,"cachedTokens":123804},"endMs":122755},{"attempt":1,"step":11,"firstTokenMs":5428,"generationMs":89,"ended":"toolCall","tools":["list_labels"],"usage":{"promptTokens":140503,"outputTokens":10,"thoughtsTokens":369,"cachedTokens":138287},"endMs":129619},{"attempt":1,"step":12,"firstTokenMs":3283,"generationMs":112,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":143043,"outputTokens":20,"thoughtsTokens":41,"cachedTokens":140496},"endMs":134275},{"attempt":1,"step":13,"firstTokenMs":5456,"generationMs":113,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":143212,"outputTokens":19,"thoughtsTokens":352,"cachedTokens":140986},"endMs":141166},{"attempt":1,"step":14,"firstTokenMs":19821,"generationMs":125,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":143691,"outputTokens":26,"thoughtsTokens":794,"cachedTokens":141155},"endMs":162650},{"attempt":1,"step":15,"firstTokenMs":4306,"generationMs":118,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":163106,"outputTokens":38,"thoughtsTokens":75,"cachedTokens":143707},"endMs":167770},{"attempt":1,"step":7,"firstTokenMs":48530,"generationMs":15108,"ended":"text","usage":{"promptTokens":111077,"outputTokens":2552,"thoughtsTokens":7272,"cachedTokens":107906},"endMs":175155},{"attempt":1,"step":16,"firstTokenMs":8878,"generationMs":123,"ended":"toolCall","tools":["search_threads"],"usage":{"promptTokens":168974,"outputTokens":18,"thoughtsTokens":829,"cachedTokens":163104},"endMs":178616},{"attempt":1,"step":17,"firstTokenMs":13271,"generationMs":102,"ended":"toolCall","tools":["get_thread"],"usage":{"promptTokens":176470,"outputTokens":41,"thoughtsTokens":98,"cachedTokens":168974},"endMs":193376},{"attempt":1,"step":18,"firstTokenMs":42551,"generationMs":3851,"ended":"text","usage":{"promptTokens":181506,"outputTokens":687,"thoughtsTokens":5282,"cachedTokens":176467},"endMs":239792}]
+      }
+    },
+    {
+      "pass": 3,
+      "prompt": "control",
+      "utterance": "show my open pull requests",
+      "turnId": "42966ff6-0e79-443a-8006-a6c88c8d7729",
+      "counted": true,
+      "at": "2026-10-29T10:36:40.071Z",
+      "outcome": "completed",
+      "finalMs": 151495,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 6679,
+        "shortlistMs": 1,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":1,"modelMs":6675,"ended":"text","finish":"stop","usage":{"promptTokens":31919,"outputTokens":494,"reasoningTokens":306,"cachedTokens":0}}]
+      },
+      "dispatch": [{"source":"github.2","app":"github","outcome":"completed","startMs":6680,"firstPaintMs":138279,"settledMs":151495,"endMs":151495}],
+      "agents": {
+        "github": [{"attempt":1,"step":1,"firstTokenMs":4817,"generationMs":90,"ended":"toolCall","tools":["get_me"],"usage":{"promptTokens":106603,"outputTokens":10,"thoughtsTokens":138},"endMs":14652},{"attempt":1,"step":2,"firstTokenMs":3405,"generationMs":95,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":107092,"outputTokens":28,"thoughtsTokens":45,"cachedTokens":104554},"endMs":19973},{"attempt":1,"step":3,"firstTokenMs":9354,"generationMs":100,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":130618,"outputTokens":31,"thoughtsTokens":844,"cachedTokens":107173},"endMs":30612},{"attempt":1,"step":4,"firstTokenMs":4497,"generationMs":90,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":134697,"outputTokens":33,"thoughtsTokens":28,"cachedTokens":130623},"endMs":36304},{"attempt":1,"step":5,"firstTokenMs":3246,"generationMs":71,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":134910,"outputTokens":31,"thoughtsTokens":22,"cachedTokens":132645},"endMs":41317},{"attempt":1,"step":6,"firstTokenMs":3601,"generationMs":108,"ended":"toolCall","tools":["search_pull_requests"],"usage":{"promptTokens":152787,"outputTokens":31,"thoughtsTokens":106,"cachedTokens":134962},"endMs":46834},{"attempt":1,"step":7,"firstTokenMs":5925,"generationMs":98,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":173588,"outputTokens":44,"thoughtsTokens":338,"cachedTokens":152842},"endMs":54811},{"attempt":1,"step":8,"firstTokenMs":5185,"generationMs":106,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":175404,"outputTokens":46,"thoughtsTokens":304,"cachedTokens":171540},"endMs":61291},{"attempt":1,"step":9,"firstTokenMs":16575,"generationMs":130,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":176743,"outputTokens":42,"thoughtsTokens":2127,"cachedTokens":173964},"endMs":79331},{"attempt":1,"step":10,"firstTokenMs":4276,"generationMs":115,"ended":"toolCall","tools":["pull_request_read"],"usage":{"promptTokens":178942,"outputTokens":46,"thoughtsTokens":175,"cachedTokens":176740},"endMs":84964},{"attempt":1,"step":11,"firstTokenMs":52468,"generationMs":14007,"ended":"text","usage":{"promptTokens":179493,"outputTokens":2398,"thoughtsTokens":5333,"cachedTokens":176890},"endMs":151493}]
+      }
+    },
+    {
+      "pass": 3,
+      "prompt": "camera",
+      "utterance": "Compare camera prices at Shop A and Shop B.",
+      "turnId": "fd1eb182-27d8-43de-a884-e0fbd08fbc47",
+      "counted": true,
+      "at": "2026-10-29T10:39:56.543Z",
+      "outcome": "completed",
+      "finalMs": 69699,
+      "plan": {
+        "outcome": "planned",
+        "planMs": 31555,
+        "shortlistMs": 2,
+        "effort": "low",
+        "attempts": 1,
+        "refused": 0,
+        "tools": [{"name":"search_store","ms":17}],
+        "requests": [{"attempt":1,"step":1,"model":"gemini-3.8-flash","startMs":2,"modelMs":4116,"ended":"toolCall","finish":"tool-calls","tools":["search_store"],"usage":{"promptTokens":31729,"outputTokens":180,"reasoningTokens":163,"cachedTokens":0}},{"attempt":1,"step":2,"model":"gemini-3.8-flash","startMs":4136,"modelMs":27416,"ended":"text","finish":"stop","usage":{"promptTokens":32162,"outputTokens":2248,"reasoningTokens":1751,"cachedTokens":29569}}]
+      },
+      "dispatch": [{"source":"shop-a","app":"shop-a","outcome":"completed","startMs":31556,"firstPaintMs":63525,"settledMs":69699,"endMs":69699}],
+      "synthesis": {
+        "outcome": "skipped",
+        "collapse": "few",
+        "attempts": 0,
+        "requests": []
+      },
+      "agents": {
+        "shop-a": [{"attempt":1,"step":1,"firstTokenMs":5167,"generationMs":85,"ended":"toolCall","tools":["list_cameras"],"usage":{"promptTokens":15443,"outputTokens":10,"thoughtsTokens":389},"endMs":36823},{"attempt":1,"step":2,"firstTokenMs":25994,"generationMs":6857,"ended":"text","usage":{"promptTokens":15985,"outputTokens":1178,"thoughtsTokens":3638,"cachedTokens":13388},"endMs":69697}]
+      }
+    }
+  ]
+}

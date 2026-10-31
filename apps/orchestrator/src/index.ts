@@ -1,6 +1,7 @@
 import {describeFaults} from './agentsPool/faults.js';
 import {buildOrchestrator} from './app.js';
 import {DEFAULT_HARD_CAP_SECONDS, DEFAULT_SOFT_DEADLINE_SECONDS, loadConfig} from './config.js';
+import {missingKeys} from './model/getModel.js';
 
 export const APP_NAME = '@a2uiverse/orchestrator';
 
@@ -8,8 +9,11 @@ const config = loadConfig();
 const orchestrator = buildOrchestrator({config});
 const {app, registry, init} = orchestrator;
 
-if (!config.googleApiKey) {
-  console.warn(`${APP_NAME}: GOOGLE_API_KEY not set — palette turns will fail until it is`);
+// One warning per key a configured model needs and the environment lacks (task-17.2 decision 3).
+for (const {variable, seams} of missingKeys(config)) {
+  console.warn(
+    `${APP_NAME}: ${variable} not set — ${seams.join(' and ')} ${seams.length > 1 ? 'have' : 'has'} no model until it is`,
+  );
 }
 // A changed deadline or an active fault is said once, loudly: a run with either is not a clean one.
 if (

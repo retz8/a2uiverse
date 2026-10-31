@@ -6,7 +6,7 @@ import {LAYOUT_SURFACE_KEEP_SET} from '@a2uiverse/shell-catalog/schema';
 import type {AppSource} from '../accounts/accounts.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import type {ShortlistEntry} from '../router/router.js';
-import {LAYOUT_SURFACE_SCHEMA} from './document.js';
+import {LAYOUT_SURFACE_SCHEMA, type LayoutSurface} from './document.js';
 import {LAYOUT_EXAMPLES, type LayoutExample} from './examples.js';
 
 /**
@@ -19,6 +19,11 @@ import {LAYOUT_EXAMPLES, type LayoutExample} from './examples.js';
 
 /** The tag the model wraps its one document in. */
 export const LAYOUT_SURFACE_TAG = 'layout-surface';
+
+/** A layout surface wrapped as the model answers with it. */
+export function layoutSurfaceBlock(document: LayoutSurface): string {
+  return `<${LAYOUT_SURFACE_TAG}>\n${JSON.stringify(document)}\n</${LAYOUT_SURFACE_TAG}>`;
+}
 
 export const PLANNER_ROLE =
   'You are the designer and the voice of a canvas shell that composes the answers of independent agents onto one screen. For each utterance you decide who answers — which agents, whether the shell merges their answers, what nothing installed can serve — and you author the screen itself as a component tree in the shell’s own catalog: a slot for each answer, the framing around the slots, and, when the question is about the platform, the answer in the shell’s own words, read from the platform’s card and its readers. You write JSON as text; the shell validates it, paints it at once and fills the slots as the agents answer.';
@@ -50,21 +55,25 @@ export function readPlannerFiles(): PlannerFiles {
 const EXAMPLES_FRAMING =
   'The examples below show the form of a layout surface for the kinds of turn: agents dispatched with a merged view over them — a timeline across their entries, and a merged view over one kind of thing with its join hypothesis — a command over the same cards that one agent answers alone, a status question in one app’s own noun merged over every agent that holds a part of it, a question about the platform answered from a reader, a capability gap offered from the Store, a merged view beside an offer, an install asked for, and an account choice for a command over an app with two accounts that names neither. Their agents and reader results are fixtures chosen to make the form legible; they are not the agents of the current turn and never a document to reuse.';
 
+/** An example's output in the order the answer is asked for (task-17.9 decision 4). */
+function inAnswerOrder({title, dispatch, dataModel, tree}: LayoutSurface): LayoutSurface {
+  return {...(title !== undefined ? {title} : {}), dispatch, dataModel, tree};
+}
+
 function renderExample(example: LayoutExample): string {
-  const body = JSON.stringify(
-    {
-      intent: example.intent,
-      agents: example.agents,
-      ...(example.readers ? {readers: example.readers} : {}),
-      output: example.output,
-    },
-    null,
-    2,
-  );
+  const body = JSON.stringify({
+    intent: example.intent,
+    agents: example.agents,
+    ...(example.readers ? {readers: example.readers} : {}),
+    output: inAnswerOrder(example.output),
+  });
   return `---BEGIN ${example.name}---\n${body}\n---END ${example.name}---`;
 }
 
-/** The system prompt: role · rules · UI guidance · catalog and output schema · examples. */
+/**
+ * The system prompt: role · rules · UI guidance · catalog and output schema · examples, its JSON
+ * written compact (task-17.6 decision 2).
+ */
 export function plannerSystemPrompt(
   files: PlannerFiles,
   examples: readonly LayoutExample[] = LAYOUT_EXAMPLES,
@@ -73,8 +82,8 @@ export function plannerSystemPrompt(
     PLANNER_ROLE,
     `## Rules:\n${files.rules.trim()}`,
     `## UI Description:\n${files.guidance.trim()}`,
-    `### Catalog Schema:\n${JSON.stringify(files.catalog, null, 2)}`,
-    `### Output Schema:\n${JSON.stringify(LAYOUT_SURFACE_SCHEMA, null, 2)}`,
+    `### Catalog Schema:\n${JSON.stringify(files.catalog)}`,
+    `### Output Schema:\n${JSON.stringify(LAYOUT_SURFACE_SCHEMA)}`,
   ];
   if (examples.length > 0) {
     parts.push(`### Examples:\n${EXAMPLES_FRAMING}\n\n${examples.map(renderExample).join('\n\n')}`);
@@ -140,10 +149,20 @@ export function buildPlannerTurn(
   return parts.join('\n\n');
 }
 
-/** The user turn appended on a retry: the findings, and the ask to fix rather than start over. */
-export function buildRetryTurn(errors: readonly string[]): string {
+/**
+ * The user turn appended on a retry: the findings, and the ask to fix rather than start over —
+ * once the dispatch list was sent, the layout, the data model and the title alone, against it
+ * (task-17.9 decision 2).
+ */
+export function buildRetryTurn(
+  errors: readonly string[],
+  {listSent = false}: {listSent?: boolean} = {},
+): string {
+  const findings = errors.map(e => `- ${e}`).join('\n');
   return [
-    `Your previous answer was rejected. Fix these errors in it and answer again with the corrected document; do not start over:\n${errors.map(e => `- ${e}`).join('\n')}`,
+    listSent
+      ? `Your previous answer was rejected. Its dispatch list was already sent to the agents and stands as you wrote it; a dispatch list you write now is ignored. Fix these errors in the tree, the data model and the title, against that dispatch list, and answer again with the corrected document; do not start over:\n${findings}`
+      : `Your previous answer was rejected. Fix these errors in it and answer again with the corrected document; do not start over:\n${findings}`,
     ANSWER_LINE,
   ].join('\n\n');
 }

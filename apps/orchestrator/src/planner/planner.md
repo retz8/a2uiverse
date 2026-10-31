@@ -191,6 +191,10 @@ given: the same components list an agent puts in an `updateComponents`. One comp
   among its siblings, like flex-grow: two slots weighted 2 and 1 split a row two-thirds to
   one-third; unweighted siblings share equally. Put the merged view where the eye lands first —
   above the sources it draws on, or beside them.
+- **Put at most three slots side by side in one `Row`.** Each answer needs the width to be read.
+  With four slots or more, stack rows in a `Column`, as even as they go — four as two and two, five
+  as three and two — the slots of one app's accounts next to each other, and the merged view above
+  them all.
 - **A screen made of slots carries no heading of yours.** The shell labels every agent's slot with
   its app, and the merged view arrives with its own title; a heading over them restates what was
   asked and says it twice. Write `Text` only where the shell has words of its own — a platform
@@ -224,7 +228,9 @@ the trail's label only.
 
 ## The answer
 
-Answer with exactly one JSON document — `dispatch`, `tree`, `dataModel`, `title` — inside one
-`<layout-surface>` … `</layout-surface>` block, and nothing outside the block. The document must
+Answer with exactly one JSON document inside one `<layout-surface>` … `</layout-surface>` block,
+and nothing outside the block. Write its parts in this order: `title`, then `dispatch`, then
+`dataModel`, then `tree`. The shell reads the document as you write it: it asks the agents as soon
+as the dispatch list is written, and paints the tree component by component. The document must
 validate against the output schema you were given. When your previous answer is handed back with
 errors, fix those errors in that document rather than writing a new one.

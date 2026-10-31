@@ -13,6 +13,7 @@ import {
   isGap,
   isSourceDispatch,
   LAYOUT_SURFACE_SCHEMA,
+  type DispatchEntry,
   type LayoutSurface,
 } from './document.js';
 import type {SearchRecord} from './storeSearch.js';
@@ -67,24 +68,102 @@ export type LayoutValidation = {ok: true; document: LayoutSurface} | {ok: false;
 /** The id prefix the painter uses for the wrappers it adds; a model id must not collide with it. */
 export const PAINTER_ID_PREFIX = 'attribution-';
 
-const outputSchema = new Ajv2020({allErrors: true, strict: true, allowUnionTypes: true}).compile(
-  LAYOUT_SURFACE_SCHEMA,
+const ajv = new Ajv2020({allErrors: true, strict: true, allowUnionTypes: true});
+const outputSchema = ajv.compile(LAYOUT_SURFACE_SCHEMA);
+const dispatchSchema = ajv.compile(LAYOUT_SURFACE_SCHEMA.properties.dispatch);
+const componentSchema = ajv.compile(
+  LAYOUT_SURFACE_SCHEMA.properties.tree.properties.components.items,
 );
 
 export function validateLayoutSurface(input: unknown, checks: LayoutChecks): LayoutValidation {
   const schema = schemaErrors(outputSchema, input);
   if (schema.length > 0) return {ok: false, errors: schema};
   const document = withAccounts(input as LayoutSurface, checks.shortlist);
+  const {components} = document.tree;
   const errors = [
     ...treeErrors(document, checks.tree),
     ...dispatchErrors(document, checks.shortlist),
     ...offerErrors(document, checks.searches ?? [], checks.installed),
-    ...slotErrors(document),
-    ...addAccountErrors(document, checks.shortlist),
-    ...appLibraryErrors(document, checks.installed),
+    ...slotErrors(document.dispatch, components, {whole: true}),
+    ...addAccountErrors(components, checks.shortlist),
+    ...appLibraryErrors(components, checks.installed),
     ...dataModelErrors(document.dataModel),
   ];
   return errors.length === 0 ? {ok: true, document} : {ok: false, errors};
+}
+
+export type DispatchValidation =
+  {ok: true; dispatch: DispatchEntry[]} | {ok: false; errors: string[]};
+
+/**
+ * The dispatch list on its own (task-17.9 decision 1): every check of the whole plan that reads
+ * the list alone — its schema, each source among the shortlist's, each gap in the words of one
+ * of this plan's searches offering what they returned, each account choice well formed, the
+ * merged view's sources, columns and join — its accounts resolved as the whole plan's are.
+ */
+export function validateDispatchList(dispatch: unknown, checks: LayoutChecks): DispatchValidation {
+  const schema = schemaErrors(dispatchSchema, dispatch).map(error => `/dispatch${error}`);
+  if (schema.length > 0) return {ok: false, errors: schema};
+  const document = withAccounts(
+    {dispatch: dispatch as DispatchEntry[], tree: {components: []}, dataModel: {}},
+    checks.shortlist,
+  );
+  const errors = [
+    ...dispatchErrors(document, checks.shortlist),
+    ...offerErrors(document, checks.searches ?? [], checks.installed),
+  ];
+  return errors.length === 0 ? {ok: true, dispatch: document.dispatch} : {ok: false, errors};
+}
+
+export interface ComponentChecks extends LayoutChecks {
+  /** The dispatch list committed: what a `Slot` may hold. */
+  dispatch: readonly DispatchEntry[];
+  /** The components already written and passed, in order. */
+  before: readonly A2uiComponent[];
+}
+
+export type ComponentValidation =
+  {ok: true; component: A2uiComponent} | {ok: false; errors: string[]};
+
+/**
+ * One component of the tree on its own (task-17.9 decisions 3, 6): every check of the whole plan
+ * that reads it beside the committed list and the components before it — its shape, its type and
+ * props against the shell catalog, an id not written before nor the painter's, what a `Slot` may
+ * hold and carry, an entry of the list held once, the add-account tile, open the App Library's
+ * app — its account resolved as the whole plan's are. What needs the whole tree — every entry's
+ * slot, each child written, the root — waits for the tree's end.
+ */
+export function validateComponent(
+  component: unknown,
+  checks: ComponentChecks,
+): ComponentValidation {
+  const schema = schemaErrors(componentSchema, component);
+  if (schema.length > 0) return {ok: false, errors: schema};
+  const [resolved] = withAccounts(
+    {
+      dispatch: [...checks.dispatch],
+      tree: {components: [component as A2uiComponent]},
+      dataModel: {},
+    },
+    checks.shortlist,
+  ).tree.components;
+  const own = resolved!;
+  const before = checks.before;
+  const errors = [
+    ...componentTreeErrors(own, checks.tree),
+    ...(before.some(({id}) => id === own.id)
+      ? [`/tree (${own.id}): the id '${own.id}' is written twice`]
+      : []),
+    ...slotErrors(checks.dispatch, [...before, own]),
+    ...addAccountErrors([...before, own], checks.shortlist),
+    ...appLibraryErrors([own], checks.installed),
+  ];
+  return errors.length === 0 ? {ok: true, component: own} : {ok: false, errors};
+}
+
+/** The data model on its own (task-17.9 decision 6): an object of literals. */
+export function validateDataModel(dataModel: unknown): dataModel is Record<string, unknown> {
+  return isRecord(dataModel) && dataModelErrors(dataModel).length === 0;
 }
 
 /** The app a source belongs to: the bare app id for an app needing no sign-in. */
@@ -167,6 +246,26 @@ function treeErrors(document: LayoutSurface, validator: A2uiValidator): string[]
       : '/tree';
     return formatA2uiFinding({...finding, path});
   });
+}
+
+/**
+ * One component through the A2UI validator as an update of a surface already on the client: what
+ * it says of the component itself — its type, its props — and nothing of a graph one component
+ * cannot complete.
+ */
+function componentTreeErrors(component: A2uiComponent, validator: A2uiValidator): string[] {
+  const own = '/0/updateComponents/components/0';
+  return validator
+    .validate([
+      {version: 'v0.9', updateComponents: {surfaceId: TREE_SURFACE, components: [component]}},
+    ])
+    .filter(finding => finding.path?.startsWith(own))
+    .map(finding =>
+      formatA2uiFinding({
+        ...finding,
+        path: `/tree (${component.id})${finding.path!.slice(own.length)}`,
+      }),
+    );
 }
 
 function dispatchErrors(document: LayoutSurface, shortlist: readonly string[]): string[] {
@@ -392,18 +491,25 @@ const PAINTER_PROPS = [
   'offered',
 ] as const;
 
-/** Slot accounting against the dispatch list, and what the Planner may write on a `Slot`. */
-function slotErrors(document: LayoutSurface): string[] {
+/**
+ * Slot accounting against the dispatch list, and what the Planner may write on a `Slot`; every
+ * entry's own `Slot` only over the `whole` tree.
+ */
+function slotErrors(
+  dispatch: readonly DispatchEntry[],
+  components: readonly A2uiComponent[],
+  {whole = false}: {whole?: boolean} = {},
+): string[] {
   const errors: string[] = [];
   const wanted = new Map<string, string>();
-  for (const entry of document.dispatch) {
+  for (const entry of dispatch) {
     if (isGap(entry)) wanted.set(`gap:${entry.gap}`, `gap '${entry.gap}'`);
     else if (isAccountChoice(entry)) {
       wanted.set(`choice:${entry.chooseAccount}`, `the account choice on '${entry.chooseAccount}'`);
     } else wanted.set(`source:${entry.source}`, `source '${entry.source}'`);
   }
   const held = new Set<string>();
-  for (const component of document.tree.components) {
+  for (const component of components) {
     if (component.id.startsWith(PAINTER_ID_PREFIX)) {
       errors.push(
         `/tree (${component.id}): ids beginning with '${PAINTER_ID_PREFIX}' are the shell's`,
@@ -465,6 +571,7 @@ function slotErrors(document: LayoutSurface): string[] {
       );
     }
   }
+  if (!whole) return errors;
   for (const [key, name] of wanted) {
     if (!held.has(key)) errors.push(`/tree: no Slot holds ${name}, which the dispatch names`);
   }
@@ -479,9 +586,12 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * sources are accounts (task-12.2 decision 11, task-12.6 decision 8). Adding an account is that
  * `Slot` alone: no button of the Planner's calls it (task-12.13 decision 27).
  */
-function addAccountErrors(document: LayoutSurface, shortlist: readonly string[]): string[] {
+function addAccountErrors(
+  components: readonly A2uiComponent[],
+  shortlist: readonly string[],
+): string[] {
   const errors: string[] = [];
-  for (const component of document.tree.components) {
+  for (const component of components) {
     if (component.component !== 'Slot') continue;
     const app = (component as {addAccount?: unknown}).addAccount;
     if (typeof app !== 'string') continue;
@@ -498,7 +608,10 @@ function addAccountErrors(document: LayoutSurface, shortlist: readonly string[])
 }
 
 /** Open the App Library's app, wherever a component's action names one, is an installed app. */
-function appLibraryErrors(document: LayoutSurface, installed: readonly string[]): string[] {
+function appLibraryErrors(
+  components: readonly A2uiComponent[],
+  installed: readonly string[],
+): string[] {
   const errors: string[] = [];
   const visit = (value: unknown, id: string) => {
     if (Array.isArray(value)) {
@@ -514,7 +627,7 @@ function appLibraryErrors(document: LayoutSurface, installed: readonly string[])
     }
     for (const child of Object.values(value)) visit(child, id);
   };
-  for (const component of document.tree.components) visit(component, component.id);
+  for (const component of components) visit(component, component.id);
   return errors;
 }
 

@@ -7,9 +7,10 @@ describe('loadConfig — synthesizer (task 4.4)', () => {
     expect(config.synthesizerModelId).toBe('gemini-x');
     expect(config.synthesizerEffort).toBe('low');
   });
-  test('unset, the Planner (task 7.8) and the Synthesizer (task 7.13) run on gemini-3.8-flash, the Synthesizer at low effort', () => {
+  test('unset, the Planner runs on Claude Sonnet 5.5 (task-17.11 decision 7) and the Synthesizer stays on its own default, gemini-3.8-flash (task 7.13), both at low effort', () => {
     const config = loadConfig({});
-    expect(config.plannerModelId).toBe('gemini-3.8-flash');
+    expect(config.plannerModelId).toBe('anthropic/claude-sonnet-5-5');
+    expect(config.plannerEffort).toBe('low');
     expect(config.synthesizerModelId).toBe('gemini-3.8-flash');
     expect(config.synthesizerEffort).toBe('low');
   });
@@ -123,6 +124,39 @@ describe('loadConfig — the marketplace (task-13.5 decisions 1, 11)', () => {
     expect(config.marketplaceTimeoutMs).toBe(2500);
     expect(() => loadConfig({A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS: 'soon'})).toThrow(
       'A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS',
+    );
+  });
+});
+
+describe('loadConfig — the model seam (task-17.2 decisions 2, 3, 6)', () => {
+  test('reads ANTHROPIC_API_KEY beside GOOGLE_API_KEY', () => {
+    const config = loadConfig({GOOGLE_API_KEY: 'g', ANTHROPIC_API_KEY: 'a'});
+    expect(config.googleApiKey).toBe('g');
+    expect(config.anthropicApiKey).toBe('a');
+    expect(loadConfig({}).anthropicApiKey).toBeUndefined();
+  });
+  test('a model named by its provider is kept as written; the Synthesizer follows it', () => {
+    const config = loadConfig({A2UIVERSE_PLANNER_MODEL: 'anthropic/claude-haiku-5-5'});
+    expect(config.plannerModelId).toBe('anthropic/claude-haiku-5-5');
+    expect(config.synthesizerModelId).toBe('anthropic/claude-haiku-5-5');
+  });
+  test('an unknown provider stops the boot, naming the variable and the registered providers', () => {
+    expect(() => loadConfig({A2UIVERSE_PLANNER_MODEL: 'mistral/mistral-small'})).toThrow(
+      /A2UIVERSE_PLANNER_MODEL.*"mistral".*google, anthropic/,
+    );
+    expect(() => loadConfig({A2UIVERSE_SYNTHESIZER_MODEL: 'antropic/claude-haiku-5-5'})).toThrow(
+      /A2UIVERSE_SYNTHESIZER_MODEL.*"antropic"/,
+    );
+  });
+});
+
+describe('loadConfig — the plan cache (task-17.6 decision 10)', () => {
+  test('on by default; off by one setting; anything else stops the boot', () => {
+    expect(loadConfig({}).planCache).toBe(true);
+    expect(loadConfig({A2UIVERSE_PLAN_CACHE: 'on'}).planCache).toBe(true);
+    expect(loadConfig({A2UIVERSE_PLAN_CACHE: 'off'}).planCache).toBe(false);
+    expect(() => loadConfig({A2UIVERSE_PLAN_CACHE: 'no'})).toThrow(
+      /A2UIVERSE_PLAN_CACHE: expected "on" or "off", got "no"/,
     );
   });
 });

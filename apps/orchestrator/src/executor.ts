@@ -1,11 +1,13 @@
 import {randomUUID} from 'node:crypto';
-import type {Message, Task, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import type {Message, Part, Task, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import type {AgentExecutor, ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
 import {
+  clipPaintMetaTitle,
   parseSourceId,
   parseSurfaceId,
   readCanvasParent,
   readClientSession,
+  type A2uiComponent,
   type CompositionOperation,
   type SynthesisPayload,
 } from '@a2uiverse/sdk';
@@ -20,11 +22,24 @@ import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify
 import {composeFragment, retask, withoutFailureWords} from './composition/fragmentRelay.js';
 import {changeAccount, firesResynthesis, seenOf, watchOf} from './composition/integrity.js';
 import {A2UI_CLIENT_DATA_MODEL_KEY} from './composition/partition.js';
-import {synthesisEnvelope, synthesisParts} from './composition/synthesisPainter.js';
-import {vendorMetadata} from './composition/partition.js';
-import {shellCreateParts, shellEnvelope, shellRepaintParts} from './composition/shellPainter.js';
 import {
+  synthesisEnvelope,
+  synthesisParts,
+  synthesisTakeDown,
+} from './composition/synthesisPainter.js';
+import {vendorMetadata} from './composition/partition.js';
+import {
+  shellCreateParts,
+  shellDataModelParts,
+  shellEnvelope,
+  shellRepaintParts,
+  shellTakeDownParts,
+  shellTitleParts,
+} from './composition/shellPainter.js';
+import {
+  addAccountOf,
   addedAccounts,
+  addingFor,
   chooseAccount,
   compositionFrom,
   fillGap,
@@ -39,22 +54,23 @@ import {
   type Owed,
   type OwedPress,
   type Sink,
+  type SlotEntry,
   type SlotFailure,
   type SynthesisEnd,
 } from './composition/state.js';
 import type {PressWait} from './composition/presses.js';
 import {decideTrigger, mergePossible} from './composition/trigger.js';
 import type {IntentJournal, JournalTurn} from './journal/intentJournal.js';
-import type {SynthesisRecord, SynthesisRelease} from './journal/types.js';
+import type {PlanRecord, SynthesisRecord, SynthesisRelease} from './journal/types.js';
 import {elapsedMs, logLine} from './log.js';
 import {emptyTouches, mergeTouches, touchesOf, type SurfaceTouches} from './journal/surfaces.js';
-import type {Planner} from './planner/planner.js';
+import type {CommittedPlan, LayoutPiece, PlanMeasure, Planner} from './planner/planner.js';
 import {searchesOf} from './planner/storeSearch.js';
 import {SHELL_SOURCE_ID} from './registry/types.js';
 import type {Router} from './router/router.js';
 import type {ChangeAccount, MissingSource} from './synthesizer/prompt.js';
 import type {Synthesis} from './synthesizer/document.js';
-import type {Synthesizer} from './synthesizer/synthesizer.js';
+import type {SynthesisMeasure, SynthesisStream, Synthesizer} from './synthesizer/synthesizer.js';
 import type {UpdateFinding} from './registry/updateTile.js';
 import type {AuthorityNeed, Standing} from './vault/vault.js';
 
@@ -136,6 +152,12 @@ interface PumpOptions {
   buffer?: boolean;
   /** A retried source: once the merge is decided its arrival is folded in, never late. */
   folding?: boolean;
+  /**
+   * The plan's layout, checked and painted — true — or the plan broken — false: until it settles
+   * nothing of the dispatch reaches the client and its end flips nothing; then what it sent is
+   * relayed in order, or dropped (task-17.9 decision 5).
+   */
+  layout?: Promise<boolean>;
 }
 
 /**
@@ -419,136 +441,30 @@ export class OrchestratorExecutor implements AgentExecutor {
     const done = () => {
       if (this.#live.get(ctx.contextId) === live) this.#live.delete(ctx.contextId);
     };
+    /**
+     * The layout checked and painted, or the plan broken: what the turn's sources send waits on it
+     * (task-17.9 decision 5). Settled on every way out of the turn.
+     */
+    let painted!: (checked: boolean) => void;
+    const layoutPainted = new Promise<boolean>(resolve => (painted = resolve));
     const closed = async () => {
+      painted(false);
       done();
       bus.publish(finalStatus(ctx, 'canceled'));
       await turn.close('cancelled');
     };
     turn.deadlines(this.#deps.deadlines);
-
-    // The first-paint clock (task-6.6 decision 3): from here to the tree accepted, the shortlist
-    // included, since nothing paints before either.
-    let outcome;
-    try {
-      // Asked from a view: the apps on screen there stay plannable (phase-9 decision 12).
-      const viewed = parent !== undefined ? this.#compositions.get(parent) : undefined;
-      const onScreen = [
-        ...new Set(
-          [...(viewed?.slots.keys() ?? [])]
-            .filter(source => source !== SHELL_SOURCE_ID)
-            .map(source => this.#deps.sources.appOf(source)),
-        ),
-      ];
-      const shortlist = await this.#deps.router.shortlist(text, onScreen);
-      signal.throwIfAborted();
-      outcome = await this.#deps.planner.plan({
-        utterance: text,
-        shortlist,
-        ...(parent !== undefined ? {askedFrom: parent} : {}),
-        signal,
-      });
-    } catch (err) {
-      if (signal.aborted) return closed();
-      done();
-      throw err;
-    }
-    if (signal.aborted) return closed();
-    const planMs = Date.now() - openedAt;
-    logLine(`plan task=${ctx.taskId} ${outcome.kind} ${planMs} ms`);
-    if (outcome.kind === 'malformed') {
-      turn.plan({
-        outcome: outcome.kind,
-        attempts: outcome.attempts,
-        toolCalls: outcome.toolCalls,
-        planMs,
-      });
-      done();
-      // Both attempts refused: a broken turn, the findings on the final (task-6.4 decision 6).
-      const last = outcome.attempts.at(-1);
-      throw new Error(
-        `the Planner's answer was refused ${outcome.attempts.length} times: ${last?.errors.join('; ')}`,
-      );
-    }
-
-    // Each gap's offer drawn from this plan's searches (task-15.4 decisions 3, 8).
-    const state = compositionFrom(
-      outcome.document,
-      this.#deps.sources,
-      text,
-      {
-        turnId: ctx.taskId,
-        metadata: ctx.userMessage.metadata,
-        ...(parent !== undefined ? {parent} : {}),
-        openedAt,
-      },
-      searchesOf(outcome.toolCalls),
-    );
-    // The title as emitted, clipped to the contract's cap (task-9.3 decision 4), on the journal.
-    const titleClipped = state.title !== undefined && state.title !== outcome.document.title;
-    if (titleClipped)
-      logLine(`plan task=${ctx.taskId} title clipped to ${JSON.stringify(state.title)}`);
-    turn.plan({
-      outcome: outcome.kind,
-      layoutSurface: outcome.document,
-      ...(state.title !== undefined ? {title: state.title} : {}),
-      ...(titleClipped ? {titleClipped: true} : {}),
-      ...(parent !== undefined ? {parent} : {}),
-      attempts: outcome.attempts,
-      toolCalls: outcome.toolCalls,
-      planMs,
-    });
-    const session = readClientSession(ctx.userMessage.metadata)?.session;
-    if (session !== undefined) state.session = session;
-    // The card checked before dispatch (phase-12 decision 5): a slot whose app the vault cannot
-    // meet takes its authority at first paint and its agent is not called — unless the app cannot
-    // paint in what it is installed with, whose update comes before its sign-in (task-15.5
-    // decision 2): the pool's check stops that dispatch and the slot takes the update tile.
-    for (const {plan} of state.slots.values()) {
-      if (plan.source === SHELL_SOURCE_ID) continue;
-      if (this.#deps.updates?.catalogsChanged(parseSourceId(plan.source)?.appId ?? plan.source)) {
-        continue;
-      }
-      const standing = this.#deps.gate?.standing(plan.source);
-      if (standing?.kind !== 'need') continue;
-      this.#takeAuthority(state, plan.source, standing.need);
-      // Journaled as the pool journals a dispatch it stops for sign-in: failed, the agent not
-      // called, the authority it needs (task-15.11 decision 27).
-      const at = new Date().toISOString();
-      turn.dispatched({
-        source: plan.source,
-        clientContextId: ctx.contextId,
-        clientTaskId: ctx.taskId,
-        startedAt: at,
-        endedAt: at,
-        outcome: 'failed',
-        error: 'the app needs sign-in',
-        authority: standing.need,
-        sawFinal: false,
-        deadlineMs: this.#deps.deadlines.capMs,
-      });
-    }
-    // The add-account tile's scopes: what a new account's first sign-in asks, in the card's
-    // words (task-12.13 decision 27).
-    for (const [appId, adding] of state.adding) {
-      const standing = this.#deps.gate?.standing(appId);
-      if (standing?.kind === 'need' && standing.need.cause === 'signIn') {
-        adding.scopes = standing.need.words;
-      }
-    }
-    this.#compositions.open(ctx.contextId, state);
     const sink: Sink = {ctx, bus, turn};
 
-    // First paint precedes every dispatch, structurally (SPEC §4.5).
-    const shellPaint = shellEnvelope(ctx, shellCreateParts(state));
-    bus.publish(shellPaint);
-    turn.surfaces(touchesOf(shellPaint));
-
-    // The synthesis slot is the shell's own (task-4.4 decision 6): never dispatched.
-    const sources = [...state.slots.values()].filter(({plan}) => plan.source !== SHELL_SOURCE_ID);
-    const vendorSources = sources.map(({plan}) => plan.source);
-    const merge = synthesisSlot(state);
+    // The turn from its dispatch list on (task 17.9): opened the moment the Planner commits the
+    // list or, for a plan that arrives whole, once it returns.
+    let state!: CompositionState;
+    let opened = false;
+    let vendorSources: string[] = [];
+    let merge: SlotEntry | undefined;
     // A union join has no home source: every source is a peer for the trigger.
-    const home = merge?.plan.join?.home ?? undefined;
+    let home: string | undefined;
+    let runs: {settled: Promise<DispatchOutcome>; drained: Promise<void>}[] = [];
     const settled = new Set<string>();
     // What the turn waits on past its own dispatches: a source retried before the release.
     const wakers = new Set<() => void>();
@@ -614,55 +530,284 @@ export class OrchestratorExecutor implements AgentExecutor {
           return wake();
       }
     };
-    state.reevaluate = () => {
-      evaluate();
-      wake();
-    };
-    // A source retried before the merge is decided rejoins the pack (task-8.4 decision 6): out
-    // again from the press — the soft deadline's quiet not restarted — and settled again when its
-    // re-dispatch ends. The turn waits for it as for any dispatch of its own.
-    state.trigger = {
-      unsettle: source => {
-        settled.delete(source);
-        wake();
-      },
-      settle: source => {
-        settled.add(source);
-        evaluate(source);
-        wake();
-      },
-    };
 
-    // A slot needing sign-in resolves at once, like a failed source (phase-12 decision 18).
-    for (const {plan} of sources) {
-      if (state.slots.get(plan.source)?.state === 'authority') settled.add(plan.source);
-    }
-    if (settled.size > 0) evaluate();
-    const runs = sources
-      .filter(({plan}) => state.slots.get(plan.source)?.state !== 'authority')
-      .map(({plan: slot}) => {
-        const request: Message = {
-          kind: 'message',
-          messageId: randomUUID(),
-          role: 'user',
-          parts: [{kind: 'text', text: requestWords(slot.request, ctx.userMessage.metadata)}],
-          metadata: vendorMetadata(ctx.userMessage.metadata, slot.source),
-        };
-        const handle = this.#deps.pool.dispatch(slot.source, {
+    /**
+     * The dispatch list committed (task-17.9 decision 1): the composition opened over it, each
+     * slot whose app the vault cannot meet taking its authority, every other source dispatched at
+     * once — what it sends held until the layout is painted (decision 5) — and the merge's
+     * trigger armed for when its sources settle.
+     */
+    const open = (plan: CommittedPlan): void => {
+      // Each gap's offer drawn from this plan's searches (task-15.4 decisions 3, 8).
+      state = compositionFrom(
+        {
+          ...(plan.title !== undefined ? {title: plan.title} : {}),
+          dispatch: plan.dispatch,
+          dataModel: {},
+          tree: {components: []},
+        },
+        this.#deps.sources,
+        text,
+        {
+          turnId: ctx.taskId,
+          metadata: ctx.userMessage.metadata,
+          ...(parent !== undefined ? {parent} : {}),
+          openedAt,
+        },
+        searchesOf(plan.toolCalls),
+      );
+      opened = true;
+      state.layoutPainted = layoutPainted;
+      const session = readClientSession(ctx.userMessage.metadata)?.session;
+      if (session !== undefined) state.session = session;
+      // The card checked before dispatch (phase-12 decision 5): a slot whose app the vault cannot
+      // meet takes its authority at first paint and its agent is not called — unless the app cannot
+      // paint in what it is installed with, whose update comes before its sign-in (task-15.5
+      // decision 2): the pool's check stops that dispatch and the slot takes the update tile.
+      for (const {plan: slot} of state.slots.values()) {
+        if (slot.source === SHELL_SOURCE_ID) continue;
+        if (this.#deps.updates?.catalogsChanged(parseSourceId(slot.source)?.appId ?? slot.source)) {
+          continue;
+        }
+        const standing = this.#deps.gate?.standing(slot.source);
+        if (standing?.kind !== 'need') continue;
+        this.#takeAuthority(state, slot.source, standing.need);
+        // Journaled as the pool journals a dispatch it stops for sign-in: failed, the agent not
+        // called, the authority it needs (task-15.11 decision 27).
+        const at = new Date().toISOString();
+        turn.dispatched({
+          source: slot.source,
           clientContextId: ctx.contextId,
           clientTaskId: ctx.taskId,
-          message: request,
-          fromPlan: true,
+          startedAt: at,
+          endedAt: at,
+          outcome: 'failed',
+          error: 'the app needs sign-in',
+          authority: standing.need,
+          sawFinal: false,
+          deadlineMs: this.#deps.deadlines.capMs,
         });
-        return this.#pump(sink, state, handle, slot.source, {
-          collapse: true,
-          signal,
-          onSettled: () => {
-            settled.add(slot.source);
-            evaluate(slot.source);
+      }
+      this.#compositions.open(ctx.contextId, state);
+
+      // The synthesis slot is the shell's own (task-4.4 decision 6): never dispatched.
+      const sources = [...state.slots.values()].filter(({plan}) => plan.source !== SHELL_SOURCE_ID);
+      vendorSources = sources.map(({plan}) => plan.source);
+      merge = synthesisSlot(state);
+      home = merge?.plan.join?.home ?? undefined;
+      state.reevaluate = () => {
+        evaluate();
+        wake();
+      };
+      // A source retried before the merge is decided rejoins the pack (task-8.4 decision 6): out
+      // again from the press — the soft deadline's quiet not restarted — and settled again when its
+      // re-dispatch ends. The turn waits for it as for any dispatch of its own.
+      state.trigger = {
+        unsettle: source => {
+          settled.delete(source);
+          wake();
+        },
+        settle: source => {
+          settled.add(source);
+          evaluate(source);
+          wake();
+        },
+      };
+      // A slot needing sign-in resolves at once, like a failed source (phase-12 decision 18).
+      for (const {plan} of sources) {
+        if (state.slots.get(plan.source)?.state === 'authority') settled.add(plan.source);
+      }
+      runs = sources
+        .filter(({plan}) => state.slots.get(plan.source)?.state !== 'authority')
+        .map(({plan: slot}) => {
+          const request: Message = {
+            kind: 'message',
+            messageId: randomUUID(),
+            role: 'user',
+            parts: [{kind: 'text', text: requestWords(slot.request, ctx.userMessage.metadata)}],
+            metadata: vendorMetadata(ctx.userMessage.metadata, slot.source),
+          };
+          const handle = this.#deps.pool.dispatch(slot.source, {
+            clientContextId: ctx.contextId,
+            clientTaskId: ctx.taskId,
+            message: request,
+            fromPlan: true,
+          });
+          return this.#pump(sink, state, handle, slot.source, {
+            collapse: true,
+            signal,
+            layout: layoutPainted,
+            onSettled: () => {
+              settled.add(slot.source);
+              evaluate(slot.source);
+            },
+          });
+        });
+    };
+
+    // The layout on the client (task-17.9 decision 3): created with its first piece, each piece
+    // after it a repaint of the tree so far.
+    let created = false;
+    /** The title the create carried. */
+    let shownTitle: string | undefined;
+    let firstPieceMs: number | undefined;
+    const paintShell = (parts: Part[]) => {
+      const event = shellEnvelope(ctx, parts);
+      bus.publish(event);
+      turn.surfaces(touchesOf(event));
+      if (firstPieceMs !== undefined) return;
+      firstPieceMs = Date.now() - openedAt;
+      logLine(`plan task=${ctx.taskId} first piece painted ${firstPieceMs} ms`);
+    };
+    const create = () => {
+      paintShell(shellCreateParts(state));
+      created = true;
+      shownTitle = state.title;
+    };
+    const piece = (piece: LayoutPiece) => {
+      if (!opened || signal.aborted) return;
+      if ('dataModel' in piece) {
+        state.layout.dataModel = piece.dataModel;
+        if (created) paintShell(shellDataModelParts(state));
+        return;
+      }
+      state.layout.tree.components.push(piece.component);
+      this.#addingTile(state, piece.component);
+      if (created) paintShell(shellRepaintParts(state));
+      else create();
+    };
+    /**
+     * The plan broke once its list was committed (task-17.9 decisions 2, 7): the half-drawn layout
+     * taken down, the sources asked cancelled at their vendors, nothing they sent shown, the
+     * composition let go.
+     */
+    const breakOff = async () => {
+      painted(false);
+      if (!opened) return;
+      if (created) {
+        const takeDown = shellEnvelope(ctx, shellTakeDownParts());
+        bus.publish(takeDown);
+        turn.surfaces(touchesOf(takeDown));
+      }
+      live.controller.abort();
+      this.#deps.pool.cancel(ctx.taskId);
+      this.#compositions.discard(ctx.contextId);
+      await Promise.all(runs.map(run => run.drained));
+    };
+
+    // The first-paint clock (task-6.6 decision 3): from here to the tree accepted, the shortlist
+    // included, since nothing paints before either.
+    let outcome;
+    let shortlistMs: number | undefined;
+    try {
+      // Asked from a view: the apps on screen there stay plannable (phase-9 decision 12).
+      const viewed = parent !== undefined ? this.#compositions.get(parent) : undefined;
+      const onScreen = [
+        ...new Set(
+          [...(viewed?.slots.keys() ?? [])]
+            .filter(source => source !== SHELL_SOURCE_ID)
+            .map(source => this.#deps.sources.appOf(source)),
+        ),
+      ];
+      const shortlistAt = Date.now();
+      const shortlist = await this.#deps.router.shortlist(text, onScreen);
+      shortlistMs = Date.now() - shortlistAt;
+      signal.throwIfAborted();
+      outcome = await this.#deps.planner.plan({
+        utterance: text,
+        shortlist,
+        ...(parent !== undefined ? {askedFrom: parent} : {}),
+        signal,
+        clock: {origin: openedAt, task: ctx.taskId},
+        stream: {
+          committed: plan => {
+            logLine(`plan task=${ctx.taskId} list committed ${Date.now() - openedAt} ms`);
+            open(plan);
           },
-        });
+          piece,
+        },
       });
+    } catch (err) {
+      if (signal.aborted) return closed();
+      await breakOff();
+      done();
+      throw err;
+    }
+    if (signal.aborted) return closed();
+    const planMs = Date.now() - openedAt;
+    const fromCache =
+      outcome.kind === 'planned' && outcome.cache?.hit ? ' from the plan cache' : '';
+    logLine(`plan task=${ctx.taskId} ${outcome.kind} ${planMs} ms${fromCache}`);
+    if (outcome.kind === 'malformed') {
+      turn.plan({
+        outcome: outcome.kind,
+        attempts: outcome.attempts,
+        toolCalls: outcome.toolCalls,
+        planMs,
+        ...(firstPieceMs !== undefined ? {firstPieceMs} : {}),
+        ...planMeasure(outcome, shortlistMs),
+      });
+      await breakOff();
+      done();
+      // Both attempts refused: a broken turn, the findings on the final (task-6.4 decision 6).
+      const last = outcome.attempts.at(-1);
+      throw new Error(
+        `the Planner's answer was refused ${outcome.attempts.length} times: ${last?.errors.join('; ')}`,
+      );
+    }
+
+    // A plan that arrives whole — from the plan cache, or a Planner that tells nothing as it
+    // writes — opens the turn now, its sources dispatched at once (task-17.9 decision 11).
+    const document = outcome.document;
+    if (!opened) {
+      open({
+        dispatch: document.dispatch,
+        ...(document.title !== undefined ? {title: document.title} : {}),
+        toolCalls: outcome.toolCalls,
+      });
+    }
+    // The layout as checked (task-17.9 decisions 3, 7): what streamed painted whole once more; a
+    // retry's replacing the half-drawn one in one step; a plan that arrived whole painted at once.
+    const streamed =
+      created &&
+      sameJson(state.layout.tree.components, document.tree.components) &&
+      sameJson(state.layout.dataModel, document.dataModel);
+    state.layout = document;
+    // The title as emitted, clipped to the contract's cap (task-9.3 decision 4).
+    const title = document.title === undefined ? undefined : clipPaintMetaTitle(document.title);
+    if (title !== undefined) state.title = title;
+    else delete state.title;
+    state.adding.clear();
+    for (const component of document.tree.components) this.#addingTile(state, component);
+    if (!created) create();
+    else if (streamed) {
+      paintShell([
+        ...(state.title !== shownTitle ? shellTitleParts(state) : []),
+        ...shellRepaintParts(state),
+      ]);
+    } else paintShell([...shellTakeDownParts(), ...shellCreateParts(state)]);
+    painted(true);
+    delete state.layoutPainted;
+    // The journal carries the title as emitted, and whether the Planner's was clipped to the cap.
+    const titleClipped = state.title !== undefined && state.title !== document.title;
+    if (titleClipped)
+      logLine(`plan task=${ctx.taskId} title clipped to ${JSON.stringify(state.title)}`);
+    turn.plan({
+      outcome: outcome.kind,
+      layoutSurface: document,
+      ...(state.title !== undefined ? {title: state.title} : {}),
+      ...(titleClipped ? {titleClipped: true} : {}),
+      ...(parent !== undefined ? {parent} : {}),
+      attempts: outcome.attempts,
+      toolCalls: outcome.toolCalls,
+      planMs,
+      ...(firstPieceMs !== undefined ? {firstPieceMs} : {}),
+      ...planMeasure(outcome, shortlistMs),
+      ...(outcome.cache ? {cache: outcome.cache} : {}),
+    });
+
+    // The trigger weighs what settled before the layout was painted: a slot needing sign-in.
+    if (settled.size > 0) evaluate();
     // The final waits for every dispatch to arrive, fail or reach the hard cap (task-8.3
     // decision 4), a source retried before the merge was decided among them, and for the
     // synthesis the last of them released.
@@ -694,11 +839,27 @@ export class OrchestratorExecutor implements AgentExecutor {
       signal.aborted || (outcomes.length > 0 && outcomes.every(o => o === 'cancelled'));
     state.answeredAt = Date.now();
     bus.publish(finalStatus(ctx, cancelled ? 'canceled' : 'completed'));
+    if (!cancelled) turn.answered(state.answeredAt);
     // The journal line closes when the last dispatch ends: an answer held past the cap is on it.
     void Promise.all(runs.map(run => run.drained)).then(async () => {
       done();
       await turn.close(cancelled ? 'cancelled' : 'completed');
     });
+  }
+
+  /**
+   * The add-account tile a `Slot` places (task-12.13 decision 27): the app's name and accounts
+   * from the vault, and the scopes a new account's first sign-in asks, in the card's words.
+   */
+  #addingTile(state: CompositionState, component: A2uiComponent): void {
+    const appId = addAccountOf(component);
+    if (appId === undefined || state.adding.has(appId)) return;
+    const adding = addingFor(this.#deps.sources, appId);
+    const standing = this.#deps.gate?.standing(appId);
+    if (standing?.kind === 'need' && standing.need.cause === 'signIn') {
+      adding.scopes = standing.need.words;
+    }
+    state.adding.set(appId, adding);
   }
 
   async #actionTurn(
@@ -813,6 +974,10 @@ export class OrchestratorExecutor implements AgentExecutor {
       await turn.close('completed');
       return;
     }
+    // A press on a composition whose layout is still written waits for the layout to be painted,
+    // as what its sources send does (task-17.9 decision 5).
+    const layout = this.#compositions.get(ctx.contextId)?.layoutPainted;
+    if (layout) await layout;
     const state = this.#compositions.get(ctx.contextId);
     if (!state) return refuse('No such context.');
     if (state.retired.signal.aborted) return refuse('This context is closed.');
@@ -1351,6 +1516,15 @@ export class OrchestratorExecutor implements AgentExecutor {
    * flight, and lands only once none it read has; a press whose answer changed what a source it
    * read holds throws it away — the call aborted — and it is made again. A composition closed
    * meanwhile, or a merge collapsed under it, paints nothing.
+   *
+   * The turn's first synthesis is drawn into its reserved slot as the model writes it (task
+   * 17.10): its tree painted once the tree and the sorts have passed, the payload beside it marked
+   * partial, then each row and each member that passes on an event of its own; the document as
+   * accepted lands whole after them — the payload alone over the tree that streamed, a retry's
+   * tree in one step over the half-drawn one (decisions 1, 6). Every re-synthesis, and a first
+   * synthesis made again after being thrown away, lands whole (decisions 7, 8). A half-drawn view
+   * that lands nothing — a second failure, a model error, a collapse under it — is taken down with
+   * the collapse (decisions 6, 8).
    */
   async #synthesize(
     sinks: readonly Sink[],
@@ -1366,6 +1540,25 @@ export class OrchestratorExecutor implements AgentExecutor {
     const deadAir = () => Date.now() - run.at;
     const waited: PressWait[] = [];
     const thrownAway: {changed: string[]; at: string}[] = [];
+    /** The tree on the client while the first synthesis streams (task 17.10), until it lands. */
+    let streamed: {tree: Synthesis['tree']} | undefined;
+    let firstRowMs: number | undefined;
+    const firstRow = (): Partial<SynthesisRecord> => (firstRowMs !== undefined ? {firstRowMs} : {});
+    /** The half-drawn view taken down (decisions 6, 8); nothing when the composition is closed. */
+    const takeDown = () => {
+      if (!streamed || signal.aborted) return;
+      streamed = undefined;
+      logLine(`merge task=${sinks[0]?.ctx.taskId} half-drawn view taken down`);
+      for (const sink of sinks) {
+        const event = synthesisTakeDown(sink.ctx);
+        sink.bus.publish(event);
+        sink.turn.surfaces(touchesOf(event));
+      }
+    };
+    const leave = (): SynthesisEnd => {
+      takeDown();
+      return 'none';
+    };
     const joiningNow = () =>
       run.kind === 'again'
         ? run.joining.filter(source => state.arrived.has(source) && !state.merged.has(source))
@@ -1378,7 +1571,7 @@ export class OrchestratorExecutor implements AgentExecutor {
 
     for (;;) {
       waited.push(...(await state.presses.quiet(within, signal)));
-      if (gone()) return 'none';
+      if (gone()) return leave();
       const joined = joiningNow();
       const again = fresh ? undefined : this.#walk(state);
       if (!fresh && !again && joined.length === 0) {
@@ -1400,6 +1593,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         outcome: 'declined' | 'malformed' | 'skipped' | 'failed',
         reason: string | undefined,
         attempts: {text: string; errors: string[]}[],
+        measure: SynthesisMeasure = {},
       ): SynthesisEnd => {
         // A decline is the Synthesizer's own judgment in its own words, said once: on the
         // collapsed slot the repaint carries (task 8.5).
@@ -1421,9 +1615,13 @@ export class OrchestratorExecutor implements AgentExecutor {
             ...context,
             ...quiescence(),
             deadAirMs: deadAir(),
+            ...firstRow(),
+            ...synthesisMeasure(measure),
           },
           over,
         );
+        // The line first, then the half-drawn view goes: nothing of the skeleton shows between.
+        takeDown();
         return 'collapsed';
       };
       // A re-synthesis that failed leaves the landed view as it was, the failure said beside it
@@ -1432,6 +1630,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         outcome: 'malformed' | 'failed',
         reason: string | undefined,
         attempts: {text: string; errors: string[]}[],
+        measure: SynthesisMeasure = {},
       ): SynthesisEnd => {
         state.callFailed = {kind: joined.length > 0 ? 'include' : 'update', sources: joined};
         logLine(`merge task=${sinks[0]?.ctx.taskId} kept (${outcome})`);
@@ -1443,6 +1642,7 @@ export class OrchestratorExecutor implements AgentExecutor {
           ...context,
           ...quiescence(),
           deadAirMs: deadAir(),
+          ...synthesisMeasure(measure),
         });
         return 'kept';
       };
@@ -1476,6 +1676,32 @@ export class OrchestratorExecutor implements AgentExecutor {
         left = [source];
         call.abort();
       };
+      // Only the turn's first synthesis streams, and only the first time it is made (task-17.10
+      // decisions 7, 8): each piece painted into the reserved slot as it passes, the tree with the
+      // first, the payload alone after it; a piece after the call was thrown away paints nothing.
+      const stream: SynthesisStream | undefined =
+        run.kind === 'first' && thrownAway.length === 0
+          ? {
+              piece: piece => {
+                if (gone() || call.signal.aborted) return;
+                const first = streamed === undefined;
+                streamed = {tree: piece.tree};
+                if (piece.kind === 'row' && firstRowMs === undefined) {
+                  firstRowMs = deadAir();
+                  logLine(`merge task=${sinks[0]?.ctx.taskId} first row painted ${firstRowMs} ms`);
+                }
+                for (const sink of sinks) {
+                  const paint = synthesisEnvelope(
+                    sink.ctx,
+                    first ? synthesisParts(piece.tree) : [],
+                    piece.payload,
+                  );
+                  sink.bus.publish(paint);
+                  if (first) sink.turn.surfaces(touchesOf(paint));
+                }
+              },
+            }
+          : undefined;
       let outcome;
       let error: unknown;
       try {
@@ -1497,6 +1723,8 @@ export class OrchestratorExecutor implements AgentExecutor {
           },
           view,
           call.signal,
+          {origin: run.at, task: sinks[0]?.ctx.taskId},
+          stream,
         );
       } catch (err) {
         error = err;
@@ -1506,7 +1734,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       stopWatching();
       state.left = undefined;
       signal.removeEventListener('abort', endCall);
-      if (gone()) return 'none';
+      if (gone()) return leave();
       if (left.length === 0) left = [...over].filter(source => !within().has(source));
       if (left.length > 0) {
         thrownAway.push({changed: left, at: new Date().toISOString()});
@@ -1524,14 +1752,14 @@ export class OrchestratorExecutor implements AgentExecutor {
         return fresh ? collapse('failed', reason, []) : keep('failed', reason, []);
       }
       if (outcome.kind === 'declined') {
-        return collapse('declined', outcome.reason, outcome.attempts);
+        return collapse('declined', outcome.reason, outcome.attempts, outcome);
       }
       if (outcome.kind === 'malformed') {
         const last = outcome.attempts.at(-1);
         const reason = last?.errors.join('; ');
         return fresh
-          ? collapse('malformed', reason, outcome.attempts)
-          : keep('malformed', reason, outcome.attempts);
+          ? collapse('malformed', reason, outcome.attempts, outcome)
+          : keep('malformed', reason, outcome.attempts, outcome);
       }
 
       const {document} = outcome;
@@ -1558,10 +1786,18 @@ export class OrchestratorExecutor implements AgentExecutor {
         delete slot.collapse;
       }
       state.retrying.clear();
+      // The document as accepted lands whole (task-17.10 decisions 1, 6): over the tree that
+      // streamed, the payload alone; otherwise the tree painted, replacing what is there.
+      const overStreamed = streamed !== undefined && sameJson(streamed.tree, document.tree);
+      streamed = undefined;
       for (const sink of sinks) {
-        const paint = synthesisEnvelope(sink.ctx, synthesisParts(document.tree), payload);
+        const paint = synthesisEnvelope(
+          sink.ctx,
+          overStreamed ? [] : synthesisParts(document.tree),
+          payload,
+        );
         sink.bus.publish(paint);
-        sink.turn.surfaces(touchesOf(paint));
+        if (!overStreamed) sink.turn.surfaces(touchesOf(paint));
       }
       // The merge's own set and the late sources, painted for the client's lines; a press's
       // call repaints once its work is done.
@@ -1574,6 +1810,8 @@ export class OrchestratorExecutor implements AgentExecutor {
         ...context,
         ...quiescence(),
         deadAirMs: deadAir(),
+        ...firstRow(),
+        ...synthesisMeasure(outcome),
       });
       return 'landed';
     }
@@ -2032,7 +2270,8 @@ export class OrchestratorExecutor implements AgentExecutor {
       options.onSettled?.();
       resolveSettled(outcome);
     };
-    void handle.capped.then(() => {
+    void handle.capped.then(async () => {
+      if (options.layout) await options.layout;
       if (isSettled || options.signal?.aborted) return;
       capped = true;
       const slot = composition?.slots.get(source);
@@ -2054,17 +2293,31 @@ export class OrchestratorExecutor implements AgentExecutor {
         composition?.history.observe(composed);
         sink.bus.publish(composed);
       };
-      for await (const event of handle.events) {
-        const builds = this.#deps.builds?.(parseSourceId(source)?.appId ?? source);
-        const composed = composeFragment(withoutFailureWords(event), {
-          source,
-          ...(builds ? {builds} : {}),
-        });
-        if (capped) held.push(composed);
+      /** What arrived before the layout was painted, relayed once it is (task-17.9 decision 5). */
+      let early: VendorEvent[] | undefined = options.layout ? [] : undefined;
+      const route = (composed: VendorEvent) => {
+        if (early) early.push(composed);
+        else if (capped) held.push(composed);
         else if (options.buffer) buffered.push(composed);
         else relay(composed);
+      };
+      void options.layout?.then(checked => {
+        const waiting = early ?? [];
+        early = undefined;
+        if (checked) for (const composed of waiting) route(composed);
+      });
+      for await (const event of handle.events) {
+        const builds = this.#deps.builds?.(parseSourceId(source)?.appId ?? source);
+        route(
+          composeFragment(withoutFailureWords(event), {
+            source,
+            ...(builds ? {builds} : {}),
+          }),
+        );
       }
       const ended = await handle.done;
+      // The end is taken in once the layout is painted, as what came before it is.
+      if (options.layout) await options.layout;
       const slot = composition?.slots.get(source);
       if (slot?.running === handle) delete slot.running;
       if (capped) {
@@ -2112,6 +2365,11 @@ function outOfTheMerge(state: string | undefined): boolean {
 function homeCollapse(state: CompositionState, home: string): SlotCollapse {
   const plan = state.slots.get(home)?.plan;
   return {cause: 'home', home: plan?.noun ?? plan?.name ?? home};
+}
+
+/** Two values written alike. */
+function sameJson(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 function touchedAny(touches: SurfaceTouches): boolean {
@@ -2162,6 +2420,23 @@ function settledMarker(
     final: false,
     status: {state: 'working', timestamp: new Date().toISOString()},
     metadata: {[STAMP_KEY]: {source: source, role: 'fragment', settled: true}},
+  };
+}
+
+/** The plan's measurement as its record carries it (task-17.5 decisions 1–3). */
+function planMeasure(measure: PlanMeasure, shortlistMs: number | undefined): Partial<PlanRecord> {
+  return {
+    ...(shortlistMs !== undefined ? {shortlistMs} : {}),
+    ...(measure.effort ? {effort: measure.effort} : {}),
+    ...(measure.requests ? {requests: measure.requests} : {}),
+  };
+}
+
+/** The synthesis's measurement as its record carries it (task-17.5 decisions 1–3). */
+function synthesisMeasure(measure: SynthesisMeasure): Partial<SynthesisRecord> {
+  return {
+    ...(measure.effort ? {effort: measure.effort} : {}),
+    ...(measure.requests && measure.requests.length > 0 ? {requests: measure.requests} : {}),
   };
 }
 

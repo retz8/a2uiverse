@@ -5,6 +5,9 @@ import type {PressWait} from '../composition/presses.js';
 import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {TurnKind} from './descriptor.js';
 import type {SurfaceTouches} from './surfaces.js';
+import type {Effort} from '../model/getModel.js';
+import type {ModelRequestRecord} from '../model/requests.js';
+import type {PlanCacheMark} from '../planner/planCache.js';
 
 /**
  * One tool call the Planner made — a reader, or the Store's search — which, with what, and what it
@@ -14,14 +17,16 @@ export interface ToolCallRecord {
   name: string;
   args: unknown;
   result: unknown;
+  /** Its execution time, as the AI SDK measured it (task-17.5 decision 1). */
+  ms?: number;
 }
 
 /**
  * What became of the turn's plan (task-6.4 decision 13): the layout surface as accepted, every
  * attempt — the raw text the model returned and the validator's findings when it was refused —
  * and the reader calls it made along the way. `planMs` is the interval from the utterance
- * arriving to the tree accepted or refused — the shell's first paint follows it directly, so
- * it is the first-paint measurement of task-6.6 decisions 2–3, read from here.
+ * arriving to the tree accepted or refused — the layout complete and checked; streamed, the
+ * layout's first piece leaves before it, at `firstPieceMs` (task 17.9).
  */
 export interface PlanRecord {
   outcome: 'planned' | 'malformed';
@@ -35,6 +40,23 @@ export interface PlanRecord {
   attempts: {text: string; errors: string[]}[];
   toolCalls: ToolCallRecord[];
   planMs: number;
+  /**
+   * From the utterance arriving to the layout's first piece leaving for the client — the shell's
+   * create with its first component, while the Planner still writes the rest; with the whole
+   * layout, for a plan that arrives whole (task-17.9 decision 8).
+   */
+  firstPieceMs?: number;
+  /** The Router's shortlist, inside `planMs` (task-17.5 decision 1). */
+  shortlistMs?: number;
+  /** The effort tier the Planner ran at (task-17.5 decision 3). */
+  effort?: Effort;
+  /** Each model request of the plan, on the clock `planMs` runs on (task-17.5 decisions 1–3). */
+  requests?: ModelRequestRecord[];
+  /**
+   * The plan cache's key for this plan's request, `hit` when the cache served it (task-17.6
+   * decisions 7, 11); absent when the cache is off or the plan called a tool.
+   */
+  cache?: PlanCacheMark;
 }
 
 /**
@@ -42,7 +64,8 @@ export interface PlanRecord {
  * synthesize data model as accepted and its note, the outcome, every attempt — the raw text the
  * model returned and the validator's findings when it was refused — and, on a re-synthesis, the
  * change account that was sent. `deadAirMs` is the interval from the last source settling to
- * the outcome — phase decision 15's measurement, read from here.
+ * the outcome — phase decision 15's measurement, read from here; streamed, the first row leaves
+ * before it, at `firstRowMs` (task 17.10).
  */
 export interface SynthesisRecord {
   /**
@@ -86,6 +109,15 @@ export interface SynthesisRecord {
   thrownAway?: {changed: string[]; at: string}[];
   /** From the synthesis's release — or, on a re-synthesis, the last settle — to its outcome. */
   deadAirMs?: number;
+  /**
+   * From the release to the first row leaving for the client, on a first synthesis streamed into
+   * its reserved slot (task-17.10 decision 9); absent when none left before the outcome.
+   */
+  firstRowMs?: number;
+  /** The effort tier the Synthesizer ran at (task-17.5 decision 3). */
+  effort?: Effort;
+  /** Each model request of this synthesis, on the clock `deadAirMs` runs on (task-17.5 decisions 1–3). */
+  requests?: ModelRequestRecord[];
 }
 
 export type SynthesisRelease =
@@ -125,6 +157,8 @@ export interface JournalEntry {
   outcome: DispatchOutcome;
   /** The soft deadline and the hard cap in force for the turn's dispatches (task-8.3 decision 15). */
   deadlines?: {softMs: number; capMs: number};
+  /** When the turn's final `completed` left: the settled screen (task-17.5 decision 4). */
+  finalAt?: string;
   /** The user closed the composition while this turn ran (task-9.3 decision 5). */
   closed?: true;
   /** A press: the turn whose composition it acts on (task-8.4 decision 16). */

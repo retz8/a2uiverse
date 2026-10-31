@@ -348,15 +348,38 @@ export function createTurnRunner({
 
   /**
    * The synthesis payload handed over, and filed under the combination it was accepted over with
-   * the surface it was painted on, its tree as accepted.
+   * the surface it was painted on, its tree as accepted. A payload still being written (task-17.10
+   * decision 1) is evaluated and drawn as it stands and filed nowhere: the view works until the
+   * document as accepted lands.
    */
   const acceptSynthesis = (
     target: {surfaceId: string; source: string},
     payload: SynthesisPayload,
   ) => {
     if (!synthesis?.accept(target, payload)) return;
+    store.setMergeStreaming(payload.partial === true);
+    if (payload.partial) return;
     const paint = capturePaint(processor, target.surfaceId);
     history?.remember({target, payload, ...(paint ? {paint} : {})});
+  };
+
+  /**
+   * The merged view taken down (task-17.10 decisions 6, 8): the shell's fragment deleting the
+   * surface filling its slot — the half-drawn view going with the collapse. The slot empties, the
+   * view's payload goes, the reader's sort choices stay for the view a press may bring back.
+   */
+  const takeDownSynthesis = (messages: A2uiMessage[], stamp?: CompositionStamp) => {
+    if (slotOf(stamp) !== SHELL_SOURCE) return;
+    const placed = store.getState().placement.get(SHELL_SOURCE);
+    if (!placed) return;
+    const gone = messages.some(message => {
+      const {kind, surfaceId} = targetOf(message);
+      return kind === 'delete' && surfaceId === placed.surfaceId;
+    });
+    if (!gone) return;
+    store.unplace(SHELL_SOURCE);
+    store.setMergeStreaming(false);
+    synthesis?.discard?.();
   };
 
   /** The source whose slot a batch's stamp claims, when it is a fragment's. */
@@ -644,6 +667,7 @@ export function createTurnRunner({
         }
       }
       applyA2uiMessages(processor, messages, {onMessageError});
+      takeDownSynthesis(messages, stamp);
       if (source) settleAsking(source);
       if (payload) {
         // The surface is live: evaluate now, so the first render already carries values.
@@ -847,11 +871,12 @@ export function createTurnRunner({
           takeDown(refusedFrom, takenDownIn(rest));
           return;
         }
-        // A source's settled marker: nothing to apply, its fragments judged now.
+        // A source's settled marker: nothing to apply, its fragments judged now. A piece of the
+        // merged view after its tree carries its payload alone, applied for it (task 17.10).
         const ended = stamp?.settled ? slotOf(stamp) : undefined;
         if (rest.length === 0) {
           if (ended !== undefined) sourceSettled(ended);
-          return;
+          if (!payload) return;
         }
         // A composition opening retires the one on stage — what the client held of it included —
         // before its own shell paint is read.
@@ -872,7 +897,7 @@ export function createTurnRunner({
         }
         revive(rest);
         const admitted = rest.filter(admits);
-        if (admitted.length === 0) return;
+        if (admitted.length === 0 && !payload) return;
         if (stagedMode) applyStaged(admitted, stamp, payload);
         else applyProgressive(admitted, stamp, payload);
         if (ended !== undefined) sourceSettled(ended);
@@ -1000,7 +1025,8 @@ export function createTurnRunner({
         }
         revive(rest);
         const admitted = rest.filter(admits);
-        if (admitted.length === 0) return;
+        // A piece of the merged view after its tree carries its payload alone (task 17.10).
+        if (admitted.length === 0 && !payload) return;
         if (source) {
           for (const message of admitted) {
             const {kind, surfaceId} = targetOf(message);
@@ -1011,6 +1037,7 @@ export function createTurnRunner({
           }
         }
         applyA2uiMessages(processor, admitted, {onMessageError});
+        takeDownSynthesis(admitted, stamp);
         if (source) {
           const placed = store.getState().placement.get(source);
           if (placed && metas.get(placed.surfaceId)?.kind === QUESTION_PAINT_KIND)

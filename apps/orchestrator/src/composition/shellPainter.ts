@@ -25,20 +25,9 @@ type ShellComponent = A2uiComponent;
  * literal data model when the tree binds one, and the full component tree with every slot pending.
  */
 export function shellCreateParts(state: CompositionState): Part[] {
-  const parts: Part[] = [];
-  if (state.title) {
-    parts.push({
-      kind: 'data',
-      data: paintMetaData({surfaceId: shellSurfaceId(), title: state.title}),
-      metadata: {mimeType: PAINT_META_MIME_TYPE},
-    });
-  }
+  const parts: Part[] = [...shellTitleParts(state)];
   parts.push(a2uiPart({createSurface: {surfaceId: shellSurfaceId(), catalogId: SHELL_CATALOG_ID}}));
-  if (Object.keys(state.layout.dataModel).length > 0) {
-    parts.push(
-      a2uiPart({updateDataModel: {surfaceId: shellSurfaceId(), value: state.layout.dataModel}}),
-    );
-  }
+  if (Object.keys(state.layout.dataModel).length > 0) parts.push(...shellDataModelParts(state));
   parts.push(updateComponentsPart(state));
   return parts;
 }
@@ -46,6 +35,30 @@ export function shellCreateParts(state: CompositionState): Part[] {
 /** In-turn change (a slot state flip): repaint of the same surface, never a new one. */
 export function shellRepaintParts(state: CompositionState): Part[] {
   return [updateComponentsPart(state)];
+}
+
+/** The composition's `paintMeta` when the Planner titled it: ahead of a create, or alone once written late. */
+export function shellTitleParts(state: CompositionState): Part[] {
+  if (!state.title) return [];
+  return [
+    {
+      kind: 'data',
+      data: paintMetaData({surfaceId: shellSurfaceId(), title: state.title}),
+      metadata: {mimeType: PAINT_META_MIME_TYPE},
+    },
+  ];
+}
+
+/** The literal data model the tree binds to: with the create, or alone once written after it (task 17.9). */
+export function shellDataModelParts(state: CompositionState): Part[] {
+  return [
+    a2uiPart({updateDataModel: {surfaceId: shellSurfaceId(), value: state.layout.dataModel}}),
+  ];
+}
+
+/** The layout surface taken down: a half-drawn layout replaced or withdrawn (task-17.9 decision 7). */
+export function shellTakeDownParts(): Part[] {
+  return [a2uiPart({deleteSurface: {surfaceId: shellSurfaceId()}})];
 }
 
 /** The shell paint envelope: a non-final working status-update stamped as the shell's own. */

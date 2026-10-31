@@ -214,7 +214,12 @@ var SYNTHESIS_SCHEMA = {
   required: ["dataModel", "sorts"],
   properties: {
     dataModel: { $ref: "#/$defs/dataModel" },
-    sorts: { type: "array", items: { $ref: "#/$defs/sort" } }
+    sorts: { type: "array", items: { $ref: "#/$defs/sort" } },
+    partial: {
+      type: "boolean",
+      const: true,
+      description: "Present while the Synthesizer is still writing: the derived model and the sorts as far as they have passed their own checks — the turn's first synthesis streamed into its reserved slot, the tree's event first, then one event per piece with no A2UI parts. Absent on the document as accepted, which replaces what streamed."
+    }
   }
 };
 

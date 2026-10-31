@@ -7,6 +7,7 @@ import {PressStateContext, type PressRecord} from '../../press-state';
 import {SignInContext, type SignInRequest} from '../../sign-in';
 import {SlotContentContext} from '../../slot-content';
 import {SlotStateContext, type SourceSlotState} from '../../slot-state';
+import {SynthesisStreamingContext} from '../../synthesis-streaming';
 import {renderTree, SURFACE_ID} from '../../testing/render';
 import {collapsedLines, landedLines, LOST_WORDS, UNREACHED_WORDS} from './press-lines';
 import {collapseLine, continueHref, SlotView} from './slot';
@@ -1561,4 +1562,30 @@ test('too few arrived: the line’s Retry leaves out a source on the update tile
   );
   expect(container.textContent).toContain('Only Shop A answered, so there’s nothing to combine.');
   expect(screen.queryByRole('button')).toBeNull();
+});
+
+test('shell content filled stays busy while the merged view is still being written (task-17.10 decision 10)', () => {
+  const {container} = render(
+    <SynthesisStreamingContext.Provider value={true}>
+      <SlotContentContext.Provider value={() => <em>the view so far</em>}>
+        <SlotView source="shell" label="Synthesis" content="shell" />
+      </SlotContentContext.Provider>
+    </SynthesisStreamingContext.Provider>,
+  );
+  const slot = container.querySelector('[data-slot="shell"]')!;
+  expect(slot).toHaveAttribute('data-slot-state', 'filled');
+  expect(slot).toHaveAttribute('aria-busy', 'true');
+  expect(slot).toHaveAttribute('aria-label', 'Synthesis');
+  expect(screen.getByText('the view so far')).toBeInTheDocument();
+});
+
+test('a vendor slot filled is never marked busy by the merged view’s streaming', () => {
+  const {container} = render(
+    <SynthesisStreamingContext.Provider value={true}>
+      <SlotContentContext.Provider value={() => <em>inbox</em>}>
+        <SlotView source="gmail" label="Gmail" />
+      </SlotContentContext.Provider>
+    </SynthesisStreamingContext.Provider>,
+  );
+  expect(container.querySelector('[data-slot="gmail"]')).not.toHaveAttribute('aria-busy');
 });

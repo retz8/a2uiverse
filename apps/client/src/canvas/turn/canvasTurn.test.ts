@@ -1113,6 +1113,89 @@ describe('streams beside the turn (task 8.5)', () => {
     );
   });
 
+  it('a payload still being written is evaluated and drawn, the view streaming, and filed nowhere; the accepted one ends the streaming (task-17.10 decisions 1, 10)', () => {
+    const {store, runner, synthesis} = composed();
+    synthesis.accept.mockReturnValue(true);
+    const stream = runner.beginSideStream();
+    const partial = {dataModel: {rows: []}, sorts: [], partial: true as const};
+    stream.apply(
+      [
+        msg({createSurface: {surfaceId: 'shell:synthesis', catalogId: SHELL_CATALOG_ID}}),
+        msg({
+          updateComponents: {
+            surfaceId: 'shell:synthesis',
+            components: [{id: 'root', component: 'Text', text: 'merged'}],
+          },
+        }),
+      ],
+      fragment('shell'),
+      partial as never,
+    );
+    expect(store.getState().placement.get('shell')?.surfaceId).toBe('shell:synthesis');
+    expect(store.getState().mergeStreaming).toBe(true);
+    // A row after the tree rides an event of its own, with no A2UI parts.
+    const row = {dataModel: {rows: [{a: {op: 'value', args: []}}]}, sorts: [], partial: true};
+    stream.apply([], fragment('shell'), row as never);
+    expect(synthesis.accept).toHaveBeenLastCalledWith(
+      {surfaceId: 'shell:synthesis', source: 'shell'},
+      row,
+    );
+    expect(store.getState().mergeStreaming).toBe(true);
+    const accepted = {dataModel: {rows: [{a: {op: 'value', args: []}}]}, sorts: []};
+    stream.apply([], fragment('shell'), accepted as never);
+    expect(store.getState().mergeStreaming).toBe(false);
+  });
+
+  it('the merged view taken down empties its slot, ends the streaming and discards its payload (task-17.10 decisions 6, 8)', () => {
+    const {processor, store, runner, synthesis} = composed();
+    synthesis.accept.mockReturnValue(true);
+    const discard = vi.fn();
+    Object.assign(synthesis, {discard});
+    const stream = runner.beginSideStream();
+    stream.apply(
+      [create('shell:synthesis'), textRoot('shell:synthesis', 'so far')],
+      fragment('shell'),
+      {dataModel: {rows: []}, sorts: [], partial: true} as never,
+    );
+    expect(store.getState().mergeStreaming).toBe(true);
+    stream.apply([del('shell:synthesis')], fragment('shell'));
+    expect(processor.model.getSurface('shell:synthesis')).toBeUndefined();
+    expect(store.getState().placement.has('shell')).toBe(false);
+    expect(store.getState().mergeStreaming).toBe(false);
+    expect(discard).toHaveBeenCalledTimes(1);
+    // A vendor taking its own surface down leaves the merged view alone.
+    stream.apply([del('gmail:inbox')], fragment('gmail'));
+    expect(discard).toHaveBeenCalledTimes(1);
+  });
+
+  it('on the turn that opened the composition, a piece of the merged view with no A2UI parts is applied for its payload (task-17.10 decision 1)', () => {
+    const {store, runner, synthesis} = composed();
+    synthesis.accept.mockReturnValue(true);
+    const turn = runner.begin(utterance('compare'));
+    turn.apply(paintedLayout(['github', 'gmail']), SHELL);
+    turn.apply(
+      [create('shell:synthesis'), textRoot('shell:synthesis', 'the view')],
+      fragment('shell'),
+      {dataModel: {rows: []}, sorts: [], partial: true} as never,
+    );
+    expect(store.getState().mergeStreaming).toBe(true);
+    const row = {dataModel: {rows: [{a: {op: 'value', args: []}}]}, sorts: [], partial: true};
+    turn.apply([], fragment('shell'), row as never);
+    expect(synthesis.accept).toHaveBeenLastCalledWith(
+      {surfaceId: 'shell:synthesis', source: 'shell'},
+      row,
+    );
+    const accepted = {dataModel: row.dataModel, sorts: []};
+    turn.apply([], fragment('shell'), accepted as never);
+    expect(synthesis.accept).toHaveBeenLastCalledWith(
+      {surfaceId: 'shell:synthesis', source: 'shell'},
+      accepted,
+    );
+    expect(store.getState().mergeStreaming).toBe(false);
+    turn.end();
+    expect(store.getState().placement.get('shell')?.surfaceId).toBe('shell:synthesis');
+  });
+
   it('the close ends the turn in flight and every stream beside it; what still arrives is dropped (task-9.6 decision 8)', () => {
     const {store, runner} = composed();
     const stream = runner.beginSideStream();

@@ -289,7 +289,9 @@ function mergeStep(
     }
   }
 
-  if (state.placement.has(SHELL_SOURCE) && shell !== 'failed') {
+  // A view still being drawn as the Synthesizer writes it has not joined yet (task-17.10
+  // decision 10): the step keeps its working words until the document is accepted.
+  if (state.placement.has(SHELL_SOURCE) && shell !== 'failed' && !state.mergeStreaming) {
     const inMerge = facts.merged ? by(facts.merged) : vendors;
     if (
       (facts.working && facts.working.sources.length === 0) ||

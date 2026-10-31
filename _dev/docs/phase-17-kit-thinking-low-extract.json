@@ -1,0 +1,1255 @@
+{
+ "what": "Task 17.8: the agent kit's thinking tier, default and low, one pass each over GitHub's recorded beats 8 and 9 and Linear's conversation (beats 1, 2, 3's proposal and confirm), agent alone, timed on the turn's clock from the prompt arriving at the agent; each model request with its time to first token, generation and tokens; the two checks of task-17.8 decision 7; no text any model wrote, no data any app returned.",
+ "ran": "2026-10-30, the beat driver against GitHub's and Linear's agents live on gemini-3.8-flash, one attempt per beat, signed in through Claude-in-Chrome on the tunnel; default first, then low, both agents restarted between; A2U-5 set back to In Review before each Linear run; passes two and three not run",
+ "turns": [
+  {
+   "pass": 1,
+   "setting": "default",
+   "app": "github",
+   "beat": "beat-8-notifications",
+   "firstAfterRestart": true,
+   "model": "gemini-3.8-flash",
+   "effort": "default",
+   "outcome": "completed",
+   "attempts": 2,
+   "firstScreenMs": 118729,
+   "durationMs": 143350,
+   "requests": [
+    {
+     "attempt": 1,
+     "index": 1,
+     "startMs": 6913,
+     "timeToFirstTokenMs": 5359,
+     "generationMs": 164,
+     "ended": "toolCall",
+     "tools": [
+      "get_me",
+      "list_notifications"
+     ],
+     "usage": {
+      "promptTokens": 106524,
+      "outputTokens": 20,
+      "thoughtsTokens": 248
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 2,
+     "startMs": 13520,
+     "timeToFirstTokenMs": 3155,
+     "generationMs": 138,
+     "ended": "toolCall",
+     "tools": [
+      "search_pull_requests"
+     ],
+     "usage": {
+      "promptTokens": 107159,
+      "outputTokens": 54,
+      "thoughtsTokens": 75,
+      "cachedTokens": 104468
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 3,
+     "startMs": 18606,
+     "timeToFirstTokenMs": 3669,
+     "generationMs": 187,
+     "ended": "toolCall",
+     "tools": [
+      "search_pull_requests"
+     ],
+     "usage": {
+      "promptTokens": 131300,
+      "outputTokens": 52,
+      "thoughtsTokens": 153,
+      "cachedTokens": 107237
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 4,
+     "startMs": 24016,
+     "timeToFirstTokenMs": 5215,
+     "generationMs": 120,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 142904,
+      "outputTokens": 49,
+      "thoughtsTokens": 370,
+      "cachedTokens": 131325
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 5,
+     "startMs": 30817,
+     "timeToFirstTokenMs": 4858,
+     "generationMs": 112,
+     "ended": "toolCall",
+     "tools": [
+      "search_pull_requests"
+     ],
+     "usage": {
+      "promptTokens": 144249,
+      "outputTokens": 31,
+      "thoughtsTokens": 136,
+      "cachedTokens": 140856
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 6,
+     "startMs": 36899,
+     "timeToFirstTokenMs": 5611,
+     "generationMs": 100,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 144568,
+      "outputTokens": 51,
+      "thoughtsTokens": 531,
+      "cachedTokens": 142198
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 7,
+     "startMs": 44026,
+     "timeToFirstTokenMs": 6678,
+     "generationMs": 229,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 145180,
+      "outputTokens": 92,
+      "thoughtsTokens": 541,
+      "cachedTokens": 142518
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 8,
+     "startMs": 53195,
+     "timeToFirstTokenMs": 9256,
+     "generationMs": 233,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 148776,
+      "outputTokens": 88,
+      "thoughtsTokens": 1061,
+      "cachedTokens": 145176
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 9,
+     "startMs": 64798,
+     "timeToFirstTokenMs": 53927,
+     "generationMs": 7789,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 153969,
+      "outputTokens": 1777,
+      "thoughtsTokens": 9269,
+      "cachedTokens": 148778
+     }
+    },
+    {
+     "attempt": 2,
+     "index": 1,
+     "startMs": 128252,
+     "timeToFirstTokenMs": 6772,
+     "generationMs": 8242,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 165072,
+      "outputTokens": 1777,
+      "thoughtsTokens": 711,
+      "cachedTokens": 153998
+     }
+    }
+   ],
+   "paint": {
+    "timeToFirstTokenMs": 6772,
+    "generationMs": 8242,
+    "thoughtsTokens": 711
+   },
+   "tokens": {
+    "promptTokens": 1389701,
+    "cachedTokens": 1216554,
+    "outputTokens": 3991,
+    "thoughtsTokens": 13095
+   },
+   "costUsd": 0.2852,
+   "prompt": "What pull requests need my attention today? Provide a brief description, and the time it was last updated, along with an identifier.",
+   "checks": {
+    "firstTry": false,
+    "promptAskOnScreen": true
+   }
+  },
+  {
+   "pass": 1,
+   "setting": "default",
+   "app": "github",
+   "beat": "beat-9-work-status",
+   "firstAfterRestart": false,
+   "model": "gemini-3.8-flash",
+   "effort": "default",
+   "outcome": "completed",
+   "attempts": 1,
+   "firstScreenMs": 91547,
+   "durationMs": 106491,
+   "requests": [
+    {
+     "attempt": 1,
+     "index": 1,
+     "startMs": 1590,
+     "timeToFirstTokenMs": 5483,
+     "generationMs": 105,
+     "ended": "toolCall",
+     "tools": [
+      "get_me"
+     ],
+     "usage": {
+      "promptTokens": 106540,
+      "outputTokens": 10,
+      "thoughtsTokens": 275
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 2,
+     "startMs": 8149,
+     "timeToFirstTokenMs": 2264,
+     "generationMs": 101,
+     "ended": "toolCall",
+     "tools": [
+      "search_pull_requests"
+     ],
+     "usage": {
+      "promptTokens": 107166,
+      "outputTokens": 28,
+      "thoughtsTokens": 51,
+      "cachedTokens": 104492
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 3,
+     "startMs": 12284,
+     "timeToFirstTokenMs": 6953,
+     "generationMs": 971,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 128185,
+      "outputTokens": 220,
+      "thoughtsTokens": 602,
+      "cachedTokens": 107239
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 4,
+     "startMs": 22180,
+     "timeToFirstTokenMs": 3123,
+     "generationMs": 683,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 138662,
+      "outputTokens": 164,
+      "thoughtsTokens": 60,
+      "cachedTokens": 128184
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 5,
+     "startMs": 29111,
+     "timeToFirstTokenMs": 4370,
+     "generationMs": 987,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 143476,
+      "outputTokens": 230,
+      "thoughtsTokens": 93,
+      "cachedTokens": 138647
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 6,
+     "startMs": 36413,
+     "timeToFirstTokenMs": 3658,
+     "generationMs": 724,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 147567,
+      "outputTokens": 172,
+      "thoughtsTokens": 44,
+      "cachedTokens": 143451
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 7,
+     "startMs": 42176,
+     "timeToFirstTokenMs": 4796,
+     "generationMs": 493,
+     "ended": "toolCall",
+     "tools": [
+      "search_pull_requests"
+     ],
+     "usage": {
+      "promptTokens": 149448,
+      "outputTokens": 126,
+      "thoughtsTokens": 360,
+      "cachedTokens": 145500
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 8,
+     "startMs": 49639,
+     "timeToFirstTokenMs": 41894,
+     "generationMs": 14862,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 189272,
+      "outputTokens": 2959,
+      "thoughtsTokens": 6964,
+      "cachedTokens": 149559
+     }
+    }
+   ],
+   "paint": {
+    "timeToFirstTokenMs": 41894,
+    "generationMs": 14862,
+    "thoughtsTokens": 6964
+   },
+   "tokens": {
+    "promptTokens": 1110316,
+    "cachedTokens": 917072,
+    "outputTokens": 3909,
+    "thoughtsTokens": 8449
+   },
+   "costUsd": 0.2601,
+   "prompt": "Show my open pull requests and active branches as a compact list. For each, include the title, repository, PR number, branch name, review status, and the full date and time it was last updated.",
+   "checks": {
+    "firstTry": true,
+    "promptAskOnScreen": true
+   }
+  },
+  {
+   "pass": 1,
+   "setting": "default",
+   "app": "linear",
+   "beat": "beat-1-my-issues",
+   "firstAfterRestart": true,
+   "model": "gemini-3.8-flash",
+   "effort": "default",
+   "outcome": "completed",
+   "attempts": 1,
+   "firstScreenMs": 73311,
+   "durationMs": 80233,
+   "requests": [
+    {
+     "attempt": 1,
+     "index": 1,
+     "startMs": 4112,
+     "timeToFirstTokenMs": 5490,
+     "generationMs": 56,
+     "ended": "toolCall",
+     "tools": [
+      "list_issues"
+     ],
+     "usage": {
+      "promptTokens": 25105,
+      "outputTokens": 17,
+      "thoughtsTokens": 347
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 2,
+     "startMs": 9978,
+     "timeToFirstTokenMs": 5628,
+     "generationMs": 425,
+     "ended": "toolCall",
+     "tools": [
+      "get_issue"
+     ],
+     "usage": {
+      "promptTokens": 27490,
+      "outputTokens": 80,
+      "thoughtsTokens": 487,
+      "cachedTokens": 25102
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 3,
+     "startMs": 16454,
+     "timeToFirstTokenMs": 56855,
+     "generationMs": 6912,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 32171,
+      "outputTokens": 1288,
+      "thoughtsTokens": 7866,
+      "cachedTokens": 27473
+     }
+    }
+   ],
+   "paint": {
+    "timeToFirstTokenMs": 56855,
+    "generationMs": 6912,
+    "thoughtsTokens": 7866
+   },
+   "tokens": {
+    "promptTokens": 84766,
+    "cachedTokens": 52575,
+    "outputTokens": 1385,
+    "thoughtsTokens": 8700
+   },
+   "costUsd": 0.0659,
+   "prompt": "Show my in-progress and assigned issues as a compact list. For each issue, include its identifier, title, status, priority, linked branch or pull request, and the full date and time it was last updated.",
+   "checks": {
+    "firstTry": true,
+    "promptAskOnScreen": true
+   }
+  },
+  {
+   "pass": 1,
+   "setting": "default",
+   "app": "linear",
+   "beat": "beat-2-issue-detail",
+   "firstAfterRestart": false,
+   "model": "gemini-3.8-flash",
+   "effort": "default",
+   "outcome": "completed",
+   "attempts": 1,
+   "firstScreenMs": 37695,
+   "durationMs": 49986,
+   "requests": [
+    {
+     "attempt": 1,
+     "index": 1,
+     "startMs": 439,
+     "timeToFirstTokenMs": 6884,
+     "generationMs": 60,
+     "ended": "toolCall",
+     "tools": [
+      "list_comments"
+     ],
+     "usage": {
+      "promptTokens": 41334,
+      "outputTokens": 21,
+      "thoughtsTokens": 198,
+      "cachedTokens": 32188
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 2,
+     "startMs": 8546,
+     "timeToFirstTokenMs": 29047,
+     "generationMs": 12366,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 41791,
+      "outputTokens": 2324,
+      "thoughtsTokens": 4607,
+      "cachedTokens": 39282
+     }
+    }
+   ],
+   "paint": {
+    "timeToFirstTokenMs": 29047,
+    "generationMs": 12366,
+    "thoughtsTokens": 4607
+   },
+   "tokens": {
+    "promptTokens": 83125,
+    "cachedTokens": 71470,
+    "outputTokens": 2345,
+    "thoughtsTokens": 4805
+   },
+   "costUsd": 0.0409,
+   "prompt": "Open A2U-5.",
+   "checks": {
+    "firstTry": true,
+    "promptAskOnScreen": true
+   }
+  },
+  {
+   "pass": 1,
+   "setting": "default",
+   "app": "linear",
+   "beat": "beat-3-status-proposal",
+   "firstAfterRestart": false,
+   "model": "gemini-3.8-flash",
+   "effort": "default",
+   "outcome": "completed",
+   "attempts": 1,
+   "firstScreenMs": 20445,
+   "durationMs": 26903,
+   "requests": [
+    {
+     "attempt": 1,
+     "index": 1,
+     "startMs": 135,
+     "timeToFirstTokenMs": 4207,
+     "generationMs": 75,
+     "ended": "toolCall",
+     "tools": [
+      "list_issue_statuses"
+     ],
+     "usage": {
+      "promptTokens": 48730,
+      "outputTokens": 21,
+      "thoughtsTokens": 179,
+      "cachedTokens": 41800
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 2,
+     "startMs": 4713,
+     "timeToFirstTokenMs": 15625,
+     "generationMs": 6553,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 49275,
+      "outputTokens": 1189,
+      "thoughtsTokens": 2302,
+      "cachedTokens": 46678
+     }
+    }
+   ],
+   "paint": {
+    "timeToFirstTokenMs": 15625,
+    "generationMs": 6553,
+    "thoughtsTokens": 2302
+   },
+   "tokens": {
+    "promptTokens": 98005,
+    "cachedTokens": 88478,
+    "outputTokens": 1210,
+    "thoughtsTokens": 2481
+   },
+   "costUsd": 0.0276,
+   "prompt": "Move it to In Progress.",
+   "checks": {
+    "firstTry": true,
+    "promptAskOnScreen": true
+   }
+  },
+  {
+   "pass": 1,
+   "setting": "default",
+   "app": "linear",
+   "beat": "beat-3-status-confirm",
+   "firstAfterRestart": false,
+   "model": "gemini-3.8-flash",
+   "effort": "default",
+   "outcome": "completed",
+   "attempts": 1,
+   "firstScreenMs": 21908,
+   "durationMs": 34351,
+   "requests": [
+    {
+     "attempt": 1,
+     "index": 1,
+     "startMs": 142,
+     "timeToFirstTokenMs": 4993,
+     "generationMs": 66,
+     "ended": "toolCall",
+     "tools": [
+      "save_issue"
+     ],
+     "usage": {
+      "promptTokens": 52773,
+      "outputTokens": 27,
+      "thoughtsTokens": 150,
+      "cachedTokens": 49274
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 2,
+     "startMs": 7060,
+     "timeToFirstTokenMs": 2565,
+     "generationMs": 249,
+     "ended": "toolCall",
+     "tools": [
+      "get_issue",
+      "list_comments"
+     ],
+     "usage": {
+      "promptTokens": 53601,
+      "outputTokens": 41,
+      "thoughtsTokens": 73,
+      "cachedTokens": 50722
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 3,
+     "startMs": 10694,
+     "timeToFirstTokenMs": 11213,
+     "generationMs": 12421,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 55797,
+      "outputTokens": 2324,
+      "thoughtsTokens": 1503,
+      "cachedTokens": 53591
+     }
+    }
+   ],
+   "paint": {
+    "timeToFirstTokenMs": 11213,
+    "generationMs": 12421,
+    "thoughtsTokens": 1503
+   },
+   "tokens": {
+    "promptTokens": 162171,
+    "cachedTokens": 153587,
+    "outputTokens": 2392,
+    "thoughtsTokens": 1726
+   },
+   "costUsd": 0.0334,
+   "prompt": "Yes, move it.",
+   "checks": {
+    "firstTry": true,
+    "promptAskOnScreen": true,
+    "movedInLinear": true
+   }
+  },
+  {
+   "pass": 1,
+   "setting": "low",
+   "app": "github",
+   "beat": "beat-8-notifications",
+   "firstAfterRestart": true,
+   "model": "gemini-3.8-flash",
+   "effort": "low",
+   "outcome": "completed",
+   "attempts": 1,
+   "firstScreenMs": 74087,
+   "durationMs": 82492,
+   "requests": [
+    {
+     "attempt": 1,
+     "index": 1,
+     "startMs": 7121,
+     "timeToFirstTokenMs": 6730,
+     "generationMs": 371,
+     "ended": "toolCall",
+     "tools": [
+      "get_me",
+      "list_notifications",
+      "search_pull_requests"
+     ],
+     "usage": {
+      "promptTokens": 106524,
+      "outputTokens": 74,
+      "thoughtsTokens": 318
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 2,
+     "startMs": 16010,
+     "timeToFirstTokenMs": 7918,
+     "generationMs": 227,
+     "ended": "toolCall",
+     "tools": [
+      "search_pull_requests"
+     ],
+     "usage": {
+      "promptTokens": 132827,
+      "outputTokens": 52,
+      "thoughtsTokens": 396
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 3,
+     "startMs": 25951,
+     "timeToFirstTokenMs": 5056,
+     "generationMs": 76,
+     "ended": "toolCall",
+     "tools": [
+      "get_teams"
+     ],
+     "usage": {
+      "promptTokens": 149905,
+      "outputTokens": 10,
+      "thoughtsTokens": 185,
+      "cachedTokens": 106627
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 4,
+     "startMs": 32302,
+     "timeToFirstTokenMs": 11521,
+     "generationMs": 112,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 150128,
+      "outputTokens": 49,
+      "thoughtsTokens": 182,
+      "cachedTokens": 132862
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 5,
+     "startMs": 45326,
+     "timeToFirstTokenMs": 28761,
+     "generationMs": 8360,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 151286,
+      "outputTokens": 1497,
+      "thoughtsTokens": 3783,
+      "cachedTokens": 148079
+     }
+    }
+   ],
+   "paint": {
+    "timeToFirstTokenMs": 28761,
+    "generationMs": 8360,
+    "thoughtsTokens": 3783
+   },
+   "tokens": {
+    "promptTokens": 690670,
+    "cachedTokens": 387568,
+    "outputTokens": 1682,
+    "thoughtsTokens": 4864
+   },
+   "costUsd": 0.2809,
+   "prompt": "What pull requests need my attention today? Provide a brief description, and the time it was last updated, along with an identifier.",
+   "checks": {
+    "firstTry": true,
+    "promptAskOnScreen": true
+   }
+  },
+  {
+   "pass": 1,
+   "setting": "low",
+   "app": "github",
+   "beat": "beat-9-work-status",
+   "firstAfterRestart": false,
+   "model": "gemini-3.8-flash",
+   "effort": "low",
+   "outcome": "completed",
+   "attempts": 2,
+   "firstScreenMs": 110184,
+   "durationMs": 147909,
+   "requests": [
+    {
+     "attempt": 1,
+     "index": 1,
+     "startMs": 1721,
+     "timeToFirstTokenMs": 4059,
+     "generationMs": 107,
+     "ended": "toolCall",
+     "tools": [
+      "get_me"
+     ],
+     "usage": {
+      "promptTokens": 106540,
+      "outputTokens": 10,
+      "thoughtsTokens": 104
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 2,
+     "startMs": 6827,
+     "timeToFirstTokenMs": 2771,
+     "generationMs": 85,
+     "ended": "toolCall",
+     "tools": [
+      "search_pull_requests"
+     ],
+     "usage": {
+      "promptTokens": 106995,
+      "outputTokens": 28,
+      "thoughtsTokens": 53,
+      "cachedTokens": 104491
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 3,
+     "startMs": 11388,
+     "timeToFirstTokenMs": 8344,
+     "generationMs": 596,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 129550,
+      "outputTokens": 132,
+      "thoughtsTokens": 867,
+      "cachedTokens": 107073
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 4,
+     "startMs": 22290,
+     "timeToFirstTokenMs": 3709,
+     "generationMs": 463,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 135000,
+      "outputTokens": 132,
+      "thoughtsTokens": 61,
+      "cachedTokens": 129545
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 5,
+     "startMs": 28440,
+     "timeToFirstTokenMs": 2916,
+     "generationMs": 425,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 143004,
+      "outputTokens": 120,
+      "thoughtsTokens": 24,
+      "cachedTokens": 135005
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 6,
+     "startMs": 33135,
+     "timeToFirstTokenMs": 17918,
+     "generationMs": 927,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 145161,
+      "outputTokens": 230,
+      "thoughtsTokens": 160,
+      "cachedTokens": 142986
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 7,
+     "startMs": 53772,
+     "timeToFirstTokenMs": 6079,
+     "generationMs": 725,
+     "ended": "toolCall",
+     "tools": [
+      "pull_request_read"
+     ],
+     "usage": {
+      "promptTokens": 149319,
+      "outputTokens": 172,
+      "thoughtsTokens": 44,
+      "cachedTokens": 145136
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 8,
+     "startMs": 61922,
+     "timeToFirstTokenMs": 7734,
+     "generationMs": 107,
+     "ended": "toolCall",
+     "tools": [
+      "list_branches"
+     ],
+     "usage": {
+      "promptTokens": 151200,
+      "outputTokens": 27,
+      "thoughtsTokens": 967,
+      "cachedTokens": 147252
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 9,
+     "startMs": 71009,
+     "timeToFirstTokenMs": 39108,
+     "generationMs": 14697,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 152510,
+      "outputTokens": 3167,
+      "thoughtsTokens": 6619,
+      "cachedTokens": 149154
+     }
+    },
+    {
+     "attempt": 2,
+     "index": 1,
+     "startMs": 126672,
+     "timeToFirstTokenMs": 6367,
+     "generationMs": 14792,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 162353,
+      "outputTokens": 3167,
+      "thoughtsTokens": 646,
+      "cachedTokens": 152539
+     }
+    }
+   ],
+   "paint": {
+    "timeToFirstTokenMs": 6367,
+    "generationMs": 14792,
+    "thoughtsTokens": 646
+   },
+   "tokens": {
+    "promptTokens": 1381632,
+    "cachedTokens": 1213181,
+    "outputTokens": 7185,
+    "thoughtsTokens": 9545
+   },
+   "costUsd": 0.2801,
+   "prompt": "Show my open pull requests and active branches as a compact list. For each, include the title, repository, PR number, branch name, review status, and the full date and time it was last updated.",
+   "checks": {
+    "firstTry": false,
+    "promptAskOnScreen": true
+   }
+  },
+  {
+   "pass": 1,
+   "setting": "low",
+   "app": "linear",
+   "beat": "beat-1-my-issues",
+   "firstAfterRestart": true,
+   "model": "gemini-3.8-flash",
+   "effort": "low",
+   "outcome": "completed",
+   "attempts": 1,
+   "firstScreenMs": 14123,
+   "durationMs": 21569,
+   "requests": [
+    {
+     "attempt": 1,
+     "index": 1,
+     "startMs": 3269,
+     "timeToFirstTokenMs": 2365,
+     "generationMs": 54,
+     "ended": "toolCall",
+     "tools": [
+      "list_issues"
+     ],
+     "usage": {
+      "promptTokens": 25105,
+      "outputTokens": 17
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 2,
+     "startMs": 5996,
+     "timeToFirstTokenMs": 2796,
+     "generationMs": 22,
+     "ended": "toolCall",
+     "tools": [
+      "get_issue"
+     ],
+     "usage": {
+      "promptTokens": 27143,
+      "outputTokens": 30
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 3,
+     "startMs": 9154,
+     "timeToFirstTokenMs": 2262,
+     "generationMs": 474,
+     "ended": "toolCall",
+     "tools": [
+      "get_issue"
+     ],
+     "usage": {
+      "promptTokens": 27354,
+      "outputTokens": 90,
+      "cachedTokens": 25092
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 4,
+     "startMs": 12302,
+     "timeToFirstTokenMs": 1742,
+     "generationMs": 7508,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 27858,
+      "outputTokens": 1291,
+      "cachedTokens": 25071
+     }
+    }
+   ],
+   "paint": {
+    "timeToFirstTokenMs": 1742,
+    "generationMs": 7508,
+    "thoughtsTokens": 0
+   },
+   "tokens": {
+    "promptTokens": 107460,
+    "cachedTokens": 50163,
+    "outputTokens": 1428,
+    "thoughtsTokens": 0
+   },
+   "costUsd": 0.0521,
+   "prompt": "Show my in-progress and assigned issues as a compact list. For each issue, include its identifier, title, status, priority, linked branch or pull request, and the full date and time it was last updated.",
+   "checks": {
+    "firstTry": true,
+    "promptAskOnScreen": true
+   }
+  },
+  {
+   "pass": 1,
+   "setting": "low",
+   "app": "linear",
+   "beat": "beat-2-issue-detail",
+   "firstAfterRestart": false,
+   "model": "gemini-3.8-flash",
+   "effort": "low",
+   "outcome": "completed",
+   "attempts": 1,
+   "firstScreenMs": 6139,
+   "durationMs": 18932,
+   "requests": [
+    {
+     "attempt": 1,
+     "index": 1,
+     "startMs": 120,
+     "timeToFirstTokenMs": 2344,
+     "generationMs": 129,
+     "ended": "toolCall",
+     "tools": [
+      "get_issue",
+      "list_comments"
+     ],
+     "usage": {
+      "promptTokens": 29158,
+      "outputTokens": 97,
+      "cachedTokens": 25811
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 2,
+     "startMs": 3359,
+     "timeToFirstTokenMs": 2699,
+     "generationMs": 12853,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 29826,
+      "outputTokens": 2324,
+      "cachedTokens": 27090
+     }
+    }
+   ],
+   "paint": {
+    "timeToFirstTokenMs": 2699,
+    "generationMs": 12853,
+    "thoughtsTokens": 0
+   },
+   "tokens": {
+    "promptTokens": 58984,
+    "cachedTokens": 52901,
+    "outputTokens": 2421,
+    "thoughtsTokens": 0
+   },
+   "costUsd": 0.0176,
+   "prompt": "Open A2U-5.",
+   "checks": {
+    "firstTry": true,
+    "promptAskOnScreen": true
+   }
+  },
+  {
+   "pass": 1,
+   "setting": "low",
+   "app": "linear",
+   "beat": "beat-3-status-proposal",
+   "firstAfterRestart": false,
+   "model": "gemini-3.8-flash",
+   "effort": "low",
+   "outcome": "completed",
+   "attempts": 1,
+   "firstScreenMs": 4225,
+   "durationMs": 10458,
+   "requests": [
+    {
+     "attempt": 1,
+     "index": 1,
+     "startMs": 101,
+     "timeToFirstTokenMs": 2061,
+     "generationMs": 14,
+     "ended": "toolCall",
+     "tools": [
+      "list_issue_statuses"
+     ],
+     "usage": {
+      "promptTokens": 32158,
+      "outputTokens": 21,
+      "cachedTokens": 29143
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 2,
+     "startMs": 2444,
+     "timeToFirstTokenMs": 1581,
+     "generationMs": 6422,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 32524,
+      "outputTokens": 1189,
+      "cachedTokens": 30110
+     }
+    }
+   ],
+   "paint": {
+    "timeToFirstTokenMs": 1581,
+    "generationMs": 6422,
+    "thoughtsTokens": 0
+   },
+   "tokens": {
+    "promptTokens": 64682,
+    "cachedTokens": 59253,
+    "outputTokens": 1210,
+    "thoughtsTokens": 0
+   },
+   "costUsd": 0.0131,
+   "prompt": "Move it to In Progress.",
+   "checks": {
+    "firstTry": true,
+    "promptAskOnScreen": true
+   }
+  },
+  {
+   "pass": 1,
+   "setting": "low",
+   "app": "linear",
+   "beat": "beat-3-status-confirm",
+   "firstAfterRestart": false,
+   "model": "gemini-3.8-flash",
+   "effort": "low",
+   "outcome": "completed",
+   "attempts": 1,
+   "firstScreenMs": 10838,
+   "durationMs": 24094,
+   "requests": [
+    {
+     "attempt": 1,
+     "index": 1,
+     "startMs": 102,
+     "timeToFirstTokenMs": 2152,
+     "generationMs": 81,
+     "ended": "toolCall",
+     "tools": [
+      "save_issue"
+     ],
+     "usage": {
+      "promptTokens": 33720,
+      "outputTokens": 27,
+      "cachedTokens": 30479
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 2,
+     "startMs": 4415,
+     "timeToFirstTokenMs": 3586,
+     "generationMs": 152,
+     "ended": "toolCall",
+     "tools": [
+      "get_issue",
+      "list_comments"
+     ],
+     "usage": {
+      "promptTokens": 34398,
+      "outputTokens": 97,
+      "cachedTokens": 31675
+     }
+    },
+    {
+     "attempt": 1,
+     "index": 3,
+     "startMs": 8991,
+     "timeToFirstTokenMs": 1745,
+     "generationMs": 13338,
+     "ended": "text",
+     "usage": {
+      "promptTokens": 35066,
+      "outputTokens": 2324,
+      "cachedTokens": 32346
+     }
+    }
+   ],
+   "paint": {
+    "timeToFirstTokenMs": 1745,
+    "generationMs": 13338,
+    "thoughtsTokens": 0
+   },
+   "tokens": {
+    "promptTokens": 103184,
+    "cachedTokens": 94500,
+    "outputTokens": 2448,
+    "thoughtsTokens": 0
+   },
+   "costUsd": 0.0228,
+   "prompt": "Yes, move it.",
+   "checks": {
+    "firstTry": true,
+    "promptAskOnScreen": true,
+    "movedInLinear": true
+   }
+  }
+ ]
+}

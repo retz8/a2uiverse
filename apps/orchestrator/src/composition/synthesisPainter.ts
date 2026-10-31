@@ -27,12 +27,42 @@ export function synthesisParts(tree: SynthesisTree): Part[] {
   ];
 }
 
-/** The paint envelope: a fragment of the shell claiming the synthesis slot, the payload beside the stamp. */
+/** The half-drawn view taken down (task-17.10 decisions 6, 8): the synthesis surface deleted. */
+export function synthesisTakeDownParts(): Part[] {
+  return [a2uiPart({deleteSurface: {surfaceId: synthesisSurfaceId()}})];
+}
+
+/**
+ * The paint envelope: a fragment of the shell claiming the synthesis slot, the payload beside the
+ * stamp. With no parts — a piece of a streamed view after its tree (task-17.10 decision 1) — the
+ * event carries the payload alone, as a source's settled marker carries its stamp alone.
+ */
 export function synthesisEnvelope(
   ctx: {taskId: string; contextId: string},
   parts: Part[],
   payload: SynthesisPayload,
 ): TaskStatusUpdateEvent {
+  return {
+    ...fragmentEnvelope(ctx, parts),
+    metadata: {
+      [STAMP_KEY]: {source: SHELL_SOURCE_ID, role: 'fragment'},
+      [SYNTHESIS_KEY]: payload,
+    },
+  };
+}
+
+/** The take-down envelope: the shell's fragment deleting its surface, no payload beside it. */
+export function synthesisTakeDown(ctx: {taskId: string; contextId: string}): TaskStatusUpdateEvent {
+  return {
+    ...fragmentEnvelope(ctx, synthesisTakeDownParts()),
+    metadata: {[STAMP_KEY]: {source: SHELL_SOURCE_ID, role: 'fragment'}},
+  };
+}
+
+function fragmentEnvelope(
+  ctx: {taskId: string; contextId: string},
+  parts: Part[],
+): Omit<TaskStatusUpdateEvent, 'metadata'> {
   return {
     kind: 'status-update',
     taskId: ctx.taskId,
@@ -40,18 +70,18 @@ export function synthesisEnvelope(
     final: false,
     status: {
       state: 'working',
-      message: {
-        kind: 'message',
-        messageId: randomUUID(),
-        role: 'agent',
-        parts,
-        contextId: ctx.contextId,
-        taskId: ctx.taskId,
-      },
-    },
-    metadata: {
-      [STAMP_KEY]: {source: SHELL_SOURCE_ID, role: 'fragment'},
-      [SYNTHESIS_KEY]: payload,
+      ...(parts.length > 0
+        ? {
+            message: {
+              kind: 'message',
+              messageId: randomUUID(),
+              role: 'agent',
+              parts,
+              contextId: ctx.contextId,
+              taskId: ctx.taskId,
+            },
+          }
+        : {timestamp: new Date().toISOString()}),
     },
   };
 }
