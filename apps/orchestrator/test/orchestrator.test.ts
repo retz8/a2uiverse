@@ -767,19 +767,31 @@ describe('orchestrator', () => {
     expect(line.kind).toBe('utterance');
   });
 
-  test('both attempts refused is a broken turn: the final names the findings, the journal keeps the attempts (task-6.4 decision 6)', async () => {
-    const {client} = await boot({planner: new MalformedPlanner()});
-    const events = await collect(client, utterance('anything'));
-    const final = events.at(-1) as TaskStatusUpdateEvent;
-    expect(final.status.state).toBe('failed');
-    const said = final.status.message?.parts.find(p => p.kind === 'text');
-    expect(said && 'text' in said ? said.text : '').toContain('refused 2 times');
-    expect(said && 'text' in said ? said.text : '').toContain('no <layout-surface> block');
-    expect(shellPaints(events)).toHaveLength(0);
-    const [line] = await journalLines(1);
-    expect(line.outcome).toBe('failed');
-    expect(line.plan).toMatchObject({outcome: 'malformed'});
-    expect((line.plan as PlanRecord).attempts).toHaveLength(2);
+  test('both attempts refused is a broken turn: the final in plain words, the findings on the plan’s log line, the journal keeps the attempts (task-18.2 decisions 2, 4, 6)', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      const {client} = await boot({planner: new MalformedPlanner()});
+      const events = await collect(client, utterance('anything'));
+      const taskId = (events[0] as {id: string}).id;
+      const final = events.at(-1) as TaskStatusUpdateEvent;
+      expect(final.status.state).toBe('failed');
+      const said = final.status.message?.parts.find(p => p.kind === 'text');
+      const text = said && 'text' in said ? said.text : '';
+      expect(text).toBe(
+        'A2UIVerse couldn’t work out how to answer that. Ask again, or try other words.',
+      );
+      expect(text).not.toContain('no <layout-surface> block');
+      const lines = log.mock.calls.map(c => String(c[0]));
+      const planLine = lines.find(l => l.includes(`plan task=${taskId} malformed`));
+      expect(planLine).toContain('no <layout-surface> block in the answer');
+      expect(shellPaints(events)).toHaveLength(0);
+      const [line] = await journalLines(1);
+      expect(line.outcome).toBe('failed');
+      expect(line.plan).toMatchObject({outcome: 'malformed'});
+      expect((line.plan as PlanRecord).attempts).toHaveLength(2);
+    } finally {
+      log.mockRestore();
+    }
   });
 
   test('a platform answer dispatches nothing: the data model and tree paint, then the final (phase-6 decision 2)', async () => {
@@ -3979,7 +3991,11 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
     });
     const events = await collect(client, utterance('both'));
     expect(finalOf(events).status.state).toBe('failed');
-    expect(textsOf(finalOf(events).status.message!)[0]).toContain('refused 2 times');
+    const said = textsOf(finalOf(events).status.message!)[0];
+    expect(said).toBe(
+      'A2UIVerse couldn’t work out how to answer that. Ask again, or try other words.',
+    );
+    expect(said).not.toContain('no Slot holds');
     const paints = events.filter(isShellPaint).map(a2uiDatas);
     expect(paints.at(-1)).toEqual([{version: 'v0.9', deleteSurface: {surfaceId: 'shell:main'}}]);
     expect(events.some(isFragment)).toBe(false);

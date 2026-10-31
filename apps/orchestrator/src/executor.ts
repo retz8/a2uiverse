@@ -737,7 +737,10 @@ export class OrchestratorExecutor implements AgentExecutor {
     const planMs = Date.now() - openedAt;
     const fromCache =
       outcome.kind === 'planned' && outcome.cache?.hit ? ' from the plan cache' : '';
-    logLine(`plan task=${ctx.taskId} ${outcome.kind} ${planMs} ms${fromCache}`);
+    // A plan refused twice: the last attempt's findings on its line (task-18.2 decision 4).
+    const findings =
+      outcome.kind === 'malformed' ? `: ${outcome.attempts.at(-1)?.errors.join('; ')}` : '';
+    logLine(`plan task=${ctx.taskId} ${outcome.kind} ${planMs} ms${fromCache}${findings}`);
     if (outcome.kind === 'malformed') {
       turn.plan({
         outcome: outcome.kind,
@@ -749,10 +752,10 @@ export class OrchestratorExecutor implements AgentExecutor {
       });
       await breakOff();
       done();
-      // Both attempts refused: a broken turn, the findings on the final (task-6.4 decision 6).
-      const last = outcome.attempts.at(-1);
+      // Both attempts refused: a broken turn, its final in plain words, the findings on the
+      // plan's line and in the journal (task-18.2 decisions 1–4).
       throw new Error(
-        `the Planner's answer was refused ${outcome.attempts.length} times: ${last?.errors.join('; ')}`,
+        'A2UIVerse couldn’t work out how to answer that. Ask again, or try other words.',
       );
     }
 
