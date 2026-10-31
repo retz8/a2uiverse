@@ -4,7 +4,9 @@ import {bodyCellStyle} from './table';
  * finding). Rows are `TableRow`s, cells their children; a row rendered on its own falls back to
  * a plain flex row rather than a `<tr>` outside a table.
  */
-import {afterEach, beforeEach, expect, test, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
+import type {ReactNode} from 'react';
+import {SynthesisStreamingContext} from '../../synthesis-streaming';
 import {renderTree} from '../../testing/render';
 
 let consoleError: ReturnType<typeof vi.spyOn>;
@@ -248,3 +250,54 @@ test.each([
     expect(consoleError.mock.calls).toEqual([]);
   },
 );
+
+describe('the merged view drawn as it is written (task-17.10 decision 4)', () => {
+  const streaming = (node: ReactNode) => (
+    <SynthesisStreamingContext.Provider value={true}>{node}</SynthesisStreamingContext.Provider>
+  );
+  const table = (rows: number) =>
+    renderTree(
+      [
+        {
+          id: 'root',
+          component: 'Table',
+          columns: ['Camera', 'Price'],
+          children: {path: '/rows', componentId: 'row'},
+        },
+        {id: 'row', component: 'TableRow', children: ['c1', 'c2']},
+        {id: 'c1', component: 'Text', text: {path: 'name'}},
+        {id: 'c2', component: 'Text', text: {path: 'price'}},
+      ],
+      {
+        data: {rows: Array.from({length: rows}, (_, i) => ({name: `Camera ${i}`, price: `${i}`}))},
+        wrap: streaming,
+      },
+    );
+  const skeletons = (container: HTMLElement) =>
+    container.querySelectorAll('tbody tr[data-skeleton-row]').length;
+  const drawn = (container: HTMLElement) =>
+    container.querySelectorAll('tbody tr:not([data-skeleton-row])').length;
+
+  test('the rows take the four skeleton rows’ places one for one, one staying below the last', () => {
+    expect(skeletons(table(0).container)).toBe(4);
+    const two = table(2).container;
+    expect(drawn(two)).toBe(2);
+    expect(skeletons(two)).toBe(2);
+    expect(skeletons(table(4).container)).toBe(1);
+    expect(skeletons(table(6).container)).toBe(1);
+    // The skeleton row sits below the rows drawn, in the table's own geometry.
+    const rows = [...two.querySelectorAll('tbody tr')];
+    expect(rows.slice(2).every(row => row.hasAttribute('data-skeleton-row'))).toBe(true);
+    expect(rows[2]!.querySelectorAll('td')).toHaveLength(2);
+  });
+
+  test('once the document is accepted no skeleton row stays', () => {
+    const {container} = renderTree([
+      {id: 'root', component: 'Table', columns: ['Camera', 'Price'], children: ['r1']},
+      {id: 'r1', component: 'TableRow', children: ['a1', 'a2']},
+      {id: 'a1', component: 'Text', text: 'Lumen X100'},
+      {id: 'a2', component: 'Text', text: '1,299'},
+    ]);
+    expect(skeletons(container)).toBe(0);
+  });
+});

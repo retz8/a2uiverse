@@ -3,7 +3,7 @@ import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {pruneCatalog, type A2uiCatalogSchema, type Ref} from '@a2uiverse/sdk';
 import {SYNTHESIS_SURFACE_KEEP_SET} from '@a2uiverse/shell-catalog/schema';
-import {SYNTHESIZE_DATA_MODEL_SCHEMA} from './document.js';
+import {isDecline, SYNTHESIZE_DATA_MODEL_SCHEMA, type SynthesizeDataModel} from './document.js';
 import {SYNTHESIS_EXAMPLES, type SynthesisExample} from './examples.js';
 
 /**
@@ -101,6 +101,13 @@ export function readSynthesizerFiles(): SynthesizerFiles {
 const EXAMPLES_FRAMING =
   'The examples below show the form of a synthesize data model over sources of the shapes named in each. Their sources and values are fixtures chosen to make the form legible; they are not the sources of the current turn and never a document to reuse. Every ref you write points into the data you are shown in this turn.';
 
+/** An example's output in the order the answer is asked for (task-17.10 decision 2). */
+function inAnswerOrder(output: SynthesizeDataModel): SynthesizeDataModel {
+  if (isDecline(output)) return output;
+  const {tree, sorts, dataModel, note} = output;
+  return {tree, sorts, dataModel, note};
+}
+
 function renderExample(example: SynthesisExample): string {
   const sources = example.sources.map(s => ({
     surface: s.surface,
@@ -111,7 +118,7 @@ function renderExample(example: SynthesisExample): string {
     intent: example.intent,
     request: example.request,
     sources,
-    output: example.output,
+    output: inAnswerOrder(example.output),
   });
   return `---BEGIN ${example.name}---\n${body}\n---END ${example.name}---`;
 }
@@ -265,7 +272,7 @@ export function buildSynthesisTurn(inputs: SynthesisTurnInputs): string {
     parts.push(`Your previous document:\n${previous}`);
   }
   parts.push(
-    `Answer with one JSON document inside <${SYNTHESIS_TAG}> and </${SYNTHESIS_TAG}>, and nothing outside the block.`,
+    `Answer with one JSON document inside <${SYNTHESIS_TAG}> and </${SYNTHESIS_TAG}>, and nothing outside the block — a synthesis written tree first, then sorts, then dataModel, then note.`,
   );
   return parts.join('\n\n');
 }

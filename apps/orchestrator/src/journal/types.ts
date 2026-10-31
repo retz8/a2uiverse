@@ -64,7 +64,8 @@ export interface PlanRecord {
  * synthesize data model as accepted and its note, the outcome, every attempt — the raw text the
  * model returned and the validator's findings when it was refused — and, on a re-synthesis, the
  * change account that was sent. `deadAirMs` is the interval from the last source settling to
- * the outcome — phase decision 15's measurement, read from here.
+ * the outcome — phase decision 15's measurement, read from here; streamed, the first row leaves
+ * before it, at `firstRowMs` (task 17.10).
  */
 export interface SynthesisRecord {
   /**
@@ -108,6 +109,11 @@ export interface SynthesisRecord {
   thrownAway?: {changed: string[]; at: string}[];
   /** From the synthesis's release — or, on a re-synthesis, the last settle — to its outcome. */
   deadAirMs?: number;
+  /**
+   * From the release to the first row leaving for the client, on a first synthesis streamed into
+   * its reserved slot (task-17.10 decision 9); absent when none left before the outcome.
+   */
+  firstRowMs?: number;
   /** The effort tier the Synthesizer ran at (task-17.5 decision 3). */
   effort?: Effort;
   /** Each model request of this synthesis, on the clock `deadAirMs` runs on (task-17.5 decisions 1–3). */

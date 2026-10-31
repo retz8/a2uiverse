@@ -31,16 +31,17 @@ const catalog = createCatalog({onShellAction, onPress, onSignIn, onAppAct, onNav
 
 Wrap the rendered surfaces in **`Provider`**: a Radix Theme scoped to its own wrapper, never the page, that follows the host's light or dark and accent colour.
 
-The host also fills six React contexts the components read:
+The host also fills seven React contexts the components read:
 
-| Context                  | What it tells the components                                                                                  |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `SlotContentContext`     | which fragment to mount in a source's slot                                                                    |
-| `SlotStateContext`       | each source's state, for a merged-view column reserved for that source                                        |
-| `FragmentHistoryContext` | where each fragment stands in its history, for `Attribution`'s arrows                                         |
-| `PressStateContext`      | presses on their way, and whether a press can be made at all                                                  |
-| `SignInContext`          | which sources have a sign-in window open, for the waiting form                                                |
-| `AppActContext`          | each slot's install or update press, each app's installed version, and the apps a press holds (`AppActState`) |
+| Context                     | What it tells the components                                                                                                      |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `SlotContentContext`        | which fragment to mount in a source's slot                                                                                        |
+| `SlotStateContext`          | each source's state, for a merged-view column reserved for that source                                                            |
+| `SynthesisStreamingContext` | whether the merged view is still being drawn as it is written, for `Table`'s skeleton row below its last and the slot's busy mark |
+| `FragmentHistoryContext`    | where each fragment stands in its history, for `Attribution`'s arrows                                                             |
+| `PressStateContext`         | presses on their way, and whether a press can be made at all                                                                      |
+| `SignInContext`             | which sources have a sign-in window open, for the waiting form                                                                    |
+| `AppActContext`             | each slot's install or update press, each app's installed version, and the apps a press holds (`AppActState`)                     |
 
 `SignInWaiting`, the waiting form the tile draws while a sign-in window is open, is exported on its own for a host page that starts a sign-in with no slot: the App Library's add account and sign in again.
 

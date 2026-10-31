@@ -63,6 +63,15 @@ test('the embedded schema is the contract schema, and the contract carries no mo
   expect(SYNTHESIS_SCHEMA).toEqual(schemas.synthesis);
 });
 
+test('a payload still being written is marked partial, and only so; the accepted one carries no mark (task-17.10 decision 1)', () => {
+  const schema = SYNTHESIS_SCHEMA as {
+    required: readonly string[];
+    properties: {partial: {type: string; const: unknown}};
+  };
+  expect(schema.required).toEqual(['dataModel', 'sorts']);
+  expect(schema.properties.partial).toMatchObject({type: 'boolean', const: true});
+});
+
 test('the derived model is recursive: a node is a formula, an object of nodes, or an array of nodes', () => {
   const defs = (SYNTHESIS_SCHEMA as {$defs: Record<string, {oneOf?: unknown[]}>}).$defs;
   expect(defs.node.oneOf).toHaveLength(3);

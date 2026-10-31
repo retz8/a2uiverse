@@ -74,7 +74,7 @@ Each app's UI renders with its own catalog — GitHub in Primer, Gmail and Calen
 
 ### A merged view that stays live
 
-The merged table isn't something a model drew. The orchestrator sends formulas pointing into each app's data; the client evaluates them itself, again on every change, with no model call, and sorting is local and free. Each value shows how sure it is by how strongly it's drawn, says where it came from on hover, and clicking it scrolls to the element it came from in that app's slot. Times are read and shown in your own time zone, as your browser reports it, in English.
+The merged table isn't something a model drew. The orchestrator sends formulas pointing into each app's data; the client evaluates them itself, again on every change, with no model call, and sorting is local and free. Each value shows how sure it is by how strongly it's drawn, says where it came from on hover, and clicking it scrolls to the element it came from in that app's slot. Times are read and shown in your own time zone, as your browser reports it, in English. A question's first merged view fills in as it's written: its rows take the places of the skeleton rows one by one, each sorted into place as it lands.
 
 ### Paints as answers arrive, never half-drawn
 

@@ -14,9 +14,19 @@ import {
   AiSdkSynthesisModel,
   Synthesizer,
   type SynthesisInput,
+  type SynthesisModel,
+  type SynthesisPiece,
 } from '../src/synthesizer/synthesizer.js';
 import {validateSynthesis} from '../src/synthesizer/validate.js';
-import {bestPriceView, decline, FakeSynthesizer, tagged} from './fakeSynthesizer.js';
+import {
+  bestPriceView,
+  decline,
+  FakeSynthesizer,
+  StreamingSynthesizer,
+  synthesisPieces,
+  tagged,
+} from './fakeSynthesizer.js';
+import {liveStream, streaming} from './streamingModel.js';
 
 const A = 'shop-a:list';
 const B = 'shop-b:list';
@@ -657,7 +667,7 @@ describe('Synthesizer — the measurement (task 17.5)', () => {
     let call = 0;
     const model = new MockLanguageModelV4({
       modelId: 'gemini-3.8-flash',
-      doGenerate: async () => step(answers[Math.min(call++, answers.length - 1)]!),
+      ...streaming({doGenerate: async () => step(answers[Math.min(call++, answers.length - 1)]!)}),
     });
     const lines: string[] = [];
     const spy = vi.spyOn(console, 'log').mockImplementation((line: unknown) => {
@@ -686,10 +696,15 @@ describe('Synthesizer — the measurement (task 17.5)', () => {
     expect(outcome.requests![0]!.usage).not.toHaveProperty('reasoningTokens');
     expect(outcome.requests![0]!.startMs).toBeGreaterThanOrEqual(100);
     expect(outcome.requests![1]!.startMs).toBeGreaterThanOrEqual(outcome.requests![0]!.endMs);
+    // Every request is read as a stream: its first token on each record (task-17.10 decision 9).
+    for (const record of outcome.requests!) {
+      expect(record.timeToFirstTokenMs).toEqual(expect.any(Number));
+      expect(record.firstTokenMs).toBe(record.startMs + record.timeToFirstTokenMs!);
+    }
     const requestLines = lines.filter(line => line.includes('Synthesizer request task=t1'));
     expect(requestLines).toHaveLength(2);
     expect(requestLines[1]).toMatch(
-      /Synthesizer request task=t1 2\.1 on gemini-3\.8-flash: model \d+ ms at \d+ ms, ended in text, 30000 prompt \/ 1500 output \/ 27000 cached tokens$/,
+      /Synthesizer request task=t1 2\.1 on gemini-3\.8-flash: model \d+ ms at \d+ ms, first token \d+ ms, ended in text, 30000 prompt \/ 1500 output \/ 27000 cached tokens$/,
     );
   });
 
@@ -701,5 +716,205 @@ describe('Synthesizer — the measurement (task 17.5)', () => {
     }).synthesize(input, partitions());
     expect(outcome.kind).toBe('synthesized');
     expect(outcome.requests).toEqual([]);
+  });
+});
+
+describe('the Synthesizer’s answer followed as it is written (task 17.10)', () => {
+  const synthesizer = (model: SynthesisModel) =>
+    new Synthesizer({model, systemPrompt: 'SYSTEM', catalog: files.catalog});
+  const two: SynthesisInput = {
+    ...input,
+    sources: [
+      {
+        surface: A,
+        source: 'shop-a',
+        name: 'Shop A',
+        data: {
+          items: [
+            {id: 'x100', price: 899},
+            {id: 'x200', price: 1299},
+          ],
+        },
+      },
+      {
+        surface: B,
+        source: 'shop-b',
+        name: 'Shop B',
+        data: {
+          items: [
+            {id: 'x100', price: 949},
+            {id: 'x200', price: 1199},
+          ],
+        },
+      },
+    ],
+  };
+  const twoPartitions = () =>
+    partitionsOf({
+      [A]: {
+        items: [
+          {id: 'x100', price: 899},
+          {id: 'x200', price: 1299},
+        ],
+      },
+      [B]: {
+        items: [
+          {id: 'x100', price: 949},
+          {id: 'x200', price: 1199},
+        ],
+      },
+    });
+  const document = (): Synthesis => bestPriceView({system: '', prompt: '', input: two});
+  const rows = (piece: SynthesisPiece) => piece.payload.dataModel.rows as unknown[];
+
+  /** The loop over `model`, every piece it tells kept. */
+  const follow = (model: SynthesisModel, turn = two, p = twoPartitions()) => {
+    const told: SynthesisPiece[] = [];
+    const outcome = synthesizer(model).synthesize(turn, p, undefined, undefined, {
+      piece: piece => told.push(piece),
+    });
+    return {told, outcome};
+  };
+
+  test('the tree and the sorts are told first, the lists the tree repeats empty, then each row as it is finished — the payload cumulative, marked partial (decisions 1, 2, 4)', async () => {
+    const good = document();
+    const {told, outcome} = follow(new StreamingSynthesizer(good));
+    expect((await outcome).kind).toBe('synthesized');
+    expect(told.map(piece => piece.kind)).toEqual(['tree', 'row', 'row']);
+    expect(told[0]!.payload).toEqual({dataModel: {rows: []}, sorts: good.sorts, partial: true});
+    expect(rows(told[1]!)).toEqual([good.dataModel.rows![0]]);
+    expect(rows(told[2]!)).toEqual(good.dataModel.rows);
+    for (const piece of told) expect(piece.tree).toEqual(good.tree);
+    // Each payload is the turn's own: a row told later does not reach into one told before.
+    expect(rows(told[1]!)).toHaveLength(1);
+  });
+
+  test('written in another order — the model before the tree and the sorts — it is drawn later: the rows told once both have passed (decision 2)', async () => {
+    const good = document();
+    const model = new StreamingSynthesizer(good, {order: ['dataModel', 'note', 'sorts', 'tree']});
+    const {told, outcome} = follow(model);
+    expect((await outcome).kind).toBe('synthesized');
+    expect(told.map(piece => piece.kind)).toEqual(['member']);
+    expect(rows(told[0]!)).toEqual(good.dataModel.rows);
+    expect(told[0]!.payload.sorts).toEqual(good.sorts);
+  });
+
+  test('the sorts written after the rows: each row waits for them, then lands at its sorted place (decision 3)', async () => {
+    const good = document();
+    const model = new StreamingSynthesizer(good, {order: ['tree', 'dataModel', 'sorts', 'note']});
+    const {told, outcome} = follow(model);
+    expect((await outcome).kind).toBe('synthesized');
+    expect(told.map(piece => piece.kind)).toEqual(['row', 'row']);
+    expect(rows(told[0]!)).toHaveLength(1);
+    expect(rows(told[1]!)).toHaveLength(2);
+    for (const piece of told) expect(piece.payload.sorts).toEqual(good.sorts);
+  });
+
+  test('a member outside a repeated list is told once it is finished; a binding into what has not arrived is no finding (decision 1)', async () => {
+    const good = document();
+    good.tree.components[0]!.children = ['sort', 'count', 'rows'];
+    good.tree.components.push({
+      id: 'count',
+      component: 'DerivedValue',
+      cell: {path: '/summary/count'},
+    });
+    good.dataModel.summary = {
+      count: {
+        op: 'count',
+        args: [
+          {surface: A, pointer: '/items[id="x100"]/id'},
+          {surface: B, pointer: '/items[id="x100"]/id'},
+        ],
+      },
+    };
+    const {told, outcome} = follow(new StreamingSynthesizer(good));
+    expect((await outcome).kind).toBe('synthesized');
+    expect(told.map(piece => piece.kind)).toEqual(['tree', 'row', 'row', 'member']);
+    expect(told[2]!.payload.dataModel).not.toHaveProperty('summary');
+    expect(told[3]!.payload.dataModel.summary).toEqual(good.dataModel.summary);
+  });
+
+  test('a row failing its own check stops the telling; the answer is still checked whole, and the retry carries every failure and is not followed (decisions 5, 6)', async () => {
+    const bad = document();
+    (bad.dataModel.rows as Array<{best: {op: string}}>)[1]!.best.op = 'median';
+    const model = new StreamingSynthesizer([bad, document()]);
+    const {told, outcome} = follow(model);
+    const result = await outcome;
+    expect(result.kind).toBe('synthesized');
+    expect(told.map(piece => piece.kind)).toEqual(['tree', 'row']);
+    expect(result.attempts).toHaveLength(2);
+    expect(result.attempts[0]!.errors).toEqual([
+      expect.stringContaining("/dataModel/rows/1/best: operator 'median'"),
+    ]);
+    expect(model.calls[0]!.onText).toBeDefined();
+    expect(model.calls[1]!.onText).toBeUndefined();
+  });
+
+  test('a row whose ref does not resolve, or whose fact does not hold, stops the telling too (decision 1)', async () => {
+    const absent = document();
+    (
+      absent.dataModel.rows as Array<{best: {args: {pointer: string}[]}}>
+    )[1]!.best.args[0]!.pointer = '/items[id="x999"]/price';
+    const {told, outcome} = follow(new StreamingSynthesizer([absent, document()]));
+    await outcome;
+    expect(told.map(piece => piece.kind)).toEqual(['tree', 'row']);
+    const unheld = document();
+    (unheld.dataModel.rows as Array<Record<string, unknown>>)[0]!.match = {
+      'same id': {
+        op: 'equal',
+        args: [
+          {surface: A, pointer: '/items[id="x100"]/price'},
+          {surface: B, pointer: '/items[id="x100"]/price'},
+        ],
+      },
+    };
+    const held = follow(new StreamingSynthesizer([unheld, document()]));
+    await held.outcome;
+    expect(held.told.map(piece => piece.kind)).toEqual(['tree']);
+  });
+
+  test('a tree the shell catalog refuses is told nothing, nor anything after it', async () => {
+    const bad = document();
+    bad.tree.components.push({id: 'odd', component: 'Frame'});
+    const {told, outcome} = follow(new StreamingSynthesizer([bad, document()]));
+    expect((await outcome).attempts[0]!.errors.join('\n')).toMatch(/Frame/);
+    expect(told).toEqual([]);
+  });
+
+  test('a decline, and a model that tells nothing, tell nothing', async () => {
+    const declined = follow(new StreamingSynthesizer(decline('nothing joinable')));
+    expect((await declined.outcome).kind).toBe('declined');
+    expect(declined.told).toEqual([]);
+    const whole = follow(new FakeSynthesizer(document()));
+    expect((await whole.outcome).kind).toBe('synthesized');
+    expect(whole.told).toEqual([]);
+  });
+
+  test('the pieces a model writes its block in, as the fake streams them, read the same whatever they are split into', async () => {
+    const good = document();
+    const pieces = synthesisPieces(good);
+    expect(JSON.parse(pieces.join('').replace(/<[^>]+>/g, ''))).toEqual(good);
+  });
+
+  test('the streaming seam: each delta handed over as the model writes it, the request’s time to its first token on its measure (decision 9)', async () => {
+    const live = liveStream();
+    const model = new MockLanguageModelV4({modelId: 'm', doStream: async () => live.result});
+    const deltas: string[] = [];
+    const answer = new AiSdkSynthesisModel({model}).generate({
+      system: 'S',
+      prompt: 'P',
+      input,
+      onText: text => deltas.push(text),
+    });
+    const pieces = synthesisPieces(document());
+    for (const piece of pieces) {
+      live.write(piece);
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    live.end();
+    const {text, step} = await answer;
+    expect(deltas).toEqual(pieces);
+    expect(text).toBe(pieces.join(''));
+    expect(step?.timeToFirstTokenMs).toEqual(expect.any(Number));
   });
 });

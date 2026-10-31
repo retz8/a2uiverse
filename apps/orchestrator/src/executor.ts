@@ -22,7 +22,11 @@ import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify
 import {composeFragment, retask, withoutFailureWords} from './composition/fragmentRelay.js';
 import {changeAccount, firesResynthesis, seenOf, watchOf} from './composition/integrity.js';
 import {A2UI_CLIENT_DATA_MODEL_KEY} from './composition/partition.js';
-import {synthesisEnvelope, synthesisParts} from './composition/synthesisPainter.js';
+import {
+  synthesisEnvelope,
+  synthesisParts,
+  synthesisTakeDown,
+} from './composition/synthesisPainter.js';
 import {vendorMetadata} from './composition/partition.js';
 import {
   shellCreateParts,
@@ -66,7 +70,7 @@ import {SHELL_SOURCE_ID} from './registry/types.js';
 import type {Router} from './router/router.js';
 import type {ChangeAccount, MissingSource} from './synthesizer/prompt.js';
 import type {Synthesis} from './synthesizer/document.js';
-import type {SynthesisMeasure, Synthesizer} from './synthesizer/synthesizer.js';
+import type {SynthesisMeasure, SynthesisStream, Synthesizer} from './synthesizer/synthesizer.js';
 import type {UpdateFinding} from './registry/updateTile.js';
 import type {AuthorityNeed, Standing} from './vault/vault.js';
 
@@ -1512,6 +1516,15 @@ export class OrchestratorExecutor implements AgentExecutor {
    * flight, and lands only once none it read has; a press whose answer changed what a source it
    * read holds throws it away — the call aborted — and it is made again. A composition closed
    * meanwhile, or a merge collapsed under it, paints nothing.
+   *
+   * The turn's first synthesis is drawn into its reserved slot as the model writes it (task
+   * 17.10): its tree painted once the tree and the sorts have passed, the payload beside it marked
+   * partial, then each row and each member that passes on an event of its own; the document as
+   * accepted lands whole after them — the payload alone over the tree that streamed, a retry's
+   * tree in one step over the half-drawn one (decisions 1, 6). Every re-synthesis, and a first
+   * synthesis made again after being thrown away, lands whole (decisions 7, 8). A half-drawn view
+   * that lands nothing — a second failure, a model error, a collapse under it — is taken down with
+   * the collapse (decisions 6, 8).
    */
   async #synthesize(
     sinks: readonly Sink[],
@@ -1527,6 +1540,25 @@ export class OrchestratorExecutor implements AgentExecutor {
     const deadAir = () => Date.now() - run.at;
     const waited: PressWait[] = [];
     const thrownAway: {changed: string[]; at: string}[] = [];
+    /** The tree on the client while the first synthesis streams (task 17.10), until it lands. */
+    let streamed: {tree: Synthesis['tree']} | undefined;
+    let firstRowMs: number | undefined;
+    const firstRow = (): Partial<SynthesisRecord> => (firstRowMs !== undefined ? {firstRowMs} : {});
+    /** The half-drawn view taken down (decisions 6, 8); nothing when the composition is closed. */
+    const takeDown = () => {
+      if (!streamed || signal.aborted) return;
+      streamed = undefined;
+      logLine(`merge task=${sinks[0]?.ctx.taskId} half-drawn view taken down`);
+      for (const sink of sinks) {
+        const event = synthesisTakeDown(sink.ctx);
+        sink.bus.publish(event);
+        sink.turn.surfaces(touchesOf(event));
+      }
+    };
+    const leave = (): SynthesisEnd => {
+      takeDown();
+      return 'none';
+    };
     const joiningNow = () =>
       run.kind === 'again'
         ? run.joining.filter(source => state.arrived.has(source) && !state.merged.has(source))
@@ -1539,7 +1571,7 @@ export class OrchestratorExecutor implements AgentExecutor {
 
     for (;;) {
       waited.push(...(await state.presses.quiet(within, signal)));
-      if (gone()) return 'none';
+      if (gone()) return leave();
       const joined = joiningNow();
       const again = fresh ? undefined : this.#walk(state);
       if (!fresh && !again && joined.length === 0) {
@@ -1583,10 +1615,13 @@ export class OrchestratorExecutor implements AgentExecutor {
             ...context,
             ...quiescence(),
             deadAirMs: deadAir(),
+            ...firstRow(),
             ...synthesisMeasure(measure),
           },
           over,
         );
+        // The line first, then the half-drawn view goes: nothing of the skeleton shows between.
+        takeDown();
         return 'collapsed';
       };
       // A re-synthesis that failed leaves the landed view as it was, the failure said beside it
@@ -1641,6 +1676,32 @@ export class OrchestratorExecutor implements AgentExecutor {
         left = [source];
         call.abort();
       };
+      // Only the turn's first synthesis streams, and only the first time it is made (task-17.10
+      // decisions 7, 8): each piece painted into the reserved slot as it passes, the tree with the
+      // first, the payload alone after it; a piece after the call was thrown away paints nothing.
+      const stream: SynthesisStream | undefined =
+        run.kind === 'first' && thrownAway.length === 0
+          ? {
+              piece: piece => {
+                if (gone() || call.signal.aborted) return;
+                const first = streamed === undefined;
+                streamed = {tree: piece.tree};
+                if (piece.kind === 'row' && firstRowMs === undefined) {
+                  firstRowMs = deadAir();
+                  logLine(`merge task=${sinks[0]?.ctx.taskId} first row painted ${firstRowMs} ms`);
+                }
+                for (const sink of sinks) {
+                  const paint = synthesisEnvelope(
+                    sink.ctx,
+                    first ? synthesisParts(piece.tree) : [],
+                    piece.payload,
+                  );
+                  sink.bus.publish(paint);
+                  if (first) sink.turn.surfaces(touchesOf(paint));
+                }
+              },
+            }
+          : undefined;
       let outcome;
       let error: unknown;
       try {
@@ -1663,6 +1724,7 @@ export class OrchestratorExecutor implements AgentExecutor {
           view,
           call.signal,
           {origin: run.at, task: sinks[0]?.ctx.taskId},
+          stream,
         );
       } catch (err) {
         error = err;
@@ -1672,7 +1734,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       stopWatching();
       state.left = undefined;
       signal.removeEventListener('abort', endCall);
-      if (gone()) return 'none';
+      if (gone()) return leave();
       if (left.length === 0) left = [...over].filter(source => !within().has(source));
       if (left.length > 0) {
         thrownAway.push({changed: left, at: new Date().toISOString()});
@@ -1724,10 +1786,18 @@ export class OrchestratorExecutor implements AgentExecutor {
         delete slot.collapse;
       }
       state.retrying.clear();
+      // The document as accepted lands whole (task-17.10 decisions 1, 6): over the tree that
+      // streamed, the payload alone; otherwise the tree painted, replacing what is there.
+      const overStreamed = streamed !== undefined && sameJson(streamed.tree, document.tree);
+      streamed = undefined;
       for (const sink of sinks) {
-        const paint = synthesisEnvelope(sink.ctx, synthesisParts(document.tree), payload);
+        const paint = synthesisEnvelope(
+          sink.ctx,
+          overStreamed ? [] : synthesisParts(document.tree),
+          payload,
+        );
         sink.bus.publish(paint);
-        sink.turn.surfaces(touchesOf(paint));
+        if (!overStreamed) sink.turn.surfaces(touchesOf(paint));
       }
       // The merge's own set and the late sources, painted for the client's lines; a press's
       // call repaints once its work is done.
@@ -1740,6 +1810,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         ...context,
         ...quiescence(),
         deadAirMs: deadAir(),
+        ...firstRow(),
         ...synthesisMeasure(outcome),
       });
       return 'landed';

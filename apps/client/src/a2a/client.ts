@@ -115,8 +115,10 @@ export async function sendAndApply(
     if (onPaintMeta) for (const meta of extractPaintMetasFromEvent(event)) onPaintMeta(meta);
     const stamp = extractStampFromEvent(event);
     const messages = extractA2uiMessagesFromEvent(event);
-    // A source's settled marker carries no messages and is applied for its stamp alone.
-    if (messages.length || stamp?.settled) apply(messages, stamp, extractSynthesisFromEvent(event));
+    const synthesis = extractSynthesisFromEvent(event);
+    // A source's settled marker carries no messages and is applied for its stamp alone; so is a
+    // piece of the merged view streamed after its tree, applied for its payload (task 17.10).
+    if (messages.length || stamp?.settled || synthesis) apply(messages, stamp, synthesis);
     if (onAgentText) for (const text of extractAgentTextFromEvent(event)) onAgentText(text, stamp);
   };
 

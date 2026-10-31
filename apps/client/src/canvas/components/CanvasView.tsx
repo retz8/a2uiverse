@@ -18,6 +18,7 @@ import {
   SignInContext,
   SlotContentContext,
   SlotStateContext,
+  SynthesisStreamingContext,
 } from '@a2uiverse/shell-catalog';
 import type {CanvasRuntime} from '../canvasRuntime';
 import {orderedNotices} from '../canvasStore';
@@ -145,7 +146,11 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
                 <SignInContext.Provider value={signingInOf}>
                   <AppActContext.Provider value={appActState}>
                     <FragmentHistoryContext.Provider value={historyOf}>
-                      <CanvasStage processor={runtime.processor} state={state} />
+                      {/* The merged view drawn as it is written stays busy, a skeleton row below
+                        its last (task-17.10 decisions 4, 10). */}
+                      <SynthesisStreamingContext.Provider value={state.mergeStreaming}>
+                        <CanvasStage processor={runtime.processor} state={state} />
+                      </SynthesisStreamingContext.Provider>
                     </FragmentHistoryContext.Provider>
                   </AppActContext.Provider>
                 </SignInContext.Provider>

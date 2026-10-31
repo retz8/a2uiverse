@@ -32,6 +32,9 @@ import {runFact} from '../composition/relations.js';
  * operator one the pruned catalog declares, a match claim's in the relations and no relation
  * outside one; every ref into a held partition, resolving now; every fact of a match claim holding
  * now. Each finding is one line with its path, so the retry can hand them back.
+ *
+ * A document followed as it is written (task-17.10 decision 1) has its pieces checked on their own
+ * first — `validateSynthesisTree`, `validateSynthesisPiece` — and the whole of it here at its end.
  */
 export interface SynthesisChecks {
   /** The sdk's A2UI validator over the Synthesizer's pruned catalog. */
@@ -96,6 +99,35 @@ export function validateSynthesis(input: unknown, checks: SynthesisChecks): Synt
       : []),
   ];
   return errors.length === 0 ? {ok: true, document} : {ok: false, errors};
+}
+
+/** The tree written, checked against the shell catalog before any row is (task-17.10 decision 1). */
+export function validateSynthesisTree(tree: SynthesisTree, validator: A2uiValidator): string[] {
+  return treeErrors(tree, validator);
+}
+
+/**
+ * A piece of the derived model checked on its own as it is written (task-17.10 decision 1): a row
+ * of a list the tree repeats, or a member outside one, in a partial document holding that piece
+ * alone beside the tree and the sorts written so far. Its structure and the sorts over what it
+ * holds through the sdk's validator; the derived-value rule over what the partial model holds — a
+ * binding into what has not arrived yet is no finding; its operators; its refs resolving now; its
+ * facts holding now. The checks over the whole document run once it is complete.
+ */
+export function validateSynthesisPiece(partial: Synthesis, checks: SynthesisChecks): string[] {
+  // A sort over a list the piece does not hold is the whole document's to check.
+  const held = partial.sorts.filter(sort => {
+    const first = parsePointer(sort.path)[0];
+    return first?.kind === 'key' && first.key in partial.dataModel;
+  });
+  const structure = validateSynthesisPayload({dataModel: partial.dataModel, sorts: held});
+  if (!structure.ok) return structure.errors;
+  return [
+    ...derivedValueErrors(partial, {partial: true}),
+    ...operatorErrors(partial, checks),
+    ...refErrors(partial, checks.partitions),
+    ...holdErrors(partial, checks.partitions),
+  ];
 }
 
 const TREE_SURFACE = 'synthesis';
@@ -244,11 +276,13 @@ function bindingsOf(component: TreeComponent): Array<{prop: string; path: string
 /**
  * The derived-value rule (phase decision 18, task decision 5): only `DerivedValue` binds a
  * formula path, and `DerivedValue` binds nothing else; a template binds a branch that is an
- * array; `SortControl` binds one of the declared sorts at `/sorts/N`.
+ * array; `SortControl` binds one of the declared sorts at `/sorts/N`. Over a partial model
+ * (task-17.10 decision 1) a binding into what is not there yet is no finding.
  */
-function derivedValueErrors(synthesis: Synthesis): string[] {
+function derivedValueErrors(synthesis: Synthesis, options: {partial?: boolean} = {}): string[] {
   const errors: string[] = [];
   const {tree, dataModel, sorts} = synthesis;
+  const partial = options.partial === true;
   const byId = new Map(tree.components.map(c => [c.id, c]));
   const context = new Map<string, string>();
   const contextOf = (id: string): string | undefined => context.get(id);
@@ -265,7 +299,7 @@ function derivedValueErrors(synthesis: Synthesis): string[] {
     if (isTemplate(children)) {
       const path = joinPath(ctx, children.path);
       const node = nodeAt(dataModel, path);
-      if (node === undefined || !Array.isArray(node)) {
+      if ((node === undefined && !partial) || (node !== undefined && !Array.isArray(node))) {
         errors.push(
           `/tree (${id}): the template path ${children.path} must name an array of the derived model`,
         );
@@ -300,6 +334,7 @@ function derivedValueErrors(synthesis: Synthesis): string[] {
         continue;
       }
       const node = nodeAt(dataModel, absolute);
+      if (node === undefined && partial) continue;
       const formula = node !== undefined && isFormula(node);
       if (component.component === 'DerivedValue') {
         if (prop === 'cell' && !formula) {

@@ -33,10 +33,40 @@ describe('TaggedBlockReader', () => {
   test('hands over each member of the block as it is finished, in the order written', () => {
     const pieces = read(answer, 7).filter(piece => piece.kind === 'member');
     expect(pieces).toEqual([
-      {kind: 'member', key: 'title', value: document.title},
-      {kind: 'member', key: 'dispatch', value: document.dispatch},
-      {kind: 'member', key: 'dataModel', value: document.dataModel},
-      {kind: 'member', key: 'tree', value: document.tree},
+      {kind: 'member', path: [], key: 'title', value: document.title},
+      {kind: 'member', path: [], key: 'dispatch', value: document.dispatch},
+      {kind: 'member', path: [], key: 'dataModel', value: document.dataModel},
+      {kind: 'member', path: [], key: 'tree', value: document.tree},
+    ]);
+  });
+
+  test('hands over each member of a watched object as it is finished, before the object’s end (task 17.10)', () => {
+    const pieces = read(answer, 6, [['dataModel']]);
+    const members = pieces.filter(piece => piece.kind === 'member' && piece.path.length > 0);
+    expect(members).toEqual(
+      Object.entries(document.dataModel).map(([key, value]) => ({
+        kind: 'member',
+        path: ['dataModel'],
+        key,
+        value,
+      })),
+    );
+    const last = pieces.findLastIndex(piece => piece.kind === 'member' && piece.path.length > 0);
+    const whole = pieces.findIndex(piece => piece.kind === 'member' && piece.key === 'dataModel');
+    expect(last).toBeLessThan(whole);
+  });
+
+  test('a container watched once the reader is reading is handed over from there on (task 17.10)', () => {
+    const reader = new TaggedBlockReader(tag);
+    const head = `<${tag}>{"tree": {"components": [{"id": "root"}]}, `;
+    expect(reader.push(head).map(piece => piece.kind)).toEqual(['member']);
+    reader.watch(['dataModel', 'rows']);
+    expect(reader.push('"dataModel": {"rows": [{"a": 1}, ')).toEqual([
+      {kind: 'element', path: ['dataModel', 'rows'], index: 0, value: {a: 1}},
+    ]);
+    expect(reader.push('{"a": 2}]}}')).toEqual([
+      {kind: 'element', path: ['dataModel', 'rows'], index: 1, value: {a: 2}},
+      {kind: 'member', path: [], key: 'dataModel', value: {rows: [{a: 1}, {a: 2}]}},
     ]);
   });
 
@@ -79,8 +109,8 @@ describe('TaggedBlockReader', () => {
   test('a scalar member is finished at the character after it', () => {
     const reader = new TaggedBlockReader(tag);
     expect(reader.push(`<${tag}>{"a": 12`)).toEqual([]);
-    expect(reader.push('5, "b": true')).toEqual([{kind: 'member', key: 'a', value: 125}]);
-    expect(reader.push('}')).toEqual([{kind: 'member', key: 'b', value: true}]);
+    expect(reader.push('5, "b": true')).toEqual([{kind: 'member', path: [], key: 'a', value: 125}]);
+    expect(reader.push('}')).toEqual([{kind: 'member', path: [], key: 'b', value: true}]);
   });
 
   test('watches nothing unless asked: an array member is handed over whole', () => {
@@ -93,13 +123,13 @@ describe('TaggedBlockReader', () => {
     const other = `<other>${JSON.stringify({title: 'x'})}</other>`;
     expect(read(other, 4)).toEqual([]);
     const twice = `<${tag}>{"title": "one"}</${tag}><${tag}>{"title": "two"}</${tag}>`;
-    expect(read(twice, 3)).toEqual([{kind: 'member', key: 'title', value: 'one'}]);
+    expect(read(twice, 3)).toEqual([{kind: 'member', path: [], key: 'title', value: 'one'}]);
   });
 
   test('hands over nothing once the block is not a JSON object, or stops being JSON', () => {
     expect(read(`<${tag}>\n\`\`\`json\n{"title": "x"}\n\`\`\`\n</${tag}>`, 4)).toEqual([]);
     expect(read(`<${tag}>{"title": "x", "dispatch": nope, "tree": {}}</${tag}>`, 4)).toEqual([
-      {kind: 'member', key: 'title', value: 'x'},
+      {kind: 'member', path: [], key: 'title', value: 'x'},
     ]);
   });
 });

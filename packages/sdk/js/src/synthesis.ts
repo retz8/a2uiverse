@@ -158,6 +158,12 @@ export const SYNTHESIS_SCHEMA = {
   properties: {
     dataModel: {$ref: '#/$defs/dataModel'},
     sorts: {type: 'array', items: {$ref: '#/$defs/sort'}},
+    partial: {
+      type: 'boolean',
+      const: true,
+      description:
+        "Present while the Synthesizer is still writing: the derived model and the sorts as far as they have passed their own checks — the turn's first synthesis streamed into its reserved slot, the tree's event first, then one event per piece with no A2UI parts. Absent on the document as accepted, which replaces what streamed.",
+    },
   },
 } as const;
 
@@ -208,10 +214,15 @@ export interface SortDeclaration {
   direction: 'asc' | 'desc';
 }
 
-/** What rides under {@link SYNTHESIS_KEY}: the derived model and the sorts. */
+/**
+ * What rides under {@link SYNTHESIS_KEY}: the derived model and the sorts — marked `partial` while
+ * the Synthesizer still writes them (task-17.10 decision 1), the payload then being what has
+ * passed so far.
+ */
 export interface SynthesisPayload {
   dataModel: DerivedModel;
   sorts: SortDeclaration[];
+  partial?: true;
 }
 
 /** The payload on an event's metadata, if present and envelope-complete. */

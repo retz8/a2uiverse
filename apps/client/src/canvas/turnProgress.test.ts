@@ -620,3 +620,25 @@ describe('the update tile (task-15.3 decision 17, task-15.8 decision 4)', () => 
     });
   });
 });
+
+describe('the merged view drawn as it is written (task-17.10 decision 10)', () => {
+  it('keeps the merge step working, over the sources that arrived, while the view streams in; joined once the document is accepted', () => {
+    const store = createCanvasStore();
+    store.beginPaint('utterance');
+    store.setRoster(JOINED);
+    for (const app of ['linear', 'github', 'circleci', 'shell'])
+      store.placeFragment(app, {surfaceId: `${app}:s`, source: app});
+    store.setMergeStreaming(true);
+    expect(turnProgress(store.getState()).merge).toEqual({
+      text: 'Joining Linear issues to GitHub PRs and CircleCI runs',
+      status: 'working',
+    });
+    store.setMergeStreaming(false);
+    store.setMerge({merged: ['linear', 'github', 'circleci']});
+    store.endPaint();
+    expect(turnProgress(store.getState()).merge).toEqual({
+      text: 'Joined Linear issues to GitHub PRs and CircleCI runs',
+      status: 'done',
+    });
+  });
+});

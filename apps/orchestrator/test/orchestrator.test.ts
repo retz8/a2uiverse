@@ -25,7 +25,13 @@ import {
   tellLayout,
   ThrowingPlanner,
 } from './fakePlanner.js';
-import {bestPriceView, decline, FakeSynthesizer, HeldSynthesizer} from './fakeSynthesizer.js';
+import {
+  bestPriceView,
+  decline,
+  FakeSynthesizer,
+  HeldSynthesizer,
+  StreamingSynthesizer,
+} from './fakeSynthesizer.js';
 import type {
   SynthesisAnswer,
   SynthesisCall,
@@ -4087,5 +4093,213 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
     const [line] = await journalLines(1);
     const record = line!.plan as PlanRecord;
     expect(record.firstPieceMs).toBeGreaterThanOrEqual(record.planMs);
+  });
+});
+
+describe('the synthesis fragment streamed (task 17.10)', () => {
+  const planner = () => new FakePlanner(() => planWithSynthesis(['github', 'gmail']));
+  const scripts = () => ({github: shopScript(camerasA), gmail: shopScript(camerasB)});
+  const opsOf = (event: AnyEvent) =>
+    a2uiDatas(event).map(d => Object.keys(d).find(key => key !== 'version'));
+  const isTakeDown = (e: AnyEvent) =>
+    stampOf(e)?.source === 'shell' &&
+    stampOf(e)?.role === 'fragment' &&
+    a2uiDatas(e).some(d => d.deleteSurface);
+  const isShell = (e: AnyEvent) =>
+    e.kind === 'status-update' && stampOf(e)?.role === 'shell' && a2uiDatas(e).length > 0;
+  const rowsOf = (event: AnyEvent) => payloadOf(event).dataModel.rows as unknown[];
+  /** The best-price view with its second row's operator refused. */
+  const badRow = (call: SynthesisCall): Synthesis => {
+    const document = bestPriceView(call);
+    (document.dataModel.rows as Array<{best: {op: string}}>)[1]!.best.op = 'median';
+    return document;
+  };
+  /** The best-price view on another tree: its sort control under the rows. */
+  const otherTree = (call: SynthesisCall): Synthesis => {
+    const document = bestPriceView(call);
+    document.tree.components[0]!.children = ['rows', 'sort'];
+    return document;
+  };
+
+  test('the tree paints the view into its reserved slot with its rows to come, each row rides an event of its own, and the document as accepted lands as the payload alone (decisions 1, 3, 4, 9)', async () => {
+    const synthesizer = new StreamingSynthesizer();
+    const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
+    const events = await collect(client, utterance('compare camera prices'));
+    expect(finalOf(events).status.state).toBe('completed');
+    const paints = synthesisEvents(events);
+    expect(paints).toHaveLength(4);
+    const [first, row1, row2, landed] = paints as [AnyEvent, AnyEvent, AnyEvent, AnyEvent];
+    expect(opsOf(first)).toEqual(['createSurface', 'updateComponents']);
+    expect(payloadOf(first)).toEqual({
+      dataModel: {rows: []},
+      sorts: [expect.objectContaining({path: '/rows'})],
+      partial: true,
+    });
+    for (const piece of [row1, row2]) {
+      expect(opsOf(piece)).toEqual([]);
+      expect((piece as TaskStatusUpdateEvent).status.message).toBeUndefined();
+      expect(payloadOf(piece).partial).toBe(true);
+      expect(stampOf(piece)).toEqual({source: 'shell', role: 'fragment'});
+    }
+    expect(rowsOf(row1)).toHaveLength(1);
+    expect(rowsOf(row2)).toHaveLength(2);
+    expect(opsOf(landed)).toEqual([]);
+    expect(payloadOf(landed)).not.toHaveProperty('partial');
+    expect(rowsOf(landed)).toHaveLength(2);
+    // The merge's set is painted on the slot only once the document is accepted.
+    const slotsBefore = events.slice(0, events.indexOf(landed)).filter(e => isShell(e));
+    for (const paint of slotsBefore.map(a2uiDatas).filter(d => d.length > 0)) {
+      expect(slotsOf(paint)['shell']).not.toHaveProperty('merged');
+    }
+    expect(shellSlotOf(events)).toMatchObject({merged: ['github', 'gmail']});
+    expect(events.some(isTakeDown)).toBe(false);
+    const [line] = await journalLines(1);
+    const record = line!.synthesis as SynthesisRecord;
+    expect(record.outcome).toBe('synthesized');
+    expect(record.firstRowMs).toEqual(expect.any(Number));
+    expect(record.firstRowMs!).toBeLessThanOrEqual(record.deadAirMs!);
+  });
+
+  test('a row failing its own check stops the painting; the retry’s view replaces the half-drawn one in one step (decisions 5, 6)', async () => {
+    const synthesizer = new StreamingSynthesizer([badRow, otherTree]);
+    const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
+    const events = await collect(client, utterance('compare camera prices'));
+    expect(finalOf(events).status.state).toBe('completed');
+    const paints = synthesisEvents(events);
+    expect(paints).toHaveLength(3);
+    const [first, row1, landed] = paints as [AnyEvent, AnyEvent, AnyEvent];
+    expect(opsOf(first)).toEqual(['createSurface', 'updateComponents']);
+    expect(rowsOf(row1)).toHaveLength(1);
+    expect(payloadOf(row1).partial).toBe(true);
+    // The retry's tree, painted whole over the half-drawn one, its payload beside it.
+    expect(opsOf(landed)).toEqual(['createSurface', 'updateComponents']);
+    expect(payloadOf(landed)).not.toHaveProperty('partial');
+    expect(rowsOf(landed)).toHaveLength(2);
+    expect(events.some(isTakeDown)).toBe(false);
+    expect(synthesizer.calls).toHaveLength(2);
+    const [line] = await journalLines(1);
+    const record = line!.synthesis as SynthesisRecord;
+    expect(record.outcome).toBe('synthesized');
+    expect(record.attempts!.map(a => a.errors.length)).toEqual([1, 0]);
+    expect(record.firstRowMs).toEqual(expect.any(Number));
+  });
+
+  test('a second failure collapses the slot to couldn’t be made, then takes the half-drawn view down; Try again makes the merge afresh, landing whole (decisions 6, 7)', async () => {
+    const synthesizer = new StreamingSynthesizer([badRow, badRow, bestPriceView]);
+    const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
+    const contextId = crypto.randomUUID();
+    const events = await collect(client, utterance('compare camera prices', contextId));
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(synthesisEvents(events)).toHaveLength(2);
+    const takeDown = events.findIndex(isTakeDown);
+    expect(takeDown).toBeGreaterThan(0);
+    const collapsed = events.findIndex(
+      e => isShell(e) && slotsOf(a2uiDatas(e))['shell']?.state === 'collapsed',
+    );
+    expect(collapsed).toBeGreaterThan(0);
+    expect(collapsed).toBeLessThan(takeDown);
+    expect(shellSlotOf(events)).toMatchObject({state: 'collapsed', collapse: {cause: 'unmade'}});
+    const [line] = await journalLines(1);
+    expect(line!.synthesis).toMatchObject({outcome: 'malformed', collapse: 'unmade'});
+    expect((line!.synthesis as SynthesisRecord).firstRowMs).toEqual(expect.any(Number));
+
+    const again = await collect(client, press('tryAgain', [], contextId));
+    expect(finalOf(again).status.state).toBe('completed');
+    const paints = synthesisEvents(again);
+    expect(paints).toHaveLength(1);
+    expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);
+    expect(payloadOf(paints[0]!)).not.toHaveProperty('partial');
+    expect(shellSlotOf(again)).toMatchObject({merged: ['github', 'gmail']});
+  });
+
+  test('a model error after the view began takes it down the same way', async () => {
+    // The pieces: the tree, the sorts, the model's opening, the list's, the first row.
+    const synthesizer = new StreamingSynthesizer(bestPriceView, {
+      throwAfter: {piece: 4, error: new Error('quota exceeded')},
+    });
+    const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
+    const events = await collect(client, utterance('compare camera prices'));
+    expect(finalOf(events).status.state).toBe('completed');
+    const paints = synthesisEvents(events);
+    expect(paints).toHaveLength(2);
+    expect(rowsOf(paints[1]!)).toHaveLength(1);
+    expect(events.some(isTakeDown)).toBe(true);
+    expect(shellSlotOf(events)).toMatchObject({state: 'collapsed', collapse: {cause: 'unmade'}});
+    const [line] = await journalLines(1);
+    expect(line!.synthesis).toMatchObject({
+      outcome: 'failed',
+      reason: 'quota exceeded',
+      collapse: 'unmade',
+    });
+  });
+
+  test('a first synthesis thrown away while it streams keeps the half-drawn view; the merge made again lands whole (decision 8)', async () => {
+    const held = gate();
+    // Held before the second row is written: the half-drawn view shows one row meanwhile. The
+    // merge made again writes another tree, so its landing is seen to replace the first.
+    const synthesizer = new StreamingSynthesizer([bestPriceView, otherTree], {
+      hold: piece => (piece === 5 ? held.opened : undefined),
+    });
+    const {client} = await boot({
+      planner: planner(),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA, () => ({path: '/items', value: [camerasA[0]]})),
+        gmail: shopScript(camerasB),
+      },
+    });
+    const contextId = crypto.randomUUID();
+    const turn = streamOf(client, utterance('compare camera prices', contextId));
+    await until(() => synthesisEvents(turn.events).length === 2, 'one row drawn');
+    const action = await collect(client, actionOn('github:s1', contextId));
+    held.open();
+    const events = await turn.done;
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesizer.calls[0]!.signal?.aborted).toBe(true);
+    expect(synthesizer.calls[1]!.onText).toBeUndefined();
+    const paints = synthesisEvents([...events, ...action]);
+    expect(paints).toHaveLength(3);
+    expect(rowsOf(paints[1]!)).toHaveLength(1);
+    // Nothing taken down: the half-drawn view stays until the remade merge replaces it whole.
+    expect([...events, ...action].some(isTakeDown)).toBe(false);
+    expect(opsOf(paints[2]!)).toEqual(['createSurface', 'updateComponents']);
+    expect(payloadOf(paints[2]!)).not.toHaveProperty('partial');
+    expect(rowsOf(paints[2]!)).toHaveLength(1);
+    const lines = await journalLines(2);
+    const line = lines.find(l => l.turnId === events[0]!.id)!;
+    expect(line.synthesis).toMatchObject({
+      outcome: 'synthesized',
+      thrownAway: [{changed: ['github:s1']}],
+      firstRowMs: expect.any(Number),
+    });
+  });
+
+  test('a re-synthesis lands whole: Include folds a late source in with one paint (decision 7)', async () => {
+    const synthesizer = new StreamingSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() =>
+        layoutFor(['github', 'gmail', 'calendar'], {merged: 'Compare.'}),
+      ),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA),
+        gmail: shopScript(camerasB),
+        calendar: after(600, shopScript(camerasA)),
+      },
+      softDeadlineMs: 150,
+    });
+    const contextId = crypto.randomUUID();
+    const plan = await collect(client, utterance('compare', contextId));
+    expect(synthesisEvents(plan).length).toBeGreaterThanOrEqual(4);
+    expect(shellSlotOf(plan)).toMatchObject({late: ['calendar']});
+    const events = await collect(client, press('include', ['calendar'], contextId));
+    expect(finalOf(events).status.state).toBe('completed');
+    const paints = synthesisEvents(events);
+    expect(paints).toHaveLength(1);
+    expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);
+    expect(payloadOf(paints[0]!)).not.toHaveProperty('partial');
+    expect(synthesizer.calls[1]!.onText).toBeUndefined();
+    expect(shellSlotOf(events)).toMatchObject({merged: ['github', 'gmail', 'calendar']});
   });
 });

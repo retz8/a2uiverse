@@ -23,6 +23,7 @@ describe('createCanvasStore', () => {
       presses: [],
       mergeFollowingStep: false,
       mergeHeld: false,
+      mergeStreaming: false,
       notices: [],
       roster: [],
       prose: new Map(),
@@ -299,5 +300,18 @@ describe('the slot’s install and update (task 15.9)', () => {
     store.resetComposition();
     expect(store.getState().updates.size).toBe(0);
     expect(store.getState().appActs.size).toBe(0);
+  });
+});
+
+describe('the merged view drawn as it is written (task-17.10 decision 10)', () => {
+  it('is streaming from a partial payload until the accepted one, and no more once the composition retires', () => {
+    const store = createCanvasStore();
+    store.setMergeStreaming(true);
+    expect(store.getState().mergeStreaming).toBe(true);
+    store.setMergeStreaming(false);
+    expect(store.getState().mergeStreaming).toBe(false);
+    store.setMergeStreaming(true);
+    store.resetComposition();
+    expect(store.getState().mergeStreaming).toBe(false);
   });
 });

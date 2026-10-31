@@ -240,7 +240,7 @@ flowchart TD
     S --> V{"5. Validator"}
     V -->|"errors, first try"| S
     V -->|"errors again"| X
-    V -->|"accepted"| PT["6. Orchestrator paints the tree,<br/>the formulas riding beside it"]
+    V -->|"accepted"| PT["6. Orchestrator paints the tree,<br/>the formulas riding beside it —<br/>the first merge row by row as the model writes"]
     PT --> E["7. Client evaluates, then renders"]
     E --> LIVE["8. Live: evaluated again on every change"]
 ```
@@ -271,13 +271,15 @@ The client draws the reserved slot right away, as the table to come: the planned
 - **A system prompt**, assembled once at boot: the Synthesizer's role, the rules for writing refs, formulas, joins and sorts, the shell catalog's guidance on which components make a merged view, the shell catalog pruned to exactly those components, the output schema, and one worked example.
 - **The turn**: your question, the Planner's brief, the planned columns with their apps, any app that isn't in this merge and why, and the live data model of every partition, each with its app's name.
 
-It never sees an app's component tree, only data. It answers with the JSON document inside a `<synthesize-data-model>` tag. Each planned column is filled by the operator that computes what its words say: a "Difference" column by `difference`, which has no value where one side is absent. A column no operator computes is dropped or renamed, never filled by an operator that computes something else.
+It never sees an app's component tree, only data. It answers with the JSON document inside a `<synthesize-data-model>` tag, asked to write its members in one order: the tree, then the sorts, then the data model, the note last, so the view can be drawn as it's written (step 6). Each planned column is filled by the operator that computes what its words say: a "Difference" column by `difference`, which has no value where one side is absent. A column no operator computes is dropped or renamed, never filled by an operator that computes something else.
 
 **5. The orchestrator checks it, and hands it back once if needed.** The document goes through one validator. Anything wrong goes back to the model once, as a list of errors beside its own document. A second failure means the view couldn't be made. [Checking the model's work](#checking-the-models-work) lists the checks.
 
 **6. The merged view is painted.** The orchestrator creates the surface `shell:synthesis` in the shell catalog and sends the tree, exactly as written, as ordinary A2UI. On the same event it attaches the **payload**, the `dataModel` and `sorts`, under the metadata key `a2uiverseSynthesis`. The tree travels as A2UI that any renderer understands; the formulas travel beside it, for the client alone. The note goes only to the journal.
 
-**7. The client evaluates before it renders.** The client checks the payload with the same sdk validator the orchestrator used, subscribes to every partition it reads, evaluates every formula, sorts every list, and writes the whole result into the `shell:synthesis` data model in one write. Only then does React render, so the first frame of the merged view already has its values. Here are two cells of the result:
+The question's **first merge doesn't wait for the whole document**. The orchestrator follows the Synthesizer's answer as the model writes it: once the tree and the sorts have passed their checks, it paints the tree with a payload holding the lists the tree repeats, still empty, marked `partial`; then each row of the derived data model, checked on its own the moment it's finished, goes out on an event of its own carrying the payload as far as it has passed; and once the whole document is accepted, the payload with no mark lands over it. On the screen the rows take the reserved slot's four skeleton rows' places one by one, with one skeleton row kept below the last until the document is accepted. [Drawing the view as it's written](#drawing-the-view-as-its-written) walks the mechanism and what happens when a row fails.
+
+**7. The client evaluates before it renders.** The client checks the payload with the same sdk validator the orchestrator used, subscribes to every partition it reads, evaluates every formula, sorts every list, and writes the whole result into the `shell:synthesis` data model in one write. Only then does React render, so the first frame of the merged view already has its values. A partial payload is evaluated the same way, so each row lands where the list's sort puts it. Here are two cells of the result:
 
 ```jsonc
 // row A2U-5, "pr": a value from GitHub, tied in by facts
@@ -556,6 +558,35 @@ If anything fails, the model gets **one retry**: its own document, plus one line
 
 The client checks the payload again when it arrives, with the same sdk validator. The two processes ask different questions on purpose. The orchestrator asks "does every ref resolve **now**, in my copy?", so the model is never allowed to point at nothing. The client asks at every evaluation, when a surface may since have been drilled into or torn down, and answers with a cell state, never an error.
 
+### Drawing the view as it's written
+
+The merged view is the last thing to arrive, and the wait between the last app's answer and its landing is **dead air**: nothing on the screen changes while the model writes. The question's first merge is drawn as it's written instead. Three pieces make that work.
+
+**The follower.** The Synthesizer's prompt asks for the document's members in one order: `tree`, `sorts`, `dataModel`, `note`. The `TaggedBlockReader` the Planner also uses (`apps/orchestrator/src/authoring/blockReader.ts`) follows the `<synthesize-data-model>` block as the text streams in and hands over each root member the moment its last character arrives. The Synthesizer's follower (in `apps/orchestrator/src/synthesizer/synthesizer.ts`) tells the reader to also hand over each member of `dataModel`, and, once the tree is written, each element of every list the tree repeats at the model's root (`/issues` in the example): the reader can be told to watch a container while it's reading, since what the tree repeats is known only once the tree is. The follower holds what has passed so far — a model seeded with those lists, empty — and tells the turn each time something passes:
+
+```
+tree written   → checked against the shell catalog; the lists it repeats watched and seeded
+sorts written  → with the tree: the view told, the lists empty
+a row finished → checked on its own; appended; the view told again
+a member finished (outside a list) → checked on its own; added; the view told again
+```
+
+A document written in another order is still accepted; it's drawn later. The rows wait for the tree and the sorts, so each lands at its sorted place; a data model written before the tree arrives whole as one member and is drawn whole.
+
+**A row checked on its own.** Each row goes through `validateSynthesisPiece`: a partial document holding that row alone beside the tree and the sorts, through the same checks the whole document gets — its shape, its sort keys, the derived-value rule, its operators, its refs resolving in the orchestrator's copies now, its facts holding now — with one allowance: a binding into something that hasn't arrived yet is no finding. The checks over the whole document (one source mark per planned column, every column planned for a missing source kept, one sort declaration per list) run once at the end, as before. Painting stops at the first piece that fails its own check; the model finishes its answer, every check runs, and the retry carries every failure.
+
+**The wire.** The first event paints the tree with the payload marked `partial`; each piece after it is an event with no A2UI parts at all, the payload riding its metadata alone; the document as accepted lands as one more payload with no mark — or, when the retry's tree differs from the one on screen, with the whole tree painted again, replacing the half-drawn view in one step. The client evaluates each payload as it does the final one, so a row lands where the list's sort puts it and the sort control works from the moment the sorts arrive. While a payload is partial, the client's store says the merge is **streaming**: the progress line keeps "Joining …", the shell's slot stays busy, and `Table` keeps `max(4 − rows, 1)` skeleton rows below the rows it holds, the rows taking the reserved slot's four places one for one.
+
+Three things can interrupt a view being drawn:
+
+| What happens | On the screen |
+| --- | --- |
+| A piece fails its own check, the retry's document is accepted | The half-drawn view stays until the retry's document is complete, then is replaced in one step; the retry is not streamed |
+| The retry fails too, or the model call fails | The slot collapses to "The merged view couldn't be made." with Try again, and the half-drawn view is taken down after the line is painted, so no skeleton shows between |
+| A press changes the apps' data while the model writes | The half-drawn view stays, evaluated live over the data as it stands; the merge is made again, not streamed, and swapped in whole once accepted, or taken down if it ends unmade |
+
+Only the question's first merge streams. Every re-synthesis — Include, Retry, Try again, the walk after a press, a step to a combination never seen — lands whole, as its landed view already shows something. The journal records when the first row left, `firstRowMs` on the synthesis, beside `deadAirMs`, which keeps its meaning: from the merge's release to the document accepted.
+
 ## When things go wrong
 
 A merged view that can't be shown collapses to **one line** where its label would be, and gives its space back. Every line comes with the press that can bring the view back, except the decline:
@@ -595,8 +626,9 @@ If the client can't accept a payload at all (in practice, the two sides disagree
 | **Only the first merge is automatic** | Every later model call has a press behind it; the view never changes without a visible reason | A late app waits for Include |
 | **The runtime reads time, in the viewer's zone** | Apps paint time however they like; sorting and display agree; each reader sees times on their own clock | A time an app wrote with no zone is read as the viewer's wall time, which is wrong when the app meant another zone |
 | **Wiring remembered per combination** | Stepping back to a screen already seen restores the view with no model call | The memory grows with each combination seen, for the life of the answer |
+| **The first merge drawn row by row as the model writes it, every later one landing whole** | The dead air after the last app's answer fills with rows as they're written, each checked before it shows; a view already on screen never flickers through a re-write | Every row costs a check and a client evaluation of its own; a row that fails late stops the drawing short until the retry lands |
 
-Two things are deliberately left as they are. The wait between the last app's answer and the merged view appearing (**dead air**) is measured in the journal, not yet reduced; streaming the merged view in as the model writes it is on the backlog. And the Synthesizer's judgment of which entries match is taught by rules and an example but can't be enforced, so it varies from run to run.
+One thing is deliberately left as it is: the Synthesizer's judgment of which entries match is taught by rules and an example but can't be enforced, so it varies from run to run. The wait between the last app's answer and the merged view (**dead air**) is still measured in the journal as `deadAirMs`; what the reader sees of it is now the rows filling in.
 
 ## Trying it without a model
 
@@ -611,7 +643,7 @@ Start the client (`pnpm dev:client`) and open a replay; see the [client README](
 | `?beat=23`, `?beat=24` | Stepping back to a combination seen (restored, no call) and one never seen (the change account)   |
 | `?beat=26`             | Back past a new run: every step lands on a combination seen, the job left behind still reachable  |
 
-In the orchestrator's tests, the model sits behind a one-method **text seam** (text in, text out, with the AI SDK's measure of the request beside the text when a real model made it), and a `FakeSynthesizer` plays it. `A2UIVERSE_SYNTHESIZER_LIVE=1` runs the real model once.
+In the orchestrator's tests, the model sits behind a one-method **text seam** (text in, text out, with the AI SDK's measure of the request beside the text when a real model made it, and each delta handed over as it's written), and a `FakeSynthesizer` plays it; a `StreamingSynthesizer` writes its answer in the pieces a model streams it in, holding where a test wants to look at the half-drawn view. `A2UIVERSE_SYNTHESIZER_LIVE=1` runs the real model once.
 
 ## Where the code is
 
@@ -621,7 +653,7 @@ In the orchestrator's tests, the model sits behind a one-method **text seam** (t
 | Refs and pointers | `pointer.ts`, `walk.ts` | `composition/partitions.ts` | `canvas/synthesis/bindingEvaluator.ts` | |
 | Checking the model's work | `validate.ts`, `a2ui/` | `synthesizer/validate.ts` | `canvas/synthesis/intake.ts` | `src/keep-sets.ts` |
 | The prompt | | `synthesizer/prompt.ts`, `synthesizer/synthesis.md`, `synthesizer/examples.ts` | | `docs/synthesis-guidance.md` |
-| The model call | | `synthesizer/synthesizer.ts` | | |
+| The model call, and the answer followed as it's written | | `synthesizer/synthesizer.ts`, `authoring/blockReader.ts` | `canvas/turn/canvasTurn.ts` (the partial payload, the take-down), `canvas/canvasStore.ts` (`mergeStreaming`) | `src/synthesis-streaming.ts`, `src/components/table/table.tsx` (the skeleton rows) |
 | When to merge, the presses | | `composition/trigger.ts`, `composition/presses.ts` | `canvas/composition/columnState.ts` | `src/components/slot/press-lines.ts` |
 | What changed after a click | | `composition/integrity.ts`, `composition/relations.ts` | | |
 | Going back | `a2uiverse.ts` | `composition/history.ts`, `executor.ts` (the step) | `canvas/history/fragmentHistory.ts`, `canvas/canvasRuntime.ts` (the step) | |
@@ -647,7 +679,8 @@ In the orchestrator's tests, the model sits behind a one-method **text seam** (t
 | **Match claim** | An object's `match`: why its refs are about one thing |
 | **Cell** | What the evaluator writes at a formula: the value and how sure it is |
 | **Synthesize data model** | The Synthesizer's document: `dataModel`, `tree`, `sorts`, `note` |
-| **Payload** | The `dataModel` and `sorts`, sent to the client beside the painted tree |
+| **Payload** | The `dataModel` and `sorts`, sent to the client beside the painted tree; marked **partial** while the document is still being written |
+| **Piece** | What the follower tells the turn as the Synthesizer writes: the tree with the sorts, a row of a repeated list, a member outside one |
 | **Planner** | The orchestrator's first model call: picks the apps, designs the layout |
 | **Synthesizer** | The orchestrator's second model call: writes the merged view |
 | **BindingEvaluator** | The client's pure function from payload and partitions to the view's data |

@@ -103,7 +103,7 @@
     },
     "synthesizeDataModel": {
       "direction": "orchestrator → client",
-      "carriedOn": "metadata.a2uiverseSynthesis of the event that paints a synthesis surface; the tree is painted as ordinary A2UI on the same event",
+      "carriedOn": "metadata.a2uiverseSynthesis of the event that paints a synthesis surface; the tree is painted as ordinary A2UI on the same event. The turn's first synthesis is streamed: its tree's event carries the payload marked partial, each piece that passes after it rides an event of its own with no A2UI parts, and the document as accepted rides one more with no mark",
       "authors": "The orchestrator's Synthesizer writes the merged view; the orchestrator validates it, paints its tree in the shell catalog, and sends the derived data model and the sorts as the synthesis payload.",
       "schemas": {
         "synthesis": {
@@ -273,6 +273,11 @@
               "items": {
                 "$ref": "#/$defs/sort"
               }
+            },
+            "partial": {
+              "type": "boolean",
+              "const": true,
+              "description": "Present while the Synthesizer is still writing: the derived model and the sorts as far as they have passed their own checks — the turn's first synthesis streamed into its reserved slot, the tree's event first, then one event per piece with no A2UI parts. Absent on the document as accepted, which replaces what streamed."
             }
           }
         }

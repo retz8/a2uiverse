@@ -345,3 +345,24 @@ describe('lifetimes', () => {
     expect(model().sorts[0]).toMatchObject({direction: 'asc'});
   });
 });
+
+describe('the view taken down (task-17.10 decisions 6, 8)', () => {
+  test('discard forgets the payload and the output and stops watching; the reader’s sort choice stays for the view made again', async () => {
+    paintStorefronts();
+    paintSynthesis();
+    sorts().set('/sorts/0', {...DOCUMENT.sorts[0], key: '/name', direction: 'desc'});
+    await settled();
+    expect(names()).toEqual(['Verity A7', 'Lumen X100']);
+    session.discard();
+    expect(session.payload).toBeUndefined();
+    expect(session.output).toBeUndefined();
+    // A storefront changing under it evaluates nothing: there is no view.
+    processor.processMessages([
+      msg({updateDataModel: {surfaceId: SHOP_A, path: '/items', value: SHOP_A_REVERSED}}),
+    ]);
+    await settled();
+    expect(session.output).toBeUndefined();
+    paintSynthesis();
+    expect(names()).toEqual(['Verity A7', 'Lumen X100']);
+  });
+});

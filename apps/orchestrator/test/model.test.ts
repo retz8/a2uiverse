@@ -174,14 +174,14 @@ describe('the callers carry the tier (task-17.2 decision 8)', () => {
     for (const call of model.doStreamCalls) expect(call.reasoning).toBe('none');
   });
 
-  test('the Synthesizer’s text seam passes the reasoning word', async () => {
-    const model = new MockLanguageModelV4({doGenerate: answer('merged')});
+  test('the Synthesizer’s text seam passes the reasoning word, streaming the answer (task-17.10 decision 9)', async () => {
+    const model = new MockLanguageModelV4(streaming({doGenerate: answer('merged')}));
     const {text} = await new AiSdkSynthesisModel({model, reasoning: 'provider-default'}).generate({
       system: 'S',
       prompt: 'P',
       input: {utterance: 'u', request: 'r', sources: []},
     });
     expect(text).toBe('merged');
-    expect(model.doGenerateCalls[0]?.reasoning).toBe('provider-default');
+    expect(model.doStreamCalls[0]?.reasoning).toBe('provider-default');
   });
 });

@@ -2,19 +2,24 @@
  * The tagged block followed as the model writes it (task-17.9 decision 10), beside the shared
  * extractor it mirrors: the first `<tag>` in the answer opens the block, its body is read as one
  * JSON object, and each piece is handed over the moment its last character arrives — each member
- * of the object, and each element of the arrays the caller watches. It knows nothing of what the
- * block means. The whole answer is still read by `extractTaggedBlock` at its end; this reader only
- * lets a caller act on what is finished before then. A body that is not a JSON object, or stops
- * being JSON, hands over nothing more.
+ * of the object, and each element of the arrays the caller watches, each member of the objects it
+ * watches. It knows nothing of what the block means. The whole answer is still read by
+ * `extractTaggedBlock` at its end; this reader only lets a caller act on what is finished before
+ * then. A body that is not a JSON object, or stops being JSON, hands over nothing more. A container
+ * may be watched after the reader is made (task 17.10): what the Synthesizer's tree repeats is
+ * known only once the tree is written.
  */
 
-/** A finished piece: a member of the block's object, or an element of a watched array. */
+/**
+ * A finished piece: a member of the block's object — `path` empty — or of a watched object, or an
+ * element of a watched array.
+ */
 export type BlockPiece =
-  | {kind: 'member'; key: string; value: unknown}
+  | {kind: 'member'; path: readonly string[]; key: string; value: unknown}
   | {kind: 'element'; path: readonly string[]; index: number; value: unknown};
 
 export interface BlockReaderOptions {
-  /** The arrays whose elements are handed over one by one, each by its path of member keys. */
+  /** The containers whose pieces are handed over one by one, each by its path of member keys. */
   elements?: readonly (readonly string[])[];
 }
 
@@ -50,6 +55,11 @@ export class TaggedBlockReader {
   constructor(tag: string, options: BlockReaderOptions = {}) {
     this.#open = `<${tag}>`;
     this.#watched = new Set((options.elements ?? []).map(pathKey));
+  }
+
+  /** A container to hand over piece by piece from here on: an array's elements, an object's members. */
+  watch(path: readonly string[]): void {
+    this.#watched.add(pathKey(path));
   }
 
   /** The answer's next text; the pieces it finished, in the order written. */
@@ -167,8 +177,7 @@ export class TaggedBlockReader {
     const parent = this.#stack.at(-1)!;
     parent.expect = 'comma';
     const root = this.#stack.length === 1;
-    const element = parent.type === 'array' && this.#watched.has(pathKey(parent.path));
-    if (!root && !element) return;
+    if (!root && !this.#watched.has(pathKey(parent.path))) return;
     let value: unknown;
     try {
       value = JSON.parse(this.#body.slice(start, end));
@@ -176,8 +185,8 @@ export class TaggedBlockReader {
       return this.#stop();
     }
     pieces.push(
-      root
-        ? {kind: 'member', key: parent.key!, value}
+      parent.type === 'object'
+        ? {kind: 'member', path: parent.path, key: parent.key!, value}
         : {kind: 'element', path: parent.path, index: parent.index, value},
     );
   }

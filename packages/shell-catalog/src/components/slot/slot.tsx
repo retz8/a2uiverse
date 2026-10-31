@@ -21,11 +21,13 @@ import {
   WAITING_WORDS,
 } from '../shared/SignInWaiting.js';
 import {SkeletonBar} from '../shared/skeleton.js';
+import {SynthesisStreamingContext} from '../../synthesis-streaming.js';
 import {
-  bodyCellStyle,
   ColumnHeading,
   headingCellStyle,
+  RESERVED_ROWS,
   reservedColumnState,
+  SkeletonRows,
 } from '../table/table.js';
 import {
   collapsedLines,
@@ -185,6 +187,8 @@ export function SlotView({
   const signingIn = useContext(SignInContext);
   const {enabled, presses} = useContext(PressStateContext);
   const acts = useContext(AppActContext);
+  // The merged view still being drawn as it is written stays busy (task-17.10 decision 10).
+  const streaming = useContext(SynthesisStreamingContext);
   // Set by a press whose button held focus: the line that replaces the button takes it (task-8.5
   // decision 15), so a keyboard reader's place is not dropped to the page.
   const focusLine = useRef(false);
@@ -559,6 +563,7 @@ export function SlotView({
           data-slot={source}
           data-slot-state="filled"
           data-slot-content={shell ? 'shell' : undefined}
+          {...(shell && streaming ? {'aria-busy': true, 'aria-label': label} : {})}
           // A filled fragment slot keeps the floor it reserved while pending. Dropping it made the
           // box collapse the instant a fragment mounted and then grow again as content streamed —
           // the slot giving back space it had already claimed. Shell content reserved no floor.
@@ -741,14 +746,6 @@ const visuallyHidden: CSSProperties = {
   border: 0,
 };
 
-/** The skeleton rows' bar widths, per row and column, as the merged view's board draws them. */
-const SKELETON_WIDTHS = [
-  [62, 64, 36, 70, 58, 72],
-  [48, 64, 36, 70, 58, 68],
-  [56, 64, 16, 16, 16, 68],
-  [70, 64, 36, 70, 58, 64],
-];
-
 /**
  * The failure tile's one statement (task-8.7 decision 17, worded for the reader by task-11.5
  * decision 9): the vendor's own words when it spoke, else the shell's reason for the painted
@@ -875,15 +872,7 @@ function ReservedView({
           </Table.Header>
         )}
         <Table.Body>
-          {SKELETON_WIDTHS.map((widths, row) => (
-            <Table.Row key={row} data-skeleton-row="">
-              {Array.from({length: count}, (_, index) => (
-                <Table.Cell key={index} style={bodyCellStyle(index)}>
-                  <SkeletonBar width={`${widths[index % widths.length]}%`} height={8} />
-                </Table.Cell>
-              ))}
-            </Table.Row>
-          ))}
+          <SkeletonRows count={RESERVED_ROWS} columns={count} />
         </Table.Body>
       </Table.Root>
     </Flex>
