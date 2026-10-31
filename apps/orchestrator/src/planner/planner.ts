@@ -1,5 +1,10 @@
-import {createA2uiValidator, type A2uiCatalogSchema, type A2uiValidator} from '@a2uiverse/sdk';
-import {generateText, stepCountIs, type LanguageModel, type ModelMessage} from 'ai';
+import {
+  createA2uiValidator,
+  type A2uiCatalogSchema,
+  type A2uiComponent,
+  type A2uiValidator,
+} from '@a2uiverse/sdk';
+import {stepCountIs, streamText, type LanguageModel, type ModelMessage} from 'ai';
 import type {Effort, Reasoning} from '../model/getModel.js';
 import {
   AttemptMeasurement,
@@ -7,15 +12,22 @@ import {
   type ModelRequestRecord,
   type RequestClock,
 } from '../model/requests.js';
+import {TaggedBlockReader, type BlockPiece} from '../authoring/blockReader.js';
 import {extractTaggedBlock} from '../authoring/taggedBlock.js';
 import type {ToolCallRecord} from '../journal/types.js';
 import type {ShortlistEntry} from '../router/router.js';
-import type {LayoutSurface} from './document.js';
+import type {DispatchEntry, LayoutSurface} from './document.js';
 import {planKey, type PlanCache, type PlanCacheMark} from './planCache.js';
 import {buildPlannerTurn, buildRetryTurn, LAYOUT_SURFACE_TAG, type SourcesOf} from './prompt.js';
 import {readerTools, type PlatformReaders} from './readers.js';
 import {searchesOf, type StoreSearch} from './storeSearch.js';
-import {validateLayoutSurface} from './validate.js';
+import {
+  validateComponent,
+  validateDataModel,
+  validateDispatchList,
+  validateLayoutSurface,
+  type LayoutChecks,
+} from './validate.js';
 
 export interface PlanInput {
   utterance: string;
@@ -29,6 +41,36 @@ export interface PlanInput {
   signal?: AbortSignal;
   /** The turn's clock its requests are placed on, and the task their lines name (task 17.5). */
   clock?: RequestClock;
+  /**
+   * The plan followed as the model writes it (task 17.9): the turn told the moment the dispatch
+   * list is committed, and each piece of the layout as it passes its own check. None, and nothing
+   * is committed before the plan returns, every retry the whole answer.
+   */
+  stream?: PlanStream;
+}
+
+/** The dispatch list committed, as the turn is told it (task-17.9 decision 1). */
+export interface CommittedPlan {
+  /** The list as written, its accounts resolved: it stands for the rest of the plan. */
+  dispatch: DispatchEntry[];
+  /** The title, when it was written before the list. */
+  title?: string;
+  /** This plan's tool calls so far: the searches a gap's offer is drawn from. */
+  toolCalls: ToolCallRecord[];
+}
+
+/** A piece of the layout as written, passing its own check (task-17.9 decisions 3, 6). */
+export type LayoutPiece = {dataModel: Record<string, unknown>} | {component: A2uiComponent};
+
+/** What the turn is told as the plan is written (task 17.9). */
+export interface PlanStream {
+  /** The dispatch list committed: its sources may be dispatched now. Told once. */
+  committed(plan: CommittedPlan): void;
+  /**
+   * A piece of the layout, in the order written: only in the attempt that committed the list, a
+   * piece written before the list told right after it, and none past the first that fails.
+   */
+  piece(piece: LayoutPiece): void;
 }
 
 /** One attempt as journaled: the raw text the model returned and why it was refused, if it was. */
@@ -77,6 +119,12 @@ export const MAX_STEPS = 5;
  * marketplace's search when it is wired (task-15.4 decision 1); a gap is checked against this
  * plan's searches, both attempts' (decision 3). With the plan cache, the very same request is
  * answered from it, re-checked by the validator, and no model is called (task-17.6 decision 7).
+ *
+ * The answer is streamed and followed as it is written (task 17.9) when the turn asks: the
+ * dispatch list committed the moment it passes its own checks, each piece of the layout told as it
+ * passes its own. Once the list is committed it stands — the whole answer is checked against it,
+ * a failure retried on the layout, the data model and the title alone, the list that retry writes
+ * ignored, nothing of it told (decisions 2, 7).
  */
 export class ModelPlanner implements Planner {
   readonly #model: LanguageModel;
@@ -160,30 +208,69 @@ export class ModelPlanner implements Planner {
       }
     }
     let messages: ModelMessage[] = [{role: 'user', content: turn}];
+    /** The list once committed (task-17.9 decision 1): the plan's from then on. */
+    let committed: DispatchEntry[] | undefined;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       // Each step measured as it ends, from the SDK's own step result (task-17.5 decision 2).
       const measurement = new AttemptMeasurement('Planner', attempt + 1, input.clock);
-      let result;
-      try {
-        result = await generateText({
-          model: this.#model,
-          system: this.#system,
-          messages,
-          tools,
-          stopWhen: stepCountIs(MAX_STEPS),
-          ...(this.#reasoning ? {reasoning: this.#reasoning} : {}),
-          ...(input.signal ? {abortSignal: input.signal} : {}),
-          onStepEnd: step => measurement.take(step),
-        });
-      } catch (err) {
-        if (!input.signal?.aborted) measurement.failed(err);
-        throw err;
+      /** This attempt's tool calls as their results arrive, before its steps are read whole. */
+      const arrived: ToolCallRecord[] = [];
+      const checks = (): LayoutChecks => ({
+        tree: this.#tree,
+        shortlist,
+        installed: this.#readers.installedApps().map(app => app.id),
+        searches: searchesOf([...toolCalls, ...arrived]),
+      });
+      // An attempt before the commit is followed as it is written; one after it writes the layout
+      // alone, drawn whole once checked (task-17.9 decision 7).
+      const follower =
+        input.stream && committed === undefined
+          ? new AnswerFollower(input.stream, checks, dispatch => {
+              committed = dispatch;
+              return [...toolCalls, ...arrived];
+            })
+          : undefined;
+      const result = streamText({
+        model: this.#model,
+        system: this.#system,
+        messages,
+        tools,
+        stopWhen: stepCountIs(MAX_STEPS),
+        ...(this.#reasoning ? {reasoning: this.#reasoning} : {}),
+        ...(input.signal ? {abortSignal: input.signal} : {}),
+        onStepEnd: step => measurement.take(step),
+        // A failed request is read off the stream below.
+        onError: () => {},
+      });
+      let failed: {error: unknown} | undefined;
+      for await (const part of result.fullStream) {
+        switch (part.type) {
+          // The answer is the last step's text: a step begins it afresh.
+          case 'start-step':
+            follower?.restart();
+            break;
+          case 'text-delta':
+            follower?.read(part.text);
+            break;
+          case 'tool-result':
+            arrived.push({name: part.toolName, args: part.input, result: part.output});
+            break;
+          case 'error':
+            failed ??= {error: part.error};
+            break;
+        }
+      }
+      input.signal?.throwIfAborted();
+      if (failed) {
+        measurement.failed(failed.error);
+        throw failed.error;
       }
       requests.push(...measurement.records);
+      const steps = await result.steps;
       // Every step's messages — each reader call and its result, then the answer — stay in the
       // conversation the retry continues (task-6.4 decision 6); the result's own `response`
       // carries only the last step's.
-      for (const step of result.steps) {
+      for (const step of steps) {
         const executed = step.performance?.toolExecutionMs ?? {};
         for (const call of step.toolResults) {
           const ms = wholeMs(executed[call.toolCallId]);
@@ -196,8 +283,9 @@ export class ModelPlanner implements Planner {
         }
         messages = [...messages, ...step.response.messages];
       }
-      const accepted = this.#accept(result.text, shortlist, toolCalls);
-      attempts.push({text: result.text, errors: accepted.errors});
+      const text = await result.text;
+      const accepted = this.#accept(text, shortlist, toolCalls, committed);
+      attempts.push({text, errors: accepted.errors});
       if (accepted.ok) {
         // Only a plan that called no tool is kept: a reader's or the Store's answer is the moment's.
         const cache = key !== undefined && toolCalls.length === 0 ? {cache: {key}} : {};
@@ -210,15 +298,20 @@ export class ModelPlanner implements Planner {
           ...measured(),
         };
       }
-      messages.push({role: 'user', content: buildRetryTurn(accepted.errors)});
+      messages.push({
+        role: 'user',
+        content: buildRetryTurn(accepted.errors, {listSent: committed !== undefined}),
+      });
     }
     return {kind: 'malformed', attempts, toolCalls, ...measured()};
   }
 
+  /** The answer checked whole; once the list is committed, against it (task-17.9 decision 2). */
   #accept(
     text: string,
     shortlist: readonly string[],
     toolCalls: readonly ToolCallRecord[],
+    committed?: DispatchEntry[],
   ): {ok: true; document: LayoutSurface; errors: string[]} | {ok: false; errors: string[]} {
     const block = extractTaggedBlock(text, LAYOUT_SURFACE_TAG);
     if (!block.ok) return {ok: false, errors: [block.error]};
@@ -233,6 +326,7 @@ export class ModelPlanner implements Planner {
         ],
       };
     }
+    if (committed !== undefined && isRecord(parsed)) parsed = {...parsed, dispatch: committed};
     const installed = this.#readers.installedApps().map(app => app.id);
     const validation = validateLayoutSurface(parsed, {
       tree: this.#tree,
@@ -243,4 +337,112 @@ export class ModelPlanner implements Planner {
     if (!validation.ok) return {ok: false, errors: validation.errors};
     return {ok: true, document: validation.document, errors: []};
   }
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** The tree's components, whose elements are read one by one. */
+const COMPONENTS = ['tree', 'components'] as const;
+
+/**
+ * One attempt's answer followed as it is written (task 17.9): the dispatch list committed the
+ * moment it passes its own checks, then each piece of the layout told as it passes its own — a
+ * piece written before the list told right after it (decision 4) — and nothing past the first
+ * piece that fails (decision 6). The whole answer is still read and checked at its end.
+ */
+class AnswerFollower {
+  readonly #stream: PlanStream;
+  readonly #checks: () => LayoutChecks;
+  /** Records the commit on the plan; answers this plan's tool calls so far. */
+  readonly #commit: (dispatch: DispatchEntry[]) => ToolCallRecord[];
+  #reader = newReader();
+  #title: string | undefined;
+  /** The layout's pieces written before the list. */
+  #waiting: BlockPiece[] = [];
+  #dispatch: DispatchEntry[] | undefined;
+  /** The components told, in order: what each next one is checked beside. */
+  readonly #told: A2uiComponent[] = [];
+  #telling = true;
+
+  constructor(
+    stream: PlanStream,
+    checks: () => LayoutChecks,
+    commit: (dispatch: DispatchEntry[]) => ToolCallRecord[],
+  ) {
+    this.#stream = stream;
+    this.#checks = checks;
+    this.#commit = commit;
+  }
+
+  /** A step begins: what an earlier step wrote is not the answer. */
+  restart(): void {
+    this.#reader = newReader();
+    this.#title = undefined;
+    this.#waiting = [];
+  }
+
+  read(text: string): void {
+    for (const piece of this.#reader.push(text)) this.#take(piece);
+  }
+
+  #take(piece: BlockPiece): void {
+    if (piece.kind === 'element') return this.#layout(piece);
+    switch (piece.key) {
+      case 'title':
+        if (typeof piece.value === 'string' && piece.value.trim() !== '') this.#title = piece.value;
+        return;
+      case 'dispatch':
+        return this.#committed(piece.value);
+      case 'dataModel':
+        return this.#layout(piece);
+    }
+  }
+
+  #committed(list: unknown): void {
+    if (this.#dispatch !== undefined) return;
+    const checked = validateDispatchList(list, this.#checks());
+    if (!checked.ok) return;
+    this.#dispatch = checked.dispatch;
+    const toolCalls = this.#commit(checked.dispatch);
+    this.#stream.committed({
+      dispatch: checked.dispatch,
+      ...(this.#title !== undefined ? {title: this.#title} : {}),
+      toolCalls,
+    });
+    const waiting = this.#waiting;
+    this.#waiting = [];
+    for (const piece of waiting) this.#layout(piece);
+  }
+
+  #layout(piece: BlockPiece): void {
+    if (this.#dispatch === undefined) {
+      this.#waiting.push(piece);
+      return;
+    }
+    if (!this.#telling) return;
+    if (piece.kind === 'member') {
+      if (!validateDataModel(piece.value)) {
+        this.#telling = false;
+        return;
+      }
+      this.#stream.piece({dataModel: piece.value});
+      return;
+    }
+    const checked = validateComponent(piece.value, {
+      ...this.#checks(),
+      dispatch: this.#dispatch,
+      before: this.#told,
+    });
+    if (!checked.ok) {
+      this.#telling = false;
+      return;
+    }
+    this.#told.push(checked.component);
+    this.#stream.piece({component: checked.component});
+  }
+}
+
+function newReader(): TaggedBlockReader {
+  return new TaggedBlockReader(LAYOUT_SURFACE_TAG, {elements: [COMPONENTS]});
 }

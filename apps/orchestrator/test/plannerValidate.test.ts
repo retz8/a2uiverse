@@ -10,7 +10,12 @@ import {LAYOUT_SURFACE_KEEP_SET} from '@a2uiverse/shell-catalog/schema';
 import {describe, expect, test} from 'vitest';
 import type {LayoutSurface} from '../src/planner/document.js';
 import type {SearchRecord, StoreApp} from '../src/planner/storeSearch.js';
-import {validateLayoutSurface} from '../src/planner/validate.js';
+import {
+  validateComponent,
+  validateDataModel,
+  validateDispatchList,
+  validateLayoutSurface,
+} from '../src/planner/validate.js';
 
 const require = createRequire(import.meta.url);
 const catalog = pruneCatalog(
@@ -827,5 +832,122 @@ describe('the offer (task 15.4)', () => {
     const doc = gap();
     doc.dispatch[0] = {gap: 'flight booking', offers: [{app: 'skyway'}]};
     expect(check(doc)).toEqual([]);
+  });
+});
+
+describe('the dispatch list on its own (task-17.9 decision 1)', () => {
+  const listChecks = (ids: readonly string[] = shortlist) => ({
+    tree,
+    shortlist: ids,
+    installed,
+    searches: searched,
+  });
+
+  test('a list that passes the checks it can pass alone is committed, its accounts resolved', () => {
+    expect(validateDispatchList(fanOut().dispatch, listChecks())).toEqual({
+      ok: true,
+      dispatch: fanOut().dispatch,
+    });
+    const accounts = ['github.1', 'gmail.1', 'gmail.2'];
+    const bare = [{source: 'github', request: 'My open pull requests.'}];
+    expect(validateDispatchList(bare, listChecks(accounts))).toEqual({
+      ok: true,
+      dispatch: [{source: 'github.1', request: 'My open pull requests.'}],
+    });
+  });
+
+  test('a source off the shortlist, a gap never searched for, an account choice on an app with one source dispatched beside it, a malformed entry: none is committed', () => {
+    const refused = (dispatch: unknown, ids?: readonly string[]) =>
+      expect(validateDispatchList(dispatch, listChecks(ids)).ok).toBe(false);
+    refused([{source: 'linear', request: 'My issues.'}]);
+    refused([{gap: 'pizza delivery', offers: []}]);
+    refused(
+      [
+        {chooseAccount: 'gmail', request: 'Reply to Bob.'},
+        {source: 'gmail.1', request: 'My inbox.'},
+      ],
+      ['gmail.1', 'gmail.2'],
+    );
+    refused([{source: 'github'}]);
+    refused({source: 'github', request: 'x'});
+  });
+
+  test('its findings are those the whole plan would report for the list', () => {
+    const doc = fanOut();
+    doc.dispatch = [{source: 'shell', request: 'A merged view.'}, ...doc.dispatch.slice(0, 1)];
+    const result = validateDispatchList(doc.dispatch, listChecks());
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('unreachable');
+    expect(check(doc)).toEqual(expect.arrayContaining(result.errors));
+  });
+});
+
+describe('one component on its own (task-17.9 decisions 3, 6)', () => {
+  const dispatch = fanOut().dispatch;
+  const componentChecks = (before: readonly Record<string, unknown>[] = [], ids = shortlist) => ({
+    tree,
+    shortlist: ids,
+    installed,
+    searches: searched,
+    dispatch,
+    before: before as never,
+  });
+  const passes = (component: unknown, before?: readonly Record<string, unknown>[]) =>
+    validateComponent(component, componentChecks(before)).ok;
+
+  test('a component of the shell catalog passes, its children not yet written', () => {
+    expect(passes({id: 'root', component: 'Column', children: ['heading', 'merged']})).toBe(true);
+    expect(passes({id: 'gh', component: 'Slot', source: 'github', weight: 2})).toBe(true);
+  });
+
+  test('an unknown component, a prop the catalog does not declare, a malformed entry fail', () => {
+    expect(passes({id: 'a', component: 'Attribution', child: 'b'})).toBe(false);
+    expect(passes({id: 'a', component: 'Text', text: 'x', colour: 'red'})).toBe(false);
+    expect(passes({id: 'a'})).toBe(false);
+    expect(passes('root')).toBe(false);
+  });
+
+  test('a Slot holding what the list does not name, a second Slot for one entry, painter props, a painter id fail', () => {
+    expect(passes({id: 's', component: 'Slot', source: 'linear'})).toBe(false);
+    expect(passes({id: 's', component: 'Slot', gap: 'flight booking'})).toBe(false);
+    expect(
+      passes({id: 's2', component: 'Slot', source: 'github'}, [
+        {id: 'gh', component: 'Slot', source: 'github'},
+      ]),
+    ).toBe(false);
+    expect(passes({id: 's', component: 'Slot', source: 'github', state: 'failed'})).toBe(false);
+    expect(passes({id: 'attribution-x', component: 'Text', text: 'x'})).toBe(false);
+    expect(passes({id: 's', component: 'Slot', source: 'github', weight: 0})).toBe(false);
+  });
+
+  test('an id already written fails', () => {
+    expect(
+      passes({id: 'heading', component: 'Text', text: 'Again'}, [
+        {id: 'heading', component: 'Text', text: 'x'},
+      ]),
+    ).toBe(false);
+  });
+
+  test('a Slot naming an app by its bare id is resolved to its one source', () => {
+    const result = validateComponent(
+      {id: 'gh', component: 'Slot', source: 'github'},
+      {
+        ...componentChecks([], ['github.1', 'gmail']),
+        dispatch: [{source: 'github.1', request: 'x'}],
+      },
+    );
+    expect(result).toEqual({
+      ok: true,
+      component: {id: 'gh', component: 'Slot', source: 'github.1'},
+    });
+  });
+});
+
+describe('the data model on its own (task-17.9 decision 6)', () => {
+  test('literals pass; a formula, a ref or anything but an object fails', () => {
+    expect(validateDataModel({apps: [{name: 'GitHub'}], count: 2})).toBe(true);
+    expect(validateDataModel({total: {op: 'sum', args: []}})).toBe(false);
+    expect(validateDataModel({x: {surface: 'github:s', pointer: '/a'}})).toBe(false);
+    expect(validateDataModel([1, 2])).toBe(false);
   });
 });

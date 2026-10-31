@@ -25,8 +25,8 @@ export interface ToolCallRecord {
  * What became of the turn's plan (task-6.4 decision 13): the layout surface as accepted, every
  * attempt — the raw text the model returned and the validator's findings when it was refused —
  * and the reader calls it made along the way. `planMs` is the interval from the utterance
- * arriving to the tree accepted or refused — the shell's first paint follows it directly, so
- * it is the first-paint measurement of task-6.6 decisions 2–3, read from here.
+ * arriving to the tree accepted or refused — the layout complete and checked; streamed, the
+ * layout's first piece leaves before it, at `firstPieceMs` (task 17.9).
  */
 export interface PlanRecord {
   outcome: 'planned' | 'malformed';
@@ -40,6 +40,12 @@ export interface PlanRecord {
   attempts: {text: string; errors: string[]}[];
   toolCalls: ToolCallRecord[];
   planMs: number;
+  /**
+   * From the utterance arriving to the layout's first piece leaving for the client — the shell's
+   * create with its first component, while the Planner still writes the rest; with the whole
+   * layout, for a plan that arrives whole (task-17.9 decision 8).
+   */
+  firstPieceMs?: number;
   /** The Router's shortlist, inside `planMs` (task-17.5 decision 1). */
   shortlistMs?: number;
   /** The effort tier the Planner ran at (task-17.5 decision 3). */

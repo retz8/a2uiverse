@@ -11,11 +11,20 @@ import {buildOrchestrator} from '../src/app.js';
 import {A2UI_EXTENSION_URI_V091} from '../src/agentCard.js';
 import type {PlanRecord, SynthesisRecord} from '../src/journal/types.js';
 import type {LayoutSurface} from '../src/planner/document.js';
-import type {Planner} from '../src/planner/planner.js';
+import type {Planner, PlanOutcome} from '../src/planner/planner.js';
 import {PLAN_CACHE_FILE} from '../src/planner/planCache.js';
 import {FakeEmbedder} from '@a2uiverse/embedder';
 import {nowhere} from './fakeMarketplace.js';
-import {FakePlanner, layoutFor, MalformedPlanner, ThrowingPlanner} from './fakePlanner.js';
+import {
+  commitList,
+  FakePlanner,
+  layoutFor,
+  MalformedPlanner,
+  plannedWith,
+  StreamingPlanner,
+  tellLayout,
+  ThrowingPlanner,
+} from './fakePlanner.js';
 import {bestPriceView, decline, FakeSynthesizer, HeldSynthesizer} from './fakeSynthesizer.js';
 import type {
   SynthesisAnswer,
@@ -3750,5 +3759,333 @@ describe('the store loop (task 15.4)', () => {
       gap: 'calendar',
       installed: {appId: 'calendar', name: 'Google Calendar'},
     });
+  });
+});
+
+describe('the Planner’s answer streamed (task 17.9)', () => {
+  /** The ids of the components a shell paint carries, in order. */
+  const idsOf = (paint: Array<Record<string, unknown>>) =>
+    (
+      (paint.find(d => d.updateComponents)?.updateComponents as {
+        components?: Array<{id: string}>;
+      }) ?? {}
+    ).components?.map(c => c.id) ?? [];
+  const opsOf = (paint: Array<Record<string, unknown>>) =>
+    paint.map(d => Object.keys(d).find(key => key !== 'version'));
+  const isFragment = (e: AnyEvent) => stampOf(e)?.role === 'fragment';
+  /** Whether the source's paint reached the client. */
+  const paintedBy = (events: AnyEvent[], source: string) =>
+    events.some(e => stampOf(e)?.source === source && a2uiDatas(e).some(d => d.createSurface));
+  const isShellPaint = (e: AnyEvent) =>
+    e.kind === 'status-update' && stampOf(e)?.role === 'shell' && a2uiDatas(e).length > 0;
+  const both = (): LayoutSurface => ({title: 'Both apps', ...layoutFor(['github', 'gmail'])});
+  const malformed = (): PlanOutcome => ({
+    kind: 'malformed',
+    attempts: [
+      {text: 'first', errors: ["/tree: no Slot holds source 'gmail', which the dispatch names"]},
+      {text: 'second', errors: ["/tree: no Slot holds source 'gmail', which the dispatch names"]},
+    ],
+    toolCalls: [],
+  });
+
+  test('the sources are dispatched the moment the list is committed, before any layout is written (decision 1)', async () => {
+    const plan = both();
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        await until(
+          () => vendors.github!.requests.length === 1 && vendors.gmail!.requests.length === 1,
+          'both sources asked before the layout is written',
+        );
+        tellLayout(stream, plan);
+        return plannedWith(plan);
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(vendors.github!.requests).toHaveLength(1);
+    expect(vendors.calendar!.requests).toHaveLength(0);
+    expect(paintedBy(events, 'github')).toBe(true);
+  });
+
+  test('the layout reaches the client component by component: created with the first, repainted with each after, painted whole once checked (decision 3)', async () => {
+    const plan = both();
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        tellLayout(stream, plan);
+        return plannedWith(plan);
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    const paints = events
+      .slice(0, events.findIndex(isFragment))
+      .filter(isShellPaint)
+      .map(a2uiDatas);
+    expect(paints.map(idsOf)).toEqual([
+      ['root'],
+      ['root', 'attribution-slot-github', 'slot-github'],
+      ['root', 'attribution-slot-github', 'slot-github', 'attribution-slot-gmail', 'slot-gmail'],
+      ['root', 'attribution-slot-github', 'slot-github', 'attribution-slot-gmail', 'slot-gmail'],
+    ]);
+    expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);
+    for (const paint of paints.slice(1)) expect(opsOf(paint)).toEqual(['updateComponents']);
+    // A parent written before its slot names the slot's marker once the slot is painted.
+    const root = (paint: Array<Record<string, unknown>>) =>
+      (
+        paint.find(d => d.updateComponents)!.updateComponents as {
+          components: Array<{id: string; children?: string[]}>;
+        }
+      ).components[0]!.children;
+    expect(root(paints[0]!)).toEqual(['slot-github', 'slot-gmail']);
+    expect(root(paints[1]!)).toEqual(['attribution-slot-github', 'slot-gmail']);
+    expect(root(paints[3]!)).toEqual(['attribution-slot-github', 'attribution-slot-gmail']);
+    // The title rides the create, ahead of it.
+    const create = events.find(e => isShellPaint(e))!;
+    const meta = (create as TaskStatusUpdateEvent).status.message!.parts[0]!;
+    expect(meta).toMatchObject({metadata: {mimeType: PAINT_META_MIME_TYPE}});
+  });
+
+  test('the data model written after the first component is painted on its own (decision 3)', async () => {
+    const plan: LayoutSurface = {
+      ...both(),
+      dataModel: {greeting: 'Hello'},
+    };
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        stream.piece({component: plan.tree.components[0]!});
+        stream.piece({dataModel: plan.dataModel});
+        for (const component of plan.tree.components.slice(1)) stream.piece({component});
+        return plannedWith(plan);
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    const paints = events.filter(isShellPaint).map(a2uiDatas);
+    expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);
+    expect(paints[1]).toEqual([
+      {version: 'v0.9', updateDataModel: {surfaceId: 'shell:main', value: {greeting: 'Hello'}}},
+    ]);
+  });
+
+  test('what a source sends is held until the layout is complete and checked, then released in order (decision 5)', async () => {
+    const plan = both();
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        tellLayout(stream, plan, 1);
+        // Both sources answer while the layout is still being written.
+        await until(
+          () => vendors.github!.requests.length === 1 && vendors.gmail!.requests.length === 1,
+          'both asked',
+        );
+        await wait(300);
+        for (const component of plan.tree.components.slice(1)) stream.piece({component});
+        return plannedWith(plan);
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    const first = events.findIndex(isFragment);
+    expect(first).toBeGreaterThan(0);
+    const before = events.slice(0, first).filter(isShellPaint);
+    // The create, a repaint per later component, and the layout painted whole.
+    expect(before).toHaveLength(1 + (plan.tree.components.length - 1) + 1);
+    expect(
+      events
+        .slice(first)
+        .filter(isShellPaint)
+        .every(e => idsOf(a2uiDatas(e)).length !== 1),
+    ).toBe(true);
+    expect(paintedBy(events, 'github')).toBe(true);
+    expect(paintedBy(events, 'gmail')).toBe(true);
+    expect(finalOf(events).status.state).toBe('completed');
+  });
+
+  test('a retry’s layout replaces the half-drawn one in one step; the sources were asked once (decisions 2, 7)', async () => {
+    const first = both();
+    const retry: LayoutSurface = {
+      ...first,
+      title: 'Your two apps',
+      tree: {
+        components: [
+          {id: 'root', component: 'Row', children: ['gh', 'gm']},
+          {id: 'gh', component: 'Slot', source: 'github'},
+          {id: 'gm', component: 'Slot', source: 'gmail'},
+        ],
+      },
+    };
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, first);
+        tellLayout(stream, first, 2);
+        return plannedWith(retry, [
+          {
+            text: 'first',
+            errors: ["/tree: no Slot holds source 'gmail', which the dispatch names"],
+          },
+          {text: 'retry', errors: []},
+        ]);
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    const paints = events.filter(isShellPaint).map(a2uiDatas);
+    expect(paints.slice(0, 2).map(idsOf)).toEqual([
+      ['root'],
+      ['root', 'attribution-slot-github', 'slot-github'],
+    ]);
+    expect(opsOf(paints[2]!)).toEqual(['deleteSurface', 'createSurface', 'updateComponents']);
+    expect(paints[2]![0]).toEqual({version: 'v0.9', deleteSurface: {surfaceId: 'shell:main'}});
+    expect(idsOf(paints[2]!)).toEqual(['root', 'attribution-gh', 'gh', 'attribution-gm', 'gm']);
+    // The swap carries the retry's title ahead of its create.
+    const swap = events.filter(isShellPaint)[2] as TaskStatusUpdateEvent;
+    const parts = swap.status.message!.parts;
+    const meta = parts.findIndex(
+      p =>
+        p.kind === 'data' &&
+        (p.data as {paintMeta?: {title?: string}}).paintMeta?.title === 'Your two apps',
+    );
+    const createAt = parts.findIndex(p => p.kind === 'data' && 'createSurface' in p.data);
+    expect(meta).toBeGreaterThanOrEqual(0);
+    expect(meta).toBeLessThan(createAt);
+    expect(paints.slice(3).flatMap(idsOf)).not.toContain('slot-github');
+    expect(events.findIndex(isFragment)).toBeGreaterThan(events.indexOf(swap));
+    expect(vendors.github!.requests).toHaveLength(1);
+    expect(vendors.gmail!.requests).toHaveLength(1);
+    expect(finalOf(events).status.state).toBe('completed');
+  });
+
+  test('a second failure takes the half-drawn layout down and cancels the sources asked; nothing of theirs is shown (decisions 2, 7)', async () => {
+    const plan = both();
+    const {client} = await boot({
+      scripts: {
+        github: after(2_000, deterministicScript),
+        gmail: after(2_000, deterministicScript),
+      },
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        tellLayout(stream, plan, 2);
+        await until(
+          () => vendors.github!.requests.length === 1 && vendors.gmail!.requests.length === 1,
+          'both asked',
+        );
+        return malformed();
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    expect(finalOf(events).status.state).toBe('failed');
+    expect(textsOf(finalOf(events).status.message!)[0]).toContain('refused 2 times');
+    const paints = events.filter(isShellPaint).map(a2uiDatas);
+    expect(paints.at(-1)).toEqual([{version: 'v0.9', deleteSurface: {surfaceId: 'shell:main'}}]);
+    expect(events.some(isFragment)).toBe(false);
+    await until(() => vendors.github!.methods.includes('tasks/cancel'), 'GitHub cancelled');
+    await until(() => vendors.gmail!.methods.includes('tasks/cancel'), 'Gmail cancelled');
+    const [line] = await journalLines(1);
+    expect((line!.plan as PlanRecord).outcome).toBe('malformed');
+    expect((line!.dispatch as Array<{outcome: string}>).map(d => d.outcome)).toEqual([
+      'cancelled',
+      'cancelled',
+    ]);
+    // No composition is left behind for the context.
+    const later = await collect(client, press('retry', ['github'], events[0]!.contextId!));
+    expect(finalOf(later).status.state).toBe('failed');
+  });
+
+  test('a model call failing once the list is committed breaks the turn the same way', async () => {
+    const plan = both();
+    const {client} = await boot({
+      scripts: {
+        github: after(2_000, deterministicScript),
+        gmail: after(2_000, deterministicScript),
+      },
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        tellLayout(stream, plan, 1);
+        await until(() => vendors.github!.requests.length === 1, 'GitHub asked');
+        throw new Error('quota exceeded');
+      }),
+    });
+    const events = await collect(client, utterance('both'));
+    expect(finalOf(events).status.state).toBe('failed');
+    expect(textsOf(finalOf(events).status.message!)).toEqual(['quota exceeded']);
+    expect(events.filter(isShellPaint).map(a2uiDatas).at(-1)).toEqual([
+      {version: 'v0.9', deleteSurface: {surfaceId: 'shell:main'}},
+    ]);
+    await until(() => vendors.github!.methods.includes('tasks/cancel'), 'GitHub cancelled');
+  });
+
+  test('closing the composition while its layout is written cancels the plan and the sources asked', async () => {
+    const plan = both();
+    const {client} = await boot({
+      scripts: {
+        github: after(2_000, deterministicScript),
+        gmail: after(2_000, deterministicScript),
+      },
+      planner: new StreamingPlanner(async (stream, input) => {
+        commitList(stream, plan);
+        tellLayout(stream, plan, 1);
+        await until(() => input.signal!.aborted, 'the plan aborted');
+        throw new Error('aborted');
+      }),
+    });
+    const turn = streamOf(client, utterance('both'));
+    await until(() => turn.events.some(isShellPaint), 'the first piece painted');
+    await until(() => vendors.github!.requests.length === 1, 'GitHub asked');
+    const closed = await collect(client, press('close', [], turn.events[0]!.contextId!));
+    expect(finalOf(closed).status.state).toBe('completed');
+    const events = await turn.done;
+    expect(finalOf(events).status.state).toBe('canceled');
+    expect(events.some(isFragment)).toBe(false);
+    await until(() => vendors.github!.methods.includes('tasks/cancel'), 'GitHub cancelled');
+  });
+
+  test('a press on the composition while its layout is written waits for the layout', async () => {
+    const plan = both();
+    const written = gate();
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        tellLayout(stream, plan, 1);
+        await written.opened;
+        for (const component of plan.tree.components.slice(1)) stream.piece({component});
+        return plannedWith(plan);
+      }),
+    });
+    const turn = streamOf(client, utterance('both'));
+    await until(() => turn.events.some(isShellPaint), 'the first piece painted');
+    const retry = streamOf(client, press('retry', ['github'], turn.events[0]!.contextId!));
+    await wait(200);
+    expect(retry.events.some(e => e.kind === 'status-update' && e.final)).toBe(false);
+    written.open();
+    expect(finalOf(await retry.done).status.state).toBe('failed');
+    await turn.done;
+  });
+
+  test('the journal: the instant the first piece left beside planMs, which keeps its meaning — the layout complete and checked (decision 8)', async () => {
+    const plan = both();
+    const {client} = await boot({
+      planner: new StreamingPlanner(async stream => {
+        commitList(stream, plan);
+        tellLayout(stream, plan, 1);
+        await wait(150);
+        for (const component of plan.tree.components.slice(1)) stream.piece({component});
+        return plannedWith(plan);
+      }),
+    });
+    await collect(client, utterance('both'));
+    const [line] = await journalLines(1);
+    const record = line!.plan as PlanRecord;
+    expect(record.firstPieceMs).toEqual(expect.any(Number));
+    expect(record.planMs - record.firstPieceMs!).toBeGreaterThanOrEqual(100);
+  });
+
+  test('a plan that arrives whole paints whole and dispatches at once, its first piece the whole layout (decision 11)', async () => {
+    const {client} = await boot({planner: new FakePlanner(() => both())});
+    const events = await collect(client, utterance('both'));
+    const paints = events.filter(isShellPaint).map(a2uiDatas);
+    expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);
+    expect(idsOf(paints[0]!)).toHaveLength(5);
+    const [line] = await journalLines(1);
+    const record = line!.plan as PlanRecord;
+    expect(record.firstPieceMs).toBeGreaterThanOrEqual(record.planMs);
   });
 });

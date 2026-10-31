@@ -224,7 +224,9 @@ the trail's label only.
 
 ## The answer
 
-Answer with exactly one JSON document — `dispatch`, `tree`, `dataModel`, `title` — inside one
-`<layout-surface>` … `</layout-surface>` block, and nothing outside the block. The document must
+Answer with exactly one JSON document inside one `<layout-surface>` … `</layout-surface>` block,
+and nothing outside the block. Write its parts in this order: `title`, then `dispatch`, then
+`dataModel`, then `tree`. The shell reads the document as you write it: it asks the agents as soon
+as the dispatch list is written, and paints the tree component by component. The document must
 validate against the output schema you were given. When your previous answer is handed back with
 errors, fix those errors in that document rather than writing a new one.

@@ -13,11 +13,13 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import type {DispatchRecord} from '../src/agentsPool/types.js';
 import type {JournalEntry, PlanRecord} from '../src/journal/types.js';
 import type {LayoutSurface} from '../src/planner/document.js';
+import {extractTaggedBlock} from '../src/authoring/taggedBlock.js';
 import {PlanCache, planKey} from '../src/planner/planCache.js';
 import {ModelPlanner} from '../src/planner/planner.js';
 import {LAYOUT_SURFACE_TAG, readPlannerFiles} from '../src/planner/prompt.js';
 import type {PlatformReaders} from '../src/planner/readers.js';
 import type {ShortlistEntry} from '../src/router/router.js';
+import {streaming} from './streamingModel.js';
 
 let dir: string;
 let opened: PlanCache[] = [];
@@ -77,6 +79,40 @@ describe('PlanCache — stored and thrown out as a turn closes (decision 8)', ()
       ]),
     );
     expect(cache.get('k1')).toBe('PLAN');
+  });
+
+  test('the plan stored is the plan as used: after a retry on the layout alone, the first answer’s list with the retry’s layout, data model and title (task-17.9 decision 11)', () => {
+    const cache = open(file());
+    const used: LayoutSurface = {
+      title: 'My pull requests',
+      dispatch: [{source: 'github', request: 'My open pull requests.'}],
+      dataModel: {},
+      tree: {
+        components: [
+          {id: 'root', component: 'Column', children: ['gh']},
+          {id: 'gh', component: 'Slot', source: 'github'},
+        ],
+      },
+    };
+    const retried = {...used, dispatch: [{source: 'github', request: 'Something else.'}]};
+    cache.settle(
+      closedTurn(
+        record({
+          layoutSurface: used,
+          attempts: [
+            {text: 'FIRST', errors: ['/tree: no Slot holds source github']},
+            {
+              text: `<${LAYOUT_SURFACE_TAG}>${JSON.stringify(retried)}</${LAYOUT_SURFACE_TAG}>`,
+              errors: [],
+            },
+          ],
+        }),
+        [dispatch()],
+      ),
+    );
+    const stored = extractTaggedBlock(cache.get('k1')!, LAYOUT_SURFACE_TAG);
+    if (!stored.ok) throw new Error(stored.error);
+    expect(JSON.parse(stored.body)).toEqual(used);
   });
 
   test('a turn an app failed on stores nothing; nor does one the person closed, or a malformed one', () => {
@@ -235,29 +271,31 @@ describe('ModelPlanner with the plan cache (decisions 7, 10)', () => {
   const scripted = (results: string[] | 'tool-then-answer') => {
     let calls = 0;
     const model = new MockLanguageModelV4({
-      doGenerate: async () => {
-        calls++;
-        const toolFirst = results === 'tool-then-answer' && calls === 1;
-        return {
-          finishReason: {unified: toolFirst ? 'tool-calls' : 'stop', raw: undefined},
-          usage: {
-            inputTokens: {total: 1, noCache: 1, cacheRead: undefined, cacheWrite: undefined},
-            outputTokens: {total: 1, text: 1, reasoning: undefined},
-          },
-          content: toolFirst
-            ? [{type: 'tool-call', toolCallId: 'c1', toolName: 'installed_apps', input: '{}'}]
-            : [
-                {
-                  type: 'text',
-                  text:
-                    results === 'tool-then-answer'
-                      ? answer
-                      : results[Math.min(calls, results.length) - 1]!,
-                },
-              ],
-          warnings: [],
-        };
-      },
+      ...streaming({
+        doGenerate: async () => {
+          calls++;
+          const toolFirst = results === 'tool-then-answer' && calls === 1;
+          return {
+            finishReason: {unified: toolFirst ? 'tool-calls' : 'stop', raw: undefined},
+            usage: {
+              inputTokens: {total: 1, noCache: 1, cacheRead: undefined, cacheWrite: undefined},
+              outputTokens: {total: 1, text: 1, reasoning: undefined},
+            },
+            content: toolFirst
+              ? [{type: 'tool-call', toolCallId: 'c1', toolName: 'installed_apps', input: '{}'}]
+              : [
+                  {
+                    type: 'text',
+                    text:
+                      results === 'tool-then-answer'
+                        ? answer
+                        : results[Math.min(calls, results.length) - 1]!,
+                  },
+                ],
+            warnings: [],
+          };
+        },
+      }),
     });
     return {model, calls: () => calls};
   };

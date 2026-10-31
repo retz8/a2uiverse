@@ -120,10 +120,10 @@ export const LAYOUT_SURFACE_SCHEMA = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   title: 'LayoutSurface',
   description:
-    'What the Planner emits, written as text and validated after: the dispatch list, the layout tree, the data model of literals the tree binds to, and a title for the canvas.',
+    'What the Planner emits, written as text and validated after, in this order: a title for the canvas, the dispatch list, the data model of literals the tree binds to, and the layout tree.',
   type: 'object',
   additionalProperties: false,
-  required: ['dispatch', 'tree', 'dataModel'],
+  required: ['dispatch', 'dataModel', 'tree'],
   properties: {
     title: {
       type: 'string',
@@ -255,11 +255,11 @@ export const LAYOUT_SURFACE_SCHEMA = {
         ],
       },
     },
-    tree: treeSchema,
     dataModel: {
       type: 'object',
       description:
         'The values the tree binds to: literals only — strings, numbers, booleans, arrays, objects. Never a formula, never a ref. Empty when the tree binds nothing.',
     },
+    tree: treeSchema,
   },
 } as const;

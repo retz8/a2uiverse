@@ -18,6 +18,7 @@ import {ModelPlanner} from '../src/planner/planner.js';
 import {readPlannerFiles} from '../src/planner/prompt.js';
 import type {PlatformReaders} from '../src/planner/readers.js';
 import {AiSdkSynthesisModel} from '../src/synthesizer/synthesizer.js';
+import {streaming} from './streamingModel.js';
 
 const keys = {googleApiKey: 'g', anthropicApiKey: 'a'};
 
@@ -159,7 +160,7 @@ describe('the callers carry the tier (task-17.2 decision 8)', () => {
   };
 
   test('the Planner passes the reasoning word on every call', async () => {
-    const model = new MockLanguageModelV4({doGenerate: answer('not a plan')});
+    const model = new MockLanguageModelV4(streaming({doGenerate: answer('not a plan')}));
     const files = readPlannerFiles();
     const planner = new ModelPlanner({
       model,
@@ -169,8 +170,8 @@ describe('the callers carry the tier (task-17.2 decision 8)', () => {
       readers,
     });
     await planner.plan({utterance: 'catch me up', shortlist: []});
-    expect(model.doGenerateCalls.length).toBeGreaterThan(0);
-    for (const call of model.doGenerateCalls) expect(call.reasoning).toBe('none');
+    expect(model.doStreamCalls.length).toBeGreaterThan(0);
+    for (const call of model.doStreamCalls) expect(call.reasoning).toBe('none');
   });
 
   test('the Synthesizer’s text seam passes the reasoning word', async () => {

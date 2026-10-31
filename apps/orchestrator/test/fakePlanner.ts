@@ -1,6 +1,6 @@
 import type {ToolCallRecord} from '../src/journal/types.js';
 import type {GapOffer, JoinNouns, LayoutSurface} from '../src/planner/document.js';
-import type {PlanInput, Planner, PlanOutcome} from '../src/planner/planner.js';
+import type {PlanInput, Planner, PlanOutcome, PlanStream} from '../src/planner/planner.js';
 import {LAYOUT_SURFACE_TAG} from '../src/planner/prompt.js';
 import {SHELL_SOURCE_ID} from '../src/registry/types.js';
 
@@ -123,4 +123,47 @@ export class MalformedPlanner implements Planner {
       toolCalls: [],
     };
   }
+}
+
+/**
+ * A Planner telling the turn its plan as a streamed one does (task 17.9): `script` commits the list
+ * and tells the layout's pieces through the stream the turn handed it, waiting where the test
+ * says, then answers the outcome.
+ */
+export class StreamingPlanner implements Planner {
+  calls: PlanInput[] = [];
+  readonly #script: (stream: PlanStream, input: PlanInput) => Promise<PlanOutcome>;
+
+  constructor(script: (stream: PlanStream, input: PlanInput) => Promise<PlanOutcome>) {
+    this.#script = script;
+  }
+
+  async plan(input: PlanInput): Promise<PlanOutcome> {
+    this.calls.push(input);
+    if (!input.stream) throw new Error('the turn handed the Planner no stream');
+    return this.#script(input.stream, input);
+  }
+}
+
+/** The document's list committed with its title. */
+export function commitList(stream: PlanStream, document: LayoutSurface): void {
+  stream.committed({
+    dispatch: document.dispatch,
+    ...(document.title !== undefined ? {title: document.title} : {}),
+    toolCalls: [],
+  });
+}
+
+/** The document's layout told piece by piece: the data model, then each component, up to `count`. */
+export function tellLayout(stream: PlanStream, document: LayoutSurface, count = Infinity): void {
+  stream.piece({dataModel: document.dataModel});
+  for (const component of document.tree.components.slice(0, count)) stream.piece({component});
+}
+
+/** A planned outcome for a document, its attempts as given or one clean one. */
+export function plannedWith(
+  document: LayoutSurface,
+  attempts: {text: string; errors: string[]}[] = [{text: taggedLayout(document), errors: []}],
+): PlanOutcome {
+  return {kind: 'planned', document, attempts, toolCalls: []};
 }

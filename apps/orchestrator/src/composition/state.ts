@@ -195,6 +195,25 @@ export interface GapEntry {
   filled?: GapFill;
 }
 
+/** The app a `Slot` holding the add-account tile names (task-12.13 decision 27). */
+export function addAccountOf(component: {
+  component: string;
+  addAccount?: unknown;
+}): string | undefined {
+  return component.component === 'Slot' && typeof component.addAccount === 'string'
+    ? component.addAccount
+    : undefined;
+}
+
+/** The add-account tile as the vault holds the app: its name and its accounts, no scopes yet. */
+export function addingFor(sources: Sources, appId: string): AddingAccount {
+  return {
+    displayName: sources.displayName(appId),
+    accounts: addedAccounts(sources, appId),
+    scopes: [],
+  };
+}
+
 /** The app's accounts already added, by label, as the tile lists them. */
 export function addedAccounts(sources: Sources, appId: string): AddingAccount['accounts'] {
   return sources
@@ -364,6 +383,11 @@ export interface CompositionState {
   lastSettledAt?: number;
   /** The page-load session the composition was opened in (task-12.5 decision 6). */
   session?: string;
+  /**
+   * While the Planner still writes its layout (task 17.9): settles true once the layout is checked
+   * and painted, false when the plan broke. What its sources send, and a press on it, wait for it.
+   */
+  layoutPainted?: Promise<boolean>;
 }
 
 export function compositionFrom(
@@ -383,13 +407,8 @@ export function compositionFrom(
   const choices = new Map<string, AccountChoice>();
   const adding = new Map<string, AddingAccount>();
   for (const component of layout.tree.components) {
-    const appId = (component as {addAccount?: unknown}).addAccount;
-    if (component.component !== 'Slot' || typeof appId !== 'string') continue;
-    adding.set(appId, {
-      displayName: sources.displayName(appId),
-      accounts: addedAccounts(sources, appId),
-      scopes: [],
-    });
+    const appId = addAccountOf(component);
+    if (appId !== undefined) adding.set(appId, addingFor(sources, appId));
   }
   const merged = layout.dispatch.find(
     entry => isSourceDispatch(entry) && entry.source === SHELL_SOURCE_ID,

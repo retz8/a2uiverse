@@ -98,10 +98,11 @@ Everything else is ordinary code: the Router's ranking (a small embedding model 
 ```mermaid
 flowchart TD
     A["1. The message arrives<br/>dedupe, classify, heartbeat"] --> R["2. Router ranks the apps"]
-    R --> P["3. Planner writes the plan<br/>(model call one)"]
-    P --> F["4. First paint: the layout,<br/>before any app is asked"]
-    F --> D["5. Each app is asked in parallel"]
-    D --> RL["6. Every event relayed into its slot,<br/>the app's data copied on the way"]
+    R --> P["3. Planner writes the plan<br/>(model call one), read as it's written"]
+    P -->|"the dispatch list written"| D["4. Each app is asked in parallel"]
+    P -->|"each component written"| F["5. The layout painted piece by piece,<br/>whole once checked"]
+    D --> RL["6. Every event relayed into its slot,<br/>once the layout is whole"]
+    F --> RL
     RL --> S["7. Each app settles"]
     S --> M["8. The merge<br/>(model call two)"]
     M --> FN["9. One final, then the journal line"]
@@ -116,10 +117,11 @@ flowchart TD
 
 **2. The Router ranks the apps.** The question is turned into a vector by a small embedding model and compared with a vector of every app's agent card, plus A2UIVerse's own card, which answers questions about the platform. The top five go on the **shortlist**. There's no cut-off score: ranking only narrows the field, and the Planner makes the real choice. When a question is asked from an older answer, that answer's apps stay on the shortlist regardless of rank, so "add GitHub to this" can still plan the apps already on screen.
 
-**3. The Planner writes the plan.** This is the first model call. The Planner gets the question and the shortlisted cards, and answers with a **layout surface**: which apps to ask and what to ask each, plus the screen's layout as a component tree in the shell catalog. Here is what it wrote for the example (trimmed):
+**3. The Planner writes the plan.** This is the first model call. The Planner gets the question and the shortlisted cards, and answers with a **layout surface**: a title, which apps to ask and what to ask each, plus the screen's layout as a component tree in the shell catalog. Here is what it wrote for the example (trimmed), in the order it's asked to write it — title, dispatch list, data model, tree:
 
 ```jsonc
 {
+  "title": "Status of current work",
   "dispatch": [
     {"source": "linear",   "request": "Show the issues assigned to me or currently in progress as a compact list. For each issue, include its identifier, title, status, priority, linked branch or pull request, and the full date and time it was last updated."},
     {"source": "github",   "request": "Show my open pull requests and recent branches as a compact list. For each, include its title, number, branch name, review status, any linked issue identifier, and the full date and time it was last updated."},
@@ -129,6 +131,7 @@ flowchart TD
      "columnSources": ["linear", "linear", "linear", "github", "circleci", "linear"],
      "join": {"home": "linear", "nouns": {"linear": "issues", "github": "PRs", "circleci": "runs"}}}
   ],
+  "dataModel": {},
   "tree": {"components": [
     {"id": "root",     "component": "Column", "children": ["status", "sources"]},
     {"id": "status",   "component": "Slot", "source": "shell"},
@@ -136,17 +139,19 @@ flowchart TD
     {"id": "linear",   "component": "Slot", "source": "linear", "weight": 1},
     {"id": "github",   "component": "Slot", "source": "github", "weight": 1},
     {"id": "circleci", "component": "Slot", "source": "circleci", "weight": 1}
-  ]},
-  "dataModel": {},
-  "title": "Status of current work"
+  ]}
 }
 ```
 
 Notice three things. Each app gets its **own request in its own words**, never your question as typed; each asks for exactly the fields a merge will need, like "the full date and time", without ever mentioning the merge. The `shell` entry is the merged view: its request is the brief for the Synthesizer. And the tree is just `Slot`s, one per entry: the Planner designs the frame, never the apps' contents.
 
-The plan is checked by a validator; if it fails, the model gets one retry. The Planner can also write a short **title**, which names this answer in the client's trail; here it's "Status of current work". In the recorded run, planning took 6.0 seconds from the question arriving to the plan accepted.
+**The answer is read as it's written.** The model's answer streams in, and the orchestrator acts on each part the moment it's finished instead of waiting for the end. Once the dispatch list is written and passes the checks it can pass on its own (each app on the shortlist, each gap in the words of a search this plan made), the list is **committed**: the apps are asked at once (step 4), and the list stands for the rest of the plan. Then each component of the tree goes to the client as soon as it's written and passes its own check against the shell catalog (step 5). The title, which names this answer in the client's trail, rides along; here it's "Status of current work".
 
-**4. First paint, before any app is asked.** The orchestrator turns the plan into the `shell:main` surface and sends it to the client at once. On the way, the **shell painter** writes in what only the shell owns: every app's `Slot` is wrapped in an `Attribution` (the app's name above its slot, which the app can't hide), and every slot gets its state:
+The whole answer is still checked by a validator at its end. If it fails, the model gets one retry; once the list is committed, the retry rewrites only the layout, its data model and its title, against the list already sent. In the recorded run, which predates this reading, planning took 6.0 seconds from the question arriving to the plan accepted.
+
+**4. Each app is asked, in parallel, the moment the list is committed.** For every app in the plan, the orchestrator builds an A2A message whose text is the Planner's request for that app, and hands it to the **AgentsPool**. The text ends with two sentences of the hub's own: the credential bar's advice (see [AgentsPool](#agentspool-one-handle-per-dispatch)), then the person's local time, from the clock the client sends on every message: "The person's local time is Friday 9 October 2026, 14:20 (Asia/Seoul)." An app reads "tomorrow" and "today" against it. A request re-sent for a press (a Retry, Allow's resume, an account chosen) says the press's own clock, any other the question's, and a message that carried no clock says no time. It's words in the request, so nothing A2UIVerse-specific rides the app's wire (`src/agentsPool/requestWords.ts`). The pool connects to the app, sends the message in that app's own conversation for this context, and streams back its events. The three requests went out within a millisecond of each other; in the recording, which predates the committed list, they went out once the whole plan was in.
+
+**5. The layout, piece by piece.** The orchestrator paints each component into the `shell:main` surface as it arrives: the first goes out with the `createSurface`, each one after as a repaint of the tree so far, and a data model written after the first as its own update. On the way, the **shell painter** writes in what only the shell owns: every app's `Slot` is wrapped in an `Attribution` (the app's name above its slot, which the app can't hide), and every slot gets its state. A parent written before its slot names the slot until the slot arrives, and its wrapper from then on:
 
 ```jsonc
 {"id": "status", "component": "Slot", "source": "shell", "state": "pending", "label": "Synthesis", "content": "shell",
@@ -155,9 +160,7 @@ The plan is checked by a validator; if it fails, the model gets one retry. The P
 {"id": "linear", "component": "Slot", "source": "linear", "weight": 1, "state": "pending", "label": "Linear", "noun": "Linear issues"}
 ```
 
-The client can now draw the whole frame, the merged view's column headers over skeleton rows, and a waiting slot per app. **First paint never waits on any app.** In the recording it reached the client 6.05 seconds after the question was sent.
-
-**5. Each app is asked, in parallel.** For every app in the plan, the orchestrator builds an A2A message whose text is the Planner's request for that app, and hands it to the **AgentsPool**. The text ends with two sentences of the hub's own: the credential bar's advice (see [AgentsPool](#agentspool-one-handle-per-dispatch)), then the person's local time, from the clock the client sends on every message: "The person's local time is Friday 9 October 2026, 14:20 (Asia/Seoul)." An app reads "tomorrow" and "today" against it. A request re-sent for a press (a Retry, Allow's resume, an account chosen) says the press's own clock, any other the question's, and a message that carried no clock says no time. It's words in the request, so nothing A2UIVerse-specific rides the app's wire (`src/agentsPool/requestWords.ts`). The pool connects to the app, sends the message in that app's own conversation for this context, and streams back its events. The three requests went out within a millisecond of each other.
+The client draws the frame as it arrives: the merged view's column headers over skeleton rows, and a waiting slot per app. Once the whole answer is checked, the layout is painted whole once more; when a retry replaced it, the half-drawn layout is taken down and the retry's drawn in its place, in one event. **Nothing an app sends is shown before that**: its paint and any change to its slot wait, then go out in the order they came, so no app's answer ever lands without its frame. **The layout never waits on any app.** In the recording, which predates painting piece by piece, the whole layout reached the client 6.05 seconds after the question was sent.
 
 **6. Every event is relayed into its slot.** As each event arrives, the orchestrator:
 
@@ -199,7 +202,7 @@ In the recording, GitHub's answer reached the client at 6.07 s, Linear's at 6.08
 
 The line also says what the turn's model calls cost. This recording predates that, so here are the fields by name:
 
-- **On the plan:** `shortlistMs`, the Router's share of `planMs`; `effort`, the tier the Planner ran at; and `requests`, one record per model request. Each tool call on the plan carries its `ms` beside its words and its answer. `cache`, with the plan cache on and no tool called, holds the request's key, and `hit: true` when the plan cache served the plan, no request made.
+- **On the plan:** `planMs`, the layout complete and checked; `firstPieceMs`, when its first piece left for the client, the whole layout's moment for a plan that arrives whole; `shortlistMs`, the Router's share of `planMs`; `effort`, the tier the Planner ran at; and `requests`, one record per model request. Each tool call on the plan carries its `ms` beside its words and its answer. `cache`, with the plan cache on and no tool called, holds the request's key, and `hit: true` when the plan cache served the plan, no request made.
 - **On the synthesis:** its own `effort` and `requests`.
 - **`finalAt`:** when the final `completed` left, the moment the screen settled.
 
@@ -210,12 +213,13 @@ A request record:
   "attempt": 1, "step": 2,                                         // both from 1: a retry is attempt 2
   "model": {"provider": "google.generative-ai", "modelId": "gemini-3.8-flash"},
   "startMs": "…", "endMs": "…", "modelMs": "…",                     // the plan's from the question arriving, the synthesis's from its release
+  "firstTokenMs": "…", "timeToFirstTokenMs": "…",                  // a streamed request's, the Planner's: its first token on the clock, and from its start
   "ended": "toolCall", "finish": "tool-calls", "tools": ["search_store"],
   "usage": {"promptTokens": "…", "outputTokens": "…", "reasoningTokens": "…", "cachedTokens": "…", "cacheWriteTokens": "…"}  // each absent when the provider gave none; Claude bills writes apart
 }
 ```
 
-Every number is the AI SDK's own, read off the step's result (`src/model/requests.ts`): `modelMs` is the time waiting on the model, a tool's `ms` its execution time, and the usage what the provider reported. The orchestrator only reads the clock when an attempt starts, and places each step after the one before it.
+Every number is the AI SDK's own, read off the step's result (`src/model/requests.ts`): `modelMs` is the time waiting on the model, `timeToFirstTokenMs` the time to its first output, a tool's `ms` its execution time, and the usage what the provider reported. The orchestrator only reads the clock when an attempt starts, and places each step after the one before it.
 
 ## Inside the machinery
 
@@ -351,14 +355,15 @@ The app vectors are computed at startup and at each install; each question costs
 
 ### Planner: a model with tools
 
-`src/planner/planner.ts` makes the Planner's model call with the Vercel AI SDK's `generateText`, in a **tool-calling loop**:
+`src/planner/planner.ts` makes the Planner's model call with the Vercel AI SDK's `streamText`, in a **tool-calling loop**:
 
 ```mermaid
 flowchart LR
     Q["The question and<br/>the shortlisted cards"] --> M["The model"]
     M -->|"calls a reader"| T["installed_apps, this_canvas,<br/>recent_turns"]
     T -->|"the result"| M
-    M -->|"answers"| X["Extract the block, parse, validate"]
+    M -->|"writes, read as it goes"| C["The list committed,<br/>each component told"]
+    C --> X["At its end: extract the block,<br/>parse, validate"]
     X -->|"errors, first time"| M
     X -->|"accepted"| OK["The plan"]
     X -->|"errors again"| BAD["Broken turn"]
@@ -369,8 +374,9 @@ flowchart LR
 - **The Store's search** is the one tool with input: `search_store`, with words of the Planner's own (`src/planner/storeSearch.ts`). It asks the marketplace's search through the orchestrator's marketplace client, within the limit every request to the Store has, and answers the apps found, the installed ones left out, each as its name, publisher, description and skills, or that the Store wasn't reached. The model sees the marketplace only through that answer. Each call is recorded on the plan with its words, its answer and how long the Store took, and that one record serves the plan check, the line with nothing to offer and the journal. [`store-loop.md`](store-loop.md) follows a search to an install.
 - **A step budget.** Each attempt may take at most five steps (`stopWhen: stepCountIs(5)`): the three readers, the search and the answer.
 - **One tagged block.** The model answers with its JSON inside `<layout-surface>…</layout-surface>`. `extractTaggedBlock` takes exactly one such block and tolerates text around it. The tag is the orchestrator's own and never `<a2ui-json>`, the tag the client extracts A2UI from, so model output meant for the orchestrator can never be mistaken for UI.
+- **Read as it's written.** The prompt asks for the block's parts in one order: `title`, `dispatch`, `dataModel`, `tree`. `TaggedBlockReader` (`src/authoring/blockReader.ts`) follows the block as the text streams in, a small state machine over the JSON: a stack of the objects and arrays it's inside, whether it's inside a string, where the current value began. It hands over each member of the document, and each element of `tree.components`, the moment its last character arrives, and knows nothing of plans; the Synthesizer can follow its own block with it. The Planner's follower commits the list when `validateDispatchList` passes, and tells the turn each data model and component that passes `validateDataModel` or `validateComponent`: every check of the whole plan that reads that one piece, with the list and the components before it. Pieces written before the list wait for it. The first piece that fails stops the telling; the answer is still read to its end and checked whole.
 - **The validator** (`src/planner/validate.ts`) checks, in order: the output schema; the tree, through the sdk's A2UI validator (`@a2ui/web_core`'s checks behind the sdk's own findings), against the shell catalog pruned to the layout's components (`Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button`), so `Attribution` is simply not a word the Planner has; every dispatched source is on the shortlist, once, with a request; an account choice names an app with two accounts, once, not also dispatched; a merged view needs at least two sources; its columns, column marks and join name only dispatched sources; a gap names the words of one of the plan's searches and offers only apps they returned that aren't installed; exactly one `Slot` per dispatch entry; each `Slot` holding exactly one of `source`, `gap`, `chooseAccount` or `addAccount`; none of the painter's own props on a `Slot`; an add-account `Slot` names an app on the shortlist that asks sign-in, one per app; an `openAppLibrary` names an installed app; and a data model of plain values, never a formula or a ref.
-- **One retry, in the same conversation.** The failed answer and every reader result stay in the message list, and the errors are appended as one more turn: fix this, don't start over. A second failure makes the turn a **broken turn**, its final naming the findings.
+- **One retry, in the same conversation.** The failed answer and every reader result stay in the message list, and the errors are appended as one more turn: fix this, don't start over. Once the list is committed, that turn says the list was already sent and stands: the retry rewrites the tree, the data model and the title against it, the list it writes is ignored, and nothing of it is told as it's written. A second failure makes the turn a **broken turn**, its final naming the findings.
 
 The title the Planner writes is clipped to 48 characters before it's sent, and a clip is logged and journaled.
 
@@ -394,7 +400,7 @@ flowchart LR
 
 - **The key is the whole request**: the fixed system prompt, the tools, the turn as built (the utterance, every shortlisted card with its accounts and sign-in state, the platform's card), the model and the effort, hashed. A hit is a request byte for byte the same, so an app update that changes its card, a new sign-in, an edited prompt or another model misses on its own, with no version to keep. Cloudflare's AI Gateway keys its cache the same way, a SHA-256 hash over the provider, the endpoint, the model and the full request body, its caching applying "only to identical requests" ([AI Gateway caching](https://developers.cloudflare.com/ai-gateway/features/caching/)).
 - **Exact, never similar.** Another wording of the same question misses. Matching by similarity would hit more often, but static similarity thresholds "result in unexpected error rates" ([vCache](https://arxiv.org/abs/2502.03771), ICLR 2026), and pure semantic caching breaks down "when output validity depends on time, asset, or sensor parameters" ([Evaluating Temporal Semantic Caching and Workflow Optimization in Agentic Plan-Execute Pipelines](https://arxiv.org/abs/2605.20630), May 2026). How often a person asks the same thing word for word isn't measured on A2UIVerse; of 13,060 queries 114 people sent Yahoo's search engine over a year, 33% were an exact repeat of the same person's earlier query ([Teevan et al.](https://people.csail.mit.edu/teevan/work/publications/papers/sigir07.pdf), SIGIR 2007).
-- **Stored after a clean turn.** A plan the model wrote is stored once its turn closes with every app it asked answered, or asking for a sign-in. The journal hears each turn as it closes and hands it to the cache. A plan that called a tool, a reader or the Store's search, carries that moment's answer and is never stored. [Agentic Plan Caching](https://arxiv.org/abs/2506.14852) (NeurIPS 2025) reuses plans extracted "from completed agent executions"; this cache waits for a clean one.
+- **Stored after a clean turn.** A plan the model wrote is stored once its turn closes with every app it asked answered, or asking for a sign-in. What's stored is the plan as used: after a retry on the layout alone, the first answer's list with the retry's layout. A plan the cache serves arrives whole: its apps are asked and its layout painted at once. The journal hears each turn as it closes and hands it to the cache. A plan that called a tool, a reader or the Store's search, carries that moment's answer and is never stored. [Agentic Plan Caching](https://arxiv.org/abs/2506.14852) (NeurIPS 2025) reuses plans extracted "from completed agent executions"; this cache waits for a clean one.
 - **Thrown out once it proves wrong.** A stored plan the validator refuses on reuse, against the apps installed now, or one an app it asked fails on, is dropped, and the next identical question is planned afresh. The AWS database blog's caching guide removes entries "when the underlying data changes" and deletes one once "an error in a cached response is rectified" ([Optimize LLM response costs and latency with effective caching](https://aws.amazon.com/blogs/database/optimize-llm-response-costs-and-latency-with-effective-caching/), February 2026).
 - **On disk, 200 plans, 7 days.** `STATE_DIR/plan-cache.json` survives a restart; the least recently used plan leaves past 200, and none older than 7 days is reused. Both numbers are starting values with no source behind them. The same AWS guide sets an expiry by "the volatility of the underlying information", and a plan holds no app data, only the requests it sends. The journal's `cache` mark counts the hits to set them again.
 - **Off for a measured pass.** `A2UIVERSE_PLAN_CACHE=off`: a pass that sends the same prompts three times would hit on the second and the third.
@@ -414,6 +420,8 @@ The seam's other Claude setting: the effort tier `low` is sent as the least thin
 - **The painter's props go on each slot:** `state` and `label`, plus, depending on the slot, the merged view's `columns` and `join`, a failed slot's `failure`, a collapsed merge's reason, the facts the Retry, Include and Try again lines are drawn from, a gap's `offer` drawn from the marketplace's entries, and an update tile's `update`. The Planner may not write any of these; the validator refuses them.
 
 A **repaint** sends the whole `updateComponents` again from the current state. Slots are found by their `source` and every id stays put, so the client updates in place. The first paint has two more parts, ahead of the tree: the Planner's title as the shell's own `paintMeta`, and the plan's data model when it isn't empty.
+
+While the Planner writes, the state's tree is the components told so far, so the first paint is the create with the first component, and each component after it is a repaint of the tree so far: the client takes the slots in order from every paint. A data model written after the first component goes as an `updateDataModel` of its own, a title written after it as a `paintMeta` beside the last paint. When a retry replaced the half-drawn layout, the last paint is a `deleteSurface` of `shell:main` followed by the whole create, in one event; when the plan breaks, the `deleteSurface` alone.
 
 ### Relay: three changes and no more
 
@@ -481,6 +489,8 @@ A dispatch the update check stopped, or the catch after the call found the app c
 - **`drained`** resolves when the app's stream is completely finished, even past the hard cap. The journal line waits for this, so a late answer still makes it onto the line.
 
 Inside, an async IIFE loops over `handle.events`. Each event is composed (the relay above) and then either relayed at once, **held** if the hard cap has passed, or **buffered** during a Retry race (so the race's winner can be drawn whole). When the stream ends: the `settled` marker goes out, the slot's state is decided, and `settled` resolves.
+
+A dispatch from the plan also carries the **layout's promise**, settled when the layout is painted whole, or the plan broke. Until then every composed event waits in a queue and the stream's end decides nothing; once it's painted, the queue goes out in order and the end is taken in; once the plan broke, the queue is dropped. The app is asked from the start all the same: the pool's stream only begins when it's read, so the pump reads at once and holds back what it relays, never what it reads. A press on the composition waits for the same promise.
 
 ### Waiting for the turn to end
 
@@ -550,9 +560,9 @@ merge task=4922aa90-… released (settled)
 ✓ utterance task=4922aa90-… completed 17458 ms
 ```
 
-(The recorded run's lines, Linear's alone of the three apps.)
+(The recorded run's lines, Linear's alone of the three apps. It predates the plan read as it's written, which adds `plan task=<task> list committed <ms> ms` when the apps are asked and `plan task=<task> first piece painted <ms> ms` ahead of the plan's own line.)
 
-Each model request of the Planner and the Synthesizer adds a line of its own as it ends, the kit's agents logging theirs the same way: the seam, the task, the attempt and the step, the model, the time waiting on it and where the request started on its clock, how it ended with each tool's time, then the usage. A searching plan's step reads `Planner request task=<task> 1.2 on gemini-3.8-flash: model <ms> ms at <ms> ms, ended in toolCall (search_store <ms> ms), <n> prompt / <n> output / <n> reasoning / <n> cached tokens`; a request that wrote to Claude's cache adds `/ <n> cache-written`. A plan the plan cache served makes no request; its line reads `plan task=<task> planned <ms> ms from the plan cache`.
+Each model request of the Planner and the Synthesizer adds a line of its own as it ends, the kit's agents logging theirs the same way: the seam, the task, the attempt and the step, the model, the time waiting on it and where the request started on its clock, how it ended with each tool's time, then the usage. A searching plan's step reads `Planner request task=<task> 1.2 on gemini-3.8-flash: model <ms> ms at <ms> ms, first token <ms> ms, ended in toolCall (search_store <ms> ms), <n> prompt / <n> output / <n> reasoning / <n> cached tokens`, the first token on a streamed request alone; a request that wrote to Claude's cache adds `/ <n> cache-written`. A plan the plan cache served makes no request; its line reads `plan task=<task> planned <ms> ms from the plan cache`.
 
 ### Id spaces
 
@@ -573,7 +583,8 @@ Set `A2UIVERSE_DEBUG_IDS=1` to see the app's own ids under the stamp while debug
 
 | What happened | What the client sees |
 | --- | --- |
-| The Planner's answer failed validation twice | A broken turn: a `failed` final naming the findings |
+| The Planner's answer failed validation twice | A broken turn: a `failed` final naming the findings. When the apps were already asked, the half-drawn layout is taken down, each app is sent `tasks/cancel`, and nothing of theirs is shown |
+| The Planner's model call failed once the apps were asked | The same: a broken turn, the layout taken down, the apps cancelled |
 | No `GOOGLE_API_KEY` | Questions are broken turns; clicks inside apps still work |
 | An app failed, couldn't be reached, or hit the hard cap | That app's slot shows the failure tile with Retry; the others carry on |
 | An app's live card names no catalog id it's installed with | The app isn't asked: its slot takes the update tile, its line from the Store's entry read then |
@@ -606,7 +617,7 @@ For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay
 | Decision | What it buys | What it costs |
 | --- | --- | --- |
 | **Hub and spoke: the client talks only to the orchestrator** | One place to plan, relay, filter data, merge and journal; apps need no knowledge of each other | Every byte passes through one process |
-| **The layout is painted before any app is asked** | The screen appears as soon as the plan is ready, never waiting on the slowest app | The layout is designed without seeing the answers |
+| **The apps asked as soon as the dispatch list is written; the layout painted piece by piece, no app's answer shown before it's whole** | The apps start while the Planner still writes the layout, and the frame appears as it's written, never waiting on the slowest app; no answer lands without its frame | The layout is designed without seeing the answers; a layout that fails its checks is retried against a list it can no longer change, and a broken plan cancels apps already working |
 | **Routing by ranking, with no threshold** | No list of intents to maintain; a new app is routable by its card alone | The Planner reads up to five cards every question |
 | **The relay changes three things, nothing else** | An unmodified A2UI agent composes; apps are written for their own product, never for A2UIVerse | The shell can't fix an app's paint; it can only trim or fail it |
 | **Apps' finals demoted; the hub sends the one final** | Under fan-out, the turn ends once, after everyone | The client learns an app is done from the `settled` marker instead |
@@ -638,7 +649,7 @@ For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay
 
 - **Replay the example.** Start the client (`pnpm dev:client`) and open `?beat=9`. The recording was made through the orchestrator, so the replay shows exactly the events it relayed; see the [client README](../../apps/client/README.md#working-without-a-model).
 - **Read the journal.** Every turn you run leaves a line in `apps/orchestrator/.state/intent-journal.jsonl`, with the plan, each dispatch's timings and the merge's attempts.
-- **The tests** (`pnpm --filter @a2uiverse/orchestrator test`) run the whole orchestrator with no model and no network. `test/fakeVendor.ts` is a real in-process A2A app, scripted per turn. `FakeEmbedder`, from `@a2uiverse/embedder`, hashes words into a vector, so texts sharing words rank higher. `FakePlanner` returns a fixed or derived layout, and `FakeSynthesizer` sits behind the Synthesizer's text-in, text-out seam; `HeldSynthesizer` holds each call until the test lets it go, to test what happens meanwhile.
+- **The tests** (`pnpm --filter @a2uiverse/orchestrator test`) run the whole orchestrator with no model and no network. `test/fakeVendor.ts` is a real in-process A2A app, scripted per turn. `FakeEmbedder`, from `@a2uiverse/embedder`, hashes words into a vector, so texts sharing words rank higher. `FakePlanner` returns a fixed or derived layout, `StreamingPlanner` commits a list and tells the layout piece by piece where the test says, and `FakeSynthesizer` sits behind the Synthesizer's text-in, text-out seam; `HeldSynthesizer` holds each call until the test lets it go, to test what happens meanwhile.
 - **Live model tests** run only when asked: `A2UIVERSE_EMBEDDER_LIVE=1` (in `@a2uiverse/embedder`, where the model lives), `A2UIVERSE_PLANNER_LIVE=1` or `A2UIVERSE_SYNTHESIZER_LIVE=1`, the last two with `GOOGLE_API_KEY`.
 - **The fault map** (above) plays slow and failing apps against a real run.
 
@@ -664,7 +675,7 @@ All paths are under `apps/orchestrator/src/`.
 | The Synthesizer | `synthesizer/` (see [`synthesis.md`](synthesis.md)) |
 | Sign-in: the AuthVault, its routes and pages (see [`authority.md`](authority.md)) | `vault/` (`vault.ts`, `store.ts`, `schemes.ts`, `oauth.ts`, `routes.ts`, `pages.ts`) |
 | The trusted page's relay, the publisher and the write guard (see [`trusted-page.md`](trusted-page.md)) | `marketplace/` (`routes.ts`, `publisher.ts`, `artifacts.ts`), `writeGuard.ts` |
-| One model answer, one tag | `authoring/taggedBlock.ts` |
+| One model answer, one tag; the block followed as it's written | `authoring/taggedBlock.ts`, `authoring/blockReader.ts` |
 | An app's sources and each source's name | `accounts/accounts.ts` |
 | Talking to apps | `agentsPool/` (`agentsPool.ts`, `relay.ts`, `contextMap.ts`, `faults.ts`, `credentialBar.ts`, `requestWords.ts`) |
 | The composition's state and store | `composition/state.ts`, `composition/compositions.ts` |
@@ -700,7 +711,8 @@ All paths are under `apps/orchestrator/src/`.
 | **Router** | Ranks the apps' cards against a question with an embedding model |
 | **Shortlist** | The Router's top apps, handed to the Planner |
 | **Planner** | The first model call: which apps to ask, what to ask each, and the layout |
-| **Layout surface** | The Planner's answer: the dispatch list, the layout tree, its data model and title |
+| **Layout surface** | The Planner's answer: its title, the dispatch list, the data model and the layout tree |
+| **Committed list** | The Planner's dispatch list once written and passing its own checks: its apps are asked at once, and it stands for the rest of the plan |
 | **Reader** | One of the Planner's three tools over the platform's own state |
 | **Dispatch** | Asking one source, through the AgentsPool |
 | **Relay** | Passing an app's events to the client: stamped, namespaced, final demoted |

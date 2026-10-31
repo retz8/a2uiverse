@@ -26,13 +26,18 @@ export interface RequestUsage {
  * One model request (task-17.5 decisions 1–3): its attempt and its step within the attempt, both
  * from 1; the model the SDK names for its step; its start and end on the record's clock — the
  * plan's from the utterance arriving, the synthesis's from its release; the time waiting on the
- * model; how it ended, with the SDK's finish reason and the tools it called; its usage.
+ * model; how it ended, with the SDK's finish reason and the tools it called; its usage. A
+ * streamed request carries its first token too, as the kit's record does (task-17.9 decision 8).
  */
 export interface ModelRequestRecord {
   attempt: number;
   step: number;
   model: {provider: string; modelId: string};
   startMs: number;
+  /** A streamed request's first token on the record's clock. */
+  firstTokenMs?: number;
+  /** A streamed request's time to its first token: the SDK's time to its first output. */
+  timeToFirstTokenMs?: number;
   endMs: number;
   modelMs: number;
   ended: 'text' | 'toolCall' | 'error';
@@ -54,6 +59,8 @@ export interface RequestClock {
 export interface StepMeasure {
   model: {provider: string; modelId: string};
   modelMs: number;
+  /** Streamed steps only. */
+  timeToFirstTokenMs?: number;
   stepMs: number;
   ended: ModelRequestRecord['ended'];
   finish: string;
@@ -71,9 +78,11 @@ export function measureOf(step: StepResult<ToolSet>): StepMeasure {
   });
   const ended = tools.length > 0 ? 'toolCall' : step.text.length > 0 ? 'text' : 'error';
   const usage = usageOf(step.usage);
+  const firstToken = wholeMs(performance?.timeToFirstOutputMs);
   return {
     model: {provider: step.model.provider, modelId: step.model.modelId},
     modelMs: wholeMs(performance?.responseTimeMs) ?? 0,
+    ...(firstToken !== undefined ? {timeToFirstTokenMs: firstToken} : {}),
     stepMs: wholeMs(performance?.stepTimeMs ?? performance?.responseTimeMs) ?? 0,
     ended,
     finish: step.finishReason,
@@ -140,6 +149,12 @@ export class AttemptMeasurement {
       step: this.records.length + 1,
       model: measure.model,
       startMs: this.#next,
+      ...(measure.timeToFirstTokenMs !== undefined
+        ? {
+            firstTokenMs: this.#next + measure.timeToFirstTokenMs,
+            timeToFirstTokenMs: measure.timeToFirstTokenMs,
+          }
+        : {}),
       endMs: this.#next + measure.modelMs,
       modelMs: measure.modelMs,
       ended: measure.ended,
@@ -195,8 +210,10 @@ export function requestLine(
         .map(([key, word]) => `${record.usage?.[key]} ${word}`)
         .join(' / ') + ' tokens'
     : 'no usage reported';
+  const firstToken =
+    record.timeToFirstTokenMs !== undefined ? `, first token ${record.timeToFirstTokenMs} ms` : '';
   return (
     `${seam} request${task(taskId)} ${record.attempt}.${record.step} on ${record.model.modelId}: ` +
-    `model ${record.modelMs} ms at ${record.startMs} ms, ${ended}${finish}, ${usage}`
+    `model ${record.modelMs} ms at ${record.startMs} ms${firstToken}, ${ended}${finish}, ${usage}`
   );
 }

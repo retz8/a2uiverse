@@ -15,6 +15,7 @@ import {dirname} from 'node:path';
 import {asSchema, type LanguageModel, type ToolSet} from 'ai';
 import type {JournalEntry} from '../journal/types.js';
 import {logLine} from '../log.js';
+import {layoutSurfaceBlock} from './prompt.js';
 
 /** The plan cache's file in the state directory. */
 export const PLAN_CACHE_FILE = 'plan-cache.json';
@@ -31,7 +32,7 @@ export interface PlanCacheMark {
 
 interface Stored {
   key: string;
-  /** The model's answer as accepted, re-checked by the validator on every reuse. */
+  /** The plan as used, as the model answers with it, re-checked by the validator on every reuse. */
   text: string;
   storedAt: number;
 }
@@ -92,7 +93,9 @@ export class PlanCache {
   /**
    * A closed turn decides (task-17.6 decision 8): a plan the cache served is thrown out when an app
    * it asked failed; a plan the model wrote, with no tool called, is stored when every app it asked
-   * answered or asked the person to sign in. A turn the person closed decides nothing.
+   * answered or asked the person to sign in. A turn the person closed decides nothing. What is
+   * stored is the plan as used — after a retry on the layout alone, the first answer's list with
+   * the retry's layout (task-17.9 decision 11).
    */
   settle(entry: JournalEntry): void {
     const plan = entry.plan;
@@ -109,7 +112,9 @@ export class PlanCache {
       if (!clean) this.evict(mark.key, 'an app it asked failed');
       return;
     }
-    const text = plan.attempts.at(-1)?.text;
+    const text = plan.layoutSurface
+      ? layoutSurfaceBlock(plan.layoutSurface)
+      : plan.attempts.at(-1)?.text;
     if (clean && plan.toolCalls.length === 0 && text !== undefined) this.store(mark.key, text);
   }
 
