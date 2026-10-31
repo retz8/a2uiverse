@@ -68,6 +68,8 @@ SPEC §9.4's mode names, which the kit spells `stub` and `live`; §16's dead-air
 
 *Amended on 2026-10-31.* §4.5's layout plan timing and §5.6's Planner output too, as the Planner's streaming leaves them (task-17.9 decision 12).
 
+*Amended on 2026-10-31.* §4.5's synthesis slot, §5's turn at t7, §5.2's Synthesizer output and §14's register row for the synthesize data model too, as the synthesis fragment's streaming leaves them (task-17.10 decision 12).
+
 ## Invariants
 
 - Gemini stays reachable as it is on both seams; the kit's modes and every app's tests are unchanged by the feature.
