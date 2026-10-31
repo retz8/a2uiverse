@@ -7,9 +7,10 @@ describe('loadConfig — synthesizer (task 4.4)', () => {
     expect(config.synthesizerModelId).toBe('gemini-x');
     expect(config.synthesizerEffort).toBe('low');
   });
-  test('unset, the Planner (task 7.8) and the Synthesizer (task 7.13) run on gemini-3.8-flash, the Synthesizer at low effort', () => {
+  test('unset, the Planner runs on Claude Sonnet 5.5 (task-17.11 decision 7) and the Synthesizer stays on its own default, gemini-3.8-flash (task 7.13), both at low effort', () => {
     const config = loadConfig({});
-    expect(config.plannerModelId).toBe('gemini-3.8-flash');
+    expect(config.plannerModelId).toBe('anthropic/claude-sonnet-5-5');
+    expect(config.plannerEffort).toBe('low');
     expect(config.synthesizerModelId).toBe('gemini-3.8-flash');
     expect(config.synthesizerEffort).toBe('low');
   });

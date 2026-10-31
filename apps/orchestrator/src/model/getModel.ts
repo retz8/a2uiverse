@@ -9,8 +9,11 @@ import {createProviderRegistry, type LanguageModel, type LanguageModelMiddleware
 import {logLine} from '../log.js';
 import {geminiCacheFetch} from './geminiCache.js';
 
-/** Recorded default of the effort tunable (SPEC decision 9); the fan-out stance needs this rung (task 7.8). */
-export const DEFAULT_PLANNER_MODEL_ID = 'gemini-3.8-flash';
+/**
+ * The Planner's default (task-17.11 decision 7): Claude Sonnet 5.5, chosen in task 17.7 for its
+ * plan time beside the Gemini baseline's, its plans holding up on the six end-to-end prompts.
+ */
+export const DEFAULT_PLANNER_MODEL_ID = 'anthropic/claude-sonnet-5-5';
 
 /**
  * The Synthesizer's own default, used when `A2UIVERSE_PLANNER_MODEL` is not set either; the

@@ -23,7 +23,8 @@ To the client it's one A2A agent that answers every question and every click; to
 ## Running it
 
 ```bash
-echo "GOOGLE_API_KEY=<your key>" > apps/orchestrator/.env   # Gemini by default; a Claude model reads ANTHROPIC_API_KEY instead
+echo "ANTHROPIC_API_KEY=<your key>" > apps/orchestrator/.env  # the Planner, on Claude Sonnet 5.5 by default
+echo "GOOGLE_API_KEY=<your key>" >> apps/orchestrator/.env    # the Synthesizer, on Gemini by default
 pnpm dev:orch                                               # from the repo root; port 10001
 pnpm --filter @a2uiverse/orchestrator build | typecheck | test | lint
 ```
@@ -127,8 +128,8 @@ A read the marketplace can't answer says why: `503` unreached, `404` not publish
 | `BASE_URL`                              | `http://localhost:<PORT>`                     | The address its agent card advertises, and the vault's: its client ID metadata document and the return address an authorization server sends the browser to. The tunnel URL in a tunnel |
 | `STATE_DIR`                             | `./.state`                                    | The registry, the vault (`vault/vault.json`), the publisher (`publisher/publisher.json`), the journal, the plan cache (`plan-cache.json`) and the cached embedding model                |
 | `GOOGLE_API_KEY`                        | none                                          | The key of a Gemini model. Without it, questions on Gemini fail; actions inside fragments still work                                                                                    |
-| `ANTHROPIC_API_KEY`                     | none                                          | The key of a Claude model; needed only when a model below names `anthropic/`                                                                                                            |
-| `A2UIVERSE_PLANNER_MODEL`               | `gemini-3.8-flash`                            | The Planner's model as `provider/model` — `google/gemini-3.8-flash`, `anthropic/claude-haiku-5-5`. A name with no provider is Google                                                    |
+| `ANTHROPIC_API_KEY`                     | none                                          | The key of a Claude model, the Planner's by default. Without it, questions fail at the plan                                                                                             |
+| `A2UIVERSE_PLANNER_MODEL`               | `anthropic/claude-sonnet-5-5`                 | The Planner's model as `provider/model` — `google/gemini-3.8-flash`, `anthropic/claude-haiku-5-5`. A name with no provider is Google                                                    |
 | `A2UIVERSE_PLANNER_EFFORT`              | `low`                                         | `low`, the least thinking and the least effort the model's provider accepts (on Claude, its lowest thinking with effort `low`), or `default`, the provider's own                        |
 | `A2UIVERSE_SYNTHESIZER_MODEL`           | the Planner's if set, else `gemini-3.8-flash` | The Synthesizer's model, in the same form                                                                                                                                               |
 | `A2UIVERSE_SYNTHESIZER_EFFORT`          | `low`                                         | `low` or `default`, as the Planner's                                                                                                                                                    |
@@ -251,7 +252,7 @@ Every app's UI passes through the orchestrator on its way to the screen, and eve
 | IntentJournal | `src/journal/`        | One line per turn, one per install, uninstall or refusal, one per sign-in fact (started, signed in, failed, expired, refreshed, revoked, a request for more access, Not now, superseded, signed out, renamed), and one per publisher act, never a credential or a token, appended to `STATE_DIR/intent-journal.jsonl`; on a turn, what each model request of the plan and the merge cost in time and tokens, each with its time to first token, each tool's time, the shortlist's, the model and the effort, when the layout's first piece and the merge's first row left and when the final left |
 | Executor      | `src/executor.ts`     | The A2A entry point that runs it all                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
-The Planner and the Synthesizer run on Gemini through the Vercel AI SDK.
+The Planner runs on Claude Sonnet 5.5 and the Synthesizer on Gemini by default, both through the Vercel AI SDK.
 
 </details>
 
