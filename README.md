@@ -220,6 +220,8 @@ On these defaults, six questions were each asked once on 2026-10-31, the apps li
 - **Most of the tokens are the apps' too**: each of an app's model requests, one per tool round, sends its whole prompt again, most of it read from Gemini's cache. A plan takes about 34k tokens in, twice that when it searches the Store, and a merge 15–18k. The six cost $2.53: $0.23 on Claude, $2.30 on Gemini.
 - On "Is main green" GitHub's answer was refused twice, a cause since fixed.
 
+**In short:** the plan is fast enough, a few seconds, and the apps are asked as soon as it names them. The merge takes longer, 11–15 s, but its rows appear as the Synthesizer writes them, the first at about 9 s. What's left of the wait is the apps' own work.
+
 [Every measured run, with its setup](_dev/docs/latency-and-token-experiment-results.md).
 
 ## Built on

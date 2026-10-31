@@ -22,7 +22,7 @@ A section of the root `a2uiverse` README, "How fast it answers", after "How it w
 
 The six questions in plain words, each with its plan, its first app on screen and its whole screen settled, before → after: the baseline's median of three passes on 2026-10-29 beside the acceptance's pass on 2026-10-31. Under the table, one line on Gemini spend a pass, and one line on the reading's limits: one pass against a median of three, the repos' data moved since, and "is main green" slower for GitHub's refused answer, its cause since fixed.
 
-*Amended on 2026-10-31.* The six questions on the acceptance's pass of 2026-10-31 alone: each with its plan, its first app on screen, its whole screen settled, its tokens in with the share read from a cache, and its tokens out, thinking included. Under the table: where the wait goes — the apps' runs beside the plans and the merges; where the tokens go — the apps' requests, a plan's and a merge's, and what the six cost on each provider; and GitHub's refused answer on "is main green", its cause since fixed.
+*Amended on 2026-10-31.* The six questions on the acceptance's pass of 2026-10-31 alone: each with its plan, its first app on screen, its whole screen settled, its tokens in with the share read from a cache, and its tokens out, thinking included. Under the table: where the wait goes — the apps' runs beside the plans and the merges; where the tokens go — the apps' requests, a plan's and a merge's, and what the six cost on each provider; and GitHub's refused answer on "is main green", its cause since fixed. A closing line reads the numbers: the plan fast enough, the merge longer but its rows drawn as the Synthesizer writes them, the rest of the wait the apps'.
 
 ### 3. Each setting, one line
 
