@@ -49,6 +49,8 @@ A sibling worktree of the fork, detached at `upstream/main`, the fork's own bran
 
 A sample finding that blocks one of the five stages — the card fetched, the install, the paint, Book, the submit — with no platform fix that is right for the product sends the Node restaurant finder through the same five stages in this sub-task, and the 18.4 line is amended to name the finder that goes to the dry run. A sample finding that blocks nothing is recorded and the Python one stays. A gap on the platform's side is an 18.5 sub-task, never a fallback.
 
+*Amended on 2026-10-31.* The Node restaurant finder goes to the dry run, the person's choice (phase decision 1, amended), through the same five stages in this sub-task.
+
 ### 10. Findings and the tunnel row are the record
 
 A sample finding goes to `_dev/a2ui-findings.md` from number 23 as an upstream finding; a platform finding to the Backlog, or as an 18.5 sub-task when it must land before the sitting. The tunnel doc gains the port's row. The TODO line, when ticked, names the `upstream/main` commit the sample ran from, and the model knob if the default model had to be moved. The preview's output is not kept. No run note; the sitting log is the sitting's.

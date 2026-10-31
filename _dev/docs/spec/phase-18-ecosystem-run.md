@@ -17,6 +17,8 @@ Publish a new app → discover → install → compose with an existing one → 
 
 The new app is the Python ADK restaurant finder from `samples/agent/adk/restaurant_finder` on `upstream/main`, installed unchanged. It declares only the public v0.9 basic catalog, so publish and install take its card URL alone, nothing packed. The Node restaurant finder is the fallback if the Python one cannot compose unchanged.
 
+*Amended on 2026-10-31.* The new app is the Node restaurant finder from `samples/agent/node/restaurant_finder` on `upstream/main`, installed unchanged. Its card declares no catalog, so publish and install take its card URL alone, nothing packed.
+
 ### 2. The partner is Google Calendar, live, signed in before the recording
 
 The existing app the restaurant finder composes with is Google Calendar, running live against Google. Its sign-in is done before the recording starts, on the day; the recording opens with Calendar connected.
@@ -62,6 +64,8 @@ The two developer-worded notices are a standalone chore on `main`, with no spec,
 ### 12. The sample runs from a worktree at `upstream/main`, as its README says
 
 The sample runs from a git worktree of the fork at `../A2UI/` checked out at `upstream/main`, the commit of the day recorded in the sitting log; the fork's own branch is left alone. It runs exactly as its README says, its `.env` holding the project's existing Gemini key, its default model left as upstream ships it. `MODEL_NAME` is the one knob if the default model is withdrawn or too slow on the day, and the log says so.
+
+*Amended on 2026-10-31.* The Node restaurant finder reads the project's existing Gemini key from its environment, as its README's command passes it; `MODEL_NAME` stays its one knob.
 
 ### 13. The platform runs at Phase 17's defaults, untouched
 
