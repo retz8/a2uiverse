@@ -286,7 +286,7 @@ Publish a new app → discover → install → compose with an existing one → 
 Spec: `_dev/docs/spec/phase-18-ecosystem-run.md`.
 
 - [x] **18.1** A press held back, in plain words — the client's notice "Hold on — a paint is in flight. Try again when it lands." said for customers (found in 12.13) (parallel with 18.2, 18.3). Spec: `_dev/docs/spec/task-18.1-press-held-back.md`
-- [ ] **18.2** A plan refused twice, in plain words — the validator's findings off the screen, which the journal and the log already hold; the screen's words for customers (found in 17.7) (parallel with 18.1, 18.3)
+- [WIP] **18.2** A plan refused twice, in plain words — the validator's findings off the screen, which the journal and the log already hold; the screen's words for customers (found in 17.7) (parallel with 18.1, 18.3). Spec: `_dev/docs/spec/task-18.2-plan-refused-twice.md`
 - [ ] **18.3** The sample beside the platform — the restaurant finder running from a worktree of the fork at `upstream/main`, as its README says, on its default model; its card fetched, installed from its URL alone, one turn through the hub and a press inside it; anything found recorded, a sample finding as an upstream finding (parallel with 18.1, 18.2)
 - [ ] **18.4** The dry run — the whole sitting once from the state it starts from, through the tunnel by Claude in Chrome: the claim and the publish on the trusted page, the question through the gap, the install from the offer, Calendar beside it, the booking to its confirmation; the question's words and the storyboard settled; what breaks named (after 18.1–18.3)
 - [ ] **18.5** Platform fixes the dry run forces — one sub-task per finding, added here as found, the dry run repeated after each; none if nothing breaks (after 18.4)
