@@ -128,3 +128,86 @@ describe('sendAndApply — a request that gets no answer (task-7.9)', () => {
     expect(sends).toBe(1);
   });
 });
+
+describe("sendAndApply — an app's reply said once (task 18.5.2)", () => {
+  const params = {
+    message: {kind: 'message', messageId: 'm-1', role: 'user', parts: []},
+  } as unknown as MessageSendParams;
+  const stamped = (source: string, part: unknown) =>
+    ({
+      kind: 'status-update',
+      taskId: 't',
+      contextId: 'c',
+      final: false,
+      metadata: {a2uiverse: {source, role: 'fragment'}},
+      status: {
+        state: 'working',
+        message: {kind: 'message', messageId: crypto.randomUUID(), role: 'agent', parts: [part]},
+      },
+    }) as unknown as A2AStreamEventData;
+  const say = (source: string, text: string) => stamped(source, {kind: 'text', text});
+  const paint = (source: string) =>
+    stamped(source, {
+      kind: 'data',
+      data: {version: 'v0.9', createSurface: {surfaceId: `${source}:default`, catalogId: 'basic'}},
+    });
+
+  /** The words passed on, by source, over one answer per list of events. */
+  async function heard(...answers: A2AStreamEventData[][]) {
+    const words: [string, string | undefined][] = [];
+    for (const events of answers) {
+      const sender = {
+        async *sendMessageStream() {
+          yield* events;
+        },
+      } as unknown as A2AMessageSender;
+      await sendAndApply(sender, params, {
+        apply: () => {},
+        onAgentText: (text, stamp) => words.push([text, stamp?.source]),
+      });
+    }
+    return words;
+  }
+
+  it('a reply said whole again after its paint is passed on once', async () => {
+    expect(
+      await heard([
+        say('rf', 'Here is your booking'),
+        say('rf', ' confirmation:'),
+        paint('rf'),
+        say('rf', 'Here is your booking confirmation:'),
+        paint('rf'),
+      ]),
+    ).toEqual([
+      ['Here is your booking', 'rf'],
+      [' confirmation:', 'rf'],
+    ]);
+  });
+
+  it('a reply whose words follow its paint, said whole again, is passed on once', async () => {
+    expect(
+      await heard([
+        paint('rf'),
+        say('rf', 'Your reservation has been confirmed!'),
+        paint('rf'),
+        say('rf', 'Your reservation has been confirmed!'),
+      ]),
+    ).toEqual([['Your reservation has been confirmed!', 'rf']]);
+  });
+
+  it('the same words in a new answer are passed on again', async () => {
+    expect(
+      await heard([say('rf', 'Done.'), paint('rf')], [say('rf', 'Done.'), paint('rf')]),
+    ).toEqual([
+      ['Done.', 'rf'],
+      ['Done.', 'rf'],
+    ]);
+  });
+
+  it("another app's same words are its own", async () => {
+    expect(await heard([say('a', 'Done.'), paint('a'), say('b', 'Done.')])).toEqual([
+      ['Done.', 'a'],
+      ['Done.', 'b'],
+    ]);
+  });
+});

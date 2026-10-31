@@ -259,6 +259,8 @@ flowchart LR
 
 It's a `Promise.race` between the stream's first event and a 10 second timer (`FIRST_EVENT_TIMEOUT_MS`). The resend reuses the **same message id**, and the orchestrator refuses an id it has already taken in, so a first send that was only slow never runs twice: the resend is **idempotent**. The timeout covers the first event only; once a stream has answered it may go quiet as long as a model takes, and the orchestrator sends an empty heartbeat event every 30 seconds so no proxy cuts it for being idle.
 
+**An app's reply, said once.** `sendAndApply` also hands on each app's words for the notice line, piece by piece as they stream, and the notice joins them as they come. Some agents say every reply twice: ADK's streaming hands a reply over in pieces and then whole, and an agent that reads both sends both, as upstream's restaurant finder does, so its confirmation read "Your reservation has been confirmed!Your reservation has been confirmed!". A paint from an app ends its reply so far, and words that open a reply and repeat, whole, one the same app already gave in this answer aren't handed on. What it costs: an app that truly says the same reply twice in one answer is heard once.
+
 When a turn still fails, the canvas says so in the client's own words, at the end of its progress line: "That didn't reach A2UIVerse. Ask again." when it never arrived, "Lost the connection to A2UIVerse. Ask again to see where this stands." when it broke after answering, and "That action failed." with the reason for an action.
 
 ### Sign-in: a window, a poll, a resume

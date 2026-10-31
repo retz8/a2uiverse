@@ -107,6 +107,7 @@ export async function sendAndApply(
   params: MessageSendParams,
   {apply, session, onAgentText, signal, onPaintMeta, onFirstEvent}: SendAndApplyOptions,
 ): Promise<void> {
+  const replies = repliesOnce();
   const handle = (event: A2AStreamEventData) => {
     const contextId = extractContextId(event);
     if (contextId) session?.set(contextId);
@@ -119,7 +120,13 @@ export async function sendAndApply(
     // A source's settled marker carries no messages and is applied for its stamp alone; so is a
     // piece of the merged view streamed after its tree, applied for its payload (task 17.10).
     if (messages.length || stamp?.settled || synthesis) apply(messages, stamp, synthesis);
-    if (onAgentText) for (const text of extractAgentTextFromEvent(event)) onAgentText(text, stamp);
+    const source = stamp?.source ?? '';
+    if (messages.length) replies.painted(source);
+    if (onAgentText) {
+      for (const text of extractAgentTextFromEvent(event)) {
+        if (replies.passes(source, text)) onAgentText(text, stamp);
+      }
+    }
   };
 
   for (let attempt = 1; ; attempt++) {
@@ -154,4 +161,33 @@ export async function sendAndApply(
       signal?.removeEventListener('abort', forward);
     }
   }
+}
+
+/**
+ * An app's words over one answer, each reply passed on once (task 18.5.2). ADK's streaming hands a
+ * reply over in pieces and then whole, and an agent that reads both says every reply twice, as
+ * upstream's restaurant finder does; the canvas joins an app's words piece to piece, so the second
+ * copy reads glued to the first. A paint from the app ends its reply so far; words that open a
+ * reply and repeat, whole, one the app already gave in this answer are not passed on.
+ */
+function repliesOnce() {
+  const bySource = new Map<string, {given: Set<string>; reply: string}>();
+  const of = (source: string) => {
+    let said = bySource.get(source);
+    if (!said) bySource.set(source, (said = {given: new Set(), reply: ''}));
+    return said;
+  };
+  return {
+    painted(source: string) {
+      const said = of(source);
+      if (said.reply) said.given.add(said.reply);
+      said.reply = '';
+    },
+    passes(source: string, text: string): boolean {
+      const said = of(source);
+      if (said.reply === '' && said.given.has(text)) return false;
+      said.reply += text;
+      return true;
+    },
+  };
 }
