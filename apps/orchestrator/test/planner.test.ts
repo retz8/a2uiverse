@@ -212,6 +212,31 @@ describe('the Planner’s files and prompt', () => {
     expect(result.ok ? [] : result.errors).toEqual([]);
   });
 
+  test('three slots to a row at most: the rules say so, no example puts more side by side, and one splits four sources into rows under the merged view (Material Design 3, Breakpoints: up to three panes side by side)', () => {
+    expect(files.rules).toMatch(/at most three slots side by side/);
+    const slotsIn = (example: (typeof LAYOUT_EXAMPLES)[number], id: string) =>
+      example.output.tree.components.find(c => c.id === id) as {
+        component: string;
+        children?: string[];
+      };
+    for (const example of LAYOUT_EXAMPLES) {
+      for (const row of example.output.tree.components.filter(c => c.component === 'Row')) {
+        const slots = ((row as {children?: string[]}).children ?? []).filter(
+          id => slotsIn(example, id)?.component === 'Slot',
+        );
+        expect(slots.length, `${example.name}: ${row.id}`).toBeLessThanOrEqual(3);
+      }
+    }
+    const split = LAYOUT_EXAMPLES.find(
+      e => e.output.dispatch.filter(d => 'source' in d && d.source !== 'shell').length >= 4,
+    )!;
+    expect(split).toBeDefined();
+    const root = slotsIn(split, 'root');
+    expect(root.component).toBe('Column');
+    expect(slotsIn(split, root.children![0]!)).toMatchObject({component: 'Slot', source: 'shell'});
+    expect(root.children!.slice(1).map(id => slotsIn(split, id).component)).toEqual(['Row', 'Row']);
+  });
+
   test('the out-of-date answer is shown: the reader’s words, how long ago, and a button naming its app (task-14.5 decision 13)', () => {
     const example = LAYOUT_EXAMPLES.find(e => e.name === 'out-of-date-answer')!;
     expect(example.readers?.map(r => r.reader)).toEqual(['installed_apps']);

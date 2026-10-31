@@ -191,6 +191,10 @@ given: the same components list an agent puts in an `updateComponents`. One comp
   among its siblings, like flex-grow: two slots weighted 2 and 1 split a row two-thirds to
   one-third; unweighted siblings share equally. Put the merged view where the eye lands first —
   above the sources it draws on, or beside them.
+- **Put at most three slots side by side in one `Row`.** Each answer needs the width to be read.
+  With four slots or more, stack rows in a `Column`, as even as they go — four as two and two, five
+  as three and two — the slots of one app's accounts next to each other, and the merged view above
+  them all.
 - **A screen made of slots carries no heading of yours.** The shell labels every agent's slot with
   its app, and the merged view arrives with its own title; a heading over them restates what was
   asked and says it twice. Write `Text` only where the shell has words of its own — a platform

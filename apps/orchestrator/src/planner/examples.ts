@@ -4,7 +4,8 @@
  * the field it orders by; a merged view over one kind of thing, its brief stating the join
  * hypothesis over fixture cards (task-7.6 decision 2); a command over the same cards that one agent
  * answers alone, and a status question in one app's own noun merged over every agent holding a part
- * of it (task-7.8 decision 16); a platform answer that calls one reader and templates its
+ * of it (task-7.8 decision 16), and asked across two of one app's accounts, four sources stacked in
+ * two rows under the merged view; a platform answer that calls one reader and templates its
  * result; what is on the canvas a question was asked from, named by what was asked there (task
  * 15.11); whether anything is out of date (task 14.5); a capability gap offered from the Store, a
  * merged view beside an offer and an install asked for (task 15.4); an install asked for of an app
@@ -290,6 +291,81 @@ export const APPLICATIONS_JOIN: LayoutExample = {
         {id: 'careers', component: 'Slot', source: 'careers', weight: 1},
         {id: 'mailbox', component: 'Slot', source: 'mailbox', weight: 1},
         {id: 'agenda', component: 'Slot', source: 'agenda', weight: 1},
+      ],
+    },
+    dataModel: {},
+  },
+};
+
+/**
+ * Four sources under one merged view: the applications join asked across both of a mailbox's
+ * accounts. Three slots sit side by side at most, so the four stack in two rows of two, the
+ * mailbox's two accounts next to each other, the merged view above them.
+ */
+export const APPLICATIONS_ACROSS_ACCOUNTS: LayoutExample = {
+  name: 'applications-across-accounts',
+  intent: 'How are my job applications going? Check both my mail accounts.',
+  agents: [
+    CAREERS,
+    {
+      ...MAILBOX,
+      sources: [
+        {source: 'mailbox.1', label: 'sam@example.com'},
+        {source: 'mailbox.2', label: 'sam@work.example'},
+      ],
+    },
+    AGENDA,
+    PLATFORM,
+  ],
+  output: {
+    dispatch: [
+      {
+        source: 'careers',
+        request:
+          'Show my job applications as a compact list. For each application, include the company, the role, its status, and the full date and time it was last updated.',
+      },
+      {
+        source: 'mailbox.1',
+        request:
+          'Show recent mail from companies about job applications as a compact list. For each thread, include the sender, the subject, and the full date and time it arrived.',
+      },
+      {
+        source: 'mailbox.2',
+        request:
+          'Show recent mail from companies about job applications as a compact list. For each thread, include the sender, the subject, and the full date and time it arrived.',
+      },
+      {
+        source: 'agenda',
+        request:
+          'Show my upcoming interviews and calls as a compact list. For each event, include its title, who it is with, and its full start date and time.',
+      },
+      {
+        source: 'shell',
+        request:
+          'Where each application stands: one row per Careerline application — the home source — with the company, the role, its status, the next interview, and the latest mail about it from either account; most recently updated first. A thread in either Mailbox account is the application’s by the company named in its sender or subject; an Agenda event is the application’s by the company named in its title.',
+        columns: ['Company', 'Role', 'Status', 'Next interview', 'Latest mail', 'Updated'],
+        columnSources: ['careers', 'careers', 'careers', 'agenda', null, 'careers'],
+        join: {
+          home: 'careers',
+          nouns: {
+            careers: 'applications',
+            'mailbox.1': 'threads',
+            'mailbox.2': 'threads',
+            agenda: 'interviews',
+          },
+        },
+      },
+    ],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['applications', 'top', 'bottom']},
+        {id: 'applications', component: 'Slot', source: 'shell'},
+        {id: 'top', component: 'Row', children: ['careers', 'agenda']},
+        {id: 'careers', component: 'Slot', source: 'careers', weight: 1},
+        {id: 'agenda', component: 'Slot', source: 'agenda', weight: 1},
+        {id: 'bottom', component: 'Row', children: ['mail-personal', 'mail-work']},
+        {id: 'mail-personal', component: 'Slot', source: 'mailbox.1', weight: 1},
+        {id: 'mail-work', component: 'Slot', source: 'mailbox.2', weight: 1},
       ],
     },
     dataModel: {},
@@ -807,6 +883,7 @@ export const LAYOUT_EXAMPLES: readonly LayoutExample[] = [
   ORDERS_JOIN,
   ORDER_OPEN,
   APPLICATIONS_JOIN,
+  APPLICATIONS_ACROSS_ACCOUNTS,
   INSTALLED_APPS_ANSWER,
   THIS_CANVAS_ANSWER,
   OUT_OF_DATE_ANSWER,
