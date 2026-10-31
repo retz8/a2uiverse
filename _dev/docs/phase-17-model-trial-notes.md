@@ -257,3 +257,20 @@ Prompts whose answer spans independent apps and whose screen cannot be enumerate
 - Prompts 1, 4, 6 and 10 run on data this repository already has: the A2U issues, pull request #8, the CircleCI project.
 - Prompts 2, 3 and 8 depend on inbox content; seeding the second deterministic Gmail account makes them repeatable.
 - Record on every run: plan time (`plan.planMs`), each dispatch's settle time, dead air (`synthesis.deadAirMs`). These runs are the baseline the latency work is measured against.
+
+---
+
+## 4. The defaults Phase 18 records with
+
+Decided on 2026-10-31 from the acceptance (task 17.11), each in the code.
+
+| Seam | Setting | Default | Moved or stayed | Its reading |
+| --- | --- | --- | --- | --- |
+| The Planner | model | Claude Sonnet 5.5, `anthropic/claude-sonnet-5-5` | moved from `gemini-3.8-flash` | the Planner on Claude (17.7) and the acceptance: plans in 2.19–7.54 s against the baseline's 6.7–54.8 s at the median, the same apps and joins on all six prompts |
+| The Planner | effort | `low` | stayed: the setting both trials and the acceptance ran at, Sonnet 5.5 reasoning no token on it | the Planner on Claude (17.7) and the acceptance |
+| The Synthesizer | model | `gemini-3.8-flash` | stayed: on the same recorded data Sonnet 5.5 cut the dead air of its merges to 10.7–15.3 s from 18.3–24.2 s, but matched one pull request in three to its CircleCI run where Gemini matched all three, and declined once | the Synthesizer on Sonnet 5.5 beside Gemini (17.11) |
+| The Synthesizer | effort | `low` | stayed: the acceptance's merges took 11.4 s and 14.7 s at it; at `default` on `gemini-2.5-flash` the entity join's dead air reached 59.5 s (7.13) | the acceptance |
+| The agent kit | model | `gemini-3.8-flash` | stayed: Claude on the kit waits on section 2.5's defects — the kit's `low` refused on Sonnet 5.5, an answer capped at 8,192 tokens, no prompt cache | the survey, section 2.5 |
+| The agent kit | effort | `low` | moved from `default` | the kit's thinking tier (17.8) and the acceptance: the apps' answers at a median 3.2 s to first token against the baseline's 48.5 s |
+
+The plan cache stays on by default; the measured passes ran with it off.

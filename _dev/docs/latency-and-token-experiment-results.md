@@ -12,6 +12,8 @@ Every run that spent model tokens to measure A2UIVerse, in the order they ran: w
 | 2026-10-30 | 17.8 | [The kit's thinking tier `low`](#2026-10-30--178--the-kits-thinking-tier-low) | `gemini-3.8-flash` | $1.38 |
 | 2026-10-31 | 17.9 | [The Planner's answer streamed, checked live](#2026-10-31--179--the-planners-answer-streamed-checked-live) | Claude Sonnet 5.5, `gemini-3.8-flash`, `gemini-3.7-flash` | $0.95 |
 | 2026-10-31 | 17.10 | [The synthesis fragment streamed, checked live](#2026-10-31--1710--the-synthesis-fragment-streamed-checked-live) | Claude Sonnet 5.5, `gemini-3.8-flash`, `gemini-3.7-flash` | $0.91 |
+| 2026-10-31 | 17.11 | [The acceptance](#2026-10-31--1711--the-acceptance) | Claude Sonnet 5.5, `gemini-3.8-flash`, `gemini-3.7-flash` | $2.58 |
+| 2026-10-31 | 17.11 | [The Synthesizer on Sonnet 5.5 beside Gemini, the apps deterministic](#2026-10-31--1711--the-synthesizer-on-sonnet-55-beside-gemini-the-apps-deterministic) | Claude Sonnet 5.5, `gemini-3.8-flash` | $0.57 |
 
 ---
 
@@ -332,3 +334,126 @@ Before 17.10 the merged view was drawn once the Synthesizer's answer was complet
 | CircleCI, `gemini-3.7-flash` | 25 | 615,342 | 495,358 | — | 35,865 (28,169) | $0.26 |
 
 - **What it cost**: $0.91, against the $2.3 estimated and put to the person before it ran. Priced as in 17.9's entry: Sonnet 5.5 at $2 / $10 / $0.10 per million input, output and cached tokens, a one-hour cache write at twice the input price ([Pricing — Claude](https://platform.claude.com/docs/en/about-claude/pricing), [Prompt caching — Claude](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)); the Gemini requests at `gemini-3.8-flash`'s $0.75 / $3.75 / $0.075, thinking billed as output ([Gemini Developer API pricing](https://ai.google.dev/gemini-api/docs/pricing)), the apps' `gemini-3.7-flash` priced the same. GitHub's requests include the Cancel the trapped keyboard sent; Linear and Gmail made no model request.
+
+## 2026-10-31 · 17.11 · The acceptance
+
+The six end-to-end prompts once on the configuration the sub-tasks chose (task 17.11), on 2026-10-31: the Planner on Claude Sonnet 5.5 at `low` with 17.6's one-hour cache, its answer streamed (17.9); the Synthesizer on `gemini-3.8-flash` at `low` with Gemini's explicit cache, the first merge streamed (17.10); the vendor agents live on `gemini-3.8-flash` at the kit's `low` (17.8); the plan cache off. Run as the baseline ran (task-17.11 decision 3): one utterance turn per prompt on a fresh canvas, sent through the tunnel by Claude-in-Chrome, every sign-in held, both Gmail accounts checked by name, Shop A installed for the camera comparison alone. One pass; passes two and three not run, on the person's decision. Each number is that pass's, in seconds on the orchestrator's clock from the utterance arriving, beside the baseline's median and range over its three passes. Each turn's numbers: `phase-17-acceptance-extract.json` beside these notes.
+
+### Per prompt
+
+Each cell: the acceptance · the baseline's median (range).
+
+| Prompt | Plan | First paint, per app | Dead air | Settled screen | The merge |
+| --- | --- | --- | --- | --- | --- |
+| 1, pull requests blocked outside GitHub | 7.09 · 23.2 (20.9–26.3) | Linear 19.84 · 118.2 (109.5–122.5); CircleCI 75.72 · 123.1 (103.0–153.6); GitHub 108.56 · 151.6 (129.5–168.7) | 14.74 · 28.1 (26.7–54.1) | 172.85 · 217.4 (215.7–226.1) | merged, released by the home source |
+| 4, closing out A2U-7 | 7.54 · 54.8 (27.0–74.0) | Linear 14.58 · 186.2 (106.9–195.8); GitHub and CircleCI answered in words, as in the baseline | — | 148.33 · 198.4 (172.6–208.5) | none: collapsed, only Linear answered |
+| 6, is main green | 5.96 · 20.3 (14.7–23.8) | GitHub 68.50 · 111.6 (72.9–174.4), its answer then refused; CircleCI 83.87 · 85.3 (81.3–92.5) | — | 153.78 · 126.2 (103.7–231.8) | none: collapsed, GitHub's answer refused on both attempts |
+| 10, both Gmail accounts | 6.82 · 51.4 (40.0–58.4) | the two Gmail accounts 55.66 and 75.86 · 160.8 and 220.1; Linear 57.78 · 104.0 (75.1–128.9) | 11.40 · 13.5 (3.3–15.6) | 93.85 · 237.8 (206.7–239.8) | merged, released by the home source |
+| Control, "show my open pull requests" | 2.19 · 6.7 (6.6–7.9) | GitHub 75.00 · 128.9 (87.2–138.3) | — | 105.77 · 143.7 (101.8–151.5) | none planned |
+| The camera comparison | 5.36 · 21.5 (20.8–31.6) | Shop A 10.26 · 63.5 (58.3–107.2) | — | 15.78 · 69.7 (64.2–111.3) | none: Shop B offered from the Store |
+
+- **Prompt 6**: GitHub's first answer broke off as invalid JSON at character 30,763 of 30,877, its request left open after 9,473 output tokens; the kit's correction was refused by GitHub's catalog for a page header's title area in a `small` variant. The slot said the screen couldn't be shown, and the merge collapsed with CircleCI alone.
+
+### The split of the wait
+
+Each app's run, from its dispatch to its settle, with its requests as the kit measures them; each cell the acceptance · the baseline's median.
+
+| Prompt | App | Requests | Time to first token, summed | Generation, summed | Dispatch to settle |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Linear | 2 · 4–5 | 4.4 · 82.6 | 7.7 · 7.7 | 20.6 · 98.4 |
+| 1 | CircleCI | 6 · 7–14 | 55.6 · 94.9 | 15.4 · 16.2 | 83.4 · 122.1 |
+| 1 | GitHub | 8 · 5–11 | 84.8 · 113.9 | 44.8 · 25.8 | 152.0 · 165.8 |
+| 4 | Linear | 2 · 3–4 | 5.4 · 109.0 | 14.1 · 13.4 | 20.8 · 124.3 |
+| 4 | CircleCI | 13 · 9–14 | 31.5 · 89.7 | 1.7 · 1.0 | 41.0 · 100.0 |
+| 4 | GitHub | 20 · 11–18 | 108.9 · 109.7 | 2.5 · 2.4 | 141.4 · 135.1 |
+| 6 | CircleCI | 8 · 5 | 71.1 · 62.0 | 16.0 · 15.6 | 92.6 · 81.6 |
+| 6 | GitHub | 15 · 1–11 | 43.8 · 90.2 | 25.5 · 4.5 | 147.8 · 100.4 |
+| 10 | Linear | 5 · 2–3 | 48.6 · 50.6 | 11.2 · 6.6 | 62.0 · 58.4 |
+| 10 | Gmail, both accounts at once | 24 · 22–35 | 74.3 · 252.0 | 12.7 · 16.9 | 76.3 · 184.3 |
+| Control | GitHub | 7 · 3–11 | 67.3 · 113.3 | 24.9 · 15.5 | 103.9 · 137.0 |
+| Camera | Shop A | 2 · 2 | 4.1 · 36.0 | 6.3 · 6.5 | 10.4 · 42.6 |
+
+- **The shortlist**: 3–19 ms on every turn, inside the plan.
+- **The Planner**: one request a plan, its first token at 1.04–1.95 s, no reasoning token; the camera comparison's two, a request ending in the Store search at 2.07 s, the search 22 ms, then the plan's own, 3.26 s. Every plan after the first read 30,474 tokens from Claude's cache.
+- **The Synthesizer**: two merges, 14.74 s and 11.40 s, their first token at 2.61 s and 1.80 s.
+- **The apps**: of the 13 requests that drew an answer on its first attempt, the first token came at a median 3.2 s (1.8–42.7), against the baseline's 48.5 s (8.3–118.9) over 41. On those requests Linear, Gmail and Shop A thought nothing but Linear on prompt 10, 2,873 tokens before a first token at 20.6 s; GitHub thought 2,079–6,501 tokens and CircleCI none to 4,364. Every prompt with an app still waits longest on the apps: their runs 10.4–152.0 s, against plans of 2.19–7.54 s and dead air of 11.40–14.74 s.
+
+### The streamed answers, before and after
+
+Before 17.9 and 17.10 the apps were asked and the layout drawn at `planMs`, and the merged view drawn at `deadAirMs`; each turn's own is its before (task-17.11 decision 5).
+
+| Prompt | Planner's first token | The apps asked | The layout's first piece | `planMs` | The apps asked earlier | Synthesizer's first token | First row (`firstRowMs`) | `deadAirMs` | First row earlier |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1.95 | 6.13 | 7.05 | 7.09 | 0.96, 14% | 2.61 | 9.16 | 14.74 | 5.58, 38% |
+| 4 | 1.92 | 6.93 | 6.93 | 7.54 | 0.62, 8% | — | — | — | — |
+| 6 | 1.72 | 5.93 | 5.94 | 5.96 | 0.03, 0% | — | — | — | — |
+| 10 | 1.61 | 6.11 | 6.12 | 6.82 | 0.71, 10% | 1.80 | 8.62 | 11.40 | 2.78, 24% |
+| Control | 1.04 | 1.85 | 2.02 | 2.19 | 0.35, 16% | — | — | — | — |
+| Camera | 1.49 | 5.35 | 5.36 | 5.36 | 0.01, 0% | — | — | — | — |
+
+The Synthesizer's times are on its own clock, from the merge's release. What the browser drew, sampled in the page on the browser's clock from the question sent, the tunnel's leg inside it, never compared with the baseline (task-17.11 decision 4):
+
+| Prompt | The layout's first piece | Each app's first paint | The merged view's tree | Its first row | Accepted |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 8.32 | Linear 21.08, CircleCI 77.06, GitHub 109.81 | 165.86 | 168.55 | 174.09 |
+| 4 | 17.61 | Linear 25.53 | — | — | — |
+| 6 | 7.52 | GitHub 70.09, CircleCI 85.63 | — | — | — |
+| 10 | 7.68 | Gmail 57.28 and 77.47, Linear 59.56 | 89.96 | 92.67 | 95.40 |
+| Control | 3.21 | GitHub 76.20 | — | — | — |
+| Camera | 7.07 | Shop A 23.84 | — | — | — |
+
+- The rows came one by one, 2.5–2.9 s apart. The merged views reached the browser 1.3 s and 1.6 s after the orchestrator painted their first row; 17.10's late view was not seen again.
+- On prompt 4 every event reached the browser about 10 s after the orchestrator sent it: the layout at 17.61 against 6.93, the apps' words 10 s after they settled. On the camera comparison Shop A's paint, its first after its install, reached the browser 13.6 s after the orchestrator relayed it.
+
+### The readings
+
+- **The plans**, by task-17.7 decision 5's checks: the same apps as the baseline on all six; where the baseline planned a merge, one on the same join — GitHub's pull requests home with Linear's issues and CircleCI's runs on 1; Linear's issues home with GitHub's pull requests and CircleCI's runs on 4, as the baseline's first and third passes; CircleCI's runs with GitHub's commits, no home, on 6, as the baseline's third pass; both Gmail accounts' threads and Linear's issues on 10, the first account's threads home; Shop A's cameras on the camera comparison, Shop B offered from the Store after a search.
+- **The merges**: on 1 three rows, each pull request with its Linear issue and where it is blocked; on 10 two rows, each a thread with its Linear issue's state. Prompt 4's collapsed as two of the baseline's three did; prompt 6's, where the baseline declined twice and merged once, collapsed on GitHub's refused answer.
+- **The apps' answers**, by task-17.8 decision 7's checks: the first try on 10 of 13 runs — GitHub's answer refused on 1 and the control and drawn on the correction, and refused on both attempts on 6; what the prompt asks on the screen on every run but GitHub's on 6.
+- **Linear on 4 and 10**, read closest: on 4 A2U-7's detail — its status, priority, assignee and labels, its four actions, its description, links and activity — with no thinking, the answer's first token at 2.2 s; on 10 the team's issues grouped by state, each with its identifier and title, the answer's first token at 20.6 s after 2,873 thinking tokens. The baseline records Linear's answers on these prompts as first paints, 186.2 s and 104.0 s at the median.
+- **The limits**: the baseline's answers survive as outcomes, not screens; the repos' data has moved since 2026-10-29; one pass stands against a median of three.
+- **The verdict**, the person's, on 2026-10-31: both levers held — the Planner on Claude Sonnet 5.5 and the kit at `low`. GitHub's refused answers come from its brand guidance asking for a `small` title, which its catalog's title area does not allow (the Backlog line).
+
+### Tokens, first tries and the cost
+
+| | Requests | Prompt tokens | Cache read | Cache written | Output tokens, reasoning included | Cost |
+| --- | --- | --- | --- | --- | --- | --- |
+| Planner, Sonnet 5.5 | 7 | 237,157 | 182,844 | 30,474 | 3,904 (0) | $0.23 |
+| Synthesizer, `gemini-3.8-flash` | 2 | 33,076 | 14,074 | — | 4,060 (0) | $0.03 |
+| GitHub | 50 | 9,517,422 | 8,620,609 | — | 50,117 (21,382) | $1.51 |
+| Gmail, both accounts | 24 | 2,038,870 | 1,731,655 | — | 2,529 (0) | $0.37 |
+| CircleCI | 27 | 984,926 | 829,147 | — | 22,072 (15,338) | $0.26 |
+| Linear | 9 | 210,376 | 127,880 | — | 12,160 (5,570) | $0.12 |
+| Shop A | 2 | 31,053 | 13,393 | — | 1,195 (0) | $0.02 |
+
+- **What it cost**: $2.58 — the pass $2.53, Claude $0.23 and Gemini $2.30; Shop A's Store capture at the two launches $0.04. Against the $2.75–3.25 estimated and put to the person before it ran, and the baseline's $2.91 a pass, all of it Gemini. Priced as in 17.9's entry: Sonnet 5.5 at $2 / $10 / $0.10 per million input, output and cached tokens, a one-hour cache write at twice the input price ([Pricing — Claude](https://platform.claude.com/docs/en/about-claude/pricing), [Prompt caching — Claude](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)); `gemini-3.8-flash` at $0.75 / $3.75 / $0.075 until 2026-12-31, thinking billed as output ([Gemini Developer API pricing](https://ai.google.dev/gemini-api/docs/pricing)).
+- **Gemini per pass, by seam**, the acceptance · a third of the baseline's three passes: the Planner $0 · $0.23; the Synthesizer $0.03 · $0.10; GitHub $1.51 · $1.18, its three refused answers drawn again; Gmail $0.37 · $0.82; CircleCI $0.26 · $0.29; Linear $0.12 · $0.25; Shop A $0.02 · $0.05.
+- **First tries**: the Planner 6 of 6 plans; the Synthesizer 2 of 2 merges that called the model; the apps 10 of 13 runs.
+- **Gmail's two accounts** ran at once in one agent, whose recorder holds one turn at a time: the first account's 14 requests are read from the agent's log, marked in the extract, without their end instants.
+- **As they fell**: prompt 1 is the first turn after the orchestrator booted, marked in the extract. The first launch came up with the apps on `gemini-3.7-flash`, which each app's local `.env` names over the kit's default; they were launched again with `MODEL_NAME=gemini-3.8-flash` before any prompt, only Shop A's Store capture having run on the first.
+
+### The choice
+
+Chosen on 2026-10-31: the Planner's default Claude Sonnet 5.5 and the kit's `low`, both set in the code (task-17.11 decision 7); the Synthesizer stays on `gemini-3.8-flash` at `low` (below). The defaults Phase 18 records with: the notes' section 4.
+
+Data: [`phase-17-acceptance-extract.json`](phase-17-acceptance-extract.json), each turn's numbers, no text any model wrote and no data any app returned.
+
+## 2026-10-31 · 17.11 · The Synthesizer on Sonnet 5.5 beside Gemini, the apps deterministic
+
+Asked by the person after the acceptance: the Synthesizer on Claude Sonnet 5.5 at `low` beside `gemini-3.8-flash` at `low`, over prompts 1, 6 and 10, with the vendor agents in `deterministic` mode, answering from their recorded fixtures with no model call, under a scratch state; the Planner on Sonnet 5.5 at `low`; the plan cache off; the orchestrator restarted between the two Synthesizers. Prompt 1 sent three times on Sonnet 5.5. Seconds on the merge's clock, from its release.
+
+| Prompt · Synthesizer | Sources | First token | First row | Dead air | Output tokens | The merge |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 · `gemini-3.8-flash` | five | 2.85 | 11.29 | 24.23 | 3,952 | 6 rows, each of the three pull requests with a run matched to its CircleCI run by its branch |
+| 1 · Sonnet 5.5 | three | 1.12 | 5.69 | 10.69 | 2,134 | 3 rows, one pull request matched to its run |
+| 1 · Sonnet 5.5 | five | 1.06 | 5.95 | 12.82 | 2,572 | 6 rows, one pull request matched to its run |
+| 1 · Sonnet 5.5 | five | 0.95 | — | 2.62 | 165 | declined: the link between Linear's issues and the pull requests a bare number with no repository |
+| 6 · `gemini-3.8-flash` | two | 2.43 | 9.16 | 18.26 | 2,954 | the six commits on main, a line on top answering whether main is green |
+| 6 · Sonnet 5.5 | two | 1.05 | 7.08 | 15.29 | 3,000 | the same six commits, no answering line |
+| 10 · `gemini-3.8-flash` | three | 11.75 | — | 12.29 | 1,601 (1,522 reasoning) | declined: no thread names a Linear issue in the fixtures |
+| 10 · Sonnet 5.5 | three | 1.04 | — | 2.18 | 119 | declined |
+
+- **Faster on Sonnet 5.5**: the dead air of the merges it wrote 10.69–15.29 s against 18.26–24.23 s, its first token about a second, its rows in the browser 1.5–2.3 s apart; Gemini at `low` reasoned 1,522 tokens before declining on 10.
+- **Fewer joins on Sonnet 5.5**: on the same fixtures, one pull request matched to its CircleCI run in three where Gemini matched all three, the branch names equal; one of its three tries declined outright.
+- **What it cost**: Claude $0.35, Gemini $0.05, the apps none. The same stack then checked the Planner's rule of three slots to a row on one question: Claude $0.14, the Planner's cache written again after a restart, and Gemini $0.03.
+- **The choice**, the person's, on 2026-10-31: the Synthesizer stays on `gemini-3.8-flash` at `low`.

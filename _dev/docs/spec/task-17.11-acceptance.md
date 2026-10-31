@@ -49,6 +49,8 @@ The Planner's default model in the code becomes Claude Sonnet 5.5; a default boo
 
 A seam whose acceptance reading goes against its chosen lever — by decision 6's checks or its numbers — stays at today's default, the reason written in its row of decision 8's table. No further run is made on this sub-task beyond the passes approved under decision 1; re-opening the lever's sub-task is the person's, afterwards.
 
+*Amended on 2026-10-31.* On the person's request after the pass, the Synthesizer ran on Claude Sonnet 5.5 beside `gemini-3.8-flash` over prompts 1, 6 and 10, the vendor agents in `deterministic` mode. The Synthesizer stays on `gemini-3.8-flash`; its row in decision 8's table names that run.
+
 ### 10. The Backlog
 
 Closed by this sub-task: the Synthesizer's effort line, by decision 8's row for the Synthesizer; the Store-search plan-time line (found in 15.11), if the acceptance's camera-comparison plan reads near 17.7's, the number written on the line as it closes. Staying: the merged view reaching the browser late (found in 17.10); the Planner on Sonnet writing plain reasoning before its block (found in 17.9).
