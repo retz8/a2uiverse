@@ -51,6 +51,7 @@ Platform processes are `1000x`; vendor agents are `11001+` and mock agents `1200
 | shell-catalog fixture (dev-only) | 5174 locally; 5173 through the tunnel, while the client is down | on 5173 | `a2uiverse` |
 | vendor agents | 11001–11005 | sign-in pages | `a2uiverse-apps` (table there) |
 | mock agents | 12001+ | no | `a2uiverse-apps` (`mocks/`, the launcher's mock tier) |
+| upstream restaurant finder | 11006 | no | `../a2ui-upstream/`, a worktree of the A2UI fork at `upstream/main` |
 
 ## Run commands
 
@@ -72,6 +73,8 @@ BASE_URL=https://<tunnel-id>-10001.asse.devtunnels.ms pnpm --filter @a2uiverse/o
 # client — .env.local: VITE_ORCHESTRATOR_URL=https://<tunnel-id>-10001.asse.devtunnels.ms
 pnpm --filter @a2uiverse/client dev
 ```
+
+The restaurant finder serves its pictures from its own address, `http://localhost:11006/static/`, so a browser across the tunnel shows them blank whether or not the port is forwarded: there `localhost` is the browser's own machine.
 
 The tunnel forwards at most eight ports — the client, the orchestrator, the marketplace and the five vendor agents — so the shell catalog's design-check page runs on the client's port while the client is down:
 

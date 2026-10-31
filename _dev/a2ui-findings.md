@@ -719,3 +719,62 @@ processCreateSurfaceMessage crashes on duplicate surfaceId") quotes `A2uiStateEr
 exists`. PR [#2884](https://github.com/a2ui-project/a2ui/pull/2884) ("feat(conformance): align message
 processor, validator, and catalog parity across SDKs", merged 2026-10-01) moved the surface failures to
 `A2uiIntegrityError` and left the comment. No issue or PR names the comment.
+
+---
+
+## 23. The restaurant finder reads every streamed reply twice (samples/agent/adk)
+
+**Component:** `samples/agent/adk/restaurant_finder/agent.py` at `upstream/main` `825beac2`: `token_stream`
+inside `RestaurantAgent.stream` (line 286), which feeds `stream_response_to_parts`
+(`python/a2ui_a2a/src/a2ui/a2a/parts.py`, line 174). The same reader is in
+`samples/agent/adk/custom-components-example/agent.py` (line 506). Run on `google-adk` 2.3.0 and
+`gemini-3.6-flash`, the sample's default model.
+
+**Severity:** behaviour — every first answer fails the sample's own stream check and is generated again,
+and every answer is painted twice.
+
+### Issue
+
+Under `StreamingMode.SSE`, ADK's runner yields each chunk of a model reply as an event marked `partial`,
+then the whole reply once more as one event that is not: `google/adk/utils/streaming_utils.py` marks every
+chunk `partial = True` (line 308), and `StreamingResponseAggregator.close()` returns the aggregated
+response (line 348). `token_stream` yields the text of every event that has content, partial or not, so the
+response stream reads each reply twice.
+
+A first answer creates its surface, and the second reading creates it again: the stream raises
+`Surface default already exists`, the sample logs `A2UI stream failed` and runs the whole request again.
+The retry's reply opens with `deleteSurface`, so its second reading passes. A first question therefore pays
+a second model run, and the client receives the first attempt's surface, its deletion, and the retry's
+paint twice. A later answer that opens with `deleteSurface` passes and is painted twice.
+
+### Reproduction
+
+Run the sample as its README says, then:
+
+```bash
+curl -N http://localhost:10002 -H 'Content-Type: application/json' \
+  -H 'X-A2A-Extensions: https://a2ui.org/a2a-extension/a2ui/v0.9' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"message/stream","params":{"message":{"kind":"message","role":"user","messageId":"1","parts":[{"kind":"text","text":"Find me an Italian restaurant in New York"}]}}}'
+```
+
+The log reads `A2UI stream failed: Surface default already exists. (Attempt 1)`, then `Attempt 2/2`. The
+stream carries the first attempt's `createSurface` with its components and data; then the retry's text,
+`deleteSurface`, `createSurface`, components and data, chunk by chunk; then the same text, `deleteSurface`,
+`createSurface`, components and data again, in one burst before the last status. On 2026-10-31 six of six
+first questions failed their first attempt this way, and each of three button presses painted its answer
+twice.
+
+### Fix
+
+While streaming, read only the partial events: under `StreamingMode.SSE`, `token_stream` skips an event
+whose `partial` is false, since the reply it carries was already read chunk by chunk; under
+`StreamingMode.NONE`, where no event is partial, it reads every event. The same change applies to
+`custom-components-example`.
+
+On A2UIVerse each `createSurface` is a paint, so each of the sample's answers is two paints on its way back.
+
+### Prior art
+
+The reader came with PR [#918](https://github.com/a2ui-project/a2ui/pull/918) ("Streaming restaurant
+sample"). No issue or pull request on `a2ui-project/a2ui` names the doubled reading or the
+`already exists` retry, searched on 2026-10-31.
