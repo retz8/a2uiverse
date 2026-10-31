@@ -9,6 +9,7 @@ import {
   hangingScript,
   noFinalScript,
   startFakeAgent,
+  unmarkedScript,
   type FakeAgent,
 } from './fakeAgent.js';
 
@@ -94,6 +95,34 @@ describe('a2aSmokeRunner', () => {
       timeoutMs: 5000,
     });
     expect(seen).toEqual({kind: 'unfinished', messages: []});
+  });
+
+  test('a stream closing on input-required, not marked final: ended there, with its paint', async () => {
+    agent = await startFakeAgent({script: unmarkedScript(['input-required'])});
+    const seen = await run({
+      card: agent.card,
+      entitlement: ENTITLEMENT,
+      words: 'x',
+      timeoutMs: 5000,
+    });
+    expect(seen.kind).toBe('ended');
+    if (seen.kind !== 'ended') return;
+    expect(seen.state).toBe('input-required');
+    expect(seen.messages.map(m => Object.keys(m).find(k => k !== 'version'))).toEqual([
+      'createSurface',
+      'updateComponents',
+    ]);
+  });
+
+  test('input-required followed by more work before the close is unfinished', async () => {
+    agent = await startFakeAgent({script: unmarkedScript(['input-required', 'working'])});
+    const seen = await run({
+      card: agent.card,
+      entitlement: ENTITLEMENT,
+      words: 'x',
+      timeoutMs: 5000,
+    });
+    expect(seen.kind).toBe('unfinished');
   });
 
   test('an agent that never answers: an error naming the timeout', async () => {

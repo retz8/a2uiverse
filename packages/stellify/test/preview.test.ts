@@ -12,6 +12,7 @@ import {
   paintingScript,
   STAR_CATALOG_ID,
   startFakeAgent,
+  unmarkedScript,
   type FakeAgent,
 } from './fakeAgent.js';
 import {entryFor, startFakeMarketplace, type FakeMarketplace} from './fakeMarketplace.js';
@@ -88,6 +89,16 @@ describe('preview of an app that needs no sign-in', () => {
       'the card requires no sign-in: the credential is not sent, and the marketplace captures this app’s preview itself at publish',
     ]);
     expect(agent.requests[0]?.headers.authorization).toBeUndefined();
+  });
+
+  test('the answer ends on input-required, not marked final: its paint is the preview', async () => {
+    agent = await startFakeAgent({script: unmarkedScript(['input-required'])});
+    const result = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
+    expect(result.findings).toEqual([]);
+    expect(result.document?.messages.map(m => Object.keys(m).find(k => k !== 'version'))).toEqual([
+      'createSurface',
+      'updateComponents',
+    ]);
   });
 });
 

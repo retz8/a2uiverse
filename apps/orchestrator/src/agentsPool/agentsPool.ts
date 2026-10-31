@@ -232,6 +232,9 @@ export class AgentsPool {
     let finalMessage: string | undefined;
     // A non-streaming vendor answers with one Task in a terminal state and no final update.
     let terminalTaskState: TaskState | undefined;
+    // The state the stream last named: a stream closing on `input-required` has ended, final or
+    // not, as A2A 0.3.0 §7.2.1 has a stream complete once its task is interrupted (task 18.5.1).
+    let lastState: TaskState | undefined;
     let broke = false;
     let invalid: string | undefined;
     // The source's app as the registry holds it now: the entitlement this dispatch is sent under
@@ -320,6 +323,7 @@ export class AgentsPool {
             record.sawFinal = false;
             finalState = undefined;
             terminalTaskState = undefined;
+            lastState = undefined;
             try {
               for await (const event of client.sendMessageStream(params, options)) {
                 this.#learnIds(event, source, turn, record);
@@ -367,6 +371,9 @@ export class AgentsPool {
                 if (found) {
                   foundOnTerminal = isTerminal(event);
                   break;
+                }
+                if (event.kind === 'status-update' || event.kind === 'task') {
+                  lastState = event.status.state;
                 }
                 if (event.kind === 'message') {
                   record.sawFinal = true;
@@ -425,7 +432,8 @@ export class AgentsPool {
           outgoing = repairOf(outgoing, found);
         }
       }
-      const endState = record.sawFinal ? finalState : terminalTaskState;
+      const interrupted = lastState === 'input-required' ? lastState : undefined;
+      const endState = record.sawFinal ? finalState : (terminalTaskState ?? interrupted);
       if (record.authority) {
         finish('failed', {error: 'the app needs sign-in'});
       } else if (invalid !== undefined) {
@@ -459,7 +467,7 @@ export class AgentsPool {
           error: 'painted a credential input, and again after the repair',
           cause: 'credential',
         });
-      } else if (broke || (!record.sawFinal && !terminalTaskState)) {
+      } else if (broke || (!record.sawFinal && !terminalTaskState && !interrupted)) {
         finish('failed', {
           error: `stream ended without a final event${broke ? ' (fault map)' : ''}`,
           cause: 'unreachable',

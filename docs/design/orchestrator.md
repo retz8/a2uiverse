@@ -500,7 +500,7 @@ The structures behind it:
 
 **How a dispatch ends.** `completed`; `cancelled` (aborted); or `failed` with a cause:
 - `vendor` when the app ended its task as failed, its words kept.
-- `unreachable` when the connection failed or the stream ended with no final.
+- `unreachable` when the connection failed or the stream ended with no final. A stream that closes on `input-required` has ended, marked final or not: A2A 0.3.0 has a stream complete once its task is interrupted, and A2A's Python SDK leaves that update unmarked by default, as upstream's restaurant finder does.
 - `catalog` when the app painted outside its entitlement.
 - `credential` when the app painted a credential field and painted one again when asked not to, carrying its own page as `continueUrl`.
 - `uninstalled` when the app isn't installed at dispatch time, so it isn't asked at all.

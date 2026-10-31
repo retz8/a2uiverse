@@ -77,15 +77,16 @@ const firstTurnTask = (ctx: RequestContext): Task => ({
   history: [{...ctx.userMessage, contextId: ctx.contextId, taskId: ctx.taskId}],
 });
 
-const finalUpdate = (
+const statusUpdate = (
   ctx: RequestContext,
   state: Task['status']['state'],
   parts: Message['parts'],
+  final: boolean,
 ): AgentExecutionEvent => ({
   kind: 'status-update',
   taskId: ctx.taskId,
   contextId: ctx.contextId,
-  final: true,
+  final,
   status: {
     state,
     message: {
@@ -98,6 +99,12 @@ const finalUpdate = (
     },
   },
 });
+
+const finalUpdate = (
+  ctx: RequestContext,
+  state: Task['status']['state'],
+  parts: Message['parts'],
+): AgentExecutionEvent => statusUpdate(ctx, state, parts, true);
 
 /** Paints one surface in `catalogId` and completes, as the deterministic roster does. */
 export const paintingScript =
@@ -140,6 +147,18 @@ export const authRequiredScript =
 export const failedScript: Script = ({ctx}) => [
   finalUpdate(ctx, 'failed', [{kind: 'text', text: 'boom'}]),
 ];
+
+/**
+ * Paints in `catalogId`, then moves through `states` with no update marked final and closes the
+ * stream: upstream's restaurant finder ends its answers on `input-required` this way.
+ */
+export const unmarkedScript =
+  (states: Task['status']['state'][], catalogId = FAKE_CATALOG_ID): Script =>
+  ({ctx, firstTurn}) => [
+    ...(firstTurn ? [firstTurnTask(ctx)] : []),
+    statusUpdate(ctx, 'working', paintParts(catalogId), false),
+    ...states.map(state => statusUpdate(ctx, state, [], false)),
+  ];
 
 /** Emits a task and nothing final. */
 export const noFinalScript: Script = ({ctx}) => [firstTurnTask(ctx)];

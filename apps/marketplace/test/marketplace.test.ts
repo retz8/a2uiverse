@@ -40,6 +40,7 @@ import {
   noFinalScript,
   paintingScript,
   startFakeAgent,
+  unmarkedScript,
   type FakeAgent,
   type FakeAgentOptions,
 } from './fakeAgent.js';
@@ -507,6 +508,19 @@ describe('publish, the smoke test', () => {
     expect(answer.findings).toEqual([
       'the agent never finished: the stream ended without a final event',
     ]);
+  });
+
+  test('an agent that ends its answer on input-required, not marked final, is published', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentOf({script: unmarkedScript(['input-required'])});
+    const answer = ok(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serve(agent.card), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    expect(answer.summary).toMatch(/^published shop · card 0\.1\.0/);
   });
 
   test('a paint outside the entitlement, and a credential input', async () => {

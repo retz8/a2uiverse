@@ -1799,6 +1799,7 @@ function a2aSmokeRunner(options = {}) {
     };
     const messages = [];
     let ended;
+    let last;
     try {
       const client = await factory.createFromAgentCard(card);
       const stream = client.sendMessageStream(
@@ -1813,6 +1814,9 @@ function a2aSmokeRunner(options = {}) {
       for await (const event of stream) {
         const parts = partsOf(event);
         messages.push(...a2uiMessagesOf(parts));
+        if (event.kind === "status-update" || event.kind === "task") {
+          last = { state: event.status.state, parts: event.status.message?.parts };
+        }
         if (event.kind === "message") {
           ended = { state: "completed", ...wordsOf2(parts) };
         } else if (event.kind === "status-update" && event.final) {
@@ -1827,6 +1831,9 @@ function a2aSmokeRunner(options = {}) {
         return { kind: "error", message: `the agent did not answer within ${timeoutMs / 1e3} s` };
       }
       return { kind: "error", message: err.message };
+    }
+    if (!ended && last?.state === "input-required") {
+      ended = { state: last.state, ...wordsOf2(last.parts) };
     }
     if (!ended) return { kind: "unfinished", messages };
     return { kind: "ended", messages, ...ended };

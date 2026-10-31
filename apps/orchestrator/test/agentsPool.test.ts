@@ -342,6 +342,71 @@ describe('AgentsPool — the hard cap, the cause of a failure, cancel (task 8.3)
   });
 });
 
+/**
+ * A vendor that paints, then moves through `states` with no update marked final, and closes its
+ * stream: upstream's restaurant finder ends its answers on `input-required` this way.
+ */
+function unmarkedScript(states: TaskStatusUpdateEvent['status']['state'][]): Script {
+  return ({ctx, vendorContextId}) => [
+    {kind: 'task', id: ctx.taskId, contextId: vendorContextId, status: {state: 'submitted'}},
+    {
+      kind: 'status-update',
+      taskId: ctx.taskId,
+      contextId: vendorContextId,
+      final: false,
+      status: {
+        state: 'working',
+        message: {kind: 'message', messageId: 'm', role: 'agent', parts: [A2UI_PART]},
+      },
+    },
+    ...states.map(state => ({
+      kind: 'status-update' as const,
+      taskId: ctx.taskId,
+      contextId: vendorContextId,
+      final: false,
+      status: {state},
+    })),
+  ];
+}
+
+describe('AgentsPool — a stream that ends on input required (task 18.5.1)', () => {
+  test('a stream closing on input-required, not marked final, completes', async () => {
+    const {pool} = await poolFor({script: unmarkedScript(['input-required'])});
+    const {record} = await drain(pool.dispatch('github', turn()));
+    expect(record.outcome).toBe('completed');
+    expect(record.cause).toBeUndefined();
+  });
+
+  test('a stream closing while working, not marked final, is still unreachable', async () => {
+    const {pool} = await poolFor({script: unmarkedScript([])});
+    const {record} = await drain(pool.dispatch('github', turn()));
+    expect(record).toMatchObject({outcome: 'failed', cause: 'unreachable'});
+  });
+
+  test('a non-streaming vendor answering one Task in input-required completes', async () => {
+    const script: Script = ({ctx, vendorContextId}) => [
+      {
+        kind: 'task',
+        id: ctx.taskId,
+        contextId: vendorContextId,
+        status: {
+          state: 'input-required',
+          message: {kind: 'message', messageId: 'm', role: 'agent', parts: [A2UI_PART]},
+        },
+      },
+    ];
+    const {pool} = await poolFor({streaming: false, script});
+    const {record} = await drain(pool.dispatch('github', turn()));
+    expect(record.outcome).toBe('completed');
+  });
+
+  test('input-required followed by more work before the close is not the end', async () => {
+    const {pool} = await poolFor({script: unmarkedScript(['input-required', 'working'])});
+    const {record} = await drain(pool.dispatch('github', turn()));
+    expect(record).toMatchObject({outcome: 'failed', cause: 'unreachable'});
+  });
+});
+
 describe('AgentsPool — the fault map (task 8.3 decision 14)', () => {
   const faulted = (fault: Fault) => ({faults: new Map([['github', fault]])});
 

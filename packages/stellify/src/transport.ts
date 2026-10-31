@@ -93,6 +93,9 @@ export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeR
     };
     const messages: A2uiMessage[] = [];
     let ended: {state: string; data?: unknown; text?: string} | undefined;
+    // The status the stream last named: a stream closing on `input-required` has ended, final or
+    // not, as A2A 0.3.0 §7.2.1 has a stream complete once its task is interrupted (task 18.5.1).
+    let last: {state: string; parts?: Part[]} | undefined;
     try {
       const client = await factory.createFromAgentCard(card);
       const stream = client.sendMessageStream(
@@ -107,6 +110,9 @@ export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeR
       for await (const event of stream) {
         const parts = partsOf(event);
         messages.push(...a2uiMessagesOf(parts));
+        if (event.kind === 'status-update' || event.kind === 'task') {
+          last = {state: event.status.state, parts: event.status.message?.parts};
+        }
         if (event.kind === 'message') {
           ended = {state: 'completed', ...wordsOf(parts)};
         } else if (event.kind === 'status-update' && event.final) {
@@ -124,6 +130,9 @@ export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeR
         return {kind: 'error', message: `the agent did not answer within ${timeoutMs / 1000} s`};
       }
       return {kind: 'error', message: (err as Error).message};
+    }
+    if (!ended && last?.state === 'input-required') {
+      ended = {state: last.state, ...wordsOf(last.parts)};
     }
     if (!ended) return {kind: 'unfinished', messages};
     return {kind: 'ended', messages, ...ended};

@@ -353,7 +353,7 @@ Two pieces: a **transport** that sends the request and reports what it saw, and 
 | Observation | When |
 | --- | --- |
 | `unauthorized` | any HTTP response was 401 |
-| `ended` with a state | a final `message`; a `status-update` marked final; or a `task` in a terminal state or `auth-required` — with every A2UI message collected, the status message's text, and its `auth-required` data part when it had one |
+| `ended` with a state | a final `message`; a `status-update` marked final; a `task` in a terminal state or `auth-required`; or a stream that closes on `input-required`, marked final or not, as A2A 0.3.0 has a stream complete once its task is interrupted — with every A2UI message collected, the status message's text, and its `auth-required` data part when it had one |
 | `unfinished` | the stream closed with none of those |
 | `error` | the request couldn't be made, or 60 seconds passed |
 
