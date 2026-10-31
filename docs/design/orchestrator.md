@@ -30,7 +30,7 @@ flowchart LR
     O <-->|"A2A"| L["Linear agent"]
     O <-->|"A2A"| G["GitHub agent"]
     O <-->|"A2A"| CI["CircleCI agent"]
-    O -.->|"two model calls"| M["Gemini<br/>Planner and Synthesizer"]
+    O -.->|"two model calls"| M["Planner: Claude<br/>Synthesizer: Gemini"]
     O -.->|"in-process"| E["Embedding model<br/>for the Router"]
 ```
 
@@ -86,7 +86,7 @@ The orchestrator paints its own UI, the **shell**, through the same path as any 
 
 ### 6. Two model calls, everything else deterministic
 
-Only two steps ask a language model (Gemini, through the Vercel AI SDK):
+Only two steps ask a language model, through the Vercel AI SDK; by default the Planner asks Claude and the Synthesizer Gemini ([Model seam and the Planner's model](#model-seam-and-the-planners-model)):
 
 - The **Planner** decides who answers and designs the layout. Every question runs it.
 - The **Synthesizer** writes the merged view, when the plan reserved one.
@@ -380,6 +380,36 @@ flowchart LR
 
 The title the Planner writes is clipped to 48 characters before it's sent, and a clip is logged and journaled.
 
+### Model seam and the Planner's model
+
+Both model calls go through one seam, `src/model/getModel.ts`: the Vercel AI SDK's provider registry, with Google and Anthropic in it. A model is named by its provider, `provider/model`:
+
+```bash
+A2UIVERSE_PLANNER_MODEL=anthropic/claude-haiku-5-5    # any Claude model, read with ANTHROPIC_API_KEY
+A2UIVERSE_SYNTHESIZER_MODEL=google/gemini-3.8-flash   # any Gemini model, read with GOOGLE_API_KEY; a bare name is Google's
+```
+
+The seam checks the provider alone, and an unknown one stops the boot naming the variable; the model is the provider's to judge, at the call. A seam whose provider has no key is named once at boot. A Planner model set alone moves the Synthesizer with it; `A2UIVERSE_SYNTHESIZER_MODEL` sets it apart.
+
+Each seam also takes an **effort tier**, `low` or `default`. `default` sends nothing, and the model thinks as its provider has it. `low` sends the SDK's one reasoning word for the least thinking, which each provider's package turns into its own setting for the model named: on `gemini-3.8-flash`, Gemini's `low` thinking level, the least it takes, `minimal` being refused; on Claude, the least thinking the model accepts with effort `low` — `between_tools` on Sonnet 5.5, thinking off on Haiku 5.5 — which the seam reads from the Anthropic package's own table of the models, since left to the SDK's own reading `low` on Sonnet 5.5 kept the API's default effort, `high`.
+
+| Seam | Default | Set by |
+| --- | --- | --- |
+| Planner | Claude Sonnet 5.5, `anthropic/claude-sonnet-5-5`, at `low` | `A2UIVERSE_PLANNER_MODEL`, `A2UIVERSE_PLANNER_EFFORT` |
+| Synthesizer | `gemini-3.8-flash` at `low`; [why](synthesis.md#synthesizers-model-and-effort) | `A2UIVERSE_SYNTHESIZER_MODEL`, `A2UIVERSE_SYNTHESIZER_EFFORT` |
+
+**The Planner on Claude Sonnet 5.5, at `low`.** Three Planners were run over the same six questions end to end, through the tunnel with the apps live, and Sonnet 5.5 was chosen on 2026-10-30, then run again on 2026-10-31 with everything else that changed landed ([the latency and token experiment results](../../_dev/docs/latency-and-token-experiment-results.md)):
+
+| Planner, at `low` | Plan time | Plans accepted on the first try | Beside Gemini's plans |
+| --- | --- | --- | --- |
+| `gemini-3.8-flash`, 2026-10-29, median of three runs | 6.7–54.8 s | 18 of 18 | — |
+| Claude Haiku 5.5, 2026-10-30, one run | 2.3–6.0 s | 3 of 6 | two questions refused twice, the turn failed; no merge planned on a third |
+| Claude Sonnet 5.5, 2026-10-30, one run | 3.7–7.6 s | 6 of 6 | the same apps on all six, and the same join wherever Gemini planned a merge |
+| Claude Sonnet 5.5, 2026-10-31, one run | 2.19–7.54 s | 6 of 6 | the same |
+
+- **What it buys.** Gemini's plan time followed its output, about 4.4 s plus 7.5 ms an output token over its 21 requests, and at `low` it still reasoned a median 1,766 tokens before a median 506 of plan (2026-10-29). No request of Sonnet 5.5 at `low` reported a reasoning token, on either run, so a plan takes about as long as its writing. The apps are asked that much sooner, and every answer starts sooner with them.
+- **What it costs.** A default boot needs a Claude key beside the Gemini one. The Planner's spend stays about where it was, $0.23 for the six questions on Claude on 2026-10-31 against $0.23 on Gemini a run on 2026-10-29, though Claude counts the same request at about 1.48 times Gemini's tokens, 30,388 against 20,484: every plan after the first read 30,474 tokens from Claude's one-hour cache. Sonnet 5.5 hands its JSON over in bursts, 10–12 pieces every 0.4–0.8 s, so its dispatch list is committed only 0.01–0.96 s ahead of the plan's end, against an estimated median 1.2 s on Gemini's; and it writes a paragraph of prose before its block, 169–433 characters on 2026-10-30, about 1.3–1.4 s on two questions.
+
 ### Plan cache and prompt caches
 
 Two kinds of cache stand between a question and the models. Neither ever breaks a turn: a cache that can't be read, written, made or renewed leaves the turn to plan and merge as it would without it.
@@ -409,8 +439,6 @@ flowchart LR
 
 - **Gemini: an explicit cache** (`src/model/geminiCache.ts`). Gemini caches by itself, implicitly, with "no cost saving guarantee" ([Context caching](https://ai.google.dev/gemini-api/docs/generate-content/caching)); in the Phase 17 baseline that served the Planner on 4 of 21 requests and the Synthesizer on none. An explicit cache holds the system prompt, the tools and their config, and a request names the cache in their place; Gemini refuses a request that sends them beside it ("CachedContent can not be used with GenerateContent request setting system_instruction, tools or tool_config"). The seam wraps the Google provider's fetch, so the cache holds exactly the JSON the provider would have sent. The first request goes whole and creates the cache beside it without waiting for it; each later one names it and pushes its expiry an hour out, without waiting either; an expired cache, or a refused or failed cache call, sends that request whole and makes a new one. Explicit caching is "currently in Beta". On Gemini the gain is price, a cached token at a tenth of an input token: the requests naming the cache took 3.7–4.5 s, the whole ones 3.4–4.2 s, three each.
 - **Claude: one mark, an hour.** Claude caches only what a request marks. The seam marks the end of the system prompt, which covers the tools ahead of it, since the prefix runs "`tools`, `system`, then `messages`", with the one-hour lifetime, "refreshed for no additional cost each time the cached content is used" ([Prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)). A second request read 30,168 tokens from it on Haiku 5.5 and on Sonnet 5.5, 1.4 s against 1.7 s and 2.5 s against 3.0 s, one sample each.
-
-The seam's other Claude setting: the effort tier `low` is sent as the least thinking the model accepts with effort `low` — `between_tools` on Sonnet 5.5, thinking off on Haiku 5.5 — read from the Anthropic package's own table of the models; left to the SDK's own reading, `low` on Sonnet 5.5 kept the API's default effort, `high`.
 
 ### Painting the layout
 
@@ -585,7 +613,7 @@ Set `A2UIVERSE_DEBUG_IDS=1` to see the app's own ids under the stamp while debug
 | --- | --- |
 | The Planner's answer failed validation twice | A broken turn: a `failed` final naming the findings. When the apps were already asked, the half-drawn layout is taken down, each app is sent `tasks/cancel`, and nothing of theirs is shown |
 | The Planner's model call failed once the apps were asked | The same: a broken turn, the layout taken down, the apps cancelled |
-| No `GOOGLE_API_KEY` | Questions are broken turns; clicks inside apps still work |
+| No key for a seam's model: `ANTHROPIC_API_KEY` for the Planner, `GOOGLE_API_KEY` for the Synthesizer, by default | Said once at boot. Without the Planner's, questions are broken turns; without the Synthesizer's, the merged view couldn't be made; clicks inside apps still work |
 | An app failed, couldn't be reached, or hit the hard cap | That app's slot shows the failure tile with Retry; the others carry on |
 | An app's live card names no catalog id it's installed with | The app isn't asked: its slot takes the update tile, its line from the Store's entry read then |
 | An app painted in a catalog outside its entitlement | The paint is dropped and the live card fetched again: a card naming the change takes the update tile; otherwise that app's slot fails with the `catalog` cause and the id, with no Retry |
@@ -622,7 +650,7 @@ For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay
 | **The relay changes three things, nothing else** | An unmodified A2UI agent composes; apps are written for their own product, never for A2UIVerse | The shell can't fix an app's paint; it can only trim or fail it |
 | **Apps' finals demoted; the hub sends the one final** | Under fan-out, the turn ends once, after everyone | The client learns an app is done from the `settled` marker instead |
 | **Model output in the orchestrator's own tag, validated, one retry** | The Planner and the Synthesizer share one shape; bad output never reaches the screen; cost is bounded | A second failure is a broken turn |
-| **The marketplace reached through a Planner tool, not folded into the Router** | The Router stays over the installed apps; a plan that never searches never waits on the marketplace; the model sees the Store only through the tool's answer | A plan that searches takes about 30 s, and a published app's card text reaches the Planner whenever it searches |
+| **The marketplace reached through a Planner tool, not folded into the Router** | The Router stays over the installed apps; a plan that never searches never waits on the marketplace; the model sees the Store only through the tool's answer | A plan that searches makes one more model request before its own: on 2026-10-31 the camera comparison's search request took 2.07 s and its plan 5.36 s. A published app's card text reaches the Planner whenever it searches |
 | **The update check before every dispatch, on the live card the run holds** | An app that can't paint in what it's installed with says so before it's asked; the line is chosen from the Store as it stands | A change made while the orchestrator runs shows only once the card is fetched again: by the App Library's check, a refused paint, a call that ends with no UI, or a Retry from the update tile |
 | **Readers: a closed set of tools, never app data** | The Planner answers questions about the platform without seeing anyone's data; a new question kind is a new reader | Each reader is written by hand |
 | **The registry is files in the state directory** | Nothing to run beside the orchestrator; a copy of the directory is a snapshot | No concurrent writers; a damaged file stops the boot |
@@ -643,6 +671,8 @@ For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay
 | **One press at a time into a fragment** | A second click never sends a write twice | A click made while another runs is refused, and has to be made again once it ends |
 | **The person's local time said in words in every request** | An app works out "tomorrow" on the person's own day, and nothing A2UIVerse-specific rides its wire | A click's own message carries no sentence, so an app must keep the exact times it drafted rather than work a relative date out again |
 | **The plan cache matches the whole request, exactly** | A repeated question skips the plan; a hit is the very request the model answered before, checked again | Another wording misses |
+| **Any Gemini or Claude model, named by its provider, at one of two effort tiers** | A seam moves to another model or tier by one variable, with no code; the plan cache's key and the journal carry both | Each provider's least thinking is reached its own way, Claude's read from its package's table of the models; a third provider is its package and a line in the seam |
+| **The Planner on Claude Sonnet 5.5 at `low`** | Plans in 2.19–7.54 s where Gemini took a median 6.7–54.8 s, with no reasoning token, the same apps and joins on all six questions measured | A default boot needs two keys; its JSON arrives in bursts, so the dispatch list commits less ahead of the plan's end |
 | **Each provider's prompt cache on the fixed prompt, Gemini's made and kept by the seam** | Gemini's cached tokens guaranteed at a tenth of the price, Claude's read at a twentieth on Sonnet 5.5; no turn waits on a cache | Gemini's cache stored by the hour while used, on a Beta API, its expiry pushed out by one more call a turn |
 | **Everything keyed by source, the app parsed out only where the app is meant** | Two accounts of one app are two slots, two conversations and two copies of the data with no special case | Each lookup of the card, URL or name parses the source first |
 
@@ -651,7 +681,7 @@ For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay
 - **Replay the example.** Start the client (`pnpm dev:client`) and open `?beat=9`. The recording was made through the orchestrator, so the replay shows exactly the events it relayed; see the [client README](../../apps/client/README.md#working-without-a-model).
 - **Read the journal.** Every turn you run leaves a line in `apps/orchestrator/.state/intent-journal.jsonl`, with the plan, each dispatch's timings and the merge's attempts.
 - **The tests** (`pnpm --filter @a2uiverse/orchestrator test`) run the whole orchestrator with no model and no network. `test/fakeVendor.ts` is a real in-process A2A app, scripted per turn. `FakeEmbedder`, from `@a2uiverse/embedder`, hashes words into a vector, so texts sharing words rank higher. `FakePlanner` returns a fixed or derived layout, `StreamingPlanner` commits a list and tells the layout piece by piece where the test says, and `FakeSynthesizer` sits behind the Synthesizer's text-in, text-out seam; `StreamingSynthesizer` writes its answer in the pieces a model streams it in, holding where the test says; `HeldSynthesizer` holds each call until the test lets it go, to test what happens meanwhile.
-- **Live model tests** run only when asked: `A2UIVERSE_EMBEDDER_LIVE=1` (in `@a2uiverse/embedder`, where the model lives), `A2UIVERSE_PLANNER_LIVE=1` or `A2UIVERSE_SYNTHESIZER_LIVE=1`, the last two with `GOOGLE_API_KEY`.
+- **Live model tests** run only when asked: `A2UIVERSE_EMBEDDER_LIVE=1` (in `@a2uiverse/embedder`, where the model lives), `A2UIVERSE_PLANNER_LIVE=1` or `A2UIVERSE_SYNTHESIZER_LIVE=1`, the last two with the key of the seam's model.
 - **The fault map** (above) plays slow and failing apps against a real run.
 
 Configuration (ports, models, deadlines) is listed in the [orchestrator README](../../apps/orchestrator/README.md).
@@ -707,6 +737,7 @@ All paths are under `apps/orchestrator/src/`.
 | **Shell** | A2UIVerse's own UI, painted by the orchestrator: the layout (`shell:main`) and the merged view (`shell:synthesis`) |
 | **Plan cache** | Plans the Planner wrote, handed back when the very same request comes again, kept beside the journal |
 | **Prompt cache** | A provider's own cache of a model's fixed system prompt: Gemini's explicit cache, Claude's cache mark |
+| **Effort tier** | `low` or `default`: the least thinking a seam's model accepts, or its provider's own |
 | **Source** | An app and the account it paints under: `gmail.2`, or the bare app id for an app that needs no sign-in. What every slot, partition and conversation is keyed by |
 | **Stamp** | `metadata.a2uiverse` on every event: the `source` it came from and its `role` |
 | **Router** | Ranks the apps' cards against a question with an embedding model |

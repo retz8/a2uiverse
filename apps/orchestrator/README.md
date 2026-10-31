@@ -143,6 +143,8 @@ A read the marketplace can't answer says why: `503` unreached, `404` not publish
 | `A2UIVERSE_DEBUG_IDS`                   | off                                           | `1` adds each app's own task and context ids to what it relays                                                                                                                          |
 | `A2UIVERSE_FAULTS`                      | none                                          | Dev only: JSON making a source's answers slow, hang, break, refused, failed, invalid or carry a credential field, to test failures; a bare app id hits every account of the app         |
 
+Why each model and effort default is what it is, with the timings behind it: [How fast it answers](../../README.md#how-fast-it-answers).
+
 ## What it does
 
 ### Knows what's installed

@@ -587,6 +587,23 @@ Three things can interrupt a view being drawn:
 
 Only the question's first merge streams. Every re-synthesis — Include, Retry, Try again, the walk after a press, a step to a combination never seen — lands whole, as its landed view already shows something. The journal records when the first row left, `firstRowMs` on the synthesis, beside `deadAirMs`, which keeps its meaning: from the merge's release to the document accepted.
 
+### Synthesizer's model and effort
+
+The Synthesizer runs through the orchestrator's model seam, named and tiered as the Planner is ([orchestrator.md](orchestrator.md#model-seam-and-the-planners-model)): any Gemini model, or any Claude model as `anthropic/<model>`, set by `A2UIVERSE_SYNTHESIZER_MODEL`, and the effort tier `low` or `default` by `A2UIVERSE_SYNTHESIZER_EFFORT`. Its default is `gemini-3.8-flash` at `low`.
+
+**Gemini, not Claude Sonnet 5.5.** On 2026-10-31, once the Planner had moved to Sonnet 5.5, the Synthesizer was run on both models over the same three questions, the apps in `deterministic` mode so that each merge read the same recorded answers ([the latency and token experiment results](../../_dev/docs/latency-and-token-experiment-results.md)). Each time is the merge's dead air:
+
+| Question | `gemini-3.8-flash` at `low` | Claude Sonnet 5.5 at `low` |
+| --- | --- | --- |
+| "Which of my open pull requests are blocked on something outside GitHub?" | 24.23 s: each of the three pull requests matched to its CircleCI run by its branch | 10.69 s and 12.82 s: one pull request in three matched to its run; a third try declined in 2.62 s, the link between the Linear issues and the pull requests a bare number with no repository |
+| "Is main green right now? Ask CircleCI and GitHub." | 18.26 s: the six commits on main, a line on top answering the question | 15.29 s: the same six commits, no answering line |
+| "Across both my Gmail accounts, which threads mention a Linear issue, and what state is it in?" | declined in 12.29 s: no thread in the recorded answers names an issue | declined in 2.18 s |
+
+- **What it buys.** The joins. A merged view is there to say which entries are one thing, and on the same answers Gemini matched every pull request to its CI run where Sonnet 5.5 left two in three unmatched.
+- **What it costs.** The wait. Sonnet 5.5's merges took 10.69–15.29 s against Gemini's 18.26–24.23 s, its first token about a second in against 2.4–2.9 s, and Gemini at `low` still reasoned 1,522 tokens before declining the third question.
+
+**At `low`.** `default` lets the model think as it decides. In September 2026, `default` effort on `gemini-2.5-flash` took the entity join's dead air to 59.5 s and left one issue without its pull request, though a fact linked them, where `gemini-3.7-flash` at `low` landed the join. On `gemini-3.8-flash` at `low` the Synthesizer reasoned 3,397 tokens over all twelve of its requests on 2026-10-29, and its two merges on 2026-10-31 took 14.74 s and 11.40 s from release to acceptance.
+
 ## When things go wrong
 
 A merged view that can't be shown collapses to **one line** where its label would be, and gives its space back. Every line comes with the press that can bring the view back, except the decline:
@@ -626,6 +643,7 @@ If the client can't accept a payload at all (in practice, the two sides disagree
 | **Only the first merge is automatic** | Every later model call has a press behind it; the view never changes without a visible reason | A late app waits for Include |
 | **The runtime reads time, in the viewer's zone** | Apps paint time however they like; sorting and display agree; each reader sees times on their own clock | A time an app wrote with no zone is read as the viewer's wall time, which is wrong when the app meant another zone |
 | **Wiring remembered per combination** | Stepping back to a screen already seen restores the view with no model call | The memory grows with each combination seen, for the life of the answer |
+| **The Synthesizer on `gemini-3.8-flash` at `low`** | The joins the data supports: every pull request matched to its CI run where Claude Sonnet 5.5 matched one in three on the same answers | Slower merges: 18.26–24.23 s of dead air against Sonnet 5.5's 10.69–15.29 s on the same answers |
 | **The first merge drawn row by row as the model writes it, every later one landing whole** | The dead air after the last app's answer fills with rows as they're written, each checked before it shows; a view already on screen never flickers through a re-write | Every row costs a check and a client evaluation of its own; a row that fails late stops the drawing short until the retry lands |
 
 One thing is deliberately left as it is: the Synthesizer's judgment of which entries match is taught by rules and an example but can't be enforced, so it varies from run to run. The wait between the last app's answer and the merged view (**dead air**) is still measured in the journal as `deadAirMs`; what the reader sees of it is now the rows filling in.

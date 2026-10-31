@@ -91,14 +91,14 @@ Every agent runs in one of three modes, chosen by `--mode`:
 | Mode            | Who answers                             | Needs                                    |
 | --------------- | --------------------------------------- | ---------------------------------------- |
 | `deterministic` | canned A2UI, no model                   | nothing                                  |
-| `stub`          | the model, over canned tool data        | a Gemini key                             |
-| `live`          | the model, over the vendor's MCP server | a Gemini key and the vendor's credential |
+| `stub`          | the model, over canned tool data        | the model's key                          |
+| `live`          | the model, over the vendor's MCP server | the model's key and the vendor's credential |
 
 The modes differ in exactly one place. `deterministic` uses a different executor (no model at all). `stub` and `live` use the same model executor and differ only in **which tools** the model is handed: the config's `stub_tools`, or what `live_toolset_factory()` returns. Everything else, the server, the card, the port, the catalog, is identical.
 
 That includes the **agent card**. One card describes the agent in every mode, because the mode is a launch detail. A card describing "the no-model demo harness" would describe something no user asks for, and A2UIVerse's Router, which ranks agents by their cards, would rank it against nothing.
 
-The model defaults to `gemini-3.8-flash`. The `MODEL_NAME` environment variable wins over the config's `model`, which wins over that default.
+The model defaults to `gemini-3.8-flash`, at the thinking tier `low`. The `MODEL_NAME` environment variable wins over the config's `model`, which wins over that default, and `MODEL_EFFORT` over the config's `effort` the same way; a Claude model is named `anthropic/<model>` ([Model and thinking tier](#model-and-thinking-tier)).
 
 ### 3. Model writes A2UI as text, streamed, then checked
 
@@ -207,6 +207,67 @@ The three rules follow the SDK's base rules in the workflow section, ahead of an
 3. **A time is the person's, never converted by the model.** The model passes the person's time zone, which the request states, on every call to a tool that takes one, a wider second search included; where a tool takes none, it shows the time as the tool gave it, its zone named. It never converts a time from one zone to another itself. A time is written for a person to read, never a raw timestamp, with its date and year where the request asks for the full date and time; today and tomorrow are the person's, by the date the request states; and no code value like `None` or `null` is shown.
 
 These are guidance the model reads, not checks: an app whose model does otherwise still works on a client. What must hold every time is code, below: the catalog check and the question policy. (A2UIVerse's requests end with the person's local time and zone, which is what rule 3 reads; see [orchestrator.md](orchestrator.md#one-question-end-to-end), step 5.)
+
+### Model and thinking tier
+
+ADK runs the model, and an app names it by its provider in `MODEL_NAME`:
+
+| `MODEL_NAME` | What the kit hands ADK | Key |
+| --- | --- | --- |
+| `gemini-3.8-flash`, or any Gemini name | the name, as it is | `GOOGLE_API_KEY` |
+| `anthropic/claude-haiku-5-5`, any Claude model after `anthropic/` | ADK's direct-API Anthropic class, `AnthropicLlm`, for the rest of the name | `ANTHROPIC_API_KEY` |
+
+ADK's own registry sends a bare `claude-…` to its Vertex class and an `anthropic/…` to LiteLLM, and neither reaches the Anthropic API with an Anthropic key, so the kit builds that class itself for the prefixed name (`modes.py`'s `build_model`). The `anthropic` package is a plain dependency of the kit, as `google-adk` is. Every other name reaches ADK untouched.
+
+Beside the model sits the **thinking tier**, `MODEL_EFFORT`, resolved as the model is: the environment, then the config's `effort`, then the kit's default. `default` configures nothing, and each provider thinks as it does on its own. `low` asks for the least thinking the provider offers, in the generation config ADK hands through:
+
+- **On Gemini, the `low` thinking level.** A thinking budget of zero isn't honoured on Gemini 3: called directly on 2026-10-27, `gemini-3.8-flash` with the budget at zero thought for 47k tokens and took 380 s to its first token, against 18k and 123 s with nothing set, where the `low` level left no thinking and took 1.6 s. `minimal` is refused.
+- **On Claude, a thinking budget of zero**, which ADK's Anthropic class reads as thinking disabled; see [the limits below](#claude-on-the-kit-three-limits).
+
+A model that streams its reasoning hands it over as thought parts, and the kit's text stream passes none of them on, so no reasoning reaches the answer.
+
+**The default: `gemini-3.8-flash` at `low`.** The tier was measured end to end and agent alone ([the latency and token experiment results](../../_dev/docs/latency-and-token-experiment-results.md)):
+
+| When | The run | `default` | `low` |
+| --- | --- | --- | --- |
+| 2026-10-29 | six questions through A2UIVerse, three runs | an answer's first token at a median 48.5 s (8.3–118.9 s over 41), after a median 6,470 thinking tokens | — |
+| 2026-10-30 | GitHub's two recorded questions and Linear's four, agent alone, one run on each tier | Linear's answers' first token 11.2–56.9 s, its first screen 20.4–73.3 s; GitHub's answers thinking 9,269 and 6,964 tokens | Linear thinking no token, its answers' first token 1.6–2.7 s, its first screen 4.2–14.1 s; GitHub still thinking on every request, 3,783 and 6,619 tokens on its answers |
+| 2026-10-31 | the same six questions, one run | — | an answer's first token at a median 3.2 s (1.8–42.7 s over 13) |
+
+- **What it buys.** Most of an answer's wait for its first token. On 2026-10-29 the apps' runs, 42.6–184.3 s at the median, were the longest wait on every question.
+- **What it costs.** Less thought behind each answer. On 2026-10-30 each tier passed its catalog on the first try 5 times in 6, and the six answers at `low` held up beside `default`'s, but GitHub's read plainer: a plain heading in place of its page header, one "Review requested" badge on the header in place of one a row. Gemini's `low` level isn't none: GitHub still thought on every request, and Linear 2,873 tokens before one answer on 2026-10-31.
+- **Gemini, not Claude.** Claude wasn't run on the apps over the questions: it waits on the three limits below.
+
+### Claude on the kit: three limits
+
+A Claude model runs on the kit by name, but three things in the kit's code and in ADK's (`google-adk` 2.8.0, the version the kit locks) keep it from serving an app as Gemini does:
+
+1. **The kit's `low` turns thinking off.** A budget of zero is ADK's thinking `disabled`, which Haiku 5.5 accepts and Sonnet 5.5, Opus 5.5 and Fable 5.1 refuse with a 400 ([Thinking — Claude](https://platform.claude.com/docs/en/build-with-claude/thinking)). Those three run with `MODEL_EFFORT=default`.
+2. **An answer is capped at 8,192 output tokens**, the default `max_tokens` of ADK's Anthropic class, where the Claude models allow 128K ([Models overview — Claude](https://platform.claude.com/docs/en/about-claude/models/overview)). A longer paint is cut off.
+3. **Nothing is cached.** ADK's Anthropic class marks Claude's cache, from ADK 2.8, only under an app-level context cache config, and the kit builds ADK's `Runner` with no `App`; GitHub, Gmail and Calendar lock ADK 2.5.0, whose class marks none. Every tool round sends the whole prompt again at the full price: a GitHub round carried a median 145,944 prompt tokens on 2026-10-29, when Gemini's own cache served 43–85% of the apps' prompt tokens.
+
+### Measuring each model request
+
+A turn is several requests to the model: one per tool round, one for the paint, more on a retry. The kit measures each at the one place they all pass, ADK's before- and after-model callbacks on the agent `modes.py` builds (`measurement.py`):
+
+- **Before the model**, the request is leaving for the provider: its start, and the request before it closed.
+- **After the model** sees every response, the partial chunks and the aggregate the closed stream produces. The first content that isn't a thought, text or a tool call, is the first token, so thinking counts toward the time to first token on Gemini and Claude alike. An aggregate is the end, and carries the usage. A request is closed by the next one or by the turn's end, never by one response: Gemini's stream yields a function call and then its closing aggregate as two responses, neither marked partial.
+
+The executor opens a `TurnMeasurement` for each turn, on the instant the recorder's batches are timed from, so a request lines up with the parts that left during it. Outside a turn nothing is measured, and a failure in measuring never reaches the turn. A record:
+
+```jsonc
+{"attempt": 1, "index": 3,                                       // the attempt, and the request's place in it
+ "startMs": "…", "firstTokenMs": "…", "endMs": "…",              // on the turn's clock
+ "timeToFirstTokenMs": "…", "generationMs": "…",
+ "ended": "toolCall", "tools": ["list_issues"],                   // or "text", or "error" with no content
+ "usage": {"promptTokens": "…", "outputTokens": "…", "thoughtsTokens": "…", "cachedTokens": "…"}}  // each absent when the provider gave none
+```
+
+Where it's written:
+
+- **The agent's log**, one line per request, recording or not: `request 1.3: first token <ms> ms, generation <ms> ms, ended in text, <n> prompt / <n> output / <n> thoughts / <n> cached tokens`.
+- **The recorded turn.** With `A2UI_RECORD_DIR` set, the recorder's turn keeps the records as `requests`, beside its batches and its outcome, with the model and the tier the agent resolved at startup, in `session-<context id>.json`. The beat driver copies the turn whole into the beat fixture, so a recorded beat carries its own timing and usage; replay reads only the batches.
+- **The beat driver's line** for each beat adds the turn's totals: the requests made, the painting request's first token and generation, the prompt and output tokens. When its `--model` disagrees with the agent's, it says so and keeps the agent's word.
 
 ### Streaming first, validating at the end
 
@@ -390,6 +451,9 @@ The kit knows nothing about A2UIVerse. The connection is made from A2UIVerse's s
 | --- | --- | --- |
 | **An app is one config object** | Every app's differences in one place; the kit never guesses | Adding a new kind of per-app behavior means a new config field |
 | **Three modes, one port, one card** | Any mode drops in for any other; the card always describes the product | The card says nothing about which mode is running; the log does |
+| **A model named by its provider, Claude through ADK's own Anthropic class** | Any Gemini model as ADK takes it, and a Claude model by one variable, with no generic road to keep | A third provider is a road the kit doesn't have; Claude on the kit has three limits |
+| **`gemini-3.8-flash` at `low` by default** | An answer's first token at a median 3.2 s, against 48.5 s when the model thought as long as it liked | Less thought behind each answer, and Gemini's `low` still thinks on GitHub |
+| **Each model request measured at ADK's model hooks** | Every request's first token, generation and usage, in the log and the recorded turn, with the responder protocol and every test's fake untouched | It leans on ADK's callbacks and usage shape; a request is closed by the next, not by its own last response |
 | **Stream first, validate at the end** | The UI assembles on screen as the model writes it | An invalid answer is visible until the retry patches it, or the teardown removes it |
 | **A retry patches in place** | No wipe and redraw between attempts | A filter of the kit's own beside the SDK's parser, holding a copy of every component the turn sent to compare the next one against |
 | **What the stream held back sent at the end** | An update or a delete to an earlier turn's surface reaches the client | It shows when the turn ends, not as it's written |
@@ -412,7 +476,7 @@ uv sync
 uv run python -m app --mode deterministic   # port 11005, canned answers
 ```
 
-`stub` mode needs only a Gemini key, and never touches the vendor. The kit's tests and every app's tests run with **no model calls and no credentials** (`uv run pytest`). The model executor sits behind a one-method responder protocol (`stream(prompt, correction, context_id)` yields text), so its streaming, validation and retry logic is tested with a fake responder, and `testing.py`'s `run_executor` drives any executor in-process.
+`stub` mode needs only the model's key, Gemini's by default, and never touches the vendor. The kit's tests and every app's tests run with **no model calls and no credentials** (`uv run pytest`). The model executor sits behind a one-method responder protocol (`stream(prompt, correction, context_id)` yields text), so its streaming, validation and retry logic is tested with a fake responder, and `testing.py`'s `run_executor` drives any executor in-process.
 
 ## Where the code is
 
@@ -420,11 +484,12 @@ In `a2uiverse-apps/agent-kit/src/a2ui_agent_kit/`:
 
 | Module                         | What it does                                                                                   |
 | ------------------------------ | ---------------------------------------------------------------------------------------------- |
-| `config.py`                    | `AgentAppConfig`, `CatalogLine`, and the default model                                          |
+| `config.py`                    | `AgentAppConfig`, `CatalogLine`, and the default model and thinking tier                        |
 | `catalog_lines.py`             | The current and the old catalog line: the ids the card names, the line a turn is painted in     |
 | `cli.py`                       | The entrypoint: flags, `.env` loading, logging, uvicorn                                         |
 | `server.py`, `task_store.py`   | The A2A app, the one agent card, CORS; the terminal-guarded task store                          |
-| `modes.py`                     | Mode to executor; the ADK agent with the mode's tools                                           |
+| `modes.py`                     | Mode to executor; the ADK agent with the mode's tools, its model and its thinking tier          |
+| `measurement.py`               | Each model request's time to first token, generation and usage, at ADK's model hooks           |
 | `executor_llm.py`              | Streaming through the SDK's parser and the stream filter, validation at the end, the retry, cancel |
 | `executor_deterministic.py`, `responses.py` | The no-model executor; the fixture responder and stub fixture loader                |
 | `responder.py`                 | The responder protocol, and the ADK-backed implementation with a session per context          |
@@ -454,6 +519,8 @@ The scaffolder is `a2uiverse-apps/create-a2ui-agent/`: `src/cli.ts` (flags and t
 | **Basic / custom catalog** | The themed A2UI basic catalog (the mock stores'), or a catalog of its own (every vendor app's, like GitHub's on Primer) |
 | **MCP server** | The vendor's server the agent calls for data and actions |
 | **ADK** | Google's Agent Development Kit, which runs the model and its tool calls |
+| **Thinking tier** | `MODEL_EFFORT`: `low`, the least thinking the model's provider offers, or `default`, the provider's own |
+| **Request record** | One model request's instants, how it ended and its usage, kept in the recorded turn |
 | **Mode** | `deterministic`, `stub` or `live`: who answers |
 | **Executor** | The A2A SDK's name for the object that answers a request |
 | **Responder** | The kit's wrapper that streams the model's text |
