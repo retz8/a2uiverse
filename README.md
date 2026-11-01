@@ -209,7 +209,7 @@ The two npm packages carry local patches, described in the [client README](apps/
 
 ## Where it's headed
 
-- **A2UI v1.0**: a v1.0 agent accepted beside v0.9.1 ones, and the full move once upstream's React package ships its v1.0 entry.
+- **A2UI v1.0**: the full move once upstream declares v1.0 stable; before it, agents on v0.9 welcome beside the v0.9.1 ones.
 - **A proposal to the A2UI community**: the deviations the [protocol delta register](SPEC.md#protocol-delta-register-seed) tags as upstream candidates, written up for upstream, with a guide to bringing your own agent.
 - **The apps' agents on Claude**, once the kit's three limits on it are fixed.
 

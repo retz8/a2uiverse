@@ -778,3 +778,159 @@ On A2UIVerse each `createSurface` is a paint, so each of the sample's answers is
 The reader came with PR [#918](https://github.com/a2ui-project/a2ui/pull/918) ("Streaming restaurant
 sample"). No issue or pull request on `a2ui-project/a2ui` names the doubled reading or the
 `already exists` retry, searched on 2026-10-31.
+
+## 24. `@a2ui/react` hands a universal element its `context` after it is connected, and `@a2ui/angular`'s element wrapper throws at connect without it (@a2ui/react, @a2ui/angular)
+
+**Component:** `@a2ui/react` 0.14.0, `chunk-QAAGXJWH.js` line 214
+(`React.createElement(implementation.tagName, {ref: setRef}, children)`) and line 180
+(`element.context = node.context`, inside the ref callback); upstream `main` (`825beac28`)
+`typescript/renderers/react/src/web_component_node.tsx:83-107`. `@a2ui/angular` 0.13.0,
+`fesm2022/a2ui-angular.mjs` lines 325-336 (`AngularWcHost.connectedCallback`); upstream `main`
+`typescript/renderers/angular/src/catalog/angular_wc_host.ts:87-105`.
+
+**Severity:** interoperability — an Angular component wrapped as a universal element by
+`@a2ui/angular`'s `toWebComponent` cannot be rendered by `@a2ui/react`: the element throws at
+connect, the error reaches the window, React carries on, and the element stays empty.
+
+### Issue
+
+`WebComponentNode` creates a universal element with `React.createElement(tagName, {ref})` and
+assigns `context` and `node` in the ref callback. React runs the ref callback after it has inserted
+the element, so `connectedCallback` runs with `context` unset. Measured with React 19.2.8 under
+jsdom 29.1.1, an element logging each step:
+
+```
+connectedCallback (context UNSET)
+ref callback
+context set (isConnected=true)
+```
+
+`A2uiLitElement` and the plain element of the universal guide
+(`docs/public/guides/authoring-universal-components.md`) re-bind whenever `context` is set, so the
+order costs them nothing. `AngularWcHost` does not: `connectedCallback` throws
+`Cannot instantiate Web Component '<tag>': 'context' must be set before the element is connected.`
+when `_context` is unset, and its `context` and `node` setters only call `updateContext()`, which
+returns while `componentRef` is unset (`angular_wc_host.ts:167-195`) — nothing mounts later. Its
+own doc states the order it needs ("`context` must be set before the element is attached to the
+document", `angular_wc_host.ts:63-65`), and its own host keeps it — `ComponentHostComponent.
+setupWebComponent` sets `injector`, `node` and `context` before `appendChild`
+(`core/component-host.component.ts:357-361`) — so inside the Angular renderer the throw never
+fires. Any host that inserts first, React among them, hits it.
+
+### Reproduction
+
+An `A2uiSurface` from `@a2ui/react` over a catalog whose entries come from `@a2ui/angular`'s
+`toWebComponent` or `createComponentImplementation`, with an injector on the element: the window
+reports `'context' must be set before the element is connected`, and the element renders nothing.
+The order alone, without Angular: define
+`class XHost extends HTMLElement { connectedCallback() { log(this.context ? 'set' : 'unset'); } set context(c) { this._context = c; } }`,
+render `React.createElement('x-host', {ref: el => { if (el) el.context = {}; }})` through
+`react-dom/client`'s `createRoot` under jsdom — `unset` is logged.
+
+### Fix
+
+Either side. In `@a2ui/react`, pass the two as props at create —
+`React.createElement(implementation.tagName, {ref: setRef, context: node.context, node}, children)`
+— React 19 assigns a non-attribute prop on a custom element as a property before insertion
+(measured: `context set (isConnected=false)`, then `connectedCallback (context SET)`); the tag is
+defined before the create, so the element is upgraded when the property lands. Or in
+`@a2ui/angular`, `connectedCallback` returns instead of throwing when `context` is unset, and the
+`context` and `node` setters mount when `isConnected && !componentRef`.
+
+## 25. `@a2ui/angular` swaps web_core's signal implementation for the whole module, so no other renderer can share that web_core (@a2ui/angular, web_core)
+
+**Component:** `@a2ui/angular` 0.13.0, `fesm2022/a2ui-angular.mjs` line 72
+(`setSignalImplementation(angularSignalImpl)` in `initializeAngularReactivity`), called at line
+111 (`ComponentBinder`'s constructor) and line 510 (`A2uiRendererService`'s constructor); upstream
+`main` `typescript/renderers/angular/src/core/reactivity.ts:48-91`,
+`core/component-binder.service.ts:58-59`, `core/a2ui-renderer.service.ts:117`, and `provideA2Ui`
+registering it as an environment initializer (`:94-96`). `@a2ui/web_core` 0.14.0,
+`src/reactivity/signals.ts:52-60` (upstream `main`): the implementation is module-level state —
+`let signalImpl`, `let getValueImpl`, … — read by every `signal`, `computed`, `effect`,
+`getValue`, `peekValue` and `setValue` in the module.
+
+**Severity:** a page rendering through `@a2ui/react` (or `@a2ui/lit`) that also loads
+`@a2ui/angular` over the same web_core stops working at the first Angular binder: every signal the
+React renderer's processor and resolver created is a Preact signal, and after the swap web_core
+reads them through the Angular implementation — `peekValue` and `setValue` assert an Angular
+signal and throw `Received unexpected value. Expected an Angular signal.` (`reactivity.ts:38-42,
+78-88`); `getValue` calls the Preact signal as a function. Read from the code; not run.
+
+### Issue
+
+The Angular renderer takes over web_core's reactivity for the module, on the assumption that it
+owns the page. Its own comment says so: "Switch web_core to Angular signals before any
+`MessageProcessor` or `NodeResolver` exists, so every signal they create is tracked by Angular
+`computed` and `effect`" (`a2ui-renderer.service.ts:94-95`). The swap cannot be avoided from
+outside: `initializeAngularReactivity` runs in the constructors of `ComponentBinder` and
+`A2uiRendererService`, and `AngularWcHost` does `injector.get(ComponentBinder)` at connect
+(`angular_wc_host.ts:117`), so an Angular component packaged as a universal element and hosted by
+another renderer performs it on first mount. Bundling a second web_core into the Angular package
+does not help either: `ComponentBinder.bindNode` reads `peekValue(node.props)`
+(`component-binder.service.ts:73`) on a node the host's web_core made — a Preact signal under the
+Angular implementation.
+
+The roadmap names web_core "Shared core lib for all web renderers" (`docs/public/roadmap.md:20`),
+and `@a2ui/react` already hosts universal elements from any source; the Angular renderer is the one
+web renderer that cannot be one of several on a page.
+
+### Reproduction
+
+A page with an `@a2ui/react` `A2uiSurface` over a web_core `MessageProcessor`; then
+`createApplication` from `@angular/platform-browser` and `injector.get(A2uiRendererService)` (or
+any `ComponentBinder`): the next `peekValue` or `setValue` on the React surface's signals throws.
+Read from the code; a run would confirm.
+
+### Fix
+
+Keep the implementation off module state: choose it per `MessageProcessor` (or per
+`ComponentContext`), so each renderer's processor carries the reactivity it was built with; or have
+`ComponentBinder` bind through the implementation a signal was made with — `isSignal` tells a
+Preact signal (`value`/`peek`) from an Angular one (a function) — instead of asserting the Angular
+kind.
+
+## 26. Native Angular components reach their surface only through `A2uiRendererService`'s own processor, and leave no `node` on the DOM (@a2ui/angular)
+
+**Component:** `@a2ui/angular` 0.13.0, `fesm2022/a2ui-angular.mjs` line 654
+(`this.rendererService.surfaceGroup?.getSurface(surfaceId)` in the component host), line 523 (the
+service's own `new MessageProcessor(…)`), lines 737-751 (`setupAngularComponent`, setting nothing
+on the DOM) against 753-771 (`setupWebComponent`, setting `injector` and `context` on the element
+it creates); upstream `main` `typescript/renderers/angular/src/core/component-host.component.ts:199,
+217-219, 318-335, 349-361`, `core/a2ui-renderer.service.ts:107-134`.
+
+**Severity:** a native Angular entry hosted by any renderer but `@a2ui/angular`'s own — through
+`toWebComponent` inside a React or Lit surface — renders no children and lands no navigation: its
+containers render each child as `<a2ui-v09-component-host>`, which looks the surface up in the
+service's processor, never holds it, and waits forever (`Surface <id> not found. Waiting for it...`,
+`component-host.component.ts:219`); and a host reading components off the page by the
+`A2uiWebComponentElement` contract finds none of the Angular ones.
+
+### Issue
+
+Two couplings to the renderer's own session. First, children: a container's template is
+`<a2ui-v09-component-host [componentKey]="child" [surfaceId]="surfaceId()">`
+(`v0_9/catalog/basic/column.component.ts:47-48`), and the host resolves the child from
+`rendererService.surfaceGroup.getSurface(surfaceId)` — the `SurfaceGroupModel` of the processor the
+service built in its constructor; the node the element was given, whose `context.surface` already
+holds the surface, is not consulted. Actions fall back the same way: a basic component calls the
+action closure when its prop is one, otherwise it goes through the service's surface
+(`v0_9/catalog/basic/button.component.ts:107-117`). Second, the DOM: the universal path sets
+`injector`, `node` and `context` on the element it creates; the native path sets nothing on
+`<a2ui-v09-component-host>` (`display: contents`), so the contract every other renderer's elements
+carry — the one `@a2ui/react`'s `WebComponentNode` and the Lit base class honour — is absent for
+native Angular components.
+
+### Reproduction
+
+An `@a2ui/react` `A2uiSurface` over a catalog from `createComponentImplementation`, with findings
+24 and 25 out of the way and a default injector set: a `Column` of two `Text`s mounts the column's
+Angular component and warns `Surface <id> not found. Waiting for it...` for each child;
+`document.querySelectorAll('*')` finds no element carrying `node` for any of them. Read from the
+code; a run would confirm.
+
+### Fix
+
+Resolve a child from the node the host holds — `node.context.surface` and web_core's
+`NodeResolver`, as `renderA2uiNode` does for universal elements — and fall back to the service's
+processor only when the host has no node; and set `node` and `context` on the component host
+element for native entries as `setupWebComponent` does for universal ones.
