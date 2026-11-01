@@ -43,11 +43,13 @@ The reader meets commands once A2UIVerse is explained in short, not before; and 
 
 The section opens with three short bold-led paragraphs, each quoting the phrase from upstream's roadmap's long-term vision — "multiple agents contributing to the same UI", "agent marketplace integration", "full app composition" — and saying what A2UIVerse built for it. These replace the paragraph on agents as "first-class, composable application primitives"; "A2UIVerse = A2UI + Universe" is kept as the section's first words. The browser line, its table and the SPEC pointer follow as today.
 
-*Amended on 2026-11-01.* The three paragraphs are in the page's own words, each bold lead naming what A2UIVerse built — many agents on one UI, an agent marketplace, full apps composed from agents — upstream's roadmap neither named nor quoted.
+*Amended on 2026-11-01.* The three paragraphs are in the page's own words, each bold lead naming what A2UIVerse built — many agents on one UI, an agent marketplace, full apps composed from agents — and each one sentence; upstream's roadmap neither named nor quoted.
 
 ### 8. What it does is eight paragraphs and two images
 
 Each paragraph two or three sentences: one question, one screen; a merged view across apps; honest when apps are slow or fail; every question kept, with the trail still; back and forward inside each app, with the two way-back GIFs; sign-in the shell draws, gaining that sign-in is read from the card; installed where it's needed, without its GIF; publish once, install by name, merging today's Store / App Library / Publish paragraph with the published-once paragraph. "Any A2UI agent can join" is gone, carried by the proof section; "App = MCP server + Agentic BFF + A2UI catalog" waits for Phase 20's guide. The store-loop GIF leaves the page: the proof section's GIF already shows an app offered in its slot and installed there.
+
+*Amended on 2026-11-01.* Each paragraph is one or two short sentences beside its link.
 
 ### 9. How fast it answers keeps the models and the shape of the wait
 

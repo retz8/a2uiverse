@@ -19,7 +19,7 @@ Many agents on one UI, an agent marketplace, and full apps composed from agents:
 
 ## Your A2UI agent, unchanged
 
-A2UI's [who-is-it-for page](https://a2ui.org/introduction/who-is-it-for/#3-platform-builders-sdk-creators) asks platform builders: "Do you ship your agent into other apps you don't necessarily control?" Here, upstream's own restaurant finder, run from A2UI's repository with no change to its code, was published to the Store, found from a question no installed app could answer, installed from the Store's offer, composed beside Google Calendar, and a table was booked inside it. Its card names no catalog of its own, so its card's address was all it took to publish and install it.
+A2UI's [who-is-it-for page](https://a2ui.org/introduction/who-is-it-for/#3-platform-builders-sdk-creators) asks platform builders: "Do you ship your agent into other apps you don't necessarily control?" Upstream's own restaurant finder was shipped into this one with no change to its code. It was published from its card's address alone, found from a question no installed app could answer, and installed from the Store's offer. Then it sat beside Google Calendar, and a table was booked inside it.
 
 <p align="center">
   <img src="docs/images/ecosystem-run-question.gif" width="800" alt="The question asked with no restaurant app installed: Calendar's agenda in one slot, the Store's offer of Restaurant Agent in the other, Install through the consent card, and the slot filled with five Chinese restaurants in New York beside the agenda">
@@ -38,17 +38,17 @@ A2UI's [who-is-it-for page](https://a2ui.org/introduction/who-is-it-for/#3-platf
   </tr>
 </table>
 
-The five apps built for A2UIVerse — GitHub, Gmail, Google Calendar, CircleCI and Linear — live in [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) with the kit they're built on and a scaffolder for new ones, and [the sitting log](_dev/docs/phase-18-sitting-log.md) is the full account of this run.
+The five apps built for A2UIVerse — GitHub, Gmail, Google Calendar, CircleCI and Linear — live in [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) with their kit and a scaffolder, and [the sitting log](_dev/docs/phase-18-sitting-log.md) is the full account of this run.
 
 ## Why A2UIVerse?
 
 **A2UIVerse = A2UI + Universe**: a world where A2UI agents share one screen, are found and installed like apps, and compose into full applications.
 
-**Many agents on one UI.** Several apps answer one question on one screen: each paints its own surface into a slot of a layout drawn for the question, and a merged view joins their data. Each surface keeps its own data and look, its ids kept apart from every other app's, so no agent collides with another or reaches into it; only the shell draws across them.
+**Many agents on one UI.** Each agent paints its own surface into a slot of one screen, its ids and data kept apart from every other agent's, and only the shell draws across them.
 
-**An agent marketplace.** An agent is published once from its agent card, tried before it's listed, and installed anywhere by its id, from the Store or from the slot of a question no installed app could answer.
+**An agent marketplace.** An agent is published once from its card, tried before it's listed, and installed anywhere by its id.
 
-**Full apps, composed from agents.** The composed screen is one working application, not a reply: clicks inside an app land in it, each app has its own back and forward, every past question still works like a tab, and sign-in and consent are the shell's, never an app's.
+**Full apps, composed from agents.** The composed screen is a working application, not a reply: clicks land inside each app, and every past question still works like a tab.
 
 **A2UIVerse is to A2UI agents what a browser is to websites.** A browser draws pages from any site, in markup it didn't write; A2UIVerse draws UI from any A2UI agent. But where a browser needs an address and shows one site at a time, A2UIVerse takes a question and puts every app that holds part of the answer on one screen.
 
@@ -66,13 +66,13 @@ The full design, from its axioms to its milestones, is in **[SPEC.md](SPEC.md)**
 
 ## What it does
 
-**One question, one screen.** Ask in words, from the palette (`⌘K`): A2UIVerse picks the apps that hold the answer, including ones you didn't name, lays out a screen, and asks them all at once. Each app fills its slot with UI it generates, in its own design system — GitHub in Primer, Gmail and Calendar in Material 3, CircleCI and Linear each in a catalog of its own — its catalog installed with the app and loaded when it's first needed, never compiled into A2UIVerse. The shell names each app above its slot and never reaches inside it. [More in the client README](apps/client/README.md).
+**One question, one screen.** Ask in words, from the palette (`⌘K`), and A2UIVerse picks the apps that hold the answer and asks them all at once. Each fills its slot in its own design system, GitHub in Primer and Gmail in Material 3, its catalog installed with the app, not compiled in. [More in the client README](apps/client/README.md).
 
-**A merged view across apps.** When the answers can be joined, a table on top brings them together: the morning's mail, issues and pull requests on one timeline, or each Linear issue on one row with its pull request in GitHub and its CI run in CircleCI. A model writes the table as formulas pointing into each app's data, never as copied values, and every claim that two entries are the same thing is checked against the data before it's accepted. The client keeps the table live as the apps' data changes, with no further model call, and each value shows how sure it is and jumps to where it came from. [One row merged, step by step](apps/orchestrator/README.md#merges-across-apps).
+**A merged view across apps.** When the answers can be joined, a table on top puts them on one timeline, or a Linear issue, its pull request and its CI run on one row. A model writes it as formulas over the apps' data, never as copied values, every join checked against the data, and the table stays live with no further model call. [One row merged, step by step](apps/orchestrator/README.md#merges-across-apps).
 
-**Honest when apps are slow or fail.** One app failing never fails the rest: its slot says why and offers Retry, and its data leaves the merge. The merge doesn't wait on a straggler, which still fills its slot and joins the merge on Include; only the first merge is automatic, so the merged view never changes without a visible reason.
+**Honest when apps are slow or fail.** An app that fails says why in its slot and offers Retry, and the rest of the screen carries on without it. A late app still fills its slot and joins the merged view on Include.
 
-**Every question kept.** Every question gets its own answer, and a past answer still works like a browser tab: clicks and sorts land in it, and anything it was still loading keeps arriving. "Ask this again now" gets today's answer as a new one beside the past one, and asking from a past answer starts a branch on the trail.
+**Every question kept.** Each question gets its own answer, and a past answer still works like a browser tab. Asking from a past answer starts a branch on the trail.
 
 <p align="center">
   <img src="docs/images/trail-hover-preview.png" width="560" alt="The trail drawer, four questions on two branches, its live entry hovered and previewed">
@@ -80,7 +80,7 @@ The full design, from its axioms to its milestones, is in **[SPEC.md](SPEC.md)**
   <em>The trail: four questions on two branches. Hovering an entry previews its answer.</em>
 </p>
 
-**Back and forward inside each app.** Clicking into something inside an app, like a CI run, paints a new screen in its slot, with a back arrow beside the app's name. Each app keeps its own history, apart from the others, and going back restores the merged view too, from the wiring remembered for that combination of screens, with no model call.
+**Back and forward inside each app.** Each app keeps its own history in its slot, with a back arrow beside its name. Going back restores the merged view too, with no model call.
 
 <table>
   <tr>
@@ -93,11 +93,11 @@ The full design, from its axioms to its milestones, is in **[SPEC.md](SPEC.md)**
   </tr>
 </table>
 
-**Sign-in the shell draws.** An app never draws its own sign-in: its slot takes a tile the shell draws, in the words of the app's card, whose one press opens the app's sign-in in a new window, and the slot fills in place when you're done. A2UIVerse reads which sign-in an app needs from its agent card and signs in as any OAuth client would; an app can hold several accounts, and none can put a password, code or card field on the screen. The orchestrator keeps the sign-ins in its vault, and no credential reaches the client or the models. [More in the authority design record](docs/design/authority.md).
+**Sign-in the shell draws.** An app never draws its own sign-in: A2UIVerse reads what its card asks for and draws the sign-in itself. No app can put a password field on the screen, and no credential reaches the client or the models. [More in the authority design record](docs/design/authority.md).
 
-**Installed where it's needed.** A question no installed app can answer doesn't stop at "no app can do this": the Planner searches the Store, and the slot that needs it offers the apps it found, each by name and publisher. Install, through the same consent card the Store uses, fills that slot in place with the app's answer, nothing else on the screen moving; an app that has changed since you installed it says so in its slot, with Update. [More in the store loop design record](docs/design/store-loop.md).
+**Installed where it's needed.** When no installed app can answer, the slot that needs one offers apps from the Store. Install fills that slot in place, nothing else on the screen moving. [More in the store loop design record](docs/design/store-loop.md).
 
-**Publish once, install by name.** A publisher claims a name and publishes an app from its agent card and its packed catalog, from the command line or from Publish; the marketplace checks the catalog as install would, asks the agent its first screen, and lists the app with that answer. Apps, under Back and Trail, opens the Store, the App Library and Publish on one page over the canvas: search and install by id alone, each installed app's updates in plain words, its accounts, and uninstall. A fixed build of a catalog installs itself, and every other update waits for you. More in the [marketplace](docs/design/marketplace.md) and [trusted page](docs/design/trusted-page.md) design records.
+**Publish once, install by name.** A publisher publishes an app from its agent card and its packed catalog, and the marketplace tries it before listing it. Anyone then installs it by its id from the Store, which opens with the App Library and Publish on one page over the canvas. More in the [marketplace](docs/design/marketplace.md) and [trusted page](docs/design/trusted-page.md) design records.
 
 ## Try it
 
@@ -108,7 +108,7 @@ pnpm install
 pnpm --filter @a2uiverse/client preview:snapshot
 ```
 
-Open **http://localhost:4173/?beat=27** for the session in the GIF at the top of this page, replayed from a recording with no orchestrator, no apps and no model; the apps' catalogs come from the registry snapshot the command builds. `?beat=trail` replays four questions on two branches, `?beat=26` the way back inside an app, `?beat=31` an app offered from the Store in the slot that needs it, and `?page=store` opens the Store over a fixed world of the seven apps.
+Open **http://localhost:4173/?beat=27** for the session in the GIF at the top, replayed with no orchestrator, no apps and no model. `?beat=trail` replays four questions on two branches, `?beat=26` the way back inside an app, `?beat=31` an app offered from the Store, and `?page=store` opens the Store over the seven apps.
 
 **For real**, with **Node 22** or newer (Corepack resolves the pinned pnpm), [uv](https://docs.astral.sh/uv/), a [Claude API key](https://platform.claude.com/docs/en/get-api-key) and a [Gemini API key](https://aistudio.google.com/apikey), and [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) checked out beside this repo:
 
@@ -120,7 +120,7 @@ echo "GOOGLE_API_KEY=<your Gemini key>" >> apps/orchestrator/.env     # the Synt
 pnpm dev:all        # the apps and the platform, the apps installed
 ```
 
-Open **http://localhost:5173** and press `⌘K`. The apps start in `deterministic` mode, answering from recordings with no key of their own, while the Planner and the Synthesizer run live. The first time you ask something an app holds, its slot asks you to sign in, and the app's sign-in page offers made-up accounts. For real data, `pnpm dev:all --mode live`: each agent then needs a Gemini key in its own `.env`, and you sign in to each vendor in the browser — GitHub, and Gmail and Calendar together, through an OAuth client you register once; Linear and CircleCI need nothing set up. Each app's agent README has the steps.
+Open **http://localhost:5173** and press `⌘K`. The apps answer from recordings, their sign-in pages offering made-up accounts, while the Planner and the Synthesizer run live. For real data, `pnpm dev:all --mode live` needs a Gemini key in each agent's `.env` and a sign-in to each vendor; each app's agent README has the steps.
 
 <details>
 <summary><b>Every command</b></summary>
