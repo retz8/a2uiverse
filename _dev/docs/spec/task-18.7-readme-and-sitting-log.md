@@ -9,6 +9,8 @@ The root README rewritten as the hook document for the A2UI community ahead of P
 - The sitting log in `_dev/docs/`.
 - Out: every other README; the design records; SPEC §12; any code change.
 
+*Amended on 2026-11-01.* CONTRIBUTING.md's opening line and its link to the README's setup made true to the page as rewritten.
+
 ## Locked decisions
 
 ### 1. The reader is the A2UI community member
@@ -53,6 +55,8 @@ The what's-built paragraph goes. Three bullets of what is next: A2UI v1.0 — a 
 
 ### 11. How it works, Built on, Feedback and License stay as they are
 
+*Amended on 2026-11-01.* How it works stays as it is, less its repository layout.
+
 ### 12. The sitting log
 
 `_dev/docs/phase-18-sitting-log.md`, on the pattern of `_dev/docs/phase-17-model-trial-notes.md`. It records the day; the upstream commit the sample ran from, `upstream/main` `825beac2`; the Node restaurant finder on `gemini-3.6-flash` with its key in its environment; the platform's settings — the Planner on Claude Sonnet 5.5 at `low`, the Synthesizer and the apps on `gemini-3.8-flash` at `low`, the plan cache on; each stage's instants from the journal's entries of the sitting and the 18.6 record — the publish's smoke test, the plan, the offer, the install, each fragment, the three presses; what was found; every take and why it was retaken; and an index of all seventeen images in `docs/images/` — which segment each GIF is, which screen each still. The proof section links it as the full account, as How fast it answers links the latency results.
@@ -66,3 +70,5 @@ The sub-task changes no code: the root README, `scripts/README.md` and the sitti
 - No code changes; the design records are not touched; SPEC §12's milestone line stays as written.
 - Upstream's words are borrowed in two places only, one sentence each — the roadmap line on the first screen and the who-is-it-for question opening the proof section — and everything else is in the page's own words.
 - "As it is" is not on the page.
+
+*Amended on 2026-11-01.* Upstream's words are borrowed from two pages only — the roadmap's long-term vision, in the roadmap line on the first screen and in the three phrases opening Why A2UIVerse?, and the who-is-it-for question opening the proof section — and everything else is in the page's own words.
