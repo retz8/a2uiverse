@@ -31,6 +31,8 @@ Title; the tagline "The application ecosystem for A2UI agents." kept; the line "
 
 Directly after the first screen, before everything else, and short — a heading, a few sentences, its images — so the next section is reached within the second screen. It opens on upstream's question to platform builders from its who-is-it-for page, "Do you ship your agent into other apps you don't necessarily control?", in one sentence; then the fact: upstream's own restaurant finder, published, found from a question, installed from the offer, composed beside Google Calendar, a table booked, no change to its code. Its images: the question-stage GIF as the one animation; two stills in a row for the stages it does not cover — the finder listed in the Store with its sample drawn live, and the booking's confirmation — each linking to its stage GIF. The six segment GIFs stay in `docs/images/`, reached from the sitting log. A closing sentence names the five apps with their kit and scaffolder in `a2uiverse-apps` and links the sitting log as the full account.
 
+*Amended on 2026-11-01.* After the question, the fact is one sentence: upstream's restaurant finder shipped in with no change to its code, from its card's address alone. Each stage is said in the caption of its image.
+
 ### 5. The order of the page
 
 First screen → Your A2UI agent, unchanged → Why A2UIVerse? → What it does → Try it → How it works → How fast it answers → Built on → Where it's headed → Feedback · License.

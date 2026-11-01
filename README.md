@@ -19,7 +19,7 @@ Many agents on one UI, an agent marketplace, and full apps composed from agents:
 
 ## Your A2UI agent, unchanged
 
-A2UI's [who-is-it-for page](https://a2ui.org/introduction/who-is-it-for/#3-platform-builders-sdk-creators) asks platform builders: "Do you ship your agent into other apps you don't necessarily control?" Upstream's own restaurant finder was shipped into this one with no change to its code. It was published from its card's address alone, found from a question no installed app could answer, and installed from the Store's offer. Then it sat beside Google Calendar, and a table was booked inside it.
+A2UI's [who-is-it-for page](https://a2ui.org/introduction/who-is-it-for/#3-platform-builders-sdk-creators) asks platform builders: "Do you ship your agent into other apps you don't necessarily control?" Upstream's own restaurant finder was shipped into this one with no change to its code, from its card's address alone.
 
 <p align="center">
   <img src="docs/images/ecosystem-run-question.gif" width="800" alt="The question asked with no restaurant app installed: Calendar's agenda in one slot, the Store's offer of Restaurant Agent in the other, Install through the consent card, and the slot filled with five Chinese restaurants in New York beside the agenda">
@@ -33,8 +33,8 @@ A2UI's [who-is-it-for page](https://a2ui.org/introduction/who-is-it-for/#3-platf
     <td align="center" valign="top"><a href="docs/images/ecosystem-run-booking.gif"><img src="docs/images/ecosystem-run-booking-confirmation.png" width="390" alt="The booking confirmed inside the restaurant finder's slot, 2 people at 19:30 on 2026-11-01, beside Calendar's agenda"></a></td>
   </tr>
   <tr>
-    <td align="center"><em>Published from its card, in the Store with its sample answer drawn live.</em></td>
-    <td align="center"><em>The table booked inside its slot, beside Calendar.</em></td>
+    <td align="center"><em>In the Store, its sample answer drawn live.</em></td>
+    <td align="center"><em>A table booked inside it, beside Calendar.</em></td>
   </tr>
 </table>
 
