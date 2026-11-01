@@ -25,6 +25,8 @@ The recording that opens the page is the one that opens it today: one question, 
 
 Title; the tagline "The application ecosystem for A2UI agents." kept; the line "Ask one question. Several agents answer at once, each painting its own interface, and you get one screen, not three chat replies."; the A2UI-asks / A2UIVerse-asks contrast; one line placing the project on upstream's long-term roadmap — multi-agent coordination, an agent marketplace, full app composition — as one working answer to all three, built downstream of the protocol as it stands; the hero GIF with its caption; three claims, one line each, each linking down into the page, in this order: an A2UI agent built outside A2UIVerse composes here with no change to its code; each app paints in its own design system, its catalog installed, not compiled in; a merged view over their data, written by a model as wiring, never values, every join checked; a jump link to Try it, so the page still says at a glance that it runs. The SPEC sentence — "semantic application runtime … persistent, interactive surface" — is off the page. The phrase "as it is" appears nowhere; the claim is said as "unchanged" or "no change to its code".
 
+*Amended on 2026-11-01.* The three claims are off the first screen, the jump link to Try it its one link. The line on upstream's long-term roadmap gives way to one in the page's own words naming what A2UIVerse runs — many agents on one UI, an agent marketplace, full apps composed from agents — built downstream of A2UI and A2A as they stand; the roadmap is not named, and an A2UI maintainer recognizes in the line the gaps in their roadmap it fills.
+
 ### 4. The proof section, "Your A2UI agent, unchanged"
 
 Directly after the first screen, before everything else, and short — a heading, a few sentences, its images — so the next section is reached within the second screen. It opens on upstream's question to platform builders from its who-is-it-for page, "Do you ship your agent into other apps you don't necessarily control?", in one sentence; then the fact: upstream's own restaurant finder, published, found from a question, installed from the offer, composed beside Google Calendar, a table booked, no change to its code. Its images: the question-stage GIF as the one animation; two stills in a row for the stages it does not cover — the finder listed in the Store with its sample drawn live, and the booking's confirmation — each linking to its stage GIF. The six segment GIFs stay in `docs/images/`, reached from the sitting log. A closing sentence names the five apps with their kit and scaffolder in `a2uiverse-apps` and links the sitting log as the full account.
@@ -40,6 +42,8 @@ The reader meets commands once A2UIVerse is explained in short, not before; and 
 ### 7. Why A2UIVerse? opens on the roadmap mapping
 
 The section opens with three short bold-led paragraphs, each quoting the phrase from upstream's roadmap's long-term vision — "multiple agents contributing to the same UI", "agent marketplace integration", "full app composition" — and saying what A2UIVerse built for it. These replace the paragraph on agents as "first-class, composable application primitives"; "A2UIVerse = A2UI + Universe" is kept as the section's first words. The browser line, its table and the SPEC pointer follow as today.
+
+*Amended on 2026-11-01.* The three paragraphs are in the page's own words, each bold lead naming what A2UIVerse built — many agents on one UI, an agent marketplace, full apps composed from agents — upstream's roadmap neither named nor quoted.
 
 ### 8. What it does is eight paragraphs and two images
 
@@ -71,4 +75,4 @@ The sub-task changes no code: the root README, `scripts/README.md` and the sitti
 - Upstream's words are borrowed in two places only, one sentence each — the roadmap line on the first screen and the who-is-it-for question opening the proof section — and everything else is in the page's own words.
 - "As it is" is not on the page.
 
-*Amended on 2026-11-01.* Upstream's words are borrowed from two pages only — the roadmap's long-term vision, in the roadmap line on the first screen and in the three phrases opening Why A2UIVerse?, and the who-is-it-for question opening the proof section — and everything else is in the page's own words.
+*Amended on 2026-11-01.* Upstream's words are borrowed in one place only, one sentence — the who-is-it-for question opening the proof section — and everything else is in the page's own words. Upstream's roadmap is neither named nor quoted on the page.

@@ -7,17 +7,13 @@ Ask one question. Several agents answer at once, each painting its own interface
 A2UI asks: _how does an agent express UI?_\
 **A2UIVerse asks: how do the UI and data that many agents express become one application?**
 
-[A2UI's long-term vision](https://a2ui.org/roadmap/#long-term-vision) names multi-agent coordination, an agent marketplace and full app composition; A2UIVerse is one working answer to all three, built downstream of [A2UI](https://a2ui.org) and [A2A](https://github.com/a2aproject/A2A) as they stand.
+Many agents on one UI, an agent marketplace, and full apps composed from agents: A2UIVerse runs all three today, built downstream of [A2UI](https://a2ui.org) and [A2A](https://github.com/a2aproject/A2A) as they stand.
 
 <p align="center">
   <img src="docs/images/composing-inbox.gif" width="800" alt="One question answered on one screen: the layout lands, Gmail, GitHub and Linear fill their slots, and a merged table puts them on one timeline">
   <br>
   <em>"What needs my attention today in my inbox, GitHub and Linear?" The layout lands first, Gmail, GitHub and Linear each fill their slot in their own look, and the merged table on top puts them on one timeline. Replayed from a recording, with the waits shortened.</em>
 </p>
-
-- [An A2UI agent built outside A2UIVerse composes here with no change to its code.](#your-a2ui-agent-unchanged)
-- [Each app paints in its own design system, its catalog installed, not compiled in.](#what-it-does)
-- [A merged view over their data, written by a model as wiring, never values, every join checked.](#what-it-does)
 
 **[Try it](#try-it)**: a replay in two commands, or the whole thing live.
 
@@ -46,13 +42,13 @@ The five apps built for A2UIVerse — GitHub, Gmail, Google Calendar, CircleCI a
 
 ## Why A2UIVerse?
 
-**A2UIVerse = A2UI + Universe**: three parts of [A2UI's long-term vision](https://a2ui.org/roadmap/#long-term-vision), built and running.
+**A2UIVerse = A2UI + Universe**: a world where A2UI agents share one screen, are found and installed like apps, and compose into full applications.
 
-**"Multiple agents contributing to the same UI."** Several apps answer one question on one screen, each in a slot of a layout drawn for the question and each in its own design system, and a merged view joins their data. Every app keeps its own UI, data and look; the shell never reaches inside.
+**Many agents on one UI.** Several apps answer one question on one screen: each paints its own surface into a slot of a layout drawn for the question, and a merged view joins their data. Each surface keeps its own data and look, its ids kept apart from every other app's, so no agent collides with another or reaches into it; only the shell draws across them.
 
-**"Agent marketplace integration."** An app is published once from its agent card, tried before it's listed, and installed anywhere by its id, from the Store or from the slot of a question no installed app could answer.
+**An agent marketplace.** An agent is published once from its agent card, tried before it's listed, and installed anywhere by its id, from the Store or from the slot of a question no installed app could answer.
 
-**"Full app composition."** The composed screen is one working application, not a reply: clicks inside an app land in it, each app has its own back and forward, every past question still works like a tab, and sign-in and consent are the shell's, never an app's.
+**Full apps, composed from agents.** The composed screen is one working application, not a reply: clicks inside an app land in it, each app has its own back and forward, every past question still works like a tab, and sign-in and consent are the shell's, never an app's.
 
 **A2UIVerse is to A2UI agents what a browser is to websites.** A browser draws pages from any site, in markup it didn't write; A2UIVerse draws UI from any A2UI agent. But where a browser needs an address and shows one site at a time, A2UIVerse takes a question and puts every app that holds part of the answer on one screen.
 
