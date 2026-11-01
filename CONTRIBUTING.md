@@ -1,6 +1,6 @@
 # Contributing
 
-A2UIVerse is in active development and isn't done: the composed screen is built, and the ecosystem around it (app bundles, sign-in the shell owns, a marketplace and a Store) is on its way ([Where it's headed](README.md#where-its-headed)). Feedback from anyone interested in it is welcome.
+A2UIVerse is in active development and isn't done: the composed screen and the ecosystem around it, apps published, installed and signed in to through the shell, are built, and [Where it's headed](README.md#where-its-headed) says what's next. Feedback from anyone interested in it is welcome.
 
 ## Feedback and questions
 
@@ -12,7 +12,7 @@ Open an [issue](https://github.com/retz8/a2uiverse/issues/new/choose) with how y
 
 ## Code changes
 
-Open a discussion or an issue before writing code, so the change is agreed on first. The gates, `pnpm verify`, must be green on a pull request. [Getting it running](README.md#getting-it-running) covers the setup.
+Open a discussion or an issue before writing code, so the change is agreed on first. The gates, `pnpm verify`, must be green on a pull request. [Try it](README.md#try-it) covers the setup.
 
 ## Security
 
