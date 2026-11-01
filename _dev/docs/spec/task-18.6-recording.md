@@ -30,13 +30,19 @@ The claim board shows the publisher's token for the frames between Claim and Con
 
 While recording, the page is watched with text reads, which add no frame. A screenshot is taken only when the screen has changed into a state the GIF holds — the pending layout, Calendar landed with the other slot waiting, the offer in, the consent card, the slot installing, the slot filled, the form, the confirmation, the check's screen, the listing. A wait is one frame, held longer in post. The real instants go to the sitting log from the journal.
 
+*Amended on 2026-11-01.* A screenshot adds no frame to the recorder: each state the GIF holds is a whole-viewport zoom at full scale, one action per call, and a click's frame repeated stale is folded in post.
+
 ### 5. A still is a whole-viewport zoom saved as PNG
 
 Each still is a zoom of the whole viewport taken right after its state's screenshot, saved on the Mac as a PNG. The zoom adds a frame of its own: the first segment's export, the claim, is read on the Mac before the second segment is recorded; a whole-viewport duplicate is folded in post, and a cropped or odd-sized frame turns the method, for the rest of the sitting, to the state's screenshot itself — its JPEG converted to PNG.
 
+*Amended on 2026-11-01.* A still is its state's zoom itself, saved as a PNG.
+
 ### 6. The nine stills
 
 Publish: the claim form with `a2ui-samples-mirror` typed, before Claim; the publish form with the finder's card URL and nothing packed, before Publish; the published line and the listing with its sample on the Publish page; the Store page with the finder among the seven, its sample painted. Question: Calendar's agenda beside the Store's offer; the consent card over the slot; the finder's five restaurants beside Calendar's agenda. Booking: the form filled, 2 people, 2026-11-01, 19:30; the confirmation.
+
+*Amended on 2026-11-01.* The Store still is the finder's own page in the Store with its sample painted; the Store list with the finder among the seven is in the GIF.
 
 ### 7. Each export reaches the Mac by hand, as it comes
 
@@ -53,6 +59,8 @@ A stage's segments come from one pass. A broken segment retakes its stage from t
 ### 10. The agents' model pin is removed before the sitting
 
 The `MODEL_NAME` line is removed from the five agents' git-ignored `agent/.env` files before the processes start, so the apps run on the agent kit's default, `gemini-3.8-flash`, as phase decision 13 states; the sitting log names it so.
+
+*Amended on 2026-11-01.* The line is removed from the two mock shops' `agent/.env` as well, all seven apps on `gemini-3.8-flash`.
 
 ### 11. The post work is 18.6's, retimed by state
 
