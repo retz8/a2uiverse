@@ -30,6 +30,8 @@ If the Planner reserves a merge on it, the rephrase drops "so I can pick a time 
 
 Calendar's signed-in account, `ekkicb71@gmail.com`, is the dedicated test account. Its demo calendar is re-seeded on the Mac before the run, and again whenever the day changes between passes.
 
+*Amended on 2026-11-01.* The seed needs the test account's Google token to carry the write scope, which Calendar takes through Allow on an event added from the canvas, its sign-in port forwarded for that step alone. The calendar's own time zone, America/Detroit, dates the seed's events.
+
 ### 5. The publisher name is `a2ui-samples-mirror`
 
 The name claimed on Publish is `a2ui-samples-mirror`, on the dry run and on the recording day alike.
@@ -39,6 +41,8 @@ The name claimed on Publish is `a2ui-samples-mirror`, on the dry run and on the 
 Three stages, as phase decision 8 names them: the publish — the claim, the token shown once, the publish from the card URL, the gate and the Store's check, the listing with its preview; the question — a fresh page load, the words, Calendar's fragment beside the Store's offer, Install through the consent card, the slot filled with the finder's list; the booking — Book, the form, the submit, the confirmation.
 
 Inside the finder the stage runs forward only; the way back inside the fragment is not shown. The pictures are blank across the tunnel and stay so; the sitting log says why. Book is pressed on the first restaurant in the list; the form is filled for a party of two, tonight at 19:30, after the calendar's writing block, with no dietary requirements.
+
+*Amended on 2026-11-01.* As the dry run had it: the publish stage ends on the listing, its sample answer waiting on 18.5.3; the question's words stand as decision 3 writes them, the Planner reserving no merge; Calendar's fragment lists the Seoul day's events converted to Seoul hours while the test calendar keeps Eastern time, the writing block off the day; the booking stage's press is the sample's Book Now on Xi'an Famous Foods, the first of its five, its form taking a party size prefilled 2, a date and a time, 2026-11-01 and 19:30, the dietary field left blank; the confirmation reads the booking back as 2 people at 2026-11-01T19:30:00.
 
 ### 7. The reset, and a repeat is the whole sitting
 
@@ -53,6 +57,8 @@ A publish-stage retake on the recording day resets as decision 7's marketplace s
 ### 9. The processes from the session, the ports by hand
 
 Every process — the finder, the seven agents, the marketplace, the orchestrator, the client — is started from the Claude Code session as a background task, its log kept at hand, after Calendar's seed has run. The client's, the orchestrator's and the marketplace's ports are forwarded and set Public by hand. The finder's port stays unforwarded, and Calendar's sign-in port is not needed.
+
+*Amended on 2026-11-01.* Calendar's sign-in port, 11003, is forwarded for the write scope's grant before the seed (decision 4); the sitting itself does not need it.
 
 ### 10. The record
 
