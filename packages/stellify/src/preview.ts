@@ -5,7 +5,8 @@
  * developer's look at what the Store will show for any app. The card is fetched, the credential's
  * header chosen from it, each handed artifact gated, the schema of a catalog the marketplace holds
  * fetched from it, one request sent, the answer judged as the marketplace judges a live paint, the
- * paint checked through the sdk. Every failure is a finding, never a throw.
+ * paint checked through the sdk and kept as it judged it, settled. Every failure is a finding, never
+ * a throw.
  */
 import type {AgentCard} from '@a2a-js/sdk';
 import {
@@ -177,14 +178,15 @@ export async function previewWith(
     findings.push(...judged.findings);
     return result(null, signIn);
   }
-  findings.push(...checkPaint(judged.messages, {entitlement, schemaFor: id => schemas.get(id)}));
+  const painted = checkPaint(judged.messages, {entitlement, schemaFor: id => schemas.get(id)});
+  findings.push(...painted.findings);
   if (findings.length > 0) return result(null, signIn);
   return result(
     {
       appId: options.appId,
       version: card.version,
       words,
-      messages: judged.messages,
+      messages: painted.paint,
       capturedBy: 'publisher',
       capturedAt: (options.now?.() ?? new Date()).toISOString(),
     },

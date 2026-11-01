@@ -16,7 +16,7 @@ import {
   type RequestContext,
 } from '@a2a-js/sdk/server';
 import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
-import {authRequiredData} from '@a2uiverse/sdk';
+import {authRequiredData, BASIC_CATALOG_ID} from '@a2uiverse/sdk';
 import {cardFor, signInCardFor, type CardOptions} from './fixture.js';
 
 export interface ScriptContext {
@@ -112,6 +112,59 @@ export const paintingScript =
   ({ctx, firstTurn}) => [
     ...(firstTurn ? [firstTurnTask(ctx)] : []),
     finalUpdate(ctx, 'completed', paintParts(catalogId, text)),
+  ];
+
+/**
+ * A tree streamed as upstream's restaurant finder streams it: each working update sends the tree so
+ * far again, a Button's action `{}` in one copy and whole in the next, a placeholder child dropped
+ * on the way; then the task completes with no parts. The basic catalog's web_core refuses the
+ * half-written copy, so a paint kept as sent fails the Store's sample.
+ */
+export const STREAMED_SURFACE = 'list';
+const streamedCopy = (components: unknown[]) => ({
+  kind: 'data' as const,
+  data: {version: 'v0.9', updateComponents: {surfaceId: STREAMED_SURFACE, components}},
+});
+export const STREAMED_BOOK = {event: {name: 'book', context: {name: {path: '/name'}}}};
+export const STREAMED_SETTLED = [
+  {id: 'root', component: 'Column', children: ['title', 'book']},
+  {id: 'title', component: 'Text', text: 'Restaurants'},
+  {id: 'book', component: 'Button', child: 'book-label', action: STREAMED_BOOK},
+  {id: 'book-label', component: 'Text', text: 'Book'},
+];
+export const streamedScript =
+  (catalogId = BASIC_CATALOG_ID): Script =>
+  ({ctx, firstTurn}) => [
+    ...(firstTurn ? [firstTurnTask(ctx)] : []),
+    statusUpdate(
+      ctx,
+      'working',
+      [
+        {
+          kind: 'data',
+          data: {version: 'v0.9', createSurface: {surfaceId: STREAMED_SURFACE, catalogId}},
+        },
+        streamedCopy([
+          {id: 'root', component: 'Column', children: ['loading_title']},
+          {id: 'loading_title', component: 'Text', text: ''},
+        ]),
+      ],
+      false,
+    ),
+    statusUpdate(
+      ctx,
+      'working',
+      [
+        streamedCopy([
+          {id: 'root', component: 'Column', children: ['title', 'book']},
+          {id: 'title', component: 'Text', text: 'Restaurants'},
+          {id: 'book', component: 'Button', child: 'book-label', action: {}},
+        ]),
+      ],
+      false,
+    ),
+    statusUpdate(ctx, 'working', [streamedCopy(STREAMED_SETTLED)], false),
+    finalUpdate(ctx, 'completed', []),
   ];
 
 /** Paints, then the credential input the bar refuses. */

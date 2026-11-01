@@ -66,7 +66,11 @@ export interface PreviewDocument {
   version: string;
   /** The request text the agent was sent. */
   words: string;
-  /** The A2UI server-to-client messages in order, surface ids as the agent wrote them. */
+  /**
+   * The A2UI server-to-client messages in order, settled as the sdk's check judged them: each
+   * surface's component updates one, each component at its last copy; surface ids as the agent wrote
+   * them.
+   */
   messages: Record<string, unknown>[];
   capturedBy: 'marketplace' | 'publisher';
   capturedAt: string;

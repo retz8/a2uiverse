@@ -992,7 +992,7 @@ var PREVIEW_SCHEMA = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://a2uiverse.dev/contracts/marketplace-preview",
   title: "A2UIVerse marketplace preview",
-  description: "An app's preview, served at apps/<appId>/preview.json: the smoke test's paint, stored with the published version — the A2UI messages the agent answered with, in order, for the Store page to render through the client's ordinary loader. Captured by the marketplace at publish, or by the publisher's preview for an app that needs sign-in and sent beside the artifacts; checked the same way either way. Versioned with the sdk; a change to its shape is additive.",
+  description: "An app's preview, served at apps/<appId>/preview.json: the smoke test's paint, stored with the published version — the A2UI messages the agent answered with, settled as the check judged them, for the Store page to render through the client's ordinary loader. Captured by the marketplace at publish, or by the publisher's preview for an app that needs sign-in and sent beside the artifacts, a handed one settled again on receipt; checked the same way either way. Versioned with the sdk; a change to its shape is additive.",
   type: "object",
   additionalProperties: false,
   required: ["appId", "version", "words", "messages", "capturedBy", "capturedAt"],
@@ -1011,9 +1011,9 @@ var PREVIEW_SCHEMA = {
         type: "object",
         required: ["version"],
         properties: { version: { type: "string" } },
-        description: "One A2UI server-to-client message, as the agent sent it."
+        description: "One A2UI server-to-client message, as the agent sent it, or a surface's component updates settled into one."
       },
-      description: "The A2UI server-to-client messages in order, every kind kept — createSurface, updateComponents, updateDataModel, deleteSurface — surface ids as the agent wrote them."
+      description: "The A2UI server-to-client messages in order, settled: each surface's updateComponents collapsed into one in the place of the first, carrying each component's last copy drawn from the root; every other message — createSurface, updateDataModel, deleteSurface — as sent; surface ids as the agent wrote them."
     },
     capturedBy: { type: "string", enum: [...PREVIEW_CAPTURED_BY] },
     capturedAt: { type: "string", minLength: 1 }
@@ -1053,18 +1053,21 @@ function a2uiMessagesOf(parts) {
 }
 var OPERATIONS = ["createSurface", "updateComponents", "updateDataModel", "deleteSurface"];
 var ROOT_ID = "root";
-function settled(messages, refs) {
+function settled(own, refs) {
   const byId = /* @__PURE__ */ new Map();
   const loose = [];
-  const rest = [];
+  const kept = [];
   let first;
-  for (const message of messages) {
-    const update = message.updateComponents;
+  for (const [at2, message2] of own) {
+    const update = message2.updateComponents;
     if (!isObject3(update) || !Array.isArray(update.components)) {
-      rest.push(message);
+      kept.push([at2, message2]);
       continue;
     }
-    first ??= { at: rest.length, message, update };
+    if (!first) {
+      first = { index: kept.length, update };
+      kept.push([at2, message2]);
+    }
     for (const component of update.components) {
       if (isObject3(component) && typeof component.id === "string")
         byId.set(component.id, component);
@@ -1073,7 +1076,7 @@ function settled(messages, refs) {
     }
   }
   if (!first)
-    return rest;
+    return kept;
   const drawn = /* @__PURE__ */ new Set();
   const visit = (id) => {
     const component = byId.get(id);
@@ -1086,41 +1089,47 @@ function settled(messages, refs) {
   visit(ROOT_ID);
   const tree = byId.has(ROOT_ID) ? [...byId.values()].filter((c) => drawn.has(c.id)) : [...byId.values()];
   const components = [...tree, ...loose];
-  rest.splice(first.at, 0, { ...first.message, updateComponents: { ...first.update, components } });
-  return rest;
+  const [at, message] = kept[first.index];
+  kept[first.index] = [at, { ...message, updateComponents: { ...first.update, components } }];
+  return kept;
 }
 function checkPaint(messages, check) {
   const findings = [];
   const surfaces = /* @__PURE__ */ new Map();
-  for (const message of messages) {
+  for (const [at, message] of messages.entries()) {
     const create = message.createSurface;
     if (isObject3(create) && typeof create.surfaceId === "string") {
       const catalogId = typeof create.catalogId === "string" ? create.catalogId : void 0;
-      surfaces.set(create.surfaceId, { catalogId, messages: [] });
+      surfaces.set(create.surfaceId, { catalogId, own: [] });
     }
     const operation = OPERATIONS.map((key) => message[key]).find(isObject3);
     const surfaceId = isObject3(operation) ? operation.surfaceId : void 0;
     if (typeof surfaceId === "string")
-      surfaces.get(surfaceId)?.messages.push(message);
+      surfaces.get(surfaceId)?.own.push([at, message]);
   }
-  if (surfaces.size === 0)
-    return ["the answer paints nothing: no createSurface"];
+  if (surfaces.size === 0) {
+    return { findings: ["the answer paints nothing: no createSurface"], paint: [] };
+  }
+  const placed = [];
   const validators = /* @__PURE__ */ new Map();
   const refMaps = /* @__PURE__ */ new Map();
   const options = /* @__PURE__ */ new Map();
-  for (const [surfaceId, { catalogId, messages: own }] of surfaces) {
+  for (const [surfaceId, { catalogId, own }] of surfaces) {
     const at = `surface ${JSON.stringify(surfaceId)}`;
     if (catalogId === void 0) {
       findings.push(`${at}: createSurface names no catalogId`);
+      placed.push(...own);
       continue;
     }
     if (!check.entitlement.includes(catalogId)) {
       findings.push(`${at} is painted in catalog ${JSON.stringify(catalogId)}, outside the entitlement`);
+      placed.push(...own);
       continue;
     }
     const schema = check.schemaFor(catalogId);
     if (!schema) {
       findings.push(`${at}: no schema for catalog ${JSON.stringify(catalogId)}`);
+      placed.push(...own);
       continue;
     }
     let validator = validators.get(catalogId);
@@ -1134,17 +1143,20 @@ function checkPaint(messages, check) {
         refs = buildComponentRefMap(Catalog2.fromJson(schema, "0.9", catalogId), V09_CHILD_REF_OPTIONS);
       } catch (error) {
         findings.push(`${at}: the catalog does not load: ${error.message}`);
+        placed.push(...own);
         continue;
       }
       refMaps.set(catalogId, refs);
     }
-    findings.push(...validator.validate(settled(own, refs)).map((f) => `${at}: ${formatA2uiFinding(f)}`));
+    const surface = settled(own, refs);
+    placed.push(...surface);
+    findings.push(...validator.validate(surface.map(([, message]) => message)).map((f) => `${at}: ${formatA2uiFinding(f)}`));
     let declared = options.get(catalogId);
     if (!declared) {
       declared = catalogId === BASIC_CATALOG_ID ? basicCatalogOptions() : catalogOptions(schema);
       options.set(catalogId, declared);
     }
-    for (const message of own) {
+    for (const [, message] of own) {
       const update = message.updateComponents;
       if (!isObject3(update) || !Array.isArray(update.components))
         continue;
@@ -1153,7 +1165,8 @@ function checkPaint(messages, check) {
         findings.push(`${at}: a credential input: ${describeCredentialFinding(found)}`);
     }
   }
-  return findings;
+  const paint = placed.sort(([a], [b]) => a - b).map(([, message]) => message);
+  return { findings, paint };
 }
 
 // src/pack.ts
@@ -1973,14 +1986,15 @@ async function previewWith(options, deps) {
     findings.push(...judged.findings);
     return result(null, signIn);
   }
-  findings.push(...checkPaint(judged.messages, { entitlement, schemaFor: (id) => schemas.get(id) }));
+  const painted = checkPaint(judged.messages, { entitlement, schemaFor: (id) => schemas.get(id) });
+  findings.push(...painted.findings);
   if (findings.length > 0) return result(null, signIn);
   return result(
     {
       appId: options.appId,
       version: card.version,
       words,
-      messages: judged.messages,
+      messages: painted.paint,
       capturedBy: "publisher",
       capturedAt: (options.now?.() ?? /* @__PURE__ */ new Date()).toISOString()
     },

@@ -496,22 +496,25 @@ export class Marketplace {
       words,
       timeoutMs: this.#deps.smokeTimeoutMs,
     });
+    // The preview stored is the paint as the check judged it, settled (task-18.5.3 decisions 1, 2).
     let stored: PreviewDocument | undefined;
     if (signIn && preview) {
       findings.push(...judgeSignIn(seen, card));
-      findings.push(...checkPaint(preview.messages, check));
-      stored = preview;
+      const painted = checkPaint(preview.messages, check);
+      findings.push(...painted.findings);
+      stored = {...preview, messages: painted.paint};
     } else {
       const judged = judgePaint(seen);
       if ('findings' in judged) {
         findings.push(...judged.findings);
       } else {
-        findings.push(...checkPaint(judged.messages, check));
+        const painted = checkPaint(judged.messages, check);
+        findings.push(...painted.findings);
         stored = {
           appId,
           version: card.version,
           words,
-          messages: judged.messages,
+          messages: painted.paint,
           capturedBy: 'marketplace',
           capturedAt: this.#now(),
         };

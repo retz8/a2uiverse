@@ -12,6 +12,7 @@ import {
   paintingScript,
   STAR_CATALOG_ID,
   startFakeAgent,
+  streamedScript,
   unmarkedScript,
   type FakeAgent,
 } from './fakeAgent.js';
@@ -98,6 +99,21 @@ describe('preview of an app that needs no sign-in', () => {
     expect(result.document?.messages.map(m => Object.keys(m).find(k => k !== 'version'))).toEqual([
       'createSurface',
       'updateComponents',
+    ]);
+  });
+  test('a paint streamed piece by piece: the document holds it settled, as the check judged it', async () => {
+    agent = await startFakeAgent({script: streamedScript()});
+    const result = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
+    expect(result.findings).toEqual([]);
+    expect(result.document?.messages).toEqual([
+      {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: STAR_CATALOG_ID}},
+      {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: 's1',
+          components: [{id: 'root', component: 'StarText', text: 'hi'}],
+        },
+      },
     ]);
   });
 });

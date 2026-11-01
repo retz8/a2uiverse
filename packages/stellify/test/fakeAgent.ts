@@ -186,6 +186,39 @@ export const paintingScript =
     finalUpdate(ctx, 'completed', paintParts(catalogId, text)),
   ];
 
+/**
+ * Streams its tree as it writes it, a model-mode agent's way: the root half-written in one update,
+ * its text missing, and whole in the next; then completes with no parts.
+ */
+export const streamedScript =
+  (catalogId = STAR_CATALOG_ID): Script =>
+  ({ctx, firstTurn}) => {
+    const copy = (text?: string) => ({
+      kind: 'data' as const,
+      data: {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: 's1',
+          components: [{id: 'root', component: 'StarText', ...(text ? {text} : {})}],
+        },
+      },
+    });
+    return [
+      ...(firstTurn ? [firstTurnTask(ctx)] : []),
+      statusUpdate(
+        ctx,
+        'working',
+        [
+          {kind: 'data', data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId}}},
+          copy(),
+        ],
+        false,
+      ),
+      statusUpdate(ctx, 'working', [copy('hi')], false),
+      finalUpdate(ctx, 'completed', []),
+    ];
+  };
+
 /** Paints a component the catalog does not have. */
 export const invalidPaintScript =
   (catalogId = STAR_CATALOG_ID): Script =>

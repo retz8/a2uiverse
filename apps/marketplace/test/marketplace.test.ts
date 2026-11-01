@@ -40,6 +40,9 @@ import {
   noFinalScript,
   paintingScript,
   startFakeAgent,
+  STREAMED_SETTLED,
+  STREAMED_SURFACE,
+  streamedScript,
   unmarkedScript,
   type FakeAgent,
   type FakeAgentOptions,
@@ -601,6 +604,51 @@ describe('publish, the smoke test', () => {
     expect(painted.findings).toEqual([
       'the agent answered a task in state "completed" instead of asking to sign in: an HTTP 401 or an auth-required task',
     ]);
+  });
+
+  test('a paint streamed piece by piece is stored settled, as the check judged it', async () => {
+    const {marketplace, stateDir, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentOf({catalogs: [], script: streamedScript()});
+    ok(await marketplace.publish('acme', body('finder', cards.serve(agent.card))));
+    const settled = [
+      {
+        version: 'v0.9',
+        createSurface: {surfaceId: STREAMED_SURFACE, catalogId: BASIC_CATALOG_ID},
+      },
+      {
+        version: 'v0.9',
+        updateComponents: {surfaceId: STREAMED_SURFACE, components: STREAMED_SETTLED},
+      },
+    ];
+    expect(marketplace.preview('finder')?.messages).toEqual(settled);
+    const stored = await readJson(join(stateDir, PUBLIC_DIR, APPS_DIR, 'finder', PREVIEW_FILE));
+    expect(stored.messages).toEqual(settled);
+  });
+
+  test('a handed preview is settled on receipt, so one from an older Stellify is stored settled', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentOf({signIn: true, admit: () => false});
+    const handed = previewFor('locked', '0.1.0', CAT, 'publisher');
+    const copy = (text?: string) => ({
+      version: 'v0.9',
+      updateComponents: {
+        surfaceId: 's1',
+        components: [{id: 'root', component: 'Text', ...(text === undefined ? {} : {text})}],
+      },
+    });
+    handed.messages = [handed.messages[0]!, copy(), copy('hi')];
+    ok(
+      await marketplace.publish(
+        'acme',
+        body('locked', cards.serve(agent.card), [await fixtureArtifact(CAT)], handed),
+      ),
+    );
+    expect(marketplace.preview('locked')).toEqual({
+      ...handed,
+      messages: [handed.messages[0], copy('hi')],
+    });
   });
 
   test('a captured preview is checked as a live paint is', async () => {

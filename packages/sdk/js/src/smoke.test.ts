@@ -1,4 +1,6 @@
 import {describe, expect, test} from 'vitest';
+import {MessageProcessor} from '@a2ui/web_core/v0_9';
+import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
 import {BASIC_CATALOG_SCHEMA} from './a2ui/spec.generated';
 import type {A2uiCatalogSchema} from './a2ui/types';
 import {BASIC_CATALOG_ID} from './catalog';
@@ -62,37 +64,40 @@ describe('a2uiMessagesIn / a2uiMessagesOf', () => {
 
 describe('checkPaint', () => {
   test('a paint in an entitled catalog that validates and asks for no credential passes', () => {
-    expect(checkPaint(paint(VENDOR), check)).toEqual([]);
-    expect(checkPaint(paint(BASIC_CATALOG_ID), check)).toEqual([]);
+    expect(checkPaint(paint(VENDOR), check).findings).toEqual([]);
+    expect(checkPaint(paint(BASIC_CATALOG_ID), check).findings).toEqual([]);
   });
 
   test('no createSurface is no paint', () => {
-    expect(checkPaint([], check)).toEqual(['the answer paints nothing: no createSurface']);
-    expect(checkPaint([{version: 'v0.9', updateDataModel: {surfaceId: 'main'}}], check)).toEqual([
-      'the answer paints nothing: no createSurface',
-    ]);
+    expect(checkPaint([], check)).toEqual({
+      findings: ['the answer paints nothing: no createSurface'],
+      paint: [],
+    });
+    expect(
+      checkPaint([{version: 'v0.9', updateDataModel: {surfaceId: 'main'}}], check).findings,
+    ).toEqual(['the answer paints nothing: no createSurface']);
   });
 
   test('a surface outside the entitlement, or in a catalog with no schema', () => {
-    expect(checkPaint(paint('cat/v2'), check)).toEqual([
+    expect(checkPaint(paint('cat/v2'), check).findings).toEqual([
       'surface "main" is painted in catalog "cat/v2", outside the entitlement',
     ]);
-    expect(checkPaint(paint(VENDOR), {entitlement: [VENDOR], schemaFor: () => undefined})).toEqual([
-      'surface "main": no schema for catalog "cat/v1"',
-    ]);
-    expect(checkPaint([{version: 'v0.9', createSurface: {surfaceId: 'main'}}], check)).toEqual([
-      'surface "main": createSurface names no catalogId',
-    ]);
+    expect(
+      checkPaint(paint(VENDOR), {entitlement: [VENDOR], schemaFor: () => undefined}).findings,
+    ).toEqual(['surface "main": no schema for catalog "cat/v1"']);
+    expect(
+      checkPaint([{version: 'v0.9', createSurface: {surfaceId: 'main'}}], check).findings,
+    ).toEqual(['surface "main": createSurface names no catalogId']);
   });
 
   test('a tree that does not validate against its catalog, named by surface', () => {
-    const findings = checkPaint(paint(VENDOR, [{id: 'root', component: 'Nope'}]), check);
+    const {findings} = checkPaint(paint(VENDOR, [{id: 'root', component: 'Nope'}]), check);
     expect(findings).toHaveLength(1);
     expect(findings[0]).toMatch(/^surface "main": .*Unknown component type 'Nope'/);
   });
 
   test('a credential input, named by surface', () => {
-    const findings = checkPaint(
+    const {findings} = checkPaint(
       paint(VENDOR, [{id: 'root', component: 'TextField', label: 'Password', variant: 'obscured'}]),
       check,
     );
@@ -147,11 +152,11 @@ describe('checkPaint', () => {
 
   test('a tree streamed as it is written is judged as it stands at the end', () => {
     const action = {event: {name: 'sort', context: {key: 'price'}}};
-    expect(checkPaint(streamed({child: 'sort-label', action}), check)).toEqual([]);
+    expect(checkPaint(streamed({child: 'sort-label', action}), check).findings).toEqual([]);
   });
 
   test('a component still invalid when the stream ends is a finding', () => {
-    const findings = checkPaint(streamed({child: 'sort-label'}), check);
+    const {findings} = checkPaint(streamed({child: 'sort-label'}), check);
     expect(findings).toHaveLength(1);
     expect(findings[0]).toMatch(
       /^surface "main": .*\/action \(sort\): Expected object, received undefined/,
@@ -163,9 +168,141 @@ describe('checkPaint', () => {
       ...paint(VENDOR),
       {version: 'v0.9', createSurface: {surfaceId: 'aside', catalogId: 'cat/v2'}},
     ];
-    expect(checkPaint(messages, check)).toEqual([
+    expect(checkPaint(messages, check).findings).toEqual([
       'surface "aside" is painted in catalog "cat/v2", outside the entitlement',
     ]);
+  });
+  test('the paint handed back is settled: one update per surface, each component’s last copy from the root', () => {
+    const action = {event: {name: 'sort', context: {key: 'price'}}};
+    const {paint: settled} = checkPaint(streamed({child: 'sort-label', action}), check);
+    expect(settled).toEqual([
+      {version: 'v0.9', createSurface: {surfaceId: 'main', catalogId: VENDOR}},
+      {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: 'main',
+          components: [
+            {id: 'root', component: 'Card', child: 'body'},
+            {id: 'body', component: 'Column', children: ['title', 'sort']},
+            {id: 'title', component: 'Text', text: 'Cameras'},
+            {id: 'sort', component: 'Button', variant: 'borderless', child: 'sort-label', action},
+            {id: 'sort-label', component: 'Text', text: 'Price'},
+          ],
+        },
+      },
+    ]);
+  });
+
+  test('the settled paint draws message by message where the stream as sent does not', () => {
+    const action = {event: {name: 'sort', context: {key: 'price'}}};
+    const inBasic = streamed({child: 'sort-label', action}).map(message =>
+      message.createSurface
+        ? {version: 'v0.9', createSurface: {surfaceId: 'main', catalogId: BASIC_CATALOG_ID}}
+        : message,
+    );
+    const failures = (messages: readonly Record<string, unknown>[]) => {
+      const processor = new MessageProcessor([basicCatalog]);
+      let failed = 0;
+      for (const message of messages) {
+        try {
+          processor.processMessages([message] as Parameters<typeof processor.processMessages>[0]);
+        } catch {
+          failed += 1;
+        }
+      }
+      return {failed, surfaces: processor.model.surfacesMap.size};
+    };
+    expect(failures(inBasic).failed).toBeGreaterThan(0);
+    const judged = checkPaint(inBasic, check);
+    expect(judged.findings).toEqual([]);
+    expect(failures(judged.paint)).toEqual({failed: 0, surfaces: 1});
+  });
+
+  test('every other message as sent, in its place; surfaces interleaved each settled at its first update', () => {
+    const text = (id: string, words: string) => ({id, component: 'Text', text: words});
+    const data = {version: 'v0.9', updateDataModel: {surfaceId: 'a', path: '/n', value: 1}};
+    const messages = [
+      {version: 'v0.9', createSurface: {surfaceId: 'a', catalogId: VENDOR}},
+      {version: 'v0.9', createSurface: {surfaceId: 'b', catalogId: BASIC_CATALOG_ID}},
+      {version: 'v0.9', updateComponents: {surfaceId: 'a', components: [text('root', 'A1')]}},
+      {version: 'v0.9', updateComponents: {surfaceId: 'b', components: [text('root', 'B')]}},
+      data,
+      {version: 'v0.9', updateComponents: {surfaceId: 'a', components: [text('root', 'A2')]}},
+    ];
+    const judged = checkPaint(messages, check);
+    expect(judged.findings).toEqual([]);
+    expect(judged.paint).toEqual([
+      messages[0],
+      messages[1],
+      {version: 'v0.9', updateComponents: {surfaceId: 'a', components: [text('root', 'A2')]}},
+      messages[3],
+      data,
+    ]);
+  });
+
+  test('a whole paint is handed back as it is, and settling it again changes nothing', () => {
+    const whole = [
+      ...paint(VENDOR),
+      {version: 'v0.9', updateDataModel: {surfaceId: 'main', path: '/n', value: 1}},
+    ];
+    const {paint: settled} = checkPaint(whole, check);
+    expect(settled).toEqual(whole);
+    expect(checkPaint(settled, check).paint).toEqual(settled);
+  });
+
+  test('a tree sent in pieces, each new, is handed back as one update with the same components', () => {
+    const messages = [
+      {version: 'v0.9', createSurface: {surfaceId: 'main', catalogId: VENDOR}},
+      {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: 'main',
+          components: [{id: 'root', component: 'Column', children: ['one', 'two']}],
+        },
+      },
+      {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: 'main',
+          components: [{id: 'one', component: 'Text', text: '1'}],
+        },
+      },
+      {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: 'main',
+          components: [{id: 'two', component: 'Text', text: '2'}],
+        },
+      },
+    ];
+    const judged = checkPaint(messages, check);
+    expect(judged.findings).toEqual([]);
+    expect(judged.paint).toEqual([
+      messages[0],
+      {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: 'main',
+          components: [
+            {id: 'root', component: 'Column', children: ['one', 'two']},
+            {id: 'one', component: 'Text', text: '1'},
+            {id: 'two', component: 'Text', text: '2'},
+          ],
+        },
+      },
+    ]);
+  });
+
+  test('what the check never judged is not in the paint: a surface no create made, a creation replaced', () => {
+    const messages = [
+      {version: 'v0.9', updateDataModel: {surfaceId: 'early', path: '/n', value: 1}},
+      ...paint(VENDOR, [{id: 'root', component: 'Text', text: 'first'}]),
+      ...paint(VENDOR, [{id: 'root', component: 'Text', text: 'second'}]),
+      {version: 'v0.9', updateDataModel: {surfaceId: 'nowhere', path: '/n', value: 1}},
+    ];
+    const judged = checkPaint(messages, check);
+    expect(judged.findings).toEqual([]);
+    expect(judged.paint).toEqual(paint(VENDOR, [{id: 'root', component: 'Text', text: 'second'}]));
   });
 });
 

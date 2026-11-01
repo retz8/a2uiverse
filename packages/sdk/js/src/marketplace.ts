@@ -277,7 +277,10 @@ export interface PreviewDocument {
   version: string;
   /** The request text the agent was sent. */
   words: string;
-  /** The A2UI server-to-client messages in order, every kind kept, surface ids as the agent wrote them. */
+  /**
+   * The A2UI server-to-client messages in order, settled as `checkPaint` judged them: each surface's
+   * component updates one, each component at its last copy; every other message as sent.
+   */
   messages: Record<string, unknown>[];
   capturedBy: PreviewCapturedBy;
   capturedAt: string;
@@ -288,7 +291,7 @@ export const PREVIEW_SCHEMA = {
   $id: 'https://a2uiverse.dev/contracts/marketplace-preview',
   title: 'A2UIVerse marketplace preview',
   description:
-    "An app's preview, served at apps/<appId>/preview.json: the smoke test's paint, stored with the published version — the A2UI messages the agent answered with, in order, for the Store page to render through the client's ordinary loader. Captured by the marketplace at publish, or by the publisher's preview for an app that needs sign-in and sent beside the artifacts; checked the same way either way. Versioned with the sdk; a change to its shape is additive.",
+    "An app's preview, served at apps/<appId>/preview.json: the smoke test's paint, stored with the published version — the A2UI messages the agent answered with, settled as the check judged them, for the Store page to render through the client's ordinary loader. Captured by the marketplace at publish, or by the publisher's preview for an app that needs sign-in and sent beside the artifacts, a handed one settled again on receipt; checked the same way either way. Versioned with the sdk; a change to its shape is additive.",
   type: 'object',
   additionalProperties: false,
   required: ['appId', 'version', 'words', 'messages', 'capturedBy', 'capturedAt'],
@@ -307,10 +310,11 @@ export const PREVIEW_SCHEMA = {
         type: 'object',
         required: ['version'],
         properties: {version: {type: 'string'}},
-        description: 'One A2UI server-to-client message, as the agent sent it.',
+        description:
+          "One A2UI server-to-client message, as the agent sent it, or a surface's component updates settled into one.",
       },
       description:
-        'The A2UI server-to-client messages in order, every kind kept — createSurface, updateComponents, updateDataModel, deleteSurface — surface ids as the agent wrote them.',
+        "The A2UI server-to-client messages in order, settled: each surface's updateComponents collapsed into one in the place of the first, carrying each component's last copy drawn from the root; every other message — createSurface, updateDataModel, deleteSurface — as sent; surface ids as the agent wrote them.",
     },
     capturedBy: {type: 'string', enum: [...PREVIEW_CAPTURED_BY]},
     capturedAt: {type: 'string', minLength: 1},

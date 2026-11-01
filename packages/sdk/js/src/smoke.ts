@@ -83,35 +83,41 @@ export interface PaintCheck {
 
 const OPERATIONS = ['createSurface', 'updateComponents', 'updateDataModel', 'deleteSurface'];
 
-/**
- * A surface's messages as the client holds them once the answer ends, `updateComponents` replacing
- * each component by its id: every other message as sent, and in place of the component updates one
- * update carrying the tree drawn from the root. A tree streamed as it is written — every update
- * sending it again, a component half-written until a later copy completes it, a placeholder standing
- * where a child has not arrived — is judged as it stands at the end. With no root, every component
- * is kept, so its absence is a finding.
- */
+/** A message and its place in the answer. */
+type Placed = readonly [at: number, message: A2uiMessage];
+
 const ROOT_ID = 'root';
 
-function settled(messages: readonly A2uiMessage[], refs: ComponentRefMap) {
+/**
+ * A surface's messages as the client holds them once the answer ends, `updateComponents` replacing
+ * each component by its id: every other message as sent, and in the place of the first component
+ * update one update carrying the tree drawn from the root. A tree streamed as it is written — every
+ * update sending it again, a component half-written until a later copy completes it, a placeholder
+ * standing where a child has not arrived — is judged as it stands at the end. With no root, every
+ * component is kept, so its absence is a finding.
+ */
+function settled(own: readonly Placed[], refs: ComponentRefMap): Placed[] {
   const byId = new Map<string, Record<string, unknown>>();
   const loose: unknown[] = [];
-  const rest: A2uiMessage[] = [];
-  let first: {at: number; message: A2uiMessage; update: Record<string, unknown>} | undefined;
-  for (const message of messages) {
+  const kept: Placed[] = [];
+  let first: {index: number; update: Record<string, unknown>} | undefined;
+  for (const [at, message] of own) {
     const update = message.updateComponents;
     if (!isObject(update) || !Array.isArray(update.components)) {
-      rest.push(message);
+      kept.push([at, message]);
       continue;
     }
-    first ??= {at: rest.length, message, update};
+    if (!first) {
+      first = {index: kept.length, update};
+      kept.push([at, message]);
+    }
     for (const component of update.components) {
       if (isObject(component) && typeof component.id === 'string')
         byId.set(component.id, component);
       else loose.push(component);
     }
   }
-  if (!first) return rest;
+  if (!first) return kept;
   const drawn = new Set<string>();
   const visit = (id: string) => {
     const component = byId.get(id);
@@ -124,49 +130,70 @@ function settled(messages: readonly A2uiMessage[], refs: ComponentRefMap) {
     ? [...byId.values()].filter(c => drawn.has(c.id as string))
     : [...byId.values()];
   const components = [...tree, ...loose];
-  rest.splice(first.at, 0, {...first.message, updateComponents: {...first.update, components}});
-  return rest;
+  const [at, message] = kept[first.index]!;
+  kept[first.index] = [at, {...message, updateComponents: {...first.update, components}}];
+  return kept;
+}
+
+/** The check's verdict over a paint: what it found, and the paint it judged. */
+export interface PaintJudgement {
+  /** Each names its surface; empty when the paint passes. */
+  findings: string[];
+  /**
+   * The settled paint, what a preview stores: each surface as it stands when the answer ends — its
+   * component updates collapsed into one in the place of the first, carrying each component's last
+   * copy drawn from the root — every other message of it as sent, in the order sent. A surface
+   * created again stands from its last creation; a message for no surface created before it is
+   * left out, as the check never judged it. A paint sent whole is handed back as it is.
+   */
+  paint: A2uiMessage[];
 }
 
 /**
  * The check over a paint, the live one and a captured one alike: at least one `createSurface`;
  * every surface's catalog id in the entitlement; each surface's tree, as it stands when the answer
  * ends, against its catalog's schema; no credential input in any message. Findings name the
- * surface; empty when the paint passes.
+ * surface; empty when the paint passes. The paint judged is handed back settled beside them.
  */
-export function checkPaint(messages: readonly A2uiMessage[], check: PaintCheck): string[] {
+export function checkPaint(messages: readonly A2uiMessage[], check: PaintCheck): PaintJudgement {
   const findings: string[] = [];
-  const surfaces = new Map<string, {catalogId?: string; messages: A2uiMessage[]}>();
-  for (const message of messages) {
+  const surfaces = new Map<string, {catalogId?: string; own: Placed[]}>();
+  for (const [at, message] of messages.entries()) {
     const create = message.createSurface;
     if (isObject(create) && typeof create.surfaceId === 'string') {
       const catalogId = typeof create.catalogId === 'string' ? create.catalogId : undefined;
-      surfaces.set(create.surfaceId, {catalogId, messages: []});
+      surfaces.set(create.surfaceId, {catalogId, own: []});
     }
     const operation = OPERATIONS.map(key => message[key]).find(isObject);
     const surfaceId = isObject(operation) ? operation.surfaceId : undefined;
-    if (typeof surfaceId === 'string') surfaces.get(surfaceId)?.messages.push(message);
+    if (typeof surfaceId === 'string') surfaces.get(surfaceId)?.own.push([at, message]);
   }
-  if (surfaces.size === 0) return ['the answer paints nothing: no createSurface'];
+  if (surfaces.size === 0) {
+    return {findings: ['the answer paints nothing: no createSurface'], paint: []};
+  }
 
+  const placed: Placed[] = [];
   const validators = new Map<string, A2uiValidator>();
   const refMaps = new Map<string, ComponentRefMap>();
   const options = new Map<string, CatalogOptions>();
-  for (const [surfaceId, {catalogId, messages: own}] of surfaces) {
+  for (const [surfaceId, {catalogId, own}] of surfaces) {
     const at = `surface ${JSON.stringify(surfaceId)}`;
     if (catalogId === undefined) {
       findings.push(`${at}: createSurface names no catalogId`);
+      placed.push(...own);
       continue;
     }
     if (!check.entitlement.includes(catalogId)) {
       findings.push(
         `${at} is painted in catalog ${JSON.stringify(catalogId)}, outside the entitlement`,
       );
+      placed.push(...own);
       continue;
     }
     const schema = check.schemaFor(catalogId);
     if (!schema) {
       findings.push(`${at}: no schema for catalog ${JSON.stringify(catalogId)}`);
+      placed.push(...own);
       continue;
     }
     let validator = validators.get(catalogId);
@@ -183,26 +210,32 @@ export function checkPaint(messages: readonly A2uiMessage[], check: PaintCheck):
         );
       } catch (error) {
         findings.push(`${at}: the catalog does not load: ${(error as Error).message}`);
+        placed.push(...own);
         continue;
       }
       refMaps.set(catalogId, refs);
     }
+    const surface = settled(own, refs);
+    placed.push(...surface);
     findings.push(
-      ...validator.validate(settled(own, refs)).map(f => `${at}: ${formatA2uiFinding(f)}`),
+      ...validator
+        .validate(surface.map(([, message]) => message))
+        .map(f => `${at}: ${formatA2uiFinding(f)}`),
     );
     let declared = options.get(catalogId);
     if (!declared) {
       declared = catalogId === BASIC_CATALOG_ID ? basicCatalogOptions() : catalogOptions(schema);
       options.set(catalogId, declared);
     }
-    for (const message of own) {
+    for (const [, message] of own) {
       const update = message.updateComponents;
       if (!isObject(update) || !Array.isArray(update.components)) continue;
       const found = credentialInputIn(update.components, declared);
       if (found) findings.push(`${at}: a credential input: ${describeCredentialFinding(found)}`);
     }
   }
-  return findings;
+  const paint = placed.sort(([a], [b]) => a - b).map(([, message]) => message);
+  return {findings, paint};
 }
 
 /** How a sign-in agent answered the request sent with no credential, as the transport saw it. */
