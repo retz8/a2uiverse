@@ -16,6 +16,7 @@ const read = path => JSON.parse(readFileSync(resolve(spec, path), 'utf8'));
 const upstream = read('UPSTREAM.json');
 const commonTypes = read('specification/v0_9_1/json/common_types.json');
 const serverCapabilities = read('specification/v0_9_1/json/server_capabilities.json');
+const serverCapabilitiesV09 = read('specification/v0_9/json/server_capabilities.json');
 const clientCapabilities = read('specification/v0_9_1/json/client_capabilities.json');
 const basicCatalog = read('specification/v0_9_1/catalogs/basic/catalog.json');
 
@@ -27,6 +28,8 @@ const body = [
   `export const COMMON_TYPES_SCHEMA: Record<string, unknown> = ${JSON.stringify(commonTypes)};`,
   `/** A2UI v0.9.1 \`server_capabilities.json\`, verbatim: what an agent's card declares under the A2UI extension's params. */`,
   `export const SERVER_CAPABILITIES_SCHEMA: Record<string, unknown> = ${JSON.stringify(serverCapabilities)};`,
+  `/** A2UI v0.9 \`server_capabilities.json\`, verbatim: held beside v0.9.1's, whose version part the card reader validates every entry against; a test keeps the two equal (task 19.1). */`,
+  `export const SERVER_CAPABILITIES_SCHEMA_V09: Record<string, unknown> = ${JSON.stringify(serverCapabilitiesV09)};`,
   `/** A2UI v0.9.1 \`client_capabilities.json\`, verbatim: what a client attaches as \`a2uiClientCapabilities\`. */`,
   `export const CLIENT_CAPABILITIES_SCHEMA: Record<string, unknown> = ${JSON.stringify(clientCapabilities)};`,
   `/** The id of the standard basic catalog, as its pinned \`catalog.json\` declares it. */`,

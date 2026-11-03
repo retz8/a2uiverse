@@ -3352,6 +3352,7 @@ describe('the registry on the running orchestrator (task 11.4)', () => {
     const events = await collect(client, asked);
     expect(vendors.github!.requests[0]!.message.metadata?.a2uiClientCapabilities).toEqual({
       'v0.9': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
+      'v0.9.1': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
     });
     expect(slotsOf(shellPaints(events).at(-1)!)['github']).toMatchObject({
       state: 'failed',

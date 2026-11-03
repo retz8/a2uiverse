@@ -6,6 +6,7 @@
     "specification/v0_9_1/json/common_types.json",
     "specification/v0_9_1/json/server_capabilities.json",
     "specification/v0_9_1/json/client_capabilities.json",
+    "specification/v0_9/json/server_capabilities.json",
     "specification/v0_9_1/catalogs/basic/catalog.json",
     "conformance/core/validator_v0_9.yaml",
     "specification/v0_9/catalogs/basic/catalog.json"

@@ -6,7 +6,8 @@ import {CLIENT_CAPABILITIES_SCHEMA} from './a2ui/spec.generated';
 import {ARTIFACT_DESCRIPTOR_FILE, ARTIFACT_DESCRIPTOR_SCHEMA} from './artifact';
 import {CREDENTIAL_TERMS} from './credential';
 import {
-  A2UI_EXTENSION_URI,
+  A2UI_EXTENSION_URIS,
+  A2UI_VERSIONS,
   APP_ID_MAX_LENGTH,
   APP_ID_PATTERN,
   CATALOG_EXPORTS,
@@ -24,7 +25,8 @@ const read = (name: string) =>
   JSON.parse(readFileSync(new URL(`../../contracts/${name}`, import.meta.url), 'utf8'));
 
 const contract = read('catalog.json') as {
-  a2uiExtensionUri: string;
+  a2uiVersions: Record<string, {extensionUri: string; capabilitiesKey: string}>;
+  cardRead: {rule: string};
   exportContract: {required: string[]; optional: string[]};
   hostInterfaces: Record<string, {global: string; specifiers: string[]; stylesheetLoader: string}>;
   artifact: {descriptorFile: string; descriptorSchema: string};
@@ -33,9 +35,21 @@ const contract = read('catalog.json') as {
   credentialBar: {terms: string[]};
 };
 
-test('no version line of its own: the sdk is the version; the A2UI extension URI is the protocol', () => {
+test('no version line of its own: the sdk is the version; the A2UI versions are the protocol', () => {
   expect(contract).not.toHaveProperty('version');
-  expect(contract.a2uiExtensionUri).toBe(A2UI_EXTENSION_URI);
+  expect(contract).not.toHaveProperty('a2uiExtensionUri');
+  expect(Object.keys(contract.a2uiVersions)).toEqual([...A2UI_VERSIONS]);
+  for (const version of A2UI_VERSIONS) {
+    expect(contract.a2uiVersions[version].extensionUri).toBe(A2UI_EXTENSION_URIS[version]);
+    expect(contract.a2uiVersions[version].capabilitiesKey).toBe(version);
+  }
+});
+
+test('the card read carries its rule: per version, the pass-over, the fill, the union', () => {
+  const rule = contract.cardRead.rule;
+  for (const words of ['v0.9', 'v0.9.1', 'passed over', 'flat', 'keyed', 'URI', 'union']) {
+    expect(rule).toContain(words);
+  }
 });
 
 test('the export contract: CATALOG required, Provider optional', () => {
@@ -84,4 +98,5 @@ test('what the hub writes validates against the pinned client_capabilities.json'
   const validate = ajv.compile(CLIENT_CAPABILITIES_SCHEMA);
   expect(validate(clientCapabilities(['a', 'b']))).toBe(true);
   expect(validate(clientCapabilities([]))).toBe(true);
+  expect(validate(clientCapabilities({'v0.9': ['a'], 'v0.9.1': ['a', 'b']}))).toBe(true);
 });

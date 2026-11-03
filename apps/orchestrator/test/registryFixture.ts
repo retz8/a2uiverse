@@ -8,7 +8,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import type {AgentCard} from '@a2a-js/sdk';
 import {
-  A2UI_EXTENSION_URI,
+  A2UI_EXTENSION_URIS,
   ARTIFACT_DESCRIPTOR_FILE,
   HOST_INTERFACE_VERSION,
   hashArtifactFile,
@@ -47,7 +47,7 @@ export function cardFor(agentUrl: string, options: CardOptions = {}): AgentCard 
       streaming: options.streaming ?? true,
       extensions: [
         {
-          uri: A2UI_EXTENSION_URI,
+          uri: A2UI_EXTENSION_URIS['v0.9.1'],
           ...(catalogs ? {params: {supportedCatalogIds: catalogs}} : {}),
         },
       ],

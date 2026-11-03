@@ -16,16 +16,13 @@ import {
 } from '@a2a-js/sdk/client';
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
-  A2UI_EXTENSION_URI,
+  A2UI_EXTENSION_URIS,
   AUTH_REQUIRED_STATE,
   a2uiMessagesOf,
   clientCapabilities,
   readAuthRequired,
   type A2uiMessage,
 } from '@a2uiverse/sdk';
-
-/** The A2UI extension's earlier URI, advertised beside the current one as the orchestrator does. */
-const A2UI_EXTENSION_URI_V09 = 'https://a2ui.org/a2a-extension/a2ui/v0.9';
 
 /** The final states that end a task as a failure the agent declared itself. */
 export const FAILED_STATES: ReadonlySet<string> = new Set(['failed', 'canceled', 'rejected']);
@@ -99,7 +96,7 @@ export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeR
         {
           signal,
           serviceParameters: ServiceParameters.create(
-            withA2AExtensions(A2UI_EXTENSION_URI, A2UI_EXTENSION_URI_V09),
+            withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS)),
           ),
         },
       );

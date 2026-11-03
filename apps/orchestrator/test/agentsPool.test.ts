@@ -573,8 +573,10 @@ describe('AgentsPool — catalog entitlement and the installed set (task-11.4 de
       a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['every', 'catalog', 'held']}},
     };
     await drain(pool.dispatch('github', t));
+    // The entitlement under each version's key (task 19.1); 19.2 advertises each version's own set.
     expect(vendor.requests[0].message.metadata?.a2uiClientCapabilities).toEqual({
       'v0.9': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
+      'v0.9.1': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
     });
   });
 

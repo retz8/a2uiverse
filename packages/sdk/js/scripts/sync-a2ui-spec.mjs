@@ -5,7 +5,9 @@
  * upstream commit in `a2ui-spec/UPSTREAM.json`. The copies are never hand-edited: sync the spec
  * (`git -C ../A2UI fetch upstream`), then run `pnpm --filter @a2uiverse/sdk sync-a2ui-spec`.
  *
- * `A2UI_REPO` overrides the fork's path (default: the monorepo's sibling `../A2UI`).
+ * `A2UI_REPO` overrides the fork's path (default: the monorepo's sibling `../A2UI`); `A2UI_REF`
+ * the ref synced from (default: `upstream/main`), so one file can be added at the pinned commit
+ * without moving the pin.
  */
 import {execFileSync} from 'node:child_process';
 import {mkdirSync, rmSync, writeFileSync} from 'node:fs';
@@ -16,7 +18,8 @@ import {parse} from 'yaml';
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = process.env.A2UI_REPO ?? resolve(here, '../../../../../A2UI');
 const target = resolve(here, '../../a2ui-spec');
-const REF = 'upstream/main';
+const TRACKED_REF = 'upstream/main';
+const REF = process.env.A2UI_REF ?? TRACKED_REF;
 
 const SPEC_FILES = [
   // The definitions a catalog's component schemas reference: the catalog gate compiles against them.
@@ -25,6 +28,9 @@ const SPEC_FILES = [
   // and what the hub tells each agent it may paint in.
   'specification/v0_9_1/json/server_capabilities.json',
   'specification/v0_9_1/json/client_capabilities.json',
+  // v0.9's, read beside v0.9.1's since a card is read per version (task 19.1): the reader validates
+  // against one version part, and a test holds the two schemas' parts equal.
+  'specification/v0_9/json/server_capabilities.json',
   'specification/v0_9_1/catalogs/basic/catalog.json',
 ];
 const CONFORMANCE = 'conformance/core/validator_v0_9.yaml';
@@ -52,6 +58,6 @@ for (const file of files) {
 }
 writeFileSync(
   resolve(target, 'UPSTREAM.json'),
-  `${JSON.stringify({repository: 'a2ui-project/a2ui', ref: REF, commit, files}, null, 2)}\n`,
+  `${JSON.stringify({repository: 'a2ui-project/a2ui', ref: TRACKED_REF, commit, files}, null, 2)}\n`,
 );
 console.log(`a2ui-spec: ${files.length} files at ${commit}`);

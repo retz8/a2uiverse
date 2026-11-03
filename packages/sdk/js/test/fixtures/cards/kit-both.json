@@ -1,0 +1,38 @@
+{
+  "name": "Google Calendar",
+  "description": "Google Calendar on the agent kit.",
+  "url": "http://localhost:11000",
+  "version": "0.2.0",
+  "protocolVersion": "0.3.0",
+  "preferredTransport": "JSONRPC",
+  "capabilities": {
+    "streaming": true,
+    "extensions": [
+      {
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9",
+        "description": "Provides agent driven UI using the A2UI JSON format.",
+        "params": {
+          "supportedCatalogIds": ["https://a2uiverse.dev/catalogs/calendar/catalog.json"]
+        }
+      },
+      {
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+        "description": "Provides agent driven UI using the A2UI JSON format.",
+        "params": {
+          "supportedCatalogIds": ["https://a2uiverse.dev/catalogs/calendar/catalog.json"]
+        }
+      }
+    ]
+  },
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "skills": [
+    {
+      "id": "ask",
+      "name": "Ask",
+      "description": "Ask Google Calendar something.",
+      "tags": [],
+      "examples": ["Show me what you can do."]
+    }
+  ]
+}

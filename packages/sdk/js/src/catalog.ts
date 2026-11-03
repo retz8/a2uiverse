@@ -8,8 +8,8 @@
  * ships from this monorepo; the one version inside them is A2UI's, keying the host interfaces.
  *
  * Nothing here describes an agent: the app is its A2A AgentCard, read as written. The one thing the
- * sdk reads off a card is the A2UI extension's `supportedCatalogIds`, validated against the pinned
- * `server_capabilities.json`.
+ * sdk reads off a card is the A2UI extension's `supportedCatalogIds`, per version across its v0.9
+ * and v0.9.1 entries (phase 19), each validated against the pinned `server_capabilities.json`.
  */
 import {Ajv2020} from 'ajv/dist/2020.js';
 import {BASIC_CATALOG_ID, SERVER_CAPABILITIES_SCHEMA} from './a2ui/spec.generated.js';
@@ -17,14 +17,29 @@ import {schemaErrors, type Validation} from './validate.js';
 
 export {BASIC_CATALOG_ID};
 
-/** The A2UI A2A extension's URI: the entry of a card's `capabilities.extensions` that carries the catalog declaration. */
-export const A2UI_EXTENSION_URI = 'https://a2ui.org/a2a-extension/a2ui/v0.9.1';
+/**
+ * The A2UI versions the platform speaks, oldest first (phase 19 decision 1). Each is the key its
+ * set rides under in the capabilities objects on both sides, and the version a paint is stamped
+ * with.
+ */
+export const A2UI_VERSIONS = ['v0.9', 'v0.9.1'] as const;
+export type A2uiVersion = (typeof A2UI_VERSIONS)[number];
+
+/**
+ * The A2UI A2A extension's URI per version: the entries of a card's `capabilities.extensions` that
+ * carry its catalog declaration, and the extensions the hub activates on every request (phase 19
+ * decision 4) — `withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS))`.
+ */
+export const A2UI_EXTENSION_URIS: Readonly<Record<A2uiVersion, string>> = {
+  'v0.9': 'https://a2ui.org/a2a-extension/a2ui/v0.9',
+  'v0.9.1': 'https://a2ui.org/a2a-extension/a2ui/v0.9.1',
+};
 
 /** The metadata key a client's capabilities ride under on every message to an agent (A2UI). */
 export const A2UI_CLIENT_CAPABILITIES_KEY = 'a2uiClientCapabilities';
 
-/** The version key inside the capabilities objects on both sides, as the pinned schemas name it. */
-export const A2UI_CAPABILITIES_VERSION_KEY = 'v0.9';
+/** Catalog ids by A2UI version: what a card declares per version, what the hub advertises per version. */
+export type CatalogIdsByVersion = Readonly<Record<A2uiVersion, readonly string[]>>;
 
 // --- The export contract ---------------------------------------------------------------------
 
@@ -177,47 +192,106 @@ export interface CardWithExtensions {
 }
 
 const ajv = new Ajv2020({allErrors: true, strict: true, allowUnionTypes: true});
-const serverCapabilities = ajv.compile(SERVER_CAPABILITIES_SCHEMA);
+/**
+ * The one version part of the pinned `server_capabilities.json`, which every entry's params are
+ * validated against — flat, or each keyed object. The root's requirement of a `v0.9` key is not
+ * applied (finding 12). v0.9's schema is pinned beside it and a test keeps their parts equal.
+ */
 const serverCapabilitiesVersion = ajv.compile(
-  (SERVER_CAPABILITIES_SCHEMA.properties as Record<string, Record<string, unknown>>)[
-    A2UI_CAPABILITIES_VERSION_KEY
-  ],
+  (SERVER_CAPABILITIES_SCHEMA.properties as Record<string, Record<string, unknown>>)['v0.9'],
 );
 
+const isVersionKey = (key: string): boolean => /^v\d/.test(key);
+const isSpokenVersion = (key: string): key is A2uiVersion =>
+  (A2UI_VERSIONS as readonly string[]).includes(key);
+const versionOfUri = (uri: string): A2uiVersion | undefined =>
+  A2UI_VERSIONS.find(version => A2UI_EXTENSION_URIS[version] === uri);
+const idsOf = (params: Record<string, unknown>): string[] =>
+  (params.supportedCatalogIds as string[] | undefined) ?? [];
+const once = (ids: readonly string[]): string[] => [...new Set(ids)];
+
 /**
- * The catalog ids a card declares under the A2UI extension's `params.supportedCatalogIds`,
- * validated against the pinned `server_capabilities.json`. No A2UI extension, or one with no ids,
- * is a valid card that declares nothing — the basic-catalog fallback (task-11.2 decision 8). A
- * malformed declaration is an error, never treated as none.
+ * The catalog ids a card declares per A2UI version (phase 19 decisions 2 and 3). Entries whose URI
+ * is the v0.9 or the v0.9.1 extension URI count; an entry for a version the platform does not speak
+ * is passed over. Inside a counted entry the params are read flat, as upstream's extension guide
+ * writes them, or keyed under `v0.9` or `v0.9.1`, the whole-object shape — the entry's URI decides
+ * the version, the key never retargets it; both keys in one entry union, a third version key
+ * beside a counted one is passed over, an object keyed under neither is an error. Two entries under
+ * one URI merge. A malformed entry fails the whole read, each error naming its entry's version.
  *
- * Upstream's extension guide writes the params flat (`{supportedCatalogIds}`), as the fields of
- * the schema's version entry, and so does its Python agent SDK; a card may also key them by
- * version (`{"v0.9": {supportedCatalogIds}}`), the shape of the schema's whole object. Both are
- * read, each against the schema's matching part.
+ * The map comes out filled: a version whose entries name no ids takes the other version's set, so
+ * a card with one entry, or a bare entry beside a declaring one, is advertised and checked alike
+ * under both keys; only a card whose entries name different sets keeps a version axis. A card
+ * naming no ids under any counted entry declares nothing — the basic-catalog fallback.
  */
-export function readSupportedCatalogIds(card: CardWithExtensions): Validation<string[]> {
-  const extension = card.capabilities?.extensions?.find(e => e.uri === A2UI_EXTENSION_URI);
-  const params = extension?.params;
-  if (params === undefined) return {ok: true, value: []};
-  const versioned = Object.keys(params).some(key => /^v\d/.test(key));
-  const errors = versioned
-    ? schemaErrors(serverCapabilities, params)
-    : schemaErrors(serverCapabilitiesVersion, params);
-  if (errors.length > 0) {
-    return {ok: false, errors: errors.map(e => `A2UI extension params${e}`)};
+export function readCatalogIdsByVersion(card: CardWithExtensions): Validation<CatalogIdsByVersion> {
+  const read: Record<A2uiVersion, string[]> = {'v0.9': [], 'v0.9.1': []};
+  const errors: string[] = [];
+  for (const entry of card.capabilities?.extensions ?? []) {
+    const version = versionOfUri(entry.uri);
+    const params = entry.params;
+    if (version === undefined || params === undefined) continue;
+    const where = `A2UI ${version} extension params`;
+    const versionKeys = Object.keys(params).filter(isVersionKey);
+    if (versionKeys.length === 0) {
+      const found = schemaErrors(serverCapabilitiesVersion, params);
+      if (found.length > 0) errors.push(...found.map(e => `${where}${e}`));
+      else read[version].push(...idsOf(params));
+      continue;
+    }
+    const spoken = versionKeys.filter(isSpokenVersion);
+    if (spoken.length === 0) {
+      errors.push(
+        `${where}: keyed under neither v0.9 nor v0.9.1 (${versionKeys.map(k => JSON.stringify(k)).join(', ')})`,
+      );
+      continue;
+    }
+    for (const key of A2UI_VERSIONS.filter(v => spoken.includes(v))) {
+      const object = params[key];
+      const found = schemaErrors(serverCapabilitiesVersion, object);
+      if (found.length > 0) errors.push(...found.map(e => `${where}/${key}${e}`));
+      else read[version].push(...idsOf(object as Record<string, unknown>));
+    }
   }
-  const inner = versioned
-    ? ((params as Record<string, Record<string, unknown>>)[A2UI_CAPABILITIES_VERSION_KEY] ?? {})
-    : params;
-  const ids = (inner.supportedCatalogIds as string[] | undefined) ?? [];
-  return {ok: true, value: [...new Set(ids)]};
+  if (errors.length > 0) return {ok: false, errors};
+  const v09 = once(read['v0.9']);
+  const v091 = once(read['v0.9.1']);
+  return {
+    ok: true,
+    value: {'v0.9': v09.length > 0 ? v09 : v091, 'v0.9.1': v091.length > 0 ? v091 : v09},
+  };
 }
 
-/** The `a2uiClientCapabilities` metadata value the hub attaches: the ids this agent may paint in. */
+/**
+ * The catalog ids a card declares, the union over its versions — v0.9's then v0.9.1's, each once —
+ * which is the app's set everywhere but the hub's per-version advertising and paint check (phase 19
+ * decision 3): coverage, the artifacts held, the update check, the App Library, the Planner's
+ * reader. No A2UI extension, or none naming ids, is a valid card that declares nothing — the
+ * basic-catalog fallback (task-11.2 decision 8). A malformed declaration is an error, never none.
+ */
+export function readSupportedCatalogIds(card: CardWithExtensions): Validation<string[]> {
+  const read = readCatalogIdsByVersion(card);
+  if (!read.ok) return read;
+  return {ok: true, value: once(A2UI_VERSIONS.flatMap(version => read.value[version]))};
+}
+
+const isIdList = (sets: readonly string[] | CatalogIdsByVersion): sets is readonly string[] =>
+  Array.isArray(sets);
+
+/**
+ * The `a2uiClientCapabilities` metadata value the hub attaches: the ids this agent may paint in,
+ * under each version's own key — one list written under both, or a map by version written key by
+ * key (phase 19 decision 3).
+ */
 export function clientCapabilities(
-  supportedCatalogIds: readonly string[],
+  sets: readonly string[] | CatalogIdsByVersion,
 ): Record<string, unknown> {
-  return {[A2UI_CAPABILITIES_VERSION_KEY]: {supportedCatalogIds: [...supportedCatalogIds]}};
+  return Object.fromEntries(
+    A2UI_VERSIONS.map(version => [
+      version,
+      {supportedCatalogIds: [...(isIdList(sets) ? sets : sets[version])]},
+    ]),
+  );
 }
 
 // --- Coverage and entitlement -----------------------------------------------------------------

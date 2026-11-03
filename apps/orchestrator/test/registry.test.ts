@@ -190,7 +190,7 @@ describe('install', () => {
     test('a malformed catalog declaration is refused with the schema’s error, never read as none', async () => {
       const findings = await refused({card: {catalogs: 'nope' as unknown as string[]}});
       expect(findings).toHaveLength(1);
-      expect(findings[0]).toMatch(/^the card's A2UI extension params/);
+      expect(findings[0]).toMatch(/^the card's A2UI v0\.9\.1 extension params/);
     });
 
     test('a file that does not match its hash, and a file the descriptor does not list', async () => {

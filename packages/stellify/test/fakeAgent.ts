@@ -16,7 +16,7 @@ import {
   type RequestContext,
 } from '@a2a-js/sdk/server';
 import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
-import {A2UI_EXTENSION_URI, authRequiredData} from '@a2uiverse/sdk';
+import {A2UI_EXTENSION_URIS, authRequiredData} from '@a2uiverse/sdk';
 
 /** The fixture catalog's id, what the default script paints in. */
 export const STAR_CATALOG_ID = 'https://example.com/star/catalog.json';
@@ -77,7 +77,7 @@ export function cardFor(agentUrl: string, options: FakeAgentOptions = {}): Agent
       streaming: true,
       extensions: [
         {
-          uri: A2UI_EXTENSION_URI,
+          uri: A2UI_EXTENSION_URIS['v0.9.1'],
           ...(catalogs ? {params: {supportedCatalogIds: catalogs}} : {}),
         },
       ],
