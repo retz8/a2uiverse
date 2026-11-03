@@ -2,11 +2,22 @@
 import {readdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {afterEach, describe, expect, test} from 'vitest';
-import {ARTIFACT_DESCRIPTOR_FILE, artifactIdOf, BASIC_CATALOG_ID} from '@a2uiverse/sdk';
+import {
+  A2UI_EXTENSION_URIS,
+  ARTIFACT_DESCRIPTOR_FILE,
+  artifactIdOf,
+  BASIC_CATALOG_ID,
+} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {corpusDoc, FakeEmbedder} from '@a2uiverse/embedder';
 import {Registry} from '../src/registry/registry.js';
-import {cardFor, fixtureArtifact, testRegistry, type TestRegistry} from './registryFixture.js';
+import {
+  cardFor,
+  cardUrlOf,
+  fixtureArtifact,
+  testRegistry,
+  type TestRegistry,
+} from './registryFixture.js';
 
 const GMAIL = 'https://example.com/gmail/catalog.json';
 const CALENDAR = 'https://example.com/calendar/catalog.json';
@@ -63,6 +74,76 @@ describe('install', () => {
       agentUrl: 'http://127.0.0.1:12001',
       catalogs: [],
       entitlement: [BASIC_CATALOG_ID],
+      entitlementByVersion: {'v0.9': [BASIC_CATALOG_ID], 'v0.9.1': [BASIC_CATALOG_ID]},
+    });
+  });
+
+  describe('the entitlement per version on the run-time record (task-19.2 decision 1)', () => {
+    test('a one-entry card: both versions one set', async () => {
+      const {registry, cards} = await fresh();
+      const card = cardFor('http://127.0.0.1:11002', {name: 'Gmail', catalogs: [GMAIL]});
+      await registry.install({
+        appId: 'gmail',
+        cardUrl: cards.serve(card),
+        catalogs: [await fixtureArtifact(GMAIL)],
+      });
+      expect(registry.get('gmail').entitlementByVersion).toEqual({
+        'v0.9': [BASIC_CATALOG_ID, GMAIL],
+        'v0.9.1': [BASIC_CATALOG_ID, GMAIL],
+      });
+    });
+
+    test('a two-entry card naming different sets: each version its own, the flat entitlement the union', async () => {
+      const {registry, cards} = await fresh();
+      const card = {
+        ...cardFor('http://127.0.0.1:11002', {name: 'Gmail'}),
+        capabilities: {
+          streaming: true,
+          extensions: [
+            {uri: A2UI_EXTENSION_URIS['v0.9'], params: {supportedCatalogIds: [GMAIL]}},
+            {uri: A2UI_EXTENSION_URIS['v0.9.1'], params: {supportedCatalogIds: [CALENDAR]}},
+          ],
+        },
+      };
+      await registry.install({
+        appId: 'gmail',
+        cardUrl: cards.serve(card),
+        catalogs: [await fixtureArtifact(GMAIL), await fixtureArtifact(CALENDAR)],
+      });
+      expect(registry.get('gmail')).toMatchObject({
+        entitlement: [BASIC_CATALOG_ID, GMAIL, CALENDAR],
+        entitlementByVersion: {
+          'v0.9': [BASIC_CATALOG_ID, GMAIL],
+          'v0.9.1': [BASIC_CATALOG_ID, CALENDAR],
+        },
+      });
+    });
+
+    test('a stored card that does not read: the flat entitlement under both versions', async () => {
+      const {registry, cards, stateDir} = await fresh();
+      const card = cardFor('http://127.0.0.1:11002', {name: 'Gmail', catalogs: [GMAIL]});
+      await registry.install({
+        appId: 'gmail',
+        cardUrl: cards.serve(card),
+        catalogs: [await fixtureArtifact(GMAIL)],
+      });
+      const path = join(stateDir, 'registry', 'registry.json');
+      const file = JSON.parse(await readFile(path, 'utf8')) as {
+        apps: {card: {capabilities: {extensions: {params: unknown}[]}}}[];
+      };
+      file.apps[0].card.capabilities.extensions[0].params = {supportedCatalogIds: 'not-a-list'};
+      await writeFile(path, JSON.stringify(file));
+      cards.hanging.add(cardUrlOf('http://127.0.0.1:11002'));
+      const reopened = new Registry({
+        stateDir,
+        resolveCard: cards.resolve,
+        embedder: new FakeEmbedder(),
+      });
+      await reopened.load();
+      expect(reopened.get('gmail').entitlementByVersion).toEqual({
+        'v0.9': [BASIC_CATALOG_ID, GMAIL],
+        'v0.9.1': [BASIC_CATALOG_ID, GMAIL],
+      });
     });
   });
 

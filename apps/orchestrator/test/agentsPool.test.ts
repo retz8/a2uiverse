@@ -10,7 +10,7 @@ import {
 import type {Fault} from '../src/agentsPool/faults.js';
 import type {DispatchTurn} from '../src/agentsPool/types.js';
 import type {Refetched, UpdateCase, UpdateFinding} from '../src/registry/updateTile.js';
-import {BASIC_CATALOG_ID} from '@a2uiverse/sdk';
+import {A2UI_EXTENSION_URIS, BASIC_CATALOG_ID} from '@a2uiverse/sdk';
 import {
   A2UI_PART,
   FAKE_CATALOG_ID,
@@ -46,6 +46,65 @@ async function poolFor(
   const pool = new AgentsPool(registry, {hardCapMs: 30000, debugIds: false, ...extra});
   return {vendor, pool, registry};
 }
+
+/** The second catalog of a two-entry card: declared for v0.9.1 alone, beside the fake's for v0.9. */
+const V091_ONLY_CATALOG_ID = 'cat-v091';
+
+/**
+ * A pool over a registry whose installed card declares different sets per version (task-19.2):
+ * the fake's catalog under the v0.9 URI, the second catalog under the v0.9.1 URI, both handed.
+ */
+async function poolForTwoEntries(
+  options: Parameters<typeof startFakeVendor>[0] = {},
+  extra: Partial<AgentsPoolOptions> = {},
+) {
+  const vendor = await startFakeVendor(options);
+  vendors.push(vendor);
+  const card = {
+    ...cardFor(vendor.url, {name: 'GitHub'}),
+    capabilities: {
+      streaming: true,
+      extensions: [
+        {uri: A2UI_EXTENSION_URIS['v0.9'], params: {supportedCatalogIds: [FAKE_CATALOG_ID]}},
+        {uri: A2UI_EXTENSION_URIS['v0.9.1'], params: {supportedCatalogIds: [V091_ONLY_CATALOG_ID]}},
+      ],
+    },
+  };
+  const {registry} = await testRegistry([
+    {
+      id: 'github',
+      card,
+      catalogs: [
+        await fixtureArtifact(FAKE_CATALOG_ID),
+        await fixtureArtifact(V091_ONLY_CATALOG_ID),
+      ],
+    },
+  ]);
+  const pool = new AgentsPool(registry, {hardCapMs: 30000, debugIds: false, ...extra});
+  return {vendor, pool, registry};
+}
+
+/** A script answering one message that paints one surface: `stamp` its version, when given. */
+const paintScript =
+  (catalogId: string, stamp?: string): Script =>
+  ({ctx, vendorContextId}) => [
+    {
+      kind: 'message',
+      messageId: crypto.randomUUID(),
+      role: 'agent',
+      parts: [
+        {
+          kind: 'data',
+          data: {
+            ...(stamp === undefined ? {} : {version: stamp}),
+            createSurface: {surfaceId: 's1', catalogId},
+          },
+        },
+      ],
+      contextId: vendorContextId,
+      taskId: ctx.taskId,
+    },
+  ];
 
 function turn(overrides: Partial<DispatchTurn> = {}): DispatchTurn {
   const message: Message = {
@@ -573,10 +632,85 @@ describe('AgentsPool — catalog entitlement and the installed set (task-11.4 de
       a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['every', 'catalog', 'held']}},
     };
     await drain(pool.dispatch('github', t));
-    // The entitlement under each version's key (task 19.1); 19.2 advertises each version's own set.
+    // A one-entry card: the entitlement under each version's key, one set (task-19.2 decision 1).
     expect(vendor.requests[0].message.metadata?.a2uiClientCapabilities).toEqual({
       'v0.9': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
       'v0.9.1': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
+    });
+  });
+
+  test("a two-entry card naming different sets: each version's own set under its key (task-19.2 decision 1)", async () => {
+    const {pool, vendor} = await poolForTwoEntries();
+    const t = turn();
+    t.message.metadata = {
+      ...t.message.metadata,
+      a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['every', 'catalog', 'held']}},
+    };
+    await drain(pool.dispatch('github', t));
+    expect(vendor.requests[0].message.metadata?.a2uiClientCapabilities).toEqual({
+      'v0.9': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
+      'v0.9.1': {supportedCatalogIds: [BASIC_CATALOG_ID, V091_ONLY_CATALOG_ID]},
+    });
+  });
+
+  describe('a paint is checked against the set of its stamp (task-19.2 decisions 2, 3)', () => {
+    test('stamped v0.9 in a catalog the card declares for v0.9.1 only: refused, never relayed, the error naming the stamp', async () => {
+      const {pool} = await poolForTwoEntries({script: paintScript(V091_ONLY_CATALOG_ID, 'v0.9')});
+      const {events, record} = await drain(pool.dispatch('github', turn()));
+      expect(JSON.stringify(events)).not.toContain(V091_ONLY_CATALOG_ID);
+      expect(record).toMatchObject({
+        outcome: 'failed',
+        cause: 'catalog',
+        catalogId: V091_ONLY_CATALOG_ID,
+        error: `painted in catalog "${V091_ONLY_CATALOG_ID}" stamped v0.9, which its card declares for v0.9.1 only`,
+      });
+    });
+
+    test('stamped v0.9.1 in that catalog: relayed', async () => {
+      const {pool} = await poolForTwoEntries({script: paintScript(V091_ONLY_CATALOG_ID, 'v0.9.1')});
+      const {events, record} = await drain(pool.dispatch('github', turn()));
+      expect(record.outcome).toBe('completed');
+      expect(JSON.stringify(events)).toContain(V091_ONLY_CATALOG_ID);
+    });
+
+    test('a stamp that is neither version is checked against the union: in either set relayed, outside both refused with the plain line', async () => {
+      for (const [catalogId, stamp] of [
+        [FAKE_CATALOG_ID, undefined],
+        [V091_ONLY_CATALOG_ID, 'v1.0'],
+      ] as const) {
+        const {pool} = await poolForTwoEntries({script: paintScript(catalogId, stamp)});
+        const {events, record} = await drain(pool.dispatch('github', turn()));
+        expect(record.outcome).toBe('completed');
+        expect(JSON.stringify(events)).toContain(catalogId);
+      }
+      const {pool} = await poolForTwoEntries({script: paintScript('urn:other')});
+      const {record} = await drain(pool.dispatch('github', turn()));
+      expect(record).toMatchObject({
+        outcome: 'failed',
+        cause: 'catalog',
+        catalogId: 'urn:other',
+        error: 'painted in catalog "urn:other", outside its entitlement',
+      });
+    });
+
+    test('the refetch after a refusal the axis made runs as today, on the union', async () => {
+      const calls: string[] = [];
+      const updates: UpdateGate = {
+        catalogsChanged: () => false,
+        permissionChanged: () => false,
+        finding: () => Promise.resolve(undefined),
+        refetched: appId => {
+          calls.push(`refetched ${appId}`);
+          return Promise.resolve('unchanged');
+        },
+      };
+      const {pool} = await poolForTwoEntries(
+        {script: paintScript(V091_ONLY_CATALOG_ID, 'v0.9')},
+        {updates},
+      );
+      const {record} = await drain(pool.dispatch('github', turn()));
+      expect(record).toMatchObject({outcome: 'failed', cause: 'catalog', refetched: 'unchanged'});
+      expect(calls).toEqual(['refetched github']);
     });
   });
 

@@ -279,6 +279,20 @@ const isIdList = (sets: readonly string[] | CatalogIdsByVersion): sets is readon
   Array.isArray(sets);
 
 /**
+ * Catalog ids by version from either form (task-19.2 decisions 1, 6): one list is the set of every
+ * version; a map by version is handed back as it is.
+ */
+export function underEachVersion(
+  sets: readonly string[] | CatalogIdsByVersion,
+): CatalogIdsByVersion {
+  if (!isIdList(sets)) return sets;
+  return Object.fromEntries(A2UI_VERSIONS.map(version => [version, [...sets]])) as Record<
+    A2uiVersion,
+    string[]
+  >;
+}
+
+/**
  * The `a2uiClientCapabilities` metadata value the hub attaches: the ids this agent may paint in,
  * under each version's own key — one list written under both, or a map by version written key by
  * key (phase 19 decision 3).
@@ -286,11 +300,9 @@ const isIdList = (sets: readonly string[] | CatalogIdsByVersion): sets is readon
 export function clientCapabilities(
   sets: readonly string[] | CatalogIdsByVersion,
 ): Record<string, unknown> {
+  const byVersion = underEachVersion(sets);
   return Object.fromEntries(
-    A2UI_VERSIONS.map(version => [
-      version,
-      {supportedCatalogIds: [...(isIdList(sets) ? sets : sets[version])]},
-    ]),
+    A2UI_VERSIONS.map(version => [version, {supportedCatalogIds: [...byVersion[version]]}]),
   );
 }
 
@@ -347,6 +359,58 @@ export function entitlementOf(
   publicIds: readonly string[] = PUBLIC_CATALOG_IDS,
 ): string[] {
   return [...new Set([...publicIds, ...handed])];
+}
+
+/**
+ * An app's entitlement per A2UI version (task-19.2 decisions 1, 6): for each version the public
+ * catalogs and the ids the card declares for that version, in that order, each once — what the hub
+ * advertises under that version's key and checks a paint stamped with it against.
+ */
+export function entitlementByVersionOf(
+  declared: CatalogIdsByVersion,
+  publicIds: readonly string[] = PUBLIC_CATALOG_IDS,
+): CatalogIdsByVersion {
+  return Object.fromEntries(
+    A2UI_VERSIONS.map(version => [version, entitlementOf(declared[version], publicIds)]),
+  ) as Record<A2uiVersion, string[]>;
+}
+
+/** A created surface outside the set of its stamp: the stamp, and the versions whose sets hold its catalog. */
+export interface PaintOutside {
+  /** The paint's stamp, when it carried one. */
+  stamp?: string;
+  /** The versions the card declares the catalog for — empty when no version's set holds it. */
+  declaredFor: A2uiVersion[];
+}
+
+/**
+ * The per-stamp rule the hub's paint check and the smoke test's share (task-19.2 decisions 2, 7):
+ * a created surface's catalog against the set of its stamp — `v0.9` or `v0.9.1` — and against the
+ * union of the sets when the stamp is missing or names a version the platform does not speak. A
+ * flat list is one set under both. Undefined when the paint is inside; otherwise the stamp and the
+ * versions whose sets hold the catalog, so the words can say which version the card declares it for.
+ */
+export function paintOutside(
+  stamp: unknown,
+  catalogId: string,
+  sets: readonly string[] | CatalogIdsByVersion,
+): PaintOutside | undefined {
+  const byVersion = underEachVersion(sets);
+  const declaredFor = A2UI_VERSIONS.filter(version => byVersion[version].includes(catalogId));
+  const spoken = typeof stamp === 'string' && isSpokenVersion(stamp) ? stamp : undefined;
+  const inside = spoken !== undefined ? declaredFor.includes(spoken) : declaredFor.length > 0;
+  if (inside) return undefined;
+  return {...(typeof stamp === 'string' ? {stamp} : {}), declaredFor};
+}
+
+/**
+ * The words for a paint outside, after "painted in" (task-19.2 decision 3): the catalog outside the
+ * entitlement, or stamped with one version while the card declares the catalog for the other.
+ */
+export function describePaintOutside(catalogId: string, outside: PaintOutside): string {
+  const id = JSON.stringify(catalogId);
+  if (outside.declaredFor.length === 0) return `catalog ${id}, outside its entitlement`;
+  return `catalog ${id} stamped ${outside.stamp}, which its card declares for ${outside.declaredFor.join(' and ')} only`;
 }
 
 // --- The app id -------------------------------------------------------------------------------

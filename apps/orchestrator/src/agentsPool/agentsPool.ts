@@ -12,14 +12,18 @@ import {
 import type {FailureCause} from '@a2uiverse/shell-catalog/schema';
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
+  A2UI_EXTENSION_URIS,
   AUTH_REQUIRED_STATE,
   clientCapabilities,
+  describePaintOutside,
+  paintOutside,
   parseSourceId,
   readAuthRequired,
   type AuthRequired,
+  type CatalogIdsByVersion,
   type CredentialFinding,
+  type PaintOutside,
 } from '@a2uiverse/sdk';
-import {A2UI_EXTENSION_URI_V09, A2UI_EXTENSION_URI_V091} from '../agentCard.js';
 import type {Registry} from '../registry/registry.js';
 import type {Refetched, UpdateCase, UpdateFinding} from '../registry/updateTile.js';
 import type {AppRecord} from '../registry/types.js';
@@ -246,8 +250,7 @@ export class AgentsPool {
       return;
     }
     this.#sentTo.set(record, app);
-    const entitlement = new Set(app.entitlement);
-    let outside: string | undefined;
+    let outside: CatalogOutside | undefined;
     let painted = false;
     let credentialRefused = false;
     try {
@@ -314,7 +317,7 @@ export class AgentsPool {
               signal: controller.signal,
               serviceParameters: {
                 ...ServiceParameters.create(
-                  withA2AExtensions(A2UI_EXTENSION_URI_V091, A2UI_EXTENSION_URI_V09),
+                  withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS)),
                 ),
                 ...headers,
               },
@@ -328,9 +331,10 @@ export class AgentsPool {
               for await (const event of client.sendMessageStream(params, options)) {
                 this.#learnIds(event, source, turn, record);
                 sendTaskId ??= taskIdOf(event);
-                // A paint outside the app's entitlement is refused at the hub, never relayed
-                // (task-11.4 decision 12): the dispatch ends failed on the catalog's id.
-                outside = catalogOutside(event, entitlement);
+                // A paint outside the app's entitlement — the set of its stamp — is refused at
+                // the hub, never relayed (task-11.4 decision 12; task-19.2 decision 2): the
+                // dispatch ends failed on the catalog's id.
+                outside = catalogOutside(event, app.entitlementByVersion);
                 if (outside !== undefined) break;
                 if (carriesA2ui(event)) painted = true;
                 // The agent asks for authority mid-task (phase-12 decisions 4, 6): read against
@@ -442,7 +446,7 @@ export class AgentsPool {
           cause: 'invalid',
         });
       } else if (outside !== undefined) {
-        record.catalogId = outside;
+        record.catalogId = outside.catalogId;
         this.#cancelVendor(source, record);
         // The catch after the call (task-15.5 decision 4): the live card fetched again; one that
         // names the change brings the update tile, its finding on the catalog record.
@@ -454,8 +458,9 @@ export class AgentsPool {
             if (finding) record.update = finding;
           }
         }
+        // The words name the stamp when the version axis made the refusal (task-19.2 decision 3).
         finish('failed', {
-          error: `painted in catalog ${JSON.stringify(outside)}, outside its entitlement`,
+          error: `painted in ${describePaintOutside(outside.catalogId, outside.outside)}`,
           cause: 'catalog',
         });
       } else if (credentialRefused) {
@@ -597,29 +602,41 @@ export class AgentsPool {
 
 /**
  * The vendor-bound message with the app's own entitlement as its A2UI client capabilities
- * (task-11.4 decision 12): what the agent may paint in, never the table, never the client's list.
+ * (task-11.4 decision 12): what the agent may paint in, never the table, never the client's list —
+ * each version's set under its own key (task-19.2 decision 1).
  */
 function withEntitlement(message: Message, app: AppRecord): Message {
   return {
     ...message,
     metadata: {
       ...message.metadata,
-      [A2UI_CLIENT_CAPABILITIES_KEY]: clientCapabilities(app.entitlement),
+      [A2UI_CLIENT_CAPABILITIES_KEY]: clientCapabilities(app.entitlementByVersion),
     },
   };
 }
 
-/** The first catalog a surface in the event is created in that the entitlement lacks. */
-function catalogOutside(event: VendorEvent, entitlement: ReadonlySet<string>): string | undefined {
+/** A created surface the entitlement refuses: its catalog, and the sdk's answer on it. */
+interface CatalogOutside {
+  catalogId: string;
+  outside: PaintOutside;
+}
+
+/**
+ * The first surface in the event created in a catalog outside the set of its stamp — the union of
+ * the sets when the stamp is neither version (task-19.2 decisions 2, 7), by the sdk's one rule.
+ */
+function catalogOutside(event: VendorEvent, sets: CatalogIdsByVersion): CatalogOutside | undefined {
   for (const part of partsOfEvent(event)) {
     if (part.kind !== 'data') continue;
     const messages = Array.isArray(part.data.messages) ? part.data.messages : [part.data];
     for (const message of messages) {
       if (typeof message !== 'object' || message === null) continue;
-      const create = (message as Record<string, unknown>).createSurface;
+      const {version, createSurface: create} = message as Record<string, unknown>;
       if (typeof create !== 'object' || create === null) continue;
       const catalogId = (create as {catalogId?: unknown}).catalogId;
-      if (typeof catalogId === 'string' && !entitlement.has(catalogId)) return catalogId;
+      if (typeof catalogId !== 'string') continue;
+      const outside = paintOutside(version, catalogId, sets);
+      if (outside) return {catalogId, outside};
     }
   }
   return undefined;

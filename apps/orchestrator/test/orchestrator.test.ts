@@ -8,7 +8,6 @@ import {ClientFactory, type Client} from '@a2a-js/sdk/client';
 import type {Express} from 'express';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {buildOrchestrator} from '../src/app.js';
-import {A2UI_EXTENSION_URI_V091} from '../src/agentCard.js';
 import type {PlanRecord, SynthesisRecord} from '../src/journal/types.js';
 import type {LayoutSurface} from '../src/planner/document.js';
 import type {Planner, PlanOutcome} from '../src/planner/planner.js';
@@ -38,6 +37,8 @@ import type {
   SynthesisModel,
 } from '../src/synthesizer/synthesizer.js';
 import {
+  A2UI_EXTENSION_URIS,
+  A2UI_VERSIONS,
   BASIC_CATALOG_ID,
   canvasParentMetadata,
   clientSessionMetadata,
@@ -312,7 +313,9 @@ describe('orchestrator', () => {
     const {client, url} = await boot();
     const card = await client.getAgentCard();
     expect(card.url).toBe(url);
-    expect(card.capabilities.extensions?.map(e => e.uri)).toEqual([A2UI_EXTENSION_URI_V091]);
+    expect(card.capabilities.extensions?.map(e => e.uri)).toEqual(
+      A2UI_VERSIONS.map(v => A2UI_EXTENSION_URIS[v]),
+    );
     expect(card.skills.map(s => s.id)).toEqual([
       'palette',
       'platform',

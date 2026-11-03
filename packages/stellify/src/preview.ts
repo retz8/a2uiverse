@@ -14,10 +14,12 @@ import {
   BASIC_CATALOG_ID,
   BASIC_CATALOG_SCHEMA,
   checkPaint,
-  entitlementOf,
+  entitlementByVersionOf,
   gateArtifact,
   readAuthRequired,
+  readCatalogIdsByVersion,
   readSupportedCatalogIds,
+  type CatalogIdsByVersion,
   smokeWords,
   validateArtifactDescriptor,
   type A2uiCatalogSchema,
@@ -88,10 +90,16 @@ export async function previewWith(
   if (typeof card.version !== 'string' || card.version === '') {
     findings.push("the card has no version: the card's `version` is the app's version");
   }
+  // The card's declaration per A2UI version, what the request advertises and the paint is judged
+  // by (task-19.2 decision 6); `declared` is its union, what the gate and the schemas read.
   let declared: string[] = [];
-  const read = readSupportedCatalogIds(card);
-  if (read.ok) declared = read.value;
-  else findings.push(...read.errors.map(e => `the card's ${e}`));
+  let declaredByVersion: CatalogIdsByVersion = {'v0.9': [], 'v0.9.1': []};
+  const read = readCatalogIdsByVersion(card);
+  if (read.ok) {
+    declaredByVersion = read.value;
+    const union = readSupportedCatalogIds(card);
+    if (union.ok) declared = union.value;
+  } else findings.push(...read.errors.map(e => `the card's ${e}`));
 
   // The credential: required for a card that requires sign-in, not sent for one that does not.
   const signIn = requiresSignIn(card);
@@ -163,8 +171,9 @@ export async function previewWith(
     }
   }
 
-  // One request, judged as the marketplace judges a live paint, the paint through the sdk.
-  const entitlement = entitlementOf(declared);
+  // One request, judged as the marketplace judges a live paint, the paint through the sdk: the
+  // entitlement per version as the hub advertises it, each surface judged by its stamp.
+  const entitlement = entitlementByVersionOf(declaredByVersion);
   const words = smokeWords(card);
   const seen = await smoke({
     card,

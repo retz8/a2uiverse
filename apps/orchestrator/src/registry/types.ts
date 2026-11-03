@@ -1,4 +1,5 @@
 import type {AgentCard} from '@a2a-js/sdk';
+import type {CatalogIdsByVersion} from '@a2uiverse/sdk';
 
 /**
  * Reserved source id for the orchestrator's own shell surface and stamps.
@@ -30,7 +31,7 @@ export interface InstalledRecord {
 /**
  * An app as this run reads it: its display name and dispatch URL from the card fetched at startup,
  * the stored card when the agent was down (task-11.4 decision 8); the catalogs handed at install;
- * the entitlement the hub advertises and enforces (decision 12).
+ * the entitlement the hub advertises and enforces (decision 12), flat and per A2UI version.
  */
 export interface AppRecord {
   /** Stable app id: a source with no account, and the app part of every source of it (task-12.4). */
@@ -40,7 +41,15 @@ export interface AppRecord {
   agentUrl: string;
   /** The catalog ids handed at install; none when the app paints in the basic catalog only. */
   catalogs: string[];
+  /** The union over the versions: what every reading but the hub's advertising and paint check uses. */
   entitlement: string[];
+  /**
+   * The entitlement per A2UI version, from the card as installed (task-19.2 decision 1): the public
+   * catalogs and the ids the card declares for that version; what the hub advertises under each
+   * version's key and checks a paint stamped with it against. The flat entitlement under both keys
+   * when the stored card does not read. Derived for the run, never persisted.
+   */
+  entitlementByVersion: CatalogIdsByVersion;
 }
 
 /**

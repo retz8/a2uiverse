@@ -19,12 +19,14 @@ import {
   checkPublisherToken,
   checkSignInAnswer,
   coverageErrors,
-  entitlementOf,
+  entitlementByVersionOf,
   gateArtifact,
   hashPublisherToken,
   mintPublisherToken,
   PUBLIC_CATALOG_IDS,
+  readCatalogIdsByVersion,
   readSupportedCatalogIds,
+  type CatalogIdsByVersion,
   retiredLines,
   smokeWords,
   type A2uiCatalogSchema,
@@ -365,11 +367,16 @@ export class Marketplace {
     }
 
     let declared: string[] = [];
+    // The card's declaration per A2UI version, what the smoke test advertises and judges by
+    // (task-19.2 decision 6); `declared` is its union, what every other check reads.
+    let declaredByVersion: CatalogIdsByVersion = {'v0.9': [], 'v0.9.1': []};
     let declarationRead = false;
     if (card) {
-      const read = readSupportedCatalogIds(card);
+      const read = readCatalogIdsByVersion(card);
       if (read.ok) {
-        declared = read.value;
+        declaredByVersion = read.value;
+        const union = readSupportedCatalogIds(card);
+        if (union.ok) declared = union.value;
         declarationRead = true;
       } else {
         findings.push(...read.errors.map(e => `the card's ${e}`));
@@ -485,8 +492,10 @@ export class Marketplace {
     }
     if (findings.length > 0 || !card) return {ok: false, kind: 'refused', findings};
 
-    // The smoke test (phase-13 decisions 12, 13; task-13.3 decisions 6, 17).
-    const entitlement = entitlementOf(declared);
+    // The smoke test (phase-13 decisions 12, 13; task-13.3 decisions 6, 17): the entitlement the
+    // app will have, per version as the hub advertises it, each surface judged by its stamp
+    // (task-19.2 decision 6).
+    const entitlement = entitlementByVersionOf(declaredByVersion);
     const schemas = await this.#schemasFor(declared, gated, held);
     const check = {entitlement, schemaFor: (id: string) => schemas.get(id)};
     const words = smokeWords(card);

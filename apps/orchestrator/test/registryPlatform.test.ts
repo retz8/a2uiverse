@@ -55,6 +55,7 @@ describe('Registry with the platform’s card', () => {
       agentUrl: 'https://x-10001.asse.devtunnels.ms',
       catalogs: [],
       entitlement: [SHELL_CATALOG_ID],
+      entitlementByVersion: {'v0.9': [SHELL_CATALOG_ID], 'v0.9.1': [SHELL_CATALOG_ID]},
     });
   });
 

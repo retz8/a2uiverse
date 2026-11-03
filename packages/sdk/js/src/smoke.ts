@@ -15,7 +15,12 @@ import {
 import type {A2uiCatalogSchema} from './a2ui/types.js';
 import {createA2uiValidator, formatA2uiFinding, type A2uiValidator} from './a2ui/validator.js';
 import {readAuthRequired, AUTH_REQUIRED_STATE} from './a2uiverse.js';
-import {BASIC_CATALOG_ID} from './catalog.js';
+import {
+  BASIC_CATALOG_ID,
+  describePaintOutside,
+  paintOutside,
+  type CatalogIdsByVersion,
+} from './catalog.js';
 import {
   basicCatalogOptions,
   catalogOptions,
@@ -75,8 +80,11 @@ export function a2uiMessagesOf(parts: readonly PartLike[]): A2uiMessage[] {
 
 /** What the paint is checked against. */
 export interface PaintCheck {
-  /** The app's entitlement: its published catalog ids plus the basic catalog. */
-  entitlement: readonly string[];
+  /**
+   * The app's entitlement: its published catalog ids plus the basic catalog — one list, or a map
+   * by A2UI version, each surface then judged against the set of its stamp (task-19.2 decision 6).
+   */
+  entitlement: readonly string[] | CatalogIdsByVersion;
   /** Each entitled catalog's schema; undefined for one the checker does not hold. */
   schemaFor: (catalogId: string) => A2uiCatalogSchema | undefined;
 }
@@ -151,18 +159,19 @@ export interface PaintJudgement {
 
 /**
  * The check over a paint, the live one and a captured one alike: at least one `createSurface`;
- * every surface's catalog id in the entitlement; each surface's tree, as it stands when the answer
+ * every surface's catalog id in the entitlement — the set of its stamp, over a map by version
+ * (task-19.2 decision 6); each surface's tree, as it stands when the answer
  * ends, against its catalog's schema; no credential input in any message. Findings name the
  * surface; empty when the paint passes. The paint judged is handed back settled beside them.
  */
 export function checkPaint(messages: readonly A2uiMessage[], check: PaintCheck): PaintJudgement {
   const findings: string[] = [];
-  const surfaces = new Map<string, {catalogId?: string; own: Placed[]}>();
+  const surfaces = new Map<string, {catalogId?: string; stamp: unknown; own: Placed[]}>();
   for (const [at, message] of messages.entries()) {
     const create = message.createSurface;
     if (isObject(create) && typeof create.surfaceId === 'string') {
       const catalogId = typeof create.catalogId === 'string' ? create.catalogId : undefined;
-      surfaces.set(create.surfaceId, {catalogId, own: []});
+      surfaces.set(create.surfaceId, {catalogId, stamp: message.version, own: []});
     }
     const operation = OPERATIONS.map(key => message[key]).find(isObject);
     const surfaceId = isObject(operation) ? operation.surfaceId : undefined;
@@ -176,17 +185,16 @@ export function checkPaint(messages: readonly A2uiMessage[], check: PaintCheck):
   const validators = new Map<string, A2uiValidator>();
   const refMaps = new Map<string, ComponentRefMap>();
   const options = new Map<string, CatalogOptions>();
-  for (const [surfaceId, {catalogId, own}] of surfaces) {
+  for (const [surfaceId, {catalogId, stamp, own}] of surfaces) {
     const at = `surface ${JSON.stringify(surfaceId)}`;
     if (catalogId === undefined) {
       findings.push(`${at}: createSurface names no catalogId`);
       placed.push(...own);
       continue;
     }
-    if (!check.entitlement.includes(catalogId)) {
-      findings.push(
-        `${at} is painted in catalog ${JSON.stringify(catalogId)}, outside the entitlement`,
-      );
+    const outside = paintOutside(stamp, catalogId, check.entitlement);
+    if (outside) {
+      findings.push(`${at} is painted in ${describePaintOutside(catalogId, outside)}`);
       placed.push(...own);
       continue;
     }

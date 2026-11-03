@@ -53,6 +53,8 @@ export interface FakeAgentOptions {
   version?: string;
   /** The catalog ids the card declares under the A2UI extension; none declares nothing. */
   catalogs?: string[];
+  /** The card's extension entries written out, in place of the one v0.9.1 entry `catalogs` makes. */
+  extensions?: NonNullable<AgentCard['capabilities']['extensions']>;
   skills?: AgentCard['skills'];
   script?: Script;
   signIn?: SignIn;
@@ -75,7 +77,7 @@ export function cardFor(agentUrl: string, options: FakeAgentOptions = {}): Agent
     preferredTransport: 'JSONRPC',
     capabilities: {
       streaming: true,
-      extensions: [
+      extensions: options.extensions ?? [
         {
           uri: A2UI_EXTENSION_URIS['v0.9.1'],
           ...(catalogs ? {params: {supportedCatalogIds: catalogs}} : {}),

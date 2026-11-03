@@ -49,6 +49,16 @@ describe('a2aSmokeRunner', () => {
     expect(request.extensionsHeader).toContain('https://a2ui.org/a2a-extension/a2ui/v0.9.1');
   });
 
+  test('a map by version is advertised key by key, each version its own set (task-19.2 decision 6)', async () => {
+    agent = await startFakeAgent();
+    const byVersion = {'v0.9': [ENTITLEMENT[0]], 'v0.9.1': ENTITLEMENT};
+    const seen = await run({card: agent.card, entitlement: byVersion, words: 'x', timeoutMs: 5000});
+    expect(seen.kind).toBe('ended');
+    expect(agent.requests[0].message.metadata?.[A2UI_CLIENT_CAPABILITIES_KEY]).toEqual(
+      clientCapabilities(byVersion),
+    );
+  });
+
   test('an agent that answers 401', async () => {
     agent = await startFakeAgent({signIn: true, admit: () => false});
     const seen = await run({

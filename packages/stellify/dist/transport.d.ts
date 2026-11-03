@@ -1,11 +1,14 @@
 import type { AgentCard } from '@a2a-js/sdk';
-import { type A2uiMessage } from '@a2uiverse/sdk';
+import { type A2uiMessage, type CatalogIdsByVersion } from '@a2uiverse/sdk';
 /** The final states that end a task as a failure the agent declared itself. */
 export declare const FAILED_STATES: ReadonlySet<string>;
 export interface SmokeRequest {
     card: AgentCard;
-    /** What the request advertises: the app's declared catalog ids plus the basic catalog. */
-    entitlement: readonly string[];
+    /**
+     * What the request advertises: the app's declared catalog ids plus the basic catalog — per A2UI
+     * version, each version's set under its own key, as the hub advertises (task-19.2 decision 6).
+     */
+    entitlement: readonly string[] | CatalogIdsByVersion;
     words: string;
     timeoutMs: number;
     /** The credential, as the header the card's scheme names; none for a card that needs no sign-in. */

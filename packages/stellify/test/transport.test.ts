@@ -51,6 +51,16 @@ describe('a2aSmokeRunner', () => {
     expect(request.headers.authorization).toBeUndefined();
   });
 
+  test('a map by version is advertised key by key, each version its own set (task-19.2 decision 6)', async () => {
+    agent = await startFakeAgent();
+    const byVersion = {'v0.9': [ENTITLEMENT[0]], 'v0.9.1': ENTITLEMENT};
+    const seen = await run({card: agent.card, entitlement: byVersion, words: 'x', timeoutMs: 5000});
+    expect(seen.kind).toBe('ended');
+    expect(agent.requests[0].message.metadata?.[A2UI_CLIENT_CAPABILITIES_KEY]).toEqual(
+      clientCapabilities(byVersion),
+    );
+  });
+
   test('the credential rides as the headers given, on the request to the agent', async () => {
     agent = await startFakeAgent({signIn: 'apiKey'});
     await run({

@@ -144,7 +144,7 @@ Retirement has no verb. The publisher's duty is A2UI's migration rule: keep the 
 
 At publish the marketplace sends the agent one real A2A request, built the way the orchestrator will build them after install:
 
-- It advertises exactly the **entitlement** the app will have — its declared catalog ids plus the basic catalog — as the message's `a2uiClientCapabilities`.
+- It advertises exactly the **entitlement** the app will have — its declared catalog ids plus the basic catalog, per A2UI version as the card declares them, each version's set under its own key — as the message's `a2uiClientCapabilities`, as the orchestrator will advertise it after install.
 - Its words are the card's own: **the first skill's first example**, else "Hello! Show me what you can do.". Shop A was asked _"What cameras do you have?"_.
 - It waits for the task to end (60 seconds by default) and collects every A2UI message the stream carried.
 
@@ -348,7 +348,7 @@ flowchart TD
 
 Two pieces: a **transport** that sends the request and reports what it saw, and the sdk's **checks** that judge it. The split matters because Stellify's `preview` reuses the checks with its own transport.
 
-**The transport** (`apps/marketplace/src/smoke.ts`) builds an `@a2a-js/sdk` client from the fetched card, and sends one streaming message: a text part with the words, `a2uiClientCapabilities` set to the entitlement, the A2UI extension (its v0.9.1 URI and the earlier v0.9 one) activated as the orchestrator activates it. It reads the stream to its end and reports one of four things:
+**The transport** (`apps/marketplace/src/smoke.ts`) builds an `@a2a-js/sdk` client from the fetched card, and sends one streaming message: a text part with the words, `a2uiClientCapabilities` set to the entitlement per version, the A2UI extension (its v0.9 and v0.9.1 URIs) activated as the orchestrator activates it. It reads the stream to its end and reports one of four things:
 
 | Observation | When |
 | --- | --- |
@@ -359,7 +359,7 @@ Two pieces: a **transport** that sends the request and reports what it saw, and 
 
 **The judgement** differs by the card. For an **open app**: `unauthorized` is a finding (`the agent answered 401, but its card requires no sign-in`), `unfinished` and `error` are findings, `ended` as `failed`, `canceled` or `rejected` is a finding carrying the agent's own words, and anything else hands its messages to `checkPaint`. For a **sign-in app**: `checkSignInAnswer` passes a 401, or an `auth-required` whose security requirement names only schemes the card declares, and refuses everything else with what it saw instead.
 
-**`checkPaint`** (`packages/sdk/js/src/smoke.ts`) groups the messages by surface and refuses any of: no `createSurface` at all; a surface with no `catalogId`; a catalog id outside the entitlement; a catalog whose schema the checker doesn't hold; a tree that fails the sdk's A2UI validator against that schema; a credential input in any `updateComponents`, found by the same `credentialInputIn` the hub uses.
+**`checkPaint`** (`packages/sdk/js/src/smoke.ts`) groups the messages by surface and refuses any of: no `createSurface` at all; a surface with no `catalogId`; a catalog id outside the entitlement — outside the set of the surface's stamp, the message's `version`, the union when the stamp is neither version, through the sdk's `paintOutside` the hub shares; a catalog whose schema the checker doesn't hold; a tree that fails the sdk's A2UI validator against that schema; a credential input in any `updateComponents`, found by the same `credentialInputIn` the hub uses.
 
 One detail makes the validator fair to a streaming agent. An agent on the kit streams its tree as it writes it: several `updateComponents`, each sending the whole tree so far, a component half-written until a later copy completes it. Validating each message alone would refuse every honest first copy. So `settled()` collapses a surface's `updateComponents` into one, keeping the **last copy of each component by id** and only those reachable from `root`, in place of the first update — the tree **as it stands when the answer ends**, which is what the client draws.
 
@@ -506,10 +506,10 @@ The orchestrator's Planner reads the marketplace too, when a question needs some
 | A sign-in app published with no preview | `the card requires sign-in: publish needs the preview `stellify preview` captures with your own credential` |
 | A preview handed for an open app, or at another version | `a preview is only taken for an app whose card requires sign-in …`; `the preview was captured at version "0.1.0", the card is at "0.2.0"` |
 | A build removes something | `catalog artifact 1 (…): components/Video: removed`; the row stays where it was |
-| A build packed for another host interface | `catalog artifact 1 (…): host interface "0.9.1" is not one the platform supplies (it supplies "0.14.0")`, `422`; Stellify 0.3.0 packs for `0.14.0` |
+| A build packed for another host interface | `catalog artifact 1 (…): host interface "0.9.1" is not one the platform supplies (it supplies "0.14.0")`, `422`; Stellify 0.4.0 packs for `0.14.0` |
 | The card changed at a published version | `the card changed, but version "0.1.0" is already published: a changed card carries a version this app id has never published` |
 | The agent never finishes, fails, or paints nothing | `the agent never finished: the stream ended without a final event`; `the agent ended the task as failed: …`; `the answer paints nothing: no createSurface` |
-| The agent paints outside its entitlement | `surface "list" is painted in catalog "…", outside the entitlement` |
+| The agent paints outside its entitlement | `surface "list" is painted in catalog "…", outside its entitlement`; stamped for the other version, `surface "list" is painted in catalog "…" stamped v0.9, which its card declares for v0.9.1 only` |
 | The token isn't one the marketplace knows | `401`; Stellify says the name was claimed elsewhere or the marketplace was reset, and to claim again with `--replace` |
 | The marketplace is down at install or check | `registry install` refused: `the marketplace at http://localhost:10002 could not be reached: ECONNREFUSED`; `registry updates` prints every app `unknown`; the boot says so once |
 | The app isn't published | `app "shop-b" is not published on the marketplace at http://localhost:10002`; the check reads `not published` |

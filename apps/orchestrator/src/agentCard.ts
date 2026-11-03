@@ -1,7 +1,5 @@
 import type {AgentCard} from '@a2a-js/sdk';
-
-export const A2UI_EXTENSION_URI_V091 = 'https://a2ui.org/a2a-extension/a2ui/v0.9.1';
-export const A2UI_EXTENSION_URI_V09 = 'https://a2ui.org/a2a-extension/a2ui/v0.9';
+import {A2UI_EXTENSION_URIS, A2UI_VERSIONS} from '@a2uiverse/sdk';
 
 /**
  * The orchestrator's AgentCard (SPEC §10): the one the client fetches and the one the Registry
@@ -9,7 +7,9 @@ export const A2UI_EXTENSION_URI_V09 = 'https://a2ui.org/a2a-extension/a2ui/v0.9'
  * hand-authored: what A2UIVerse is, what the canvas can do, describing the installed apps, and
  * how apps are found and installed — the texts that let the Router rank a platform question and
  * the Planner tell one from a capability gap. No union of installed apps' skills: every question
- * is sent here regardless, and the Registry reader describes the apps on demand.
+ * is sent here regardless, and the Registry reader describes the apps on demand. Its extensions
+ * are one bare entry per A2UI version the platform speaks, from the sdk's map (task-19.2
+ * decision 5): the claim's own card says both.
  */
 export function buildAgentCard(baseUrl: string): AgentCard {
   return {
@@ -22,13 +22,11 @@ export function buildAgentCard(baseUrl: string): AgentCard {
     preferredTransport: 'JSONRPC',
     capabilities: {
       streaming: true,
-      extensions: [
-        {
-          uri: A2UI_EXTENSION_URI_V091,
-          description: 'Relays A2UI v0.9.1 surfaces painted by installed apps.',
-          required: false,
-        },
-      ],
+      extensions: A2UI_VERSIONS.map(version => ({
+        uri: A2UI_EXTENSION_URIS[version],
+        description: `Relays A2UI ${version} surfaces painted by installed apps.`,
+        required: false,
+      })),
     },
     defaultInputModes: ['text', 'text/plain'],
     defaultOutputModes: ['text', 'text/plain'],

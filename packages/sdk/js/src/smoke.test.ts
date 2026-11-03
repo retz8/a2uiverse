@@ -80,7 +80,7 @@ describe('checkPaint', () => {
 
   test('a surface outside the entitlement, or in a catalog with no schema', () => {
     expect(checkPaint(paint('cat/v2'), check).findings).toEqual([
-      'surface "main" is painted in catalog "cat/v2", outside the entitlement',
+      'surface "main" is painted in catalog "cat/v2", outside its entitlement',
     ]);
     expect(
       checkPaint(paint(VENDOR), {entitlement: [VENDOR], schemaFor: () => undefined}).findings,
@@ -88,6 +88,35 @@ describe('checkPaint', () => {
     expect(
       checkPaint([{version: 'v0.9', createSurface: {surfaceId: 'main'}}], check).findings,
     ).toEqual(['surface "main": createSurface names no catalogId']);
+  });
+
+  test('over a map by version, a surface is judged against the set of its stamp (task-19.2 decision 6)', () => {
+    const byVersion = {
+      entitlement: {'v0.9': [BASIC_CATALOG_ID], 'v0.9.1': [BASIC_CATALOG_ID, VENDOR]},
+      schemaFor,
+    };
+    const stamped = (version: string) => [
+      {version, createSurface: {surfaceId: 'main', catalogId: VENDOR}},
+      {
+        version,
+        updateComponents: {
+          surfaceId: 'main',
+          components: [{id: 'root', component: 'Text', text: 'Hi'}],
+        },
+      },
+    ];
+    expect(checkPaint(stamped('v0.9.1'), byVersion).findings).toEqual([]);
+    expect(checkPaint(stamped('v0.9'), byVersion).findings).toEqual([
+      'surface "main" is painted in catalog "cat/v1" stamped v0.9, which its card declares for v0.9.1 only',
+    ]);
+    // A stamp that is neither version is checked against the union, and left to the validator.
+    const unspoken = checkPaint(stamped('v1.0'), byVersion).findings;
+    expect(unspoken.length).toBeGreaterThan(0);
+    expect(unspoken.some(f => /version/.test(f))).toBe(true);
+    expect(unspoken.some(f => /painted in/.test(f))).toBe(false);
+    expect(checkPaint(paint('cat/v2'), byVersion).findings).toEqual([
+      'surface "main" is painted in catalog "cat/v2", outside its entitlement',
+    ]);
   });
 
   test('a tree that does not validate against its catalog, named by surface', () => {
@@ -169,7 +198,7 @@ describe('checkPaint', () => {
       {version: 'v0.9', createSurface: {surfaceId: 'aside', catalogId: 'cat/v2'}},
     ];
     expect(checkPaint(messages, check).findings).toEqual([
-      'surface "aside" is painted in catalog "cat/v2", outside the entitlement',
+      'surface "aside" is painted in catalog "cat/v2", outside its entitlement',
     ]);
   });
   test('the paint handed back is settled: one update per surface, each component’s last copy from the root', () => {

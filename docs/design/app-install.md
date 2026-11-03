@@ -168,6 +168,8 @@ An app's **entitlement** is the set of catalogs it may paint in: the ones handed
 
 It's fixed at install and changes only by install-over. The orchestrator tells each app its own entitlement, never the table, and refuses a paint outside it. So no app paints in another app's catalog, whatever else is installed, and the shell catalog, in nobody's entitlement, stays the shell's.
 
+The registry also holds the entitlement **per A2UI version**, derived for the run from the card as installed and never written to disk: for each of `v0.9` and `v0.9.1`, the basic catalog plus the ids the card declares for that version (`readCatalogIdsByVersion`, then the sdk's `entitlementByVersionOf`). GitHub's card has one entry, so both versions carry the two ids above; only a card whose two entries name different sets keeps a version axis. A stored card the reader refuses falls back to the flat entitlement under both. The hub advertises and checks per version; everything else reads the flat set.
+
 ## One app, end to end
 
 ```mermaid
@@ -230,15 +232,16 @@ The command reads the artifact folder, base64-encodes every file, and posts `{ap
 
 `source` says where the install came by: `local` for a pack handed from disk, `marketplace` for an install by id. Install answers with one line saying what changed, `installed github · card 0.1.0 · catalog sha256-o0lcA0wt…`, and the journal gets a line of kind `registry`. Nothing restarts: the Router ranks GitHub on the very next question, and the Planner's `installed_apps` reader lists it.
 
-**5. A question routes to GitHub.** You ask _"What pull requests need my review?"_. The Router ranks GitHub's card against it (one of its skills' examples is that very question), and the Planner dispatches to it. The AgentsPool reads GitHub's record once, as the dispatch starts, and sends the Planner's request with GitHub's entitlement as the message's `a2uiClientCapabilities`:
+**5. A question routes to GitHub.** You ask _"What pull requests need my review?"_. The Router ranks GitHub's card against it (one of its skills' examples is that very question), and the Planner dispatches to it. The AgentsPool reads GitHub's record once, as the dispatch starts, and sends the Planner's request with GitHub's entitlement as the message's `a2uiClientCapabilities`, each version's set under its own key:
 
 ```json
-{"v0.9": {"supportedCatalogIds": ["https://a2ui.org/…/basic/catalog.json", "https://github.com/…/github-catalog/catalogs/v0.9.1/catalog.json"]}}
+{"v0.9": {"supportedCatalogIds": ["https://a2ui.org/…/basic/catalog.json", "https://github.com/…/github-catalog/catalogs/v0.9.1/catalog.json"]},
+ "v0.9.1": {"supportedCatalogIds": ["https://a2ui.org/…/basic/catalog.json", "https://github.com/…/github-catalog/catalogs/v0.9.1/catalog.json"]}}
 ```
 
 That's A2UI's own handshake: a client says which catalogs it can render, and the agent paints in one of them. The client GitHub sees is the orchestrator, and what it says is GitHub's entitlement.
 
-**6. GitHub paints, and the hub checks.** GitHub's first event carries a `createSurface` in its catalog. The orchestrator checks the catalog id of every `createSurface` it relays against the entitlement it sent. GitHub's is in it, so the paint goes through, stamped and namespaced like any other ([`orchestrator.md`](orchestrator.md#relay-three-changes-and-no-more) has the relay).
+**6. GitHub paints, and the hub checks.** GitHub's first event carries a `createSurface` in its catalog, the message stamped `v0.9.1`. The orchestrator checks the catalog id of every `createSurface` it relays against the set it sent for the paint's stamp. GitHub's is in it, so the paint goes through, stamped and namespaced like any other ([`orchestrator.md`](orchestrator.md#relay-three-changes-and-no-more) has the relay).
 
 **7. The client holds the paint.** The page has been open since before the install. Its boot read the catalog table then and found nothing to load. Now a surface arrives in a catalog it doesn't hold. Each answer has a **catalog gate** in front of its turn runner: the gate holds the batch, and everything after it in that answer, while the catalog loads. GitHub's slot shows "Loading…".
 
@@ -426,8 +429,8 @@ The read routes are shaped like files on purpose: a folder with the same layout,
 
 `apps/orchestrator/src/agentsPool/agentsPool.ts`. A dispatch reads the app's record once, as it starts, and keeps that snapshot to its end:
 
-- It sends the message's `a2uiClientCapabilities` as the app's entitlement, in place of what the client sent, so an app is told only what it may paint in.
-- `catalogOutside` checks the `catalogId` of every `createSurface` in every event the app sends. A miss is never relayed: the app is sent A2A's `tasks/cancel`, and the dispatch fails with the `catalog` cause, carrying the id. The slot's failure tile says "This app sent something that can't be shown here." with no Retry, since the same paint would be refused the same way.
+- It sends the message's `a2uiClientCapabilities` as the app's entitlement per version, each version's set under its own key, in place of what the client sent, so an app is told only what it may paint in.
+- `catalogOutside` checks the `catalogId` of every `createSurface` in every event the app sends against the set of the message's `version` — the union of the two sets when the stamp is missing or unspoken — through the sdk's `paintOutside`, the rule the marketplace's smoke test shares. A miss is never relayed: the app is sent A2A's `tasks/cancel`, and the dispatch fails with the `catalog` cause, carrying the id; the error names the stamp when the catalog is in the app's union but declared for the other version. The slot's failure tile says "This app sent something that can't be shown here." with no Retry, since the same paint would be refused the same way.
 - An app that isn't installed when the dispatch starts isn't asked at all: its slot fails with the `uninstalled` cause.
 
 The snapshot is what keeps uninstall and install-over safe in the middle of a question: a dispatch already running finishes under the entitlement it was sent with, and the next one reads the registry as it stands.

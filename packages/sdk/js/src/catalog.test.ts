@@ -13,10 +13,14 @@ import {
   classifySpecifier,
   coverageErrors,
   clientCapabilities,
+  describePaintOutside,
+  entitlementByVersionOf,
   entitlementOf,
+  paintOutside,
   readCatalogIdsByVersion,
   readSupportedCatalogIds,
   SUPPORTED_HOST_INTERFACES,
+  underEachVersion,
 } from './catalog';
 
 const GITHUB = 'https://example.com/github/catalog.json';
@@ -439,5 +443,84 @@ describe('the pinned capabilities schemas (task 19.1)', () => {
       SERVER_CAPABILITIES_SCHEMA.properties,
     );
     expect(Object.keys(SERVER_CAPABILITIES_SCHEMA.properties as object)).toEqual(['v0.9']);
+  });
+});
+
+describe('the entitlement per version (task-19.2 decisions 1, 6)', () => {
+  test('one list under each version key', () => {
+    expect(underEachVersion([BASIC_CATALOG_ID, GITHUB])).toEqual({
+      'v0.9': [BASIC_CATALOG_ID, GITHUB],
+      'v0.9.1': [BASIC_CATALOG_ID, GITHUB],
+    });
+  });
+
+  test('a map by version is handed back as it is', () => {
+    const map = {'v0.9': [GITHUB], 'v0.9.1': [GMAIL]};
+    expect(underEachVersion(map)).toEqual(map);
+  });
+
+  test("each version's set is the public catalogs then that version's declared ids, each once", () => {
+    expect(entitlementByVersionOf({'v0.9': [GITHUB], 'v0.9.1': [GITHUB, GMAIL]})).toEqual({
+      'v0.9': [BASIC_CATALOG_ID, GITHUB],
+      'v0.9.1': [BASIC_CATALOG_ID, GITHUB, GMAIL],
+    });
+    expect(entitlementByVersionOf({'v0.9': [], 'v0.9.1': []})).toEqual({
+      'v0.9': [BASIC_CATALOG_ID],
+      'v0.9.1': [BASIC_CATALOG_ID],
+    });
+    expect(
+      entitlementByVersionOf({'v0.9': [BASIC_CATALOG_ID], 'v0.9.1': [GITHUB, GITHUB]}),
+    ).toEqual({
+      'v0.9': [BASIC_CATALOG_ID],
+      'v0.9.1': [BASIC_CATALOG_ID, GITHUB],
+    });
+  });
+});
+
+describe('paintOutside: a paint against the set of its stamp (task-19.2 decisions 2, 3, 7)', () => {
+  const sets = {'v0.9': [BASIC_CATALOG_ID, GITHUB], 'v0.9.1': [BASIC_CATALOG_ID, GMAIL]};
+
+  test('a paint in the set of its stamp is inside, whichever version', () => {
+    expect(paintOutside('v0.9', GITHUB, sets)).toBeUndefined();
+    expect(paintOutside('v0.9.1', GMAIL, sets)).toBeUndefined();
+    expect(paintOutside('v0.9.1', BASIC_CATALOG_ID, sets)).toBeUndefined();
+  });
+
+  test("a paint in a catalog the other version's set alone holds is outside, naming that version", () => {
+    expect(paintOutside('v0.9', GMAIL, sets)).toEqual({stamp: 'v0.9', declaredFor: ['v0.9.1']});
+    expect(paintOutside('v0.9.1', GITHUB, sets)).toEqual({stamp: 'v0.9.1', declaredFor: ['v0.9']});
+  });
+
+  test('a paint in a catalog neither set holds is outside, declared for none', () => {
+    expect(paintOutside('v0.9', 'urn:other', sets)).toEqual({stamp: 'v0.9', declaredFor: []});
+  });
+
+  test('a stamp that is neither version is checked against the union', () => {
+    expect(paintOutside(undefined, GITHUB, sets)).toBeUndefined();
+    expect(paintOutside(undefined, GMAIL, sets)).toBeUndefined();
+    expect(paintOutside('v1.0', GITHUB, sets)).toBeUndefined();
+    expect(paintOutside('v1.0', 'urn:other', sets)).toEqual({stamp: 'v1.0', declaredFor: []});
+    expect(paintOutside(undefined, 'urn:other', sets)).toEqual({declaredFor: []});
+    expect(paintOutside(9, 'urn:other', sets)).toEqual({declaredFor: []});
+  });
+
+  test('a flat list is one set under both versions, as before', () => {
+    expect(paintOutside('v0.9.1', GITHUB, [BASIC_CATALOG_ID, GITHUB])).toBeUndefined();
+    expect(paintOutside('v0.9', GMAIL, [BASIC_CATALOG_ID, GITHUB])).toEqual({
+      stamp: 'v0.9',
+      declaredFor: [],
+    });
+  });
+
+  test('the words: outside the entitlement, or stamped for the other version', () => {
+    expect(describePaintOutside('urn:other', {stamp: 'v0.9', declaredFor: []})).toBe(
+      'catalog "urn:other", outside its entitlement',
+    );
+    expect(describePaintOutside('urn:other', {declaredFor: []})).toBe(
+      'catalog "urn:other", outside its entitlement',
+    );
+    expect(describePaintOutside(GMAIL, {stamp: 'v0.9', declaredFor: ['v0.9.1']})).toBe(
+      `catalog ${JSON.stringify(GMAIL)} stamped v0.9, which its card declares for v0.9.1 only`,
+    );
   });
 });

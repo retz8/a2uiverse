@@ -17,8 +17,11 @@ import {
   checkAppId,
   checkCoverage,
   coverageErrors,
+  entitlementByVersionOf,
   entitlementOf,
+  readCatalogIdsByVersion,
   readSupportedCatalogIds,
+  underEachVersion,
   type ArtifactDescriptor,
   gateArtifact,
   type GatedArtifact,
@@ -195,6 +198,7 @@ export class Registry {
             agentUrl: platformCard.url,
             catalogs: [],
             entitlement: [SHELL_CATALOG_ID],
+            entitlementByVersion: underEachVersion([SHELL_CATALOG_ID]),
           },
           card: platformCard,
         }
@@ -850,12 +854,18 @@ export class Registry {
 
   #view(record: InstalledRecord): AppRecord {
     const card = this.#cards.get(record.id) ?? record.card;
+    // The entitlement per version from the card as installed, fixed at install like the flat one
+    // (task-19.2 decision 1); the flat entitlement under both keys when the stored card does not read.
+    const declared = readCatalogIdsByVersion(record.card);
     return {
       id: record.id,
       displayName: card.name || record.id,
       agentUrl: card.url,
       catalogs: Object.keys(record.catalogs),
       entitlement: [...record.entitlement],
+      entitlementByVersion: declared.ok
+        ? entitlementByVersionOf(declared.value)
+        : underEachVersion([...record.entitlement]),
     };
   }
 }

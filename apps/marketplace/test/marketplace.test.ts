@@ -9,6 +9,7 @@ import {afterEach, describe, expect, test} from 'vitest';
 import type {AgentCard} from '@a2a-js/sdk';
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
+  A2UI_EXTENSION_URIS,
   BASIC_CATALOG_ID,
   clientCapabilities,
   SMOKE_GREETING,
@@ -23,7 +24,7 @@ import {
   SEARCH_MARGIN,
   type PublishAnswer,
 } from '../src/marketplace.js';
-import {a2aSmokeRunner} from '../src/smoke.js';
+import {a2aSmokeRunner, type SmokeRunner} from '../src/smoke.js';
 import {
   APPS_DIR,
   ARTIFACTS_DIR,
@@ -89,7 +90,7 @@ async function agentOf(options: FakeAgentOptions = {}): Promise<FakeAgent> {
   return agent;
 }
 
-async function made(stateDir?: string) {
+async function made(stateDir?: string, smoke: SmokeRunner = a2aSmokeRunner()) {
   stateDir ??= await mkdtemp(join(tmpdir(), 'a2uiverse-marketplace-'));
   if (!dirs.includes(stateDir)) dirs.push(stateDir);
   const cards = new CardServer();
@@ -98,7 +99,7 @@ async function made(stateDir?: string) {
     stateDir,
     embedder,
     fetchCard: cards.resolve,
-    smoke: a2aSmokeRunner(),
+    smoke,
     smokeTimeoutMs: 5000,
   });
   await marketplace.load();
@@ -526,6 +527,52 @@ describe('publish, the smoke test', () => {
     expect(answer.summary).toMatch(/^published shop · card 0\.1\.0/);
   });
 
+  test('the smoke test advertises the entitlement per version read from the card, and judges the paint by its stamp (task-19.2 decision 6)', async () => {
+    const advertised: unknown[] = [];
+    const spy: SmokeRunner = request => {
+      advertised.push(request.entitlement);
+      return a2aSmokeRunner()(request);
+    };
+    const {marketplace, cards} = await made(undefined, spy);
+    await claimed(marketplace);
+    const twoEntries = {
+      capabilities: {
+        streaming: true,
+        extensions: [
+          {uri: A2UI_EXTENSION_URIS['v0.9'], params: {supportedCatalogIds: [CAT]}},
+          {uri: A2UI_EXTENSION_URIS['v0.9.1'], params: {supportedCatalogIds: [CAT2]}},
+        ],
+      },
+    };
+    // The default script paints CAT stamped v0.9: inside v0.9's set.
+    const agent = await agentOf({card: twoEntries});
+    const published = await marketplace.publish(
+      'acme',
+      body('shop', cards.serve(agent.card), [
+        await fixtureArtifact(CAT),
+        await fixtureArtifact(CAT2),
+      ]),
+    );
+    expect(published.ok).toBe(true);
+    expect(advertised).toEqual([
+      {'v0.9': [BASIC_CATALOG_ID, CAT], 'v0.9.1': [BASIC_CATALOG_ID, CAT2]},
+    ]);
+    // CAT2 stamped v0.9: the card declares it for v0.9.1 alone.
+    const stamped = await agentOf({card: twoEntries, script: paintingScript(CAT2)});
+    const out = refused(
+      await marketplace.publish(
+        'acme',
+        body('shop-2', cards.serve(stamped.card), [
+          await fixtureArtifact(CAT),
+          await fixtureArtifact(CAT2),
+        ]),
+      ),
+    );
+    expect(out.findings).toEqual([
+      `surface "s1" is painted in catalog ${JSON.stringify(CAT2)} stamped v0.9, which its card declares for v0.9.1 only`,
+    ]);
+  });
+
   test('a paint outside the entitlement, and a credential input', async () => {
     const {marketplace, cards} = await made();
     await claimed(marketplace);
@@ -537,7 +584,7 @@ describe('publish, the smoke test', () => {
       ),
     );
     expect(out.findings).toEqual([
-      `surface "s1" is painted in catalog ${JSON.stringify(CAT2)}, outside the entitlement`,
+      `surface "s1" is painted in catalog ${JSON.stringify(CAT2)}, outside its entitlement`,
     ]);
     const credential = await agentOf({script: credentialScript()});
     const cred = refused(
@@ -663,7 +710,7 @@ describe('publish, the smoke test', () => {
       ),
     );
     expect(answer.findings).toEqual([
-      `surface "s1" is painted in catalog ${JSON.stringify(CAT2)}, outside the entitlement`,
+      `surface "s1" is painted in catalog ${JSON.stringify(CAT2)}, outside its entitlement`,
     ]);
   });
 });

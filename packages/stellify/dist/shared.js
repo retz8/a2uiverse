@@ -347,15 +347,36 @@ function readSupportedCatalogIds(card) {
   return { ok: true, value: once(A2UI_VERSIONS.flatMap((version) => read.value[version])) };
 }
 var isIdList = (sets) => Array.isArray(sets);
+function underEachVersion(sets) {
+  if (!isIdList(sets))
+    return sets;
+  return Object.fromEntries(A2UI_VERSIONS.map((version) => [version, [...sets]]));
+}
 function clientCapabilities(sets) {
-  return Object.fromEntries(A2UI_VERSIONS.map((version) => [
-    version,
-    { supportedCatalogIds: [...isIdList(sets) ? sets : sets[version]] }
-  ]));
+  const byVersion = underEachVersion(sets);
+  return Object.fromEntries(A2UI_VERSIONS.map((version) => [version, { supportedCatalogIds: [...byVersion[version]] }]));
 }
 var PUBLIC_CATALOG_IDS = [BASIC_CATALOG_ID];
 function entitlementOf(handed, publicIds = PUBLIC_CATALOG_IDS) {
   return [.../* @__PURE__ */ new Set([...publicIds, ...handed])];
+}
+function entitlementByVersionOf(declared, publicIds = PUBLIC_CATALOG_IDS) {
+  return Object.fromEntries(A2UI_VERSIONS.map((version) => [version, entitlementOf(declared[version], publicIds)]));
+}
+function paintOutside(stamp, catalogId, sets) {
+  const byVersion = underEachVersion(sets);
+  const declaredFor = A2UI_VERSIONS.filter((version) => byVersion[version].includes(catalogId));
+  const spoken = typeof stamp === "string" && isSpokenVersion(stamp) ? stamp : void 0;
+  const inside = spoken !== void 0 ? declaredFor.includes(spoken) : declaredFor.length > 0;
+  if (inside)
+    return void 0;
+  return { ...typeof stamp === "string" ? { stamp } : {}, declaredFor };
+}
+function describePaintOutside(catalogId, outside) {
+  const id = JSON.stringify(catalogId);
+  if (outside.declaredFor.length === 0)
+    return `catalog ${id}, outside its entitlement`;
+  return `catalog ${id} stamped ${outside.stamp}, which its card declares for ${outside.declaredFor.join(" and ")} only`;
 }
 
 // ../sdk/js/dist/credential.js
@@ -1144,7 +1165,7 @@ function checkPaint(messages, check) {
     const create = message.createSurface;
     if (isObject3(create) && typeof create.surfaceId === "string") {
       const catalogId = typeof create.catalogId === "string" ? create.catalogId : void 0;
-      surfaces.set(create.surfaceId, { catalogId, own: [] });
+      surfaces.set(create.surfaceId, { catalogId, stamp: message.version, own: [] });
     }
     const operation = OPERATIONS.map((key) => message[key]).find(isObject3);
     const surfaceId = isObject3(operation) ? operation.surfaceId : void 0;
@@ -1158,15 +1179,16 @@ function checkPaint(messages, check) {
   const validators = /* @__PURE__ */ new Map();
   const refMaps = /* @__PURE__ */ new Map();
   const options = /* @__PURE__ */ new Map();
-  for (const [surfaceId, { catalogId, own }] of surfaces) {
+  for (const [surfaceId, { catalogId, stamp, own }] of surfaces) {
     const at = `surface ${JSON.stringify(surfaceId)}`;
     if (catalogId === void 0) {
       findings.push(`${at}: createSurface names no catalogId`);
       placed.push(...own);
       continue;
     }
-    if (!check.entitlement.includes(catalogId)) {
-      findings.push(`${at} is painted in catalog ${JSON.stringify(catalogId)}, outside the entitlement`);
+    const outside = paintOutside(stamp, catalogId, check.entitlement);
+    if (outside) {
+      findings.push(`${at} is painted in ${describePaintOutside(catalogId, outside)}`);
       placed.push(...own);
       continue;
     }
@@ -1948,9 +1970,13 @@ async function previewWith(options, deps) {
     findings.push("the card has no version: the card's `version` is the app's version");
   }
   let declared = [];
-  const read = readSupportedCatalogIds(card);
-  if (read.ok) declared = read.value;
-  else findings.push(...read.errors.map((e) => `the card's ${e}`));
+  let declaredByVersion = { "v0.9": [], "v0.9.1": [] };
+  const read = readCatalogIdsByVersion(card);
+  if (read.ok) {
+    declaredByVersion = read.value;
+    const union = readSupportedCatalogIds(card);
+    if (union.ok) declared = union.value;
+  } else findings.push(...read.errors.map((e) => `the card's ${e}`));
   const signIn = requiresSignIn(card);
   const given = options.credential !== void 0 && options.credential !== "";
   let headers;
@@ -2015,7 +2041,7 @@ async function previewWith(options, deps) {
       notes.push(`${err.message}; a catalog the marketplace holds is not resolved`);
     }
   }
-  const entitlement = entitlementOf(declared);
+  const entitlement = entitlementByVersionOf(declaredByVersion);
   const words = smokeWords(card);
   const seen = await smoke({
     card,

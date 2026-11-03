@@ -1,8 +1,16 @@
 /** `preview` (task-13.4 decisions 5–8, 12): the paint captured on the publisher's machine. */
-import {ARTIFACT_DESCRIPTOR_FILE, artifactIdOf, SMOKE_GREETING} from '@a2uiverse/sdk';
+import {
+  A2UI_EXTENSION_URIS,
+  ARTIFACT_DESCRIPTOR_FILE,
+  artifactIdOf,
+  BASIC_CATALOG_ID,
+  SMOKE_GREETING,
+} from '@a2uiverse/sdk';
 import {afterEach, beforeAll, describe, expect, test} from 'vitest';
 import {UNSUPPORTED_SCHEME} from '../src/credential.js';
 import {artifactFiles, preview, stellify} from '../src/index.js';
+import {previewWith} from '../src/preview.js';
+import {a2aSmokeRunner, type SmokeRunner} from '../src/transport.js';
 import {
   authRequiredScript,
   failedScript,
@@ -215,11 +223,41 @@ describe('what refuses a preview', () => {
     expect(result.findings[0]).toMatch(/^surface "s1": /);
   });
 
+  test('the preview advertises the entitlement per version read from the card, and judges the paint by its stamp (task-19.2 decision 6)', async () => {
+    const OTHER = 'https://example.com/other.json';
+    const extensions = [
+      {uri: A2UI_EXTENSION_URIS['v0.9'], params: {supportedCatalogIds: [STAR_CATALOG_ID]}},
+      {uri: A2UI_EXTENSION_URIS['v0.9.1'], params: {supportedCatalogIds: [OTHER]}},
+    ];
+    const advertised: unknown[] = [];
+    const spy: SmokeRunner = request => {
+      advertised.push(request.entitlement);
+      return a2aSmokeRunner()(request);
+    };
+    // The default script paints the star catalog stamped v0.9: inside v0.9's set.
+    agent = await startFakeAgent({extensions});
+    const fine = await previewWith(
+      {appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]},
+      {smoke: spy},
+    );
+    expect(fine.findings).toEqual([]);
+    expect(advertised).toEqual([
+      {'v0.9': [BASIC_CATALOG_ID, STAR_CATALOG_ID], 'v0.9.1': [BASIC_CATALOG_ID, OTHER]},
+    ]);
+    await agent.close();
+    // The other catalog stamped v0.9: the card declares it for v0.9.1 alone.
+    agent = await startFakeAgent({extensions, script: paintingScript(OTHER)});
+    const result = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
+    expect(result.findings).toEqual([
+      `surface "s1" is painted in catalog "${OTHER}" stamped v0.9, which its card declares for v0.9.1 only`,
+    ]);
+  });
+
   test('a paint outside the entitlement', async () => {
     agent = await startFakeAgent({script: paintingScript('https://example.com/other.json')});
     const result = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
     expect(result.findings).toEqual([
-      'surface "s1" is painted in catalog "https://example.com/other.json", outside the entitlement',
+      'surface "s1" is painted in catalog "https://example.com/other.json", outside its entitlement',
     ]);
   });
 
