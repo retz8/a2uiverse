@@ -96,6 +96,29 @@ describe('checkAdditiveEvolution — accepted', () => {
     );
     expect(checkAdditiveEvolution(held, next)).toEqual([]);
   });
+
+  test("a component taking the protocol's ComponentCommon it did not take", () => {
+    const bare: A2uiCatalogSchema = {
+      catalogId: 'cat/v1',
+      components: {
+        Divider: {
+          type: 'object',
+          properties: {component: {const: 'Divider'}},
+          required: ['component'],
+          unevaluatedProperties: false,
+        },
+        Panel: {allOf: [{type: 'object', properties: {component: {const: 'Panel'}}}]},
+      },
+    };
+    const common: A2uiCatalogSchema = {
+      catalogId: 'cat/v1',
+      components: {
+        Divider: {...bare.components.Divider, allOf: [{$ref: COMMON}]},
+        Panel: {allOf: [{$ref: COMMON}, ...(bare.components.Panel.allOf as unknown[])]},
+      },
+    };
+    expect(checkAdditiveEvolution(bare, common)).toEqual([]);
+  });
 });
 
 describe('checkAdditiveEvolution — refused', () => {
@@ -258,6 +281,29 @@ describe('checkAdditiveEvolution — refused', () => {
       },
     };
     expect(checkAdditiveEvolution(heldUnion, lost)).toEqual(['components/A/allOf: lost an entry']);
+  });
+
+  test("ComponentCommon gained below a component's root, or beside another gained entry", () => {
+    const heldNodes: A2uiCatalogSchema = {
+      catalogId: 'cat/v1',
+      components: {A: {allOf: [{type: 'object'}], properties: {v: {type: 'object'}}}},
+      $defs: {Box: {type: 'object'}},
+    };
+    const gained: A2uiCatalogSchema = {
+      catalogId: 'cat/v1',
+      components: {
+        A: {
+          allOf: [{$ref: COMMON}, {type: 'object'}, {required: ['v']}],
+          properties: {v: {type: 'object', allOf: [{$ref: COMMON}]}},
+        },
+      },
+      $defs: {Box: {type: 'object', allOf: [{$ref: COMMON}]}},
+    };
+    expect(checkAdditiveEvolution(heldNodes, gained)).toEqual([
+      'components/A/allOf: gained an entry',
+      'components/A/properties/v/allOf: gained an entry',
+      '$defs/Box/allOf: gained an entry',
+    ]);
   });
 
   test('a different catalog id is not an evolution of the held one', () => {

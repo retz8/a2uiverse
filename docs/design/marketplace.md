@@ -377,6 +377,7 @@ One detail makes the validator fair to a streaming agent. An agent on the kit st
 | `type`, `$ref` or `const` differing, added or removed at any node | annotations (`description`, `title`) changing freely |
 | a constraint tightened: `minLength` up, `maxItems` down, a `pattern` changed, `additionalProperties` closed, `uniqueItems` added | a constraint loosened or dropped |
 | an `anyOf`/`oneOf` added, or either losing an entry; an `allOf` gaining an entry | any other keyword, ignored |
+| | a component taking the protocol's `ComponentCommon` in its `allOf`, the `id` and `accessibility` every A2UI component carries, as upstream's basic catalog has it |
 
 Each finding names the component or function and the path, which is how the sitting's refusals read: `components/Video: removed`, `components/Avatar/properties/size/enum: "large" removed`, `components/PriorityIcon: removed`.
 

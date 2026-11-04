@@ -8,9 +8,11 @@
  * resolved. Refused: a component, a function or a `$defs` entry removed; a property removed; a
  * property becoming required; an enum value removed; `type`, `$ref` or `const` differing at any
  * node; a constraint tightened — added where the held node had none, or made stricter. Accepted:
- * a constraint loosened or dropped; annotations changing freely. Any other keyword is ignored, so
- * a harmless keyword never blocks a publish. Each finding names the component or function and
- * the path.
+ * a constraint loosened or dropped; annotations changing freely; a component taking the protocol's
+ * `ComponentCommon` in its `allOf`, the `id` and `accessibility` every A2UI component carries, as
+ * upstream's basic catalog has each of its components take it. Any other keyword is ignored, so a
+ * harmless keyword never blocks a publish. Each finding names the component or function and the
+ * path.
  */
 import type {A2uiCatalogSchema} from './a2ui/types.js';
 
@@ -20,6 +22,11 @@ const isObject = (value: unknown): value is Json =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/** The protocol's common component definition, as upstream's v0.9 and v0.9.1 catalogs name it. */
+const COMPONENT_COMMON = {
+  $ref: 'https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon',
+};
 
 /** Keywords whose value is the node's identity: differing anywhere is a type change. */
 const IDENTITY = ['type', '$ref', 'const'] as const;
@@ -45,10 +52,25 @@ export function checkAdditiveEvolution(held: A2uiCatalogSchema, next: A2uiCatalo
     for (const [name, node] of Object.entries(before)) {
       const at = `${map}/${name}`;
       if (!(name in after)) findings.push(`${at}: removed`);
+      else if (map === 'components')
+        walk(node, withoutGainedCommon(node, after[name]), at, findings);
       else walk(node, after[name], at, findings);
     }
   }
   return findings;
+}
+
+/** A component's new schema with `ComponentCommon` taken out of its `allOf` when the held one does
+ * not take it, so gaining it is no finding. */
+function withoutGainedCommon(held: unknown, next: unknown): unknown {
+  if (!isObject(held) || !isObject(next) || !Array.isArray(next.allOf)) return next;
+  const heldTakes = Array.isArray(held.allOf) && held.allOf.some(e => same(e, COMPONENT_COMMON));
+  if (heldTakes) return next;
+  const allOf = next.allOf.filter(e => !same(e, COMPONENT_COMMON));
+  if (allOf.length === next.allOf.length) return next;
+  const rest: Json = {...next};
+  delete rest.allOf;
+  return allOf.length ? {...rest, allOf} : rest;
 }
 
 function walk(h: unknown, n: unknown, at: string, findings: string[]): void {

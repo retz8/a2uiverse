@@ -1,6 +1,6 @@
 {
   "name": "@a2uiverse/sdk",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "The A2UIVerse platform contracts \u2014 composition between orchestrator and client, the catalog export and artifact contracts, and the marketplace's contracts with the checks the marketplace, the registry and Stellify share \u2014 and generic A2UI tools.",
   "license": "MIT",
   "repository": {
