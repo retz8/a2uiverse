@@ -303,7 +303,9 @@ catalog cannot be built: `TypeError: 'NoneType' object is not iterable`.
 
 **Reported:** `a2ui-project/a2ui` issue
 [#3305](https://github.com/a2ui-project/a2ui/issues/3305), PR
-[#3306](https://github.com/a2ui-project/a2ui/pull/3306) (in review).
+[#3306](https://github.com/a2ui-project/a2ui/pull/3306).
+
+**Resolved:** #3306 merged 2026-10-28.
 
 ### Issue
 
@@ -351,15 +353,17 @@ MessageProcessor([a, b])  # TypeError, from link_catalogs; the same for v0.9 cat
 ### Fix
 
 Treat a missing schema as `{}` where `validation_schema` records it. A function given `schema={}`
-works on every path above: `validation_schema` records `{}`, and `to_json` writes a call whose `args`
-may be any object (`"args": {"type": "object"}`), which `from_json` reads back unchanged. Or reject
-a missing schema at construction, as web_core and Dart do by type, which breaks the eight test
-functions above and any caller that omits it.
+raises on none of the paths above: `validation_schema` records `{}`, and `to_json` writes its `args`
+as `{"type": "object"}`, which `from_json` reads as taking no args, since a catalog document closes
+`args` unless it says otherwise. Or reject a missing schema at construction, as web_core and Dart do
+by type, which breaks the eight test functions above and any caller that omits it.
 
-#3306 takes the first: where `validation_schema` is assembled, a function whose schema is `None` is
-recorded as `{}`. `FunctionApi.schema` and `resolved_function_schema` still return `None`, and the
-`FunctionApi` docstring says that `None` means the function takes any args. Strict validation and
-renderer function calls accept any args for such a function before and after the change.
+#3306 takes the first. `validation_schema` and `resolved_function_schema` give `{}` for a function
+without an argument schema, as for one given `schema={}`, and `to_json` writes the `args` of either
+as `{"type": "object", "additionalProperties": true}`, so `from_json` reads it back as taking any
+args. `FunctionApi.schema` still defaults to `None`, which its docstring now says means the function
+takes any args. Strict validation and renderer function calls accept any args for such a function
+before and after the change.
 
 ### Prior art
 
@@ -384,7 +388,9 @@ reference that is not one, whenever a plain string prop happens to equal a compo
 
 **Reported:** `a2ui-project/a2ui` issue
 [#3605](https://github.com/a2ui-project/a2ui/issues/3605), PR
-[#3606](https://github.com/a2ui-project/a2ui/pull/3606) (in review).
+[#3606](https://github.com/a2ui-project/a2ui/pull/3606).
+
+**Resolved:** #3606 merged 2026-10-29.
 
 ### Issue
 
