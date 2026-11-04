@@ -54,6 +54,7 @@ Everything the kit needs from an app is on **one frozen dataclass**, `AgentAppCo
 CONFIG = AgentAppConfig(
     name=APP_NAME,                       # the agent card
     skills=SKILLS,
+    a2ui_versions=["v0.9", "v0.9.1"],    # the A2UI versions it speaks; both when left out
     default_port=11005,
     catalog_path=_AGENT_DIR.parent / "linear-catalog" / "catalogs" / "v0.9.1" / "catalog.json",
     catalog_kind="custom",               # Linear's own catalog, in its design language
@@ -379,12 +380,54 @@ The account comes from the upstream. In deterministic and stub mode that's a cho
 
 ### One card, every mode: the server
 
-`server.py` builds the agent card from the config, advertising A2UI's v0.9.1 extension with the catalog ids the app supports, and `cli.py` runs it with uvicorn. Two details come from running agents through a dev tunnel:
+`server.py` builds the agent card from the config. Its A2UI entries follow the app's version set: upstream's card helper, `get_a2ui_agent_extension`, once per version the app speaks, oldest first, each naming the catalog ids the app supports. A card takes one of three shapes:
+
+| `a2ui_versions` | The card's A2UI entries |
+| --- | --- |
+| `["v0.9"]` | one entry under `…/a2ui/v0.9`, its params flat, as upstream's helper writes them |
+| `["v0.9.1"]` | one entry under `…/a2ui/v0.9.1`, the helper's params keyed under `v0.9.1` by the kit |
+| both | the v0.9 entry, then the v0.9.1 entry, both flat |
+
+`cli.py` runs the app with uvicorn. Two details come from running agents through a dev tunnel:
 
 - **CORS** allows `localhost` on any port and `*.devtunnels.ms`.
 - **Keep-alive is 300 seconds**, not uvicorn's 5. With 5, an idle connection between turns was closed by the server while a tunnel kept reusing it, and the next request hung.
 
 `--base-url` sets the address the card advertises, for when the client reaches the agent through a tunnel or proxy. With sign-in on, `--public-url` sets where the browser reaches the sign-in pages (the sign-in page, the account chooser's form and the finish address a vendor returns to) while the card's endpoint, the metadata and the token endpoint stay on `--base-url`.
+
+### A2UI versions, per request
+
+An app names the A2UI versions it speaks in `a2ui_versions`: `["v0.9"]`, `["v0.9.1"]`, or both, which is what leaving it out means. The kit checks the list when the config is built, against its one table of the versions it speaks and their extension URIs (`versions.py`), and holds it oldest first, whatever order it was written in. A version the kit doesn't speak, or an empty list, stops the app before it serves.
+
+Every app runs the same path on every request; a single-version app's choice always lands on its one version.
+
+```mermaid
+flowchart LR
+    REQ["A request<br/>the A2UI extensions it names"] --> CH["The choice<br/>a2ui-a2a's activation helper,<br/>against the app's card"]
+    CH --> ACT["The actions taken<br/>stamps the version's schema admits"]
+    CH --> ENT["The entitlement<br/>read under the version's key first"]
+    CH --> ST["The stamp<br/>on every A2UI part sent"]
+```
+
+1. **The choice.** Both executors call a2ui-a2a's `try_activate_a2ui_extension` once per request with the card the app serves. It returns the newest version the request names in its A2A extensions that the card advertises, and registers its URI as activated, which A2A names back in the response's `X-A2A-Extensions` header. A request naming none of the app's versions takes the app's newest. The header goes back on a `message/send`; on a `message/stream`, A2A's SDK writes the response's headers before the agent runs, so a streamed answer carries its version in the stamp alone.
+2. **The actions.** One extractor takes an action whose stamp the chosen version's client-to-server schema admits: v0.9's requires `v0.9`, and v0.9.1's admits `v0.9` and `v0.9.1`. A data part stamped otherwise isn't an action, and the message falls through as one carrying nothing: the "Unhandled event" paint in deterministic mode, the apology with no model call in the model modes.
+3. **The entitlement.** The catalog ids the client renders are read from its `a2uiClientCapabilities` under the chosen version's key first, then under the other version's, then flat. The catalog line a turn is painted in is chosen from them ([below](#an-old-catalog-line-beside-the-new-one)).
+4. **The stamp.** `stamped_part` is the one place a message becomes an A2A part. It writes the chosen version over whatever the message carried: a fixture's `v0.9`, the model's own writing, and the kit's own deletes and unhandled-event paint, which carry none. It hands the version to upstream's part helper, so the part's MIME type follows upstream's mapping: `application/json+a2ui` for v0.9, `application/a2ui+json` for v0.9.1. `paintMeta` parts are left as they are.
+
+Fixtures and recordings stay written in `v0.9`, the kit's `FIXTURE_VERSION`, and the recorder keeps a part in either version the kit speaks as it went out. The version a catalog is read at, and the protocol schemas the prompt shows the model, stay v0.9's.
+
+Two requests to a both app, like Calendar:
+
+| | The hub | An upstream v0.9 client |
+| --- | --- | --- |
+| The extensions it names | both URIs, on every request | the v0.9 URI alone |
+| The choice | v0.9.1, the newer of the two | v0.9 |
+| Its actions | stamped `v0.9`, which v0.9.1's schema admits | stamped `v0.9` |
+| The entitlement | read under its `v0.9.1` key; the hub writes each version's set under its key | under `v0.9` when it keys them, flat otherwise |
+| The answer | stamped `v0.9.1`, as `application/a2ui+json` | stamped `v0.9`, as `application/json+a2ui` |
+| The activation header | none: the hub streams | the v0.9 URI on a `message/send`, none on a stream |
+
+A v0.9-only app answers the hub in v0.9, the one version of the two it speaks. A v0.9.1-only app asked by a client naming v0.9 alone still answers in v0.9.1: the request names nothing it speaks.
 
 ### An old catalog line beside the new one
 
@@ -464,6 +507,7 @@ The kit knows nothing about A2UIVerse. The connection is made from A2UIVerse's s
 | **Tool hooks at the lowest boundary** | One payload each way, never a second copy for the model to read | Re-classing ADK's tool objects relies on ADK's internals |
 | **Terminal tasks can't move** | A cancelled task stays cancelled | A store of the kit's own, until the A2A SDK's next major line reads each task once |
 | **An old catalog line beside the new one** | A breaking catalog change ships as a suggested update; installs on the old id keep getting answers in it | Two lines to keep until the old one retires: its catalog, examples, brand doc and deterministic answers |
+| **A version set per app, each request's version chosen by a2ui-a2a's activation helper and stamped at send** | An app speaks v0.9, v0.9.1 or both from one field; a both app answers each client in the version it asked for, with no choosing code of the kit's own | Fixtures, the prompt and the catalog stay written to v0.9's schemas whatever the set, a v0.9.1 answer being that content restamped; the activation header misses a streamed answer |
 | **Apps pin the kit by commit when outside the repo** | A scaffolded app keeps working as the kit moves | Taking a kit change means re-pinning |
 
 ## Trying it without a model
@@ -493,7 +537,7 @@ In `a2uiverse-apps/agent-kit/src/a2ui_agent_kit/`:
 | `executor_llm.py`              | Streaming through the SDK's parser and the stream filter, validation at the end, the retry, cancel |
 | `executor_deterministic.py`, `responses.py` | The no-model executor; the fixture responder and stub fixture loader                |
 | `responder.py`                 | The responder protocol, and the ADK-backed implementation with a session per context          |
-| `catalog.py`, `versions.py`    | Catalog loading through the SDK's `CatalogConfig`, `validate_surface` and `validate_update` around its `validate_payload`; the protocol versions the kit names: the wire tag, the version a catalog is read at, the extension the card advertises |
+| `catalog.py`, `versions.py`    | Catalog loading through the SDK's `CatalogConfig`, `validate_surface` and `validate_update` around its `validate_payload`; the versions the kit speaks and their extension URIs, an app's version set checked, each request's version chosen through a2ui-a2a's activation helper, the stamp at send, the actions each version admits, the version fixtures are written in and the one a catalog is read at |
 | `upstream_patches.py`          | The local fix over `a2ui-core`'s child-reference fallback, applied at import (finding 16)      |
 | `prompt.py`, `knowledge.py`    | System prompt assembly around the SDK's base rules, schema block and examples: the three rules every app gets, the config's prose, domain doc and brand guide |
 | `paint_meta.py`                | The tag filter, the `paintMeta` part, the two question policies                                 |
@@ -522,6 +566,7 @@ The scaffolder is `a2uiverse-apps/create-a2ui-agent/`: `src/cli.ts` (flags and t
 | **Thinking tier** | `MODEL_EFFORT`: `low`, the least thinking the model's provider offers, or `default`, the provider's own |
 | **Request record** | One model request's instants, how it ended and its usage, kept in the recorded turn |
 | **Mode** | `deterministic`, `stub` or `live`: who answers |
+| **Version set** | `a2ui_versions`: the A2UI versions an app speaks, `v0.9`, `v0.9.1` or both; it decides the card's entries, each request's version, its stamp and the actions taken |
 | **Executor** | The A2A SDK's name for the object that answers a request |
 | **Responder** | The kit's wrapper that streams the model's text |
 | **Stream filter** | The kit's memory of what a turn has sent, so only what's new reaches the client and a retry patches in place |
