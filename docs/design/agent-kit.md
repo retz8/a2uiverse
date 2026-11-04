@@ -54,7 +54,7 @@ Everything the kit needs from an app is on **one frozen dataclass**, `AgentAppCo
 CONFIG = AgentAppConfig(
     name=APP_NAME,                       # the agent card
     skills=SKILLS,
-    a2ui_versions=["v0.9", "v0.9.1"],    # the A2UI versions it speaks; both when left out
+    a2ui_versions=["v0.9"],              # the A2UI versions it speaks; both when left out
     default_port=11005,
     catalog_path=_AGENT_DIR.parent / "linear-catalog" / "catalogs" / "v0.9.1" / "catalog.json",
     catalog_kind="custom",               # Linear's own catalog, in its design language
