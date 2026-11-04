@@ -34,6 +34,7 @@ import {
   buildActionMessageParams,
   buildErrorMessageParams,
   buildOperationMessageParams,
+  CLIENT_A2UI_VERSION,
   VALIDATION_FAILED,
 } from '../a2a/messages';
 import {createA2ASession} from '../a2a/session';
@@ -196,10 +197,10 @@ export function createCanvasRuntime({
     ...(onAuthority ? {onAuthority} : {}),
   });
   const runner = gateRunner(ungated, gate);
-  // In v0.9's form, as the message carries it: web_core names each surface by its catalog's own
-  // version, the shell catalog's `v0.9.1`.
+  // In the client's version, as the message carries it: web_core names each surface by its
+  // catalog's own version, the shell catalog's `v0.9.1`.
   const getClientDataModel = () =>
-    processor.getRendererDataModel('v0.9') as A2uiClientDataModel | undefined;
+    processor.getRendererDataModel(CLIENT_A2UI_VERSION) as A2uiClientDataModel | undefined;
 
   /**
    * Agent prose streams as chunks — a sentence splits mid-word across events — so it is

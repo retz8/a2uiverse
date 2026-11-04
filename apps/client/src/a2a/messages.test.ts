@@ -30,6 +30,8 @@ const A2UI_DATA = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: '
 const DATA_PART: Part = {kind: 'data', data: A2UI_DATA};
 const TEXT_PART: Part = {kind: 'text', text: 'hello'};
 const FOREIGN_PART: Part = {kind: 'data', data: {version: 'v0.8', foo: 1}};
+/** A v0.9.1 agent's paint, as its message carries it (task-19.3 decision 1). */
+const A2UI_DATA_V091 = {version: 'v0.9.1', createSurface: {surfaceId: 't', catalogId: 'cat'}};
 
 const ACTION = {name: 'click', surfaceId: 's'} as unknown as A2uiClientAction;
 
@@ -92,7 +94,10 @@ describe('buildTextMessageParams', () => {
   it('advertises the supported catalogs as a2uiClientCapabilities when given', () => {
     const params = buildTextMessageParams('show', undefined, ['cat-a']);
     expect(params.message.metadata).toEqual({
-      a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat-a']}},
+      a2uiClientCapabilities: {
+        'v0.9': {supportedCatalogIds: ['cat-a']},
+        'v0.9.1': {supportedCatalogIds: ['cat-a']},
+      },
       ...SESSION,
     });
   });
@@ -122,7 +127,10 @@ describe('buildActionMessageParams', () => {
   it('advertises the supported catalogs alongside the data model', () => {
     const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM, ['cat-a']);
     expect(params.message.metadata).toEqual({
-      a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat-a']}},
+      a2uiClientCapabilities: {
+        'v0.9': {supportedCatalogIds: ['cat-a']},
+        'v0.9.1': {supportedCatalogIds: ['cat-a']},
+      },
       a2uiClientDataModel: CLIENT_DM,
       ...SESSION,
     });
@@ -140,7 +148,10 @@ describe('buildOperationMessageParams', () => {
     ]);
     // It acts on the composition in its context: no data model rides it.
     expect(params.message.metadata).toEqual({
-      a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat']}},
+      a2uiClientCapabilities: {
+        'v0.9': {supportedCatalogIds: ['cat']},
+        'v0.9.1': {supportedCatalogIds: ['cat']},
+      },
       ...SESSION,
     });
   });
@@ -159,7 +170,10 @@ describe('buildOperationMessageParams', () => {
       },
     ]);
     expect(params.message.metadata).toEqual({
-      a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat']}},
+      a2uiClientCapabilities: {
+        'v0.9': {supportedCatalogIds: ['cat']},
+        'v0.9.1': {supportedCatalogIds: ['cat']},
+      },
       a2uiClientDataModel: CLIENT_DM,
       ...SESSION,
     });
@@ -183,13 +197,39 @@ describe('extractA2uiMessagesFromEvent', () => {
     expect(extractA2uiMessagesFromEvent(artifactUpdate([DATA_PART]))).toEqual([]);
   });
 
-  it('filters out text parts and non-v0.9 data parts', () => {
+  it('filters out text parts and data parts in a version the platform does not speak', () => {
     const event = statusUpdate([TEXT_PART, FOREIGN_PART, DATA_PART]);
     expect(extractA2uiMessagesFromEvent(event)).toEqual([A2UI_DATA]);
   });
 
   it('returns [] for a Task with no status message', () => {
     expect(extractA2uiMessagesFromEvent(task(undefined))).toEqual([]);
+  });
+});
+
+describe('the message’s version on the way in and out (task-19.3 decisions 1, 2, 5)', () => {
+  const part = (data: Record<string, unknown>): Part => ({kind: 'data', data});
+
+  it('takes a message in v0.9 and one in v0.9.1, side by side in one event, in order', () => {
+    const event = statusUpdate([DATA_PART, part(A2UI_DATA_V091)]);
+    expect(extractA2uiMessagesFromEvent(event)).toEqual([A2UI_DATA, A2UI_DATA_V091]);
+  });
+
+  it('passes over a message in a version the platform does not speak, saying nothing', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const foreign = [
+      {version: 'v0.8', createSurface: {surfaceId: 'a', catalogId: 'cat'}},
+      {version: 'v1.0', createSurface: {surfaceId: 'b', catalogId: 'cat'}},
+      {version: '0.9', createSurface: {surfaceId: 'c', catalogId: 'cat'}},
+      {createSurface: {surfaceId: 'd', catalogId: 'cat'}},
+    ];
+    const event = statusUpdate([...foreign.map(part), part(A2UI_DATA_V091)]);
+    expect(extractA2uiMessagesFromEvent(event)).toEqual([A2UI_DATA_V091]);
+    expect(error).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+    error.mockRestore();
+    warn.mockRestore();
   });
 });
 

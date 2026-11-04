@@ -54,6 +54,8 @@ The last one comes from the orchestrator's credential bar: when an app paints a 
 
 Placement is by `source`. The stamp names no slot, and no component tree points at another surface: the `Slot` whose `source` is `"linear"` is where Linear's surface belongs. A source is the app and the account it painted under: `linear` for an app that needs no sign-in, `gmail.1` and `gmail.2` for two Gmail accounts side by side, each its own slot. The client never parses one; it keys everything by the whole string. Surface ids are namespaced by the orchestrator as `<source>:<surfaceId>` (Linear's `linear-1` arrives as `linear:linear-1`), so two sources can never collide on a name.
 
+Inside the event, each A2UI message names its own version, the message's version: the client draws a message whose version is `v0.9` or `v0.9.1`, the two versions the sdk lists, and writes `v0.9` on everything of its own (`CLIENT_A2UI_VERSION` in `a2a/messages.ts`).
+
 ### 3. Shell owns the container, the app owns the interior
 
 The **shell** is A2UIVerse's own UI: the question heading the canvas, the progress line, the palette, Back and Trail, the layout, and each app's name above its slot. It's drawn in Radix Themes. Everything inside a slot belongs to the app, and the shell never reaches in.
@@ -475,6 +477,7 @@ The merged view is explained end to end in [`synthesis.md`](synthesis.md). The c
 | **Every request of a catalog load bounded** | A request nothing answers fails its slot, with Retry, instead of leaving it loading for good | A load through a very slow link can fail where waiting longer would have worked |
 | **The render waits for nothing** | The shell paints at once, registry up or not | A fragment can show loading while its catalog arrives |
 | **Placement by the stamp's `source`** | No component tree points into another surface; a slot and its fragment meet by name | The orchestrator must stamp every event |
+| **The message's version `v0.9` or `v0.9.1` drawn alike, `v0.9` written for everything of the client's own** | Every v0.9 and v0.9.1 agent is reached with one outbound shape | A fragment's version is never echoed back to its app |
 | **Hold-and-swap, with a staging processor as the validator** | A broken or half-built paint never replaces a good one | A staged paint shows only when it's complete |
 | **A composed turn goes progressive** | The layout lands before any app answers, and each slot fills in place | A failing app shows as a failed slot, not a held screen |
 | **Stores outside React, read with `useSyncExternalStore`** | Non-React code (the runner, the network) writes state directly; React only reads | Two kinds of state to keep in mind |
@@ -497,6 +500,7 @@ The merged view is explained end to end in [`synthesis.md`](synthesis.md). The c
 
 - **A vendor's dialog can still declare `aria-modal`.** Its backdrop covers only its own slot, but a dialog that declares itself modal hides the rest of the canvas from assistive technology.
 - **Test setup is shaped around Primer.** `setupTests.ts` shims exist because `github-catalog`'s Primer components need them under jsdom.
+- **A message in a version the client doesn't speak is dropped.** A relayed message whose version is neither `v0.9` nor `v0.9.1` is passed over with nothing said, and its slot is left as the rest of the answer leaves it.
 - **A loading catalog holds its whole answer.** The gate keeps order by holding everything the answer receives after a batch whose catalog is loading, so other apps' fragments wait behind it too, until the load lands or fails.
 - **Through the tunnel, a reload loads every artifact again.** The tunnel adds its own `Cache-Control: no-cache,no-store` beside the orchestrator's immutable header, so the browser keeps no artifact across reloads there; within a page, each is loaded once.
 - **A design system's own sheets aren't held to the read rule.** They read variables their components set inline through `style`, which a static scan can't see, so the read rule checks only a catalog's own sheets; the write and duplicate rules check every sheet an artifact carries.

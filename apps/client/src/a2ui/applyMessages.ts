@@ -1,4 +1,5 @@
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import {CLIENT_A2UI_VERSION} from '../a2a/messages';
 
 /** The slice of MessageProcessor the applier needs; MessageProcessor satisfies it structurally. */
 export interface A2uiMessageTarget {
@@ -54,7 +55,10 @@ export function applyA2uiMessages(
 function expand(target: A2uiMessageTarget, message: A2uiMessage): A2uiMessage[] {
   const surfaceId = createSurfaceId(message);
   if (surfaceId === undefined || !target.model.getSurface(surfaceId)) return [message];
-  const remove = {version: 'v0.9', deleteSurface: {surfaceId}} as unknown as A2uiMessage;
+  const remove = {
+    version: CLIENT_A2UI_VERSION,
+    deleteSurface: {surfaceId},
+  } as unknown as A2uiMessage;
   // One repaint intent, one try unit: the pair is handed over together so a failure
   // reports once rather than twice.
   return [remove, message];

@@ -161,8 +161,10 @@ describe('a fragment in a catalog the canvas does not hold yet', () => {
   it('advertises the client’s own two catalogs to the orchestrator', async () => {
     const {wiring, sent} = canvasWith(() => Promise.resolve(lateBuild('sha256-late')));
     await wiring.sendUtterance('what needs my attention');
+    // Under each version's key (task-19.3 decision 3).
     expect(sent[0]!.message.metadata?.a2uiClientCapabilities).toEqual({
       'v0.9': {supportedCatalogIds: [BASIC_CATALOG_ID, SHELL_CATALOG_ID]},
+      'v0.9.1': {supportedCatalogIds: [BASIC_CATALOG_ID, SHELL_CATALOG_ID]},
     });
   });
 });

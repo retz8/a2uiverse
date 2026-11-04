@@ -2,8 +2,9 @@
  * Synthetic beat fixtures: hand-authored streams in the recorded `BeatFixture` format — two
  * plain paints, a validation-failure turn (partial paint → cleanup delete → final apology), a
  * declared question paint, a composed turn (shell layout, one slot filling,
- * one flipping to failed), a synthesis turn (two storefronts merged, then re-synthesized
- * after an in-place reorder), a platform answer (the shell answering from its own data model)
+ * one flipping to failed), a composed turn whose fragment's messages are in v0.9.1, a synthesis
+ * turn (two storefronts merged, then re-synthesized after an in-place reorder), a platform answer
+ * (the shell answering from its own data model)
  * and a capability gap (the fixed tile). They are deliberately NOT in `recordings/beats/`
  * and never enter `BEAT_FIXTURES`: they are inputs for the transition tests and the chrome
  * baselines, replayable by name through `?beat=` (see `SYNTHETIC_BEATS`). Recorded beats are
@@ -339,6 +340,77 @@ export const COMPOSED_SOLO_BEAT: BeatFixture = {
             }),
             msg({beginRendering: {surfaceId: 'github:pr-list', root: 'root'}}),
           ],
+          texts: [],
+        },
+      ],
+    },
+  ],
+};
+
+/** A message as a v0.9.1 agent writes it: the message's version `v0.9.1`. */
+const msgV091 = (m: Record<string, unknown>): A2uiMessage =>
+  ({version: 'v0.9.1', ...m}) as unknown as A2uiMessage;
+
+/**
+ * A composed turn whose fragment's messages are in v0.9.1 (task-19.3 decision 6): the hub's layout
+ * in v0.9, as the orchestrator writes its own paints, and GitHub's list in v0.9.1, as an app that
+ * speaks only v0.9.1 writes every paint. Hand-built until a recording of one is taken.
+ */
+export const V091_PAINT_BEAT: BeatFixture = {
+  ...base,
+  name: 'synthetic-v091-paint',
+  beat: 111,
+  title: 'Composed turn, a fragment in v0.9.1',
+  prompt: 'show me my pull requests',
+  turns: [
+    {
+      taskId: 'synthetic-v091-paint',
+      kind: 'utterance',
+      prompt: 'show me my pull requests',
+      action: null,
+      outcome: 'completed',
+      durationMs: 250,
+      batches: [
+        {
+          offsetMs: 0,
+          stamp: {source: 'shell', role: 'shell'},
+          messages: layoutPaint([GITHUB]),
+          texts: [],
+        },
+        {
+          offsetMs: 120,
+          stamp: {source: 'github', role: 'fragment'},
+          messages: [
+            msgV091({
+              createSurface: {
+                surfaceId: 'github:pr-list',
+                catalogId: CATALOG_ID,
+                sendDataModel: true,
+              },
+            }),
+            msgV091({
+              updateComponents: {
+                surfaceId: 'github:pr-list',
+                components: [
+                  {id: 'root', component: 'Stack', direction: 'vertical', children: ['h', 'open']},
+                  {id: 'h', component: 'Heading', text: 'Pull requests'},
+                  {
+                    id: 'open',
+                    component: 'Button',
+                    child: 'open-label',
+                    action: {event: {name: 'open-pull-request', context: {number: 42}}},
+                  },
+                  {id: 'open-label', component: 'Text', text: 'Fix the flaky test'},
+                ],
+              },
+            }),
+          ],
+          texts: [],
+        },
+        {
+          offsetMs: 140,
+          stamp: {source: 'github', role: 'fragment', settled: true},
+          messages: [],
           texts: [],
         },
       ],
@@ -793,6 +865,8 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
       return COMPOSED_SOLO_BEAT;
     case 'composed-question':
       return COMPOSED_QUESTION_BEAT;
+    case 'v091-paint':
+      return V091_PAINT_BEAT;
     case 'synthesis':
       return SYNTHESIS_BEAT;
     case 'navigation':

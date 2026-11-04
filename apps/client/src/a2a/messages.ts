@@ -14,6 +14,9 @@ import type {
   SynthesisPayload,
 } from '@a2uiverse/sdk';
 import {
+  A2UI_CLIENT_CAPABILITIES_KEY,
+  A2UI_VERSIONS,
+  clientCapabilities,
   clientSessionMetadata,
   operationData,
   readPaintMeta,
@@ -30,7 +33,13 @@ import {readClock} from './clock';
  */
 export type A2AStreamEventData = Message | Task | TaskStatusUpdateEvent | TaskArtifactUpdateEvent;
 
-const A2UI_VERSION = 'v0.9' as const;
+/**
+ * The A2UI version the client writes — on every action, error report, operation and data model it
+ * sends, and on the messages it builds for itself. The client's choice, not read from the sdk's
+ * list (phase 19 decision 5): v0.9.1's schemas admit `v0.9` and a v0.9 agent requires it, so no
+ * agent is reached by echoing a fragment's version that is not reached without it.
+ */
+export const CLIENT_A2UI_VERSION = 'v0.9' as const;
 
 /**
  * A2A message-metadata key under which the client's current data model rides
@@ -38,11 +47,9 @@ const A2UI_VERSION = 'v0.9' as const;
  */
 export const A2UI_CLIENT_DATA_MODEL_KEY = 'a2uiClientDataModel';
 
-/**
- * A2A message-metadata key under which the client advertises what it can render, per the A2UI
- * extension spec — attached to every message when the catalog list is known.
- */
-export const A2UI_CLIENT_CAPABILITIES_KEY = 'a2uiClientCapabilities';
+/** Whether a data part's `version` is one the platform speaks, `v0.9` or `v0.9.1` (task-19.3 decision 1). */
+const isSpokenVersion = (version: unknown): boolean =>
+  (A2UI_VERSIONS as readonly unknown[]).includes(version);
 
 function messageMetadata(
   clientDataModel?: A2uiClientDataModel,
@@ -51,7 +58,9 @@ function messageMetadata(
 ): {[k: string]: unknown} {
   const metadata: {[k: string]: unknown} = {};
   if (supportedCatalogIds) {
-    metadata[A2UI_CLIENT_CAPABILITIES_KEY] = {[A2UI_VERSION]: {supportedCatalogIds}};
+    // Under each version's key, as the hub writes an app's entitlement in its place (task-19.3
+    // decision 3).
+    metadata[A2UI_CLIENT_CAPABILITIES_KEY] = clientCapabilities(supportedCatalogIds);
   }
   if (clientDataModel) {
     // Both send paths funnel through here, so this is the one place that sees every payload.
@@ -65,7 +74,7 @@ function messageMetadata(
   return metadata;
 }
 
-/** Wrap an A2UI client action as A2A send params carrying one v0.9 A2UI DataPart. */
+/** Wrap an A2UI client action as A2A send params carrying one A2UI DataPart in the client's version. */
 export function buildActionMessageParams(
   action: A2uiClientAction,
   contextId?: string,
@@ -78,7 +87,7 @@ export function buildActionMessageParams(
       role: 'user',
       messageId: crypto.randomUUID(),
       contextId,
-      parts: [{kind: 'data', data: {version: A2UI_VERSION, action}}],
+      parts: [{kind: 'data', data: {version: CLIENT_A2UI_VERSION, action}}],
       metadata: messageMetadata(clientDataModel, supportedCatalogIds),
     },
   };
@@ -99,7 +108,7 @@ export interface A2uiClientError {
 }
 
 /**
- * Wrap a client-side failure as A2A send params carrying one v0.9 error DataPart. The hub reads
+ * Wrap a client-side failure as A2A send params carrying one error DataPart. The hub reads
  * `code` and `surfaceId`, flips that slot to failed by repainting its own shell surface, and
  * journals the rest.
  */
@@ -115,7 +124,7 @@ export function buildErrorMessageParams(
       role: 'user',
       messageId: crypto.randomUUID(),
       contextId,
-      parts: [{kind: 'data', data: {version: A2UI_VERSION, error}}],
+      parts: [{kind: 'data', data: {version: CLIENT_A2UI_VERSION, error}}],
       metadata: messageMetadata(clientDataModel, supportedCatalogIds),
     },
   };
@@ -140,7 +149,7 @@ export function buildOperationMessageParams(
       role: 'user',
       messageId: crypto.randomUUID(),
       contextId,
-      parts: [{kind: 'data', data: operationData(operation, A2UI_VERSION)}],
+      parts: [{kind: 'data', data: operationData(operation, CLIENT_A2UI_VERSION)}],
       metadata: messageMetadata(clientDataModel, supportedCatalogIds),
     },
   };
@@ -174,6 +183,10 @@ export function buildTextMessageParams(
  * A2UI rides the status message of `Task` / `TaskStatusUpdateEvent` (and the parts of a direct
  * agent `Message`) as version-tagged DataParts. `TaskArtifactUpdateEvent` is ignored — our agents
  * never deliver A2UI as artifacts.
+ *
+ * A message is taken when its version is one the sdk lists, `v0.9` or `v0.9.1`: web_core draws
+ * both through one adapter. A message in any other version is passed over with nothing said
+ * (task-19.3 decisions 1, 2).
  */
 export function extractA2uiMessagesFromEvent(event: A2AStreamEventData): A2uiMessage[] {
   let parts: Part[];
@@ -194,7 +207,7 @@ export function extractA2uiMessagesFromEvent(event: A2AStreamEventData): A2uiMes
       .map(p => p.data as unknown)
       // Keyed off the inline `version` field each A2UI message carries — NOT the
       // DataPart's MIME metadata (the A2A SDK tags version there, not in `data`).
-      .filter((d): d is A2uiMessage => (d as {version?: unknown}).version === A2UI_VERSION)
+      .filter((d): d is A2uiMessage => isSpokenVersion((d as {version?: unknown}).version))
   );
 }
 

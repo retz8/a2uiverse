@@ -6,6 +6,7 @@
  * action dispatch — never a second surface constructor.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import {CLIENT_A2UI_VERSION} from '../../a2a/messages';
 import {resolvedOf} from '../../catalogs/clientCatalogs';
 import type {PaintCopy} from './fragmentHistory';
 
@@ -59,11 +60,14 @@ export function capturePaint(processor: CopySource, surfaceId: string): PaintCop
   };
 }
 
-/** The copy's three wire messages: create, the whole tree, the whole data model. */
+/**
+ * The copy's three wire messages: create, the whole tree, the whole data model — in the client's
+ * version, as the copy carries none of its own (task-19.3 decision 4).
+ */
 export function rebuildMessages(copy: PaintCopy): A2uiMessage[] {
   return [
     {
-      version: 'v0.9',
+      version: CLIENT_A2UI_VERSION,
       createSurface: {
         surfaceId: copy.surfaceId,
         catalogId: copy.catalogId,
@@ -71,14 +75,14 @@ export function rebuildMessages(copy: PaintCopy): A2uiMessage[] {
       },
     },
     {
-      version: 'v0.9',
+      version: CLIENT_A2UI_VERSION,
       updateComponents: {
         surfaceId: copy.surfaceId,
         components: Object.values(copy.tree).map(jsonCopy),
       },
     },
     {
-      version: 'v0.9',
+      version: CLIENT_A2UI_VERSION,
       updateDataModel: {surfaceId: copy.surfaceId, value: jsonCopy(copy.dataModel) ?? {}},
     },
   ] as unknown as A2uiMessage[];
