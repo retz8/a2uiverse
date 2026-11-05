@@ -26,3 +26,17 @@ The turn runner's tests (`canvas/turn/canvasTurn.test.ts`) over the four moments
 ### 4. The client design record names the third thing the client holds of a composition
 
 In `docs/design/client.md`, the paragraph of "Routing by the stamp" that names the two projections the runner reads off the layout paint — the placement map and the roster — gains the third: the words of a source that answered without painting, resting in its collapsed slot in the shell's grey quoting, kept across the presses inside the composition like placement and the roster, gone when the slot is painted loading again or the composition retires; the notice line's per-turn fade stated as the different thing it is. No new row in the design-decisions table.
+
+## Amendments of 2026-11-05
+
+### The live look's question
+
+On the run, beat 9's question, "what's the status of what I'm working on?", left Calendar out of the plan. The live look asked "what's the status of what I'm working on, and is any of it on my calendar?": the join reserved over Linear, GitHub, CircleCI and Calendar, Calendar's column "On calendar", the apps on `stub` signed in as their fake accounts. Calendar answered in words, its slot collapsed on its sentence. After a press on a run in CircleCI's fragment, the run painted in it and the sentence stood in its slot. Amends decision 3.
+
+### Loading again is a change into loading
+
+A source's words go at the repaint that paints its slot loading — `pending`, or no state, with no fragment in it — after it was last painted in a state of another kind: collapsed, failed, waiting on a sign-in or on the update tile. A slot still loading on its first answer keeps the words its source has said, through every repaint of the other slots. Amends decision 2.
+
+### A source whose fragment holds its slot keeps no words for it
+
+A source's words go when its fragment takes its slot, and what it says while its fragment holds the slot is the notice line's alone, so a slot left without its fragment — a refused paint taken down — rests on nothing from earlier answers. The turn runner's tests add the two moments: words said before the paint gone at the paint, and a refused paint taken down leaving its slot with no words. Amends decisions 1 and 3.
