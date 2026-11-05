@@ -9,7 +9,7 @@ import {describe, expect, it} from 'vitest';
 import type {MessageSendParams, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import type {A2AMessageSender} from '../a2a/client';
 import type {A2AStreamEventData} from '../a2a/messages';
-import type {BeatFixture} from '../beats/beatFixtures';
+import {getBeatFixture, type BeatFixture} from '../beats/beatFixtures';
 import {GITHUB_CATALOG_ID} from '../beats/catalogIds';
 import {V091_PAINT_BEAT} from '../beats/syntheticBeats';
 import {CATALOGS} from '../../tests/helpers';
@@ -109,6 +109,26 @@ describe('a fragment whose messages are in v0.9.1', () => {
       version: 'v0.9',
       surfaces: {'github:pr-list': {}},
     });
+  });
+});
+
+describe('a recorded fragment from a v0.9.1-only app', () => {
+  it('beat 35: every message GitHub sent is stamped v0.9.1, and it lands through the same path', async () => {
+    const beat = getBeatFixture(35)!;
+    const batches = beat.turns[0]!.batches.filter(b => b.stamp?.source === 'github.1');
+    const messages = batches.flatMap(b => b.messages).filter(m => !('paintMeta' in m));
+    expect(messages.length).toBeGreaterThan(0);
+    expect(new Set(messages.map(m => m.version))).toEqual(new Set(['v0.9.1']));
+
+    const {wiring, sent} = canvasAnswering(beat);
+    await wiring.sendUtterance(beat.prompt);
+    const runtime = wiring.viewed()!;
+    await expect.poll(() => runtime.store.getState().placement.has('github.1')).toBe(true);
+    const {surfaceId} = runtime.store.getState().placement.get('github.1')!;
+    const surface = runtime.processor.model.getSurface(surfaceId);
+    expect(surface?.defaultCatalog?.id).toBe(GITHUB_CATALOG_ID);
+    // Drawn, nothing reported: the question was the one message sent.
+    expect(sent).toHaveLength(1);
   });
 });
 

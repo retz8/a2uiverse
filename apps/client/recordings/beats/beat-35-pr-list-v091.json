@@ -1,0 +1,846 @@
+{
+  "name": "beat-35-pr-list-v091",
+  "beat": 35,
+  "title": "PR list in v0.9.1",
+  "prompt": "Show me the open pull requests on a2ui-project/a2ui that need review.",
+  "model": "gemini-3.8-flash",
+  "recordedAt": "2026-11-05T10:26:53Z",
+  "contextId": "7b6a4e8a-73d6-4cb5-a70e-22b885daebf5",
+  "chainedFrom": null,
+  "turns": [
+    {
+      "taskId": "4e974aef-bb52-4b64-a110-305d4304f7c2",
+      "kind": "utterance",
+      "prompt": "Show me the open pull requests on a2ui-project/a2ui that need review.",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 2901,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "shell:main",
+                "title": "PRs to review · a2ui-project/a2ui"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "prs"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 3016,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "attribution-prs"
+                    ]
+                  },
+                  {
+                    "id": "attribution-prs",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "source": "github.1",
+                    "child": "prs"
+                  },
+                  {
+                    "id": "prs",
+                    "component": "Slot",
+                    "source": "github.1",
+                    "state": "pending",
+                    "label": "GitHub"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 3068,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "attribution-prs"
+                    ]
+                  },
+                  {
+                    "id": "attribution-prs",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "source": "github.1",
+                    "child": "prs"
+                  },
+                  {
+                    "id": "prs",
+                    "component": "Slot",
+                    "source": "github.1",
+                    "state": "pending",
+                    "label": "GitHub"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 63830,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "title": "PRs needing review — a2ui"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 64375,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "createSurface": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 64727,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 65160,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 65262,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": []
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 65507,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 65652,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": []
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 66014,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 66897,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 68125,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Open pull requests with pending review requests.",
+                    "size": "small"
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 68451,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "row-title"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 68642,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "row-title",
+                      "row-desc",
+                      "row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {}
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 69002,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "row-title",
+                      "row-desc",
+                      "row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 69405,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "row-icon"
+                    ]
+                  },
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 69635,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Request"
+                    }
+                  },
+                  {
+                    "id": "row-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 69870,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "row-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": "semibold"
+                  },
+                  {
+                    "id": "row-desc",
+                    "component": "ActionList.Description",
+                    "text": {
+                      "path": "meta"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 70368,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "row-desc",
+                    "component": "ActionList.Description",
+                    "text": {
+                      "path": "meta"
+                    },
+                    "variant": "block"
+                  },
+                  {
+                    "id": "row-tv",
+                    "component": "ActionList.TrailingVisual",
+                    "children": [
+                      "row-time"
+                    ]
+                  },
+                  {
+                    "id": "row-time",
+                    "component": "RelativeTime",
+                    "datetime": {
+                      "path": "updatedAt"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 70794,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "components": [
+                  {
+                    "id": "row-time",
+                    "component": "RelativeTime",
+                    "datetime": {
+                      "path": "updatedAt"
+                    },
+                    "format": "datetime",
+                    "year": "numeric",
+                    "month": "short",
+                    "day": "numeric",
+                    "hour": "numeric",
+                    "minute": "2-digit",
+                    "timeZoneName": "short"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 71000,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateDataModel": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "path": "/",
+                "value": {}
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        },
+        {
+          "offsetMs": 72724,
+          "messages": [
+            {
+              "version": "v0.9.1",
+              "updateDataModel": {
+                "surfaceId": "github.1:open-prs-needing-review",
+                "path": "/",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 231,
+                      "title": "feat(catalog): add SplitPageLayout to the v0.9.1 catalog",
+                      "meta": "#231 opened by octo-maintainer · Review requested: review-bot",
+                      "updatedAt": "2026-07-20T14:03:10Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 227,
+                      "title": "refactor(schema): replace the legacy component registry with catalog-driven lookup tables across every renderer target",
+                      "meta": "#227 opened by schema-dev · Review requested: octo-maintainer",
+                      "updatedAt": "2026-07-20T10:12:41Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 224,
+                      "title": "docs: clarify updateDataModel binding semantics",
+                      "meta": "#224 opened by docs-writer · Review requested: octo-maintainer",
+                      "updatedAt": "2026-07-18T16:44:12Z",
+                      "repository": "a2ui-project/a2ui"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-d7ua63rWOSNvZjsTBhKrZyvtWRBLA8dX4YwOda4Y_Y0"
+            }
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 72907
+    }
+  ]
+}
