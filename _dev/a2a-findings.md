@@ -142,6 +142,9 @@ No issue or PR on `a2aproject/a2a-python` names the streaming case, searched 202
 
 **Severity:** spec ambiguity — a client that sends `A2A-Extensions` and receives no response header cannot tell an agent that activated nothing from an SDK that does not report what it activated.
 
+**Reported:** `a2aproject/A2A` issue
+[#2428](https://github.com/a2aproject/A2A/issues/2428) (open, no PR).
+
 ### Issue
 
 The extensions topic says the agent names what it activated on the response (lines 183–185): "Once the agent has identified all activated extensions, the response SHOULD include the `A2A-Extensions` header, listing all extensions that were successfully activated for that request." Lines 217–222 show such a response, under "Corresponding response echoing activated extensions".
