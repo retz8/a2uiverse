@@ -65,3 +65,21 @@ The TODO line, when ticked, carries the run's facts as 18.3's does, the upstream
 - The samples are never changed.
 - The Store's state is not changed by the sitting.
 - The update path runs in the real registry, the one the orchestrator keeps in daily use.
+
+## Amendments of 2026-11-05
+
+### The vault around the sitting
+
+The vault is copied aside before the first sign-in. The canvas's sign-ins rebind its expired accounts to the fake accounts. The recorder signs in `<app>.1`, which the sign-in start route refuses once a vault's next number has moved past it, so the daily orchestrator restarts on an empty vault for the recorder's runs. The copy is restored byte for byte at the closing. Amends decisions 4, 5, 7 and 10.
+
+### Shop B's key
+
+Connected from the Mac on `localhost:10001` through the recorder's `signInSource` and the demo key in `DEMO_KEYS`, under the bare app id, not typed on the key page through the tunnel. Amends decision 4.
+
+### The version the ADK finder activates
+
+The finder's log prints the extension URIs the hub requested and that the extension is active, not the version. The version is read from upstream's `try_activate_a2ui_extension`, run on the finder's card and those URIs. Amends decision 6.
+
+### Calendar's reading press
+
+A Calendar fragment holding no event has nothing to press, so its reading press runs on a canvas of its own. Amends decision 4.
