@@ -83,3 +83,7 @@ The finder's log prints the extension URIs the hub requested and that the extens
 ### Calendar's reading press
 
 A Calendar fragment holding no event has nothing to press, so its reading press runs on a canvas of its own. Amends decision 4.
+
+### The temporal merge and the entity join on `deterministic`
+
+On `stub`, Calendar's events predate the day of the run and GitHub's fixtures hold only `a2ui-project/a2ui`, so Calendar feeds no row in the timeline and GitHub no cell in the join. Both cases run again on `deterministic`, one question each on a fresh canvas with its apps signed in, the vault copied and restored around the pass. The reading presses stand from the `stub` run. Amends decision 2.
