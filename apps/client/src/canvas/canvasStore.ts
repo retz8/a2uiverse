@@ -200,9 +200,13 @@ export interface CanvasState {
    */
   roster: readonly RosterEntry[];
   /**
-   * What each source said this turn, by source — kept for the whole turn, where `notices` is
-   * only what is currently *shown*. A slot whose source spoke but never painted rests on this,
-   * so the fact that a source was consulted survives the stack's fade.
+   * What each source said, by source, where `notices` is only what the stack shows for the turn.
+   * A slot whose source spoke but never painted rests on this, so the fact that a source was
+   * consulted survives the stack's fade. The composition's, like the roster (task-19.8 decision
+   * 1): kept across the turns inside it, a source's words gone when a repaint paints its slot
+   * loading again (decision 2), all of them when the composition retires. A source whose fragment
+   * holds its slot keeps none: its words go when the fragment lands, and what it says beside the
+   * fragment is the notice line's alone.
    */
   prose: ReadonlyMap<string, string>;
   /** Bumped per applied batch — re-renders the stage and resets its error boundary. */
@@ -235,7 +239,11 @@ export interface CanvasStore {
   settleInFlight(source: string): void;
   endPaint(): void;
   setQuestion(question: Question): void;
-  /** Merge the slot states a shell paint carried; `null` clears a source's. */
+  /**
+   * Merge the slot states a shell paint carried; `null` clears a source's. A slot painted loading
+   * again — pending, or no state, with no fragment in it, after a state of another kind — takes
+   * its source's words with it.
+   */
   mergeSlotStates(states: ReadonlyMap<string, PaintedSlotState | null>): void;
   /** Merge the sign-in causes a shell paint carried; `null` clears a source's. */
   mergeAuthority(causes: ReadonlyMap<string, AuthorityCause | null>): void;
@@ -264,7 +272,10 @@ export interface CanvasStore {
   setMergeHeld(held: boolean): void;
   /** The merged view's payload arrived partial, or whole; the view taken down is whole no more. */
   setMergeStreaming(streaming: boolean): void;
-  /** The composition retired: its roster, slot states, merge facts and presses go with it. */
+  /**
+   * The composition retired: its roster, slot states, the words its sources said, merge facts and
+   * presses go with it.
+   */
   resetComposition(): void;
   reportError(text: string): void;
   setStage(stageId: string | null): void;
@@ -278,8 +289,6 @@ export interface CanvasStore {
   dismissNotice(key: number): void;
   /** Drop the whole stack — a new turn beginning, or the group's fade expiring. */
   clearNotices(): void;
-  /** Forget what the turn's sources said; the turn is over, not merely faded. */
-  clearProse(): void;
   /** Record the turn's sources in slot order, from the shell paint. */
   setRoster(roster: readonly RosterEntry[]): void;
   bumpApplied(): void;
@@ -380,7 +389,22 @@ export function createCanvasStore(): CanvasStore {
       const notices = state.notices.some(updating)
         ? state.notices.filter(notice => !updating(notice))
         : state.notices;
-      set({slotStates: next, notices});
+      // A source sent again inside the composition: the repaint that paints its slot loading
+      // again — from a state of another kind, so a source still on its first answer keeps what
+      // it has said — takes its words, and the slot shows loading over nothing (task-19.8
+      // decision 2).
+      const loading = (painted: PaintedSlotState | null | undefined) =>
+        painted == null || painted === 'pending';
+      const sentAgain = [...states.keys()].filter(
+        source =>
+          state.prose.has(source) &&
+          loading(states.get(source)) &&
+          !loading(state.slotStates.get(source)) &&
+          !state.placement.has(source),
+      );
+      const prose = sentAgain.length > 0 ? new Map(state.prose) : state.prose;
+      for (const source of sentAgain) (prose as Map<string, string>).delete(source);
+      set({slotStates: next, notices, prose});
     },
     mergeAuthority: causes => {
       if (causes.size === 0) return;
@@ -465,6 +489,7 @@ export function createCanvasStore(): CanvasStore {
       set({
         roster: [],
         slotStates: new Map(),
+        prose: new Map(),
         authority: new Map(),
         escalations: new Set(),
         signingIn: new Set(),
@@ -486,9 +511,12 @@ export function createCanvasStore(): CanvasStore {
       // whitespace, and a blank notice is a box with nothing in it.
       if (!existing && !text.trim()) return;
       if (source !== null) {
-        const prose = new Map(state.prose);
-        prose.set(source, (prose.get(source) ?? '') + text);
-        state = {...state, prose};
+        // Said beside a fragment holding the slot, the words are the notice line's alone.
+        if (!state.placement.has(source)) {
+          const prose = new Map(state.prose);
+          prose.set(source, (prose.get(source) ?? '') + text);
+          state = {...state, prose};
+        }
         // A source on the update tile adds nothing to the notice stack (task-15.11 decision 42).
         if (state.slotStates.get(source) === 'update') return set({});
       }
@@ -512,13 +540,17 @@ export function createCanvasStore(): CanvasStore {
     clearNotices: () => {
       if (state.notices.length) set({notices: []});
     },
-    clearProse: () => {
-      if (state.prose.size) set({prose: new Map()});
-    },
     setRoster: roster => set({roster}),
     bumpApplied: () => set({appliedSeq: state.appliedSeq + 1}),
-    placeFragment: (source, fragment) =>
-      set({placement: new Map(state.placement).set(source, fragment)}),
+    placeFragment: (source, fragment) => {
+      // A fragment in the slot is the answer: the words the slot would have rested on go.
+      let prose = state.prose;
+      if (prose.has(source)) {
+        prose = new Map(prose);
+        (prose as Map<string, string>).delete(source);
+      }
+      set({placement: new Map(state.placement).set(source, fragment), prose});
+    },
     clearPlacement: () => {
       if (state.placement.size) set({placement: new Map()});
     },

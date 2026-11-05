@@ -18,6 +18,7 @@ import {capturePaint} from '../history/paintCopy';
 import {snapshotCatalog} from '../../../tests/snapshot';
 import {resolveCatalog, type ResolvedCatalog} from '../../catalogs/clientCatalogs';
 import {BuildProcessor, createPaintBuilds} from '../../catalogs/paintBuilds';
+import {turnProgress} from '../turnProgress';
 
 const {catalog: CATALOG, id: CATALOG_ID} = await snapshotCatalog('github-catalog');
 
@@ -1588,6 +1589,210 @@ describe("the fragment's history (task 9.7)", () => {
     expect(store.getState().inFlight?.source).toBeUndefined();
     turn.apply(paintedLayout(['github']), SHELL);
     expect(history.visitsOf('github')).toBeUndefined();
+    turn.end();
+  });
+});
+
+describe('the words a source said without painting (task 19.8)', () => {
+  const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
+  const fragment = (source: string): CompositionStamp => ({source, role: 'fragment'});
+  const CALENDAR_WORDS = 'You have no events that mention an issue.';
+
+  /**
+   * The shell's repaint as the orchestrator sends it: the whole tree, every vendor slot in its
+   * attribution, each carrying its state as it stands now.
+   */
+  const repaint = (slots: Array<[source: string, state: string]>) =>
+    msg({
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: [
+          {id: 'root', component: 'Column', children: slots.map(([id]) => `attribution-${id}`)},
+          ...slots.flatMap(([source, state]) => [
+            {
+              id: `attribution-${source}`,
+              component: 'Attribution',
+              source,
+              displayName: source,
+              child: source,
+            },
+            {id: source, component: 'Slot', source, state, label: source},
+          ]),
+        ],
+      },
+    });
+
+  const stepOf = (store: ReturnType<typeof createCanvasStore>, source: string) =>
+    turnProgress(store.getState()).sources.find(step => step.source === source)?.status;
+
+  /**
+   * 19.6's case: GitHub paints its fragment, Calendar answers in words alone and its slot is
+   * painted collapsed, Gmail answers in words alone too. The turn is over.
+   */
+  function answered() {
+    const catalogs = [CATALOG, SHELL_CATALOG];
+    const processor = new MessageProcessor<ReactCatalogComponent>(catalogs);
+    const store = createCanvasStore();
+    const runner = createTurnRunner({
+      processor,
+      store,
+      createStaging: () => new MessageProcessor<ReactCatalogComponent>(catalogs),
+    });
+    const turn = runner.begin(utterance('what is linked to my issues'));
+    turn.apply(paintedLayout(['github', 'calendar', 'gmail']), SHELL);
+    turn.apply(
+      [create('github:pr-list'), textRoot('github:pr-list', 'Pull requests')],
+      fragment('github'),
+    );
+    store.appendProse('calendar', CALENDAR_WORDS);
+    store.appendProse('gmail', 'Nothing in your inbox mentions an issue.');
+    turn.apply(
+      [
+        repaint([
+          ['github', 'pending'],
+          ['calendar', 'collapsed'],
+          ['gmail', 'collapsed'],
+        ]),
+      ],
+      SHELL,
+    );
+    turn.end();
+    return {processor, store, runner};
+  }
+
+  it('a turn begun by a press inside the composition leaves a collapsed slot’s words resting, its step done', () => {
+    const {store, runner} = answered();
+    expect(stepOf(store, 'calendar')).toBe('done');
+
+    const press = runner.begin(surfaceAction('open'));
+    // The notice stack is the turn's: it goes as the press's turn opens.
+    expect(store.getState().notices).toEqual([]);
+    // What the slot rests on is the composition's: it stays.
+    expect(store.getState().prose.get('calendar')).toBe(CALENDAR_WORDS);
+    expect(stepOf(store, 'calendar')).toBe('done');
+
+    press.apply([textRoot('github:pr-list', 'Pull request #12')], fragment('github'));
+    press.apply(
+      [
+        repaint([
+          ['github', 'pending'],
+          ['calendar', 'collapsed'],
+          ['gmail', 'collapsed'],
+        ]),
+      ],
+      SHELL,
+    );
+    press.end();
+    expect(store.getState().prose.get('calendar')).toBe(CALENDAR_WORDS);
+    expect(stepOf(store, 'calendar')).toBe('done');
+  });
+
+  it('a repaint that paints a source’s slot loading again takes its words, and nothing else’s', () => {
+    const {store, runner} = answered();
+    // The Retry pressed: nothing goes at the press.
+    const retry = runner.beginSideStream();
+    expect(store.getState().prose.get('calendar')).toBe(CALENDAR_WORDS);
+
+    retry.apply(
+      [
+        repaint([
+          ['github', 'pending'],
+          ['calendar', 'pending'],
+          ['gmail', 'collapsed'],
+        ]),
+      ],
+      SHELL,
+    );
+    expect(store.getState().prose.has('calendar')).toBe(false);
+    expect(store.getState().prose.get('gmail')).toBe('Nothing in your inbox mentions an issue.');
+
+    // Its next answer starts from nothing, not from the words it said before.
+    store.appendProse('calendar', 'Still nothing.');
+    expect(store.getState().prose.get('calendar')).toBe('Still nothing.');
+  });
+
+  it('a repaint while a source is still answering for the first time leaves the words it has said', () => {
+    const catalogs = [CATALOG, SHELL_CATALOG];
+    const processor = new MessageProcessor<ReactCatalogComponent>(catalogs);
+    const store = createCanvasStore();
+    const runner = createTurnRunner({
+      processor,
+      store,
+      createStaging: () => new MessageProcessor<ReactCatalogComponent>(catalogs),
+    });
+    const turn = runner.begin(utterance('what is linked to my issues'));
+    turn.apply(paintedLayout(['github', 'calendar']), SHELL);
+    store.appendProse('calendar', 'You have no events ');
+    // GitHub failing repaints every slot, Calendar's still loading.
+    turn.apply(
+      [
+        repaint([
+          ['github', 'failed'],
+          ['calendar', 'pending'],
+        ]),
+      ],
+      SHELL,
+    );
+    store.appendProse('calendar', 'that mention an issue.');
+    expect(store.getState().prose.get('calendar')).toBe(CALENDAR_WORDS);
+    turn.end();
+  });
+
+  it('an app that painted keeps no words for its slot: a refused paint taken down leaves the slot loading over nothing', () => {
+    const {store, runner} = answered();
+    // Said beside its fragment: the notice line's alone.
+    store.appendProse('github', 'Four pull requests.');
+    expect(store.getState().notices.some(notice => notice.source === 'github')).toBe(true);
+    expect(store.getState().prose.has('github')).toBe(false);
+
+    const press = runner.begin(surfaceAction('open'));
+    store.appendProse('github', 'Opening #12.');
+    press.apply([del('github:pr-list')], {source: 'github', role: 'fragment', refused: true});
+    expect(store.getState().placement.has('github')).toBe(false);
+    expect(store.getState().prose.has('github')).toBe(false);
+    // Calendar's words are not GitHub's: they stay.
+    expect(store.getState().prose.get('calendar')).toBe(CALENDAR_WORDS);
+    press.end();
+  });
+
+  it('words an app said before it painted go when its fragment takes the slot', () => {
+    const catalogs = [CATALOG, SHELL_CATALOG];
+    const processor = new MessageProcessor<ReactCatalogComponent>(catalogs);
+    const store = createCanvasStore();
+    const runner = createTurnRunner({
+      processor,
+      store,
+      createStaging: () => new MessageProcessor<ReactCatalogComponent>(catalogs),
+    });
+    const turn = runner.begin(utterance('what needs my review'));
+    turn.apply(paintedLayout(['github']), SHELL);
+    store.appendProse('github', 'Here they are.');
+    expect(store.getState().prose.get('github')).toBe('Here they are.');
+    turn.apply(
+      [create('github:pr-list'), textRoot('github:pr-list', 'Pull requests')],
+      fragment('github'),
+    );
+    expect(store.getState().prose.has('github')).toBe(false);
+    turn.end();
+  });
+
+  it('the composition’s retirement takes every source’s words', () => {
+    const {store, runner} = answered();
+    const press = runner.begin(surfaceAction('open'));
+    // The agent clears the canvas: the composition on stage retires with it.
+    press.apply([del('shell:main')]);
+    expect(store.getState().roster).toEqual([]);
+    expect(store.getState().prose.size).toBe(0);
+    press.end();
+  });
+
+  it('a composition after it starts with none', () => {
+    const {store, runner} = answered();
+    const turn = runner.begin(utterance('what is on my calendar'));
+    turn.apply(paintedLayout(['calendar']), SHELL);
+    expect(store.getState().prose.size).toBe(0);
+    // Calendar is asked again in the new composition: loading, not answered.
+    expect(stepOf(store, 'calendar')).toBe('working');
     turn.end();
   });
 });

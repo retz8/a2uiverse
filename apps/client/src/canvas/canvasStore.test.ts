@@ -169,14 +169,30 @@ describe('createCanvasStore', () => {
   it('what a source said outlives the stack it was shown in', () => {
     // The stack fades six seconds after the turn settles, but a slot whose source spoke and
     // never painted rests on those words — so the fact that it was consulted must not fade
-    // with the toast. Only a new turn forgets it.
+    // with the toast. Only the composition's retirement forgets it (task-19.8 decision 1).
     const store = createCanvasStore();
     store.appendProse('github', 'I could not compose that view.');
     store.clearNotices();
     expect(store.getState().notices).toEqual([]);
     expect(store.getState().prose.get('github')).toBe('I could not compose that view.');
-    store.clearProse();
+    store.resetComposition();
     expect(store.getState().prose.size).toBe(0);
+  });
+
+  it('a slot painted loading again takes its source’s words, unless that source is still on its first answer (task-19.8 decision 2)', () => {
+    const store = createCanvasStore();
+    store.mergeSlotStates(new Map([['calendar', 'pending' as const]]));
+    store.appendProse('calendar', 'You have no events');
+    // Still loading on its first answer: a repaint saying so again leaves what it has said.
+    store.mergeSlotStates(new Map([['calendar', 'pending' as const]]));
+    expect(store.getState().prose.get('calendar')).toBe('You have no events');
+    store.mergeSlotStates(new Map([['calendar', 'collapsed' as const]]));
+    store.appendProse('gmail', 'Nothing in your inbox.');
+    store.mergeSlotStates(new Map([['gmail', 'collapsed' as const]]));
+    // Sent again: painted with no state, the slot holding no fragment.
+    store.mergeSlotStates(new Map([['calendar', null]]));
+    expect(store.getState().prose.has('calendar')).toBe(false);
+    expect(store.getState().prose.get('gmail')).toBe('Nothing in your inbox.');
   });
 
   it('a slot that takes the update tile takes its source’s notice with it (task-15.11 decision 42)', () => {
@@ -191,6 +207,16 @@ describe('createCanvasStore', () => {
     expect(store.getState().prose.get('shop-a')).toBe(
       'Shop A has changed and can’t show this here.Still changed.',
     );
+  });
+
+  it('an app whose fragment holds its slot keeps no words for it: its words go when the fragment lands, and what it says beside it is the notice line’s alone (task 19.8)', () => {
+    const store = createCanvasStore();
+    store.appendProse('github', 'Here they are.');
+    store.placeFragment('github', {surfaceId: 'github:prs', source: 'github'});
+    expect(store.getState().prose.has('github')).toBe(false);
+    store.appendProse('github', ' Four open.');
+    expect(store.getState().prose.has('github')).toBe(false);
+    expect(store.getState().notices.map(n => n.text)).toEqual(['Here they are. Four open.']);
   });
 
   it("the shell's own cue is not a source's prose", () => {

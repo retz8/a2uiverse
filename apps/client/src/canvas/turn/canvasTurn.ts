@@ -945,10 +945,10 @@ export function createTurnRunner({
 
     current = handle;
     // The stack belongs to the turn: the previous turn's answers go the moment a new one opens.
-    // The roster the stack is ordered by, and the slot states, belong to the composition — kept
-    // across the actions inside it, gone when it retires (task-8.5 decision 13).
+    // The roster the stack is ordered by, the slot states, and the words a slot rests on belong
+    // to the composition — kept across the actions inside it, gone when it retires (task-8.5
+    // decision 13, task-19.8 decision 1).
     store.clearNotices();
-    store.clearProse();
     // The user's words head the canvas from Enter; an action inside a fragment is a step within
     // the same question, so it leaves the header standing.
     if (cause.kind === 'utterance')
