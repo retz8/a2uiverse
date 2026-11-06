@@ -317,7 +317,7 @@ v1.0 is stable upstream since 2026-11-06 (upstream #3999). Waiting on `@a2ui/rea
 A few small agents in `a2uiverse-apps` built in different ways, none from the agent kit — one hand-written with no A2UI libraries, one on another agent framework — proving A2UIVerse is for any agent on A2UI + A2A. After Phase 20, before Phase 23.
 
 ## Phase 22 — Universal catalogs
-A vendor catalog implemented as custom elements — upstream's universal contract — packed, installed and painted beside the React ones, a design system in Angular behind one; findings 24–26 in `_dev/a2ui-findings.md` are where it starts. Before Phase 23 when time allows, after it otherwise.
+A few small vendor catalogs implemented as custom elements — upstream's universal contract — each built in a different UI framework, Angular among them, packed, installed and painted beside the React ones; which other frameworks, the phase's spec decides; findings 24–26 in `_dev/a2ui-findings.md` are where it starts. Before Phase 23 when time allows, after it otherwise.
 
 ## Phase 23 — Community proposal
 Propose A2UIVerse to the A2UI community. One short live demo of independent agents composed into one application; a guide to bringing your own agent; the proposal itself, from the upstream candidates in SPEC's protocol delta register, in v1.0's vocabulary. After Phase 19, Phase 20 and Phase 21; targeted at January 2027, before 2027-04-26.
