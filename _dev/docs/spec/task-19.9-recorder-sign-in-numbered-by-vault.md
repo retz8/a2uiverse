@@ -40,3 +40,21 @@ The sign-in library's tests over its fake orchestrator: the bare id sent as the 
 ### 7. The words
 
 The recorder's header and the client README's sign-in sentence say the orchestrator numbers the accounts and the vault need not be empty; the transparency check's header says how its direct side pairs; the beat spec's account comment per decision 3. No design record describes the recorder's sign-in, so none changes.
+
+## Amendments of 2026-11-06
+
+### A slot on an account the run did not sign in
+
+A slot on an account the vault holds beside the run's has no fake account to pair with. The transparency check prints that slot as not compared and goes on. A source of an app that asks no sign-in has no pair either, and is sent with no credential. Amends decision 2.
+
+### The account choice in a recording
+
+On the daily vault beat 35's question, a command naming no account for an app holding two, planned the account choice over `github.3` and `github.4`: a recording of the choice with no fragment. The recorder flags a plain beat's take whose layout carries an account choice, naming the app, and exits non-zero, the file still written as a flagged take's is. A lapsed account's sign-in tile beside fragments stays the sign-in line's to say. The recorder's header and the client README say so, and name signing out from the App Library as the way to keep such accounts out of a recording, since signing a lapsed one in takes away its tile and leaves the choice. Amends decisions 5 and 7.
+
+### The transparency check's question on the daily vault
+
+The live run of the check asks "What needs my attention today?" through `--prompt`, a question about state, which gathers from every account. The check's default prompt is the same command as beat 35's, so on this vault it plans the account choice and sends nothing to compare. The client README says so. Amends decisions 6 and 7.
+
+### A re-recording through the moved vault
+
+Beside the recorder's one beat on the vault as it stands, one more take: the accounts the run did not sign in dropped from the vault's file with every next number kept, as signing them out leaves it with no revocation sent, the orchestrator restarted, beat 35 recorded into the scratch directory. Its fragment is `github.4`, every message `v0.9.1`, and beat 35's test passes with that file in the committed recording's place, the committed recording then restored. Amends decision 6.
