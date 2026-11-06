@@ -115,7 +115,13 @@ describe('a fragment whose messages are in v0.9.1', () => {
 describe('a recorded fragment from a v0.9.1-only app', () => {
   it('beat 35: every message GitHub sent is stamped v0.9.1, and it lands through the same path', async () => {
     const beat = getBeatFixture(35)!;
-    const batches = beat.turns[0]!.batches.filter(b => b.stamp?.source === 'github.1');
+    // The account number is the vault's when it was recorded: the fragment's source is read here.
+    const sources = new Set(
+      beat.turns[0]!.batches.flatMap(b => b.stamp?.source ?? []).filter(s => s !== 'shell'),
+    );
+    expect(sources.size).toBe(1);
+    const source = [...sources][0]!;
+    const batches = beat.turns[0]!.batches.filter(b => b.stamp?.source === source);
     const messages = batches.flatMap(b => b.messages).filter(m => !('paintMeta' in m));
     expect(messages.length).toBeGreaterThan(0);
     expect(new Set(messages.map(m => m.version))).toEqual(new Set(['v0.9.1']));
@@ -123,8 +129,8 @@ describe('a recorded fragment from a v0.9.1-only app', () => {
     const {wiring, sent} = canvasAnswering(beat);
     await wiring.sendUtterance(beat.prompt);
     const runtime = wiring.viewed()!;
-    await expect.poll(() => runtime.store.getState().placement.has('github.1')).toBe(true);
-    const {surfaceId} = runtime.store.getState().placement.get('github.1')!;
+    await expect.poll(() => runtime.store.getState().placement.has(source)).toBe(true);
+    const {surfaceId} = runtime.store.getState().placement.get(source)!;
     const surface = runtime.processor.model.getSurface(surfaceId);
     expect(surface?.defaultCatalog?.id).toBe(GITHUB_CATALOG_ID);
     // Drawn, nothing reported: the question was the one message sent.

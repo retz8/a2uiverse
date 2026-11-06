@@ -34,8 +34,8 @@ export interface BeatSpec {
   /** A session of several canvases, through an orchestrator the recorder starts for it. */
   session?: SessionCase;
   /**
-   * The fake accounts the beat signs in as, by app, in account order — otherwise each app's one
-   * (task-12.12 decision 5).
+   * The fake accounts the beat signs in as, by app, signed in in the order named and numbered by
+   * the orchestrator — otherwise each app's one (task-12.12 decision 5).
    */
   accounts?: Accounts;
 }
@@ -118,6 +118,17 @@ export function slotsPainted(batches: readonly BeatBatch[]): Array<Record<string
           );
         }),
   );
+}
+
+/**
+ * The apps a take's layout asks "which account?" for, in place of their fragments: what a command
+ * draws through a vault holding two accounts of its app, and no beat records on purpose.
+ */
+export function accountChoicesIn(batches: readonly BeatBatch[]): string[] {
+  const apps = slotsPainted(batches).flatMap(slot =>
+    typeof slot.chooseAccount === 'string' ? [slot.chooseAccount] : [],
+  );
+  return [...new Set(apps)];
 }
 
 /** Whether a source's fragment paints in `batches`. */

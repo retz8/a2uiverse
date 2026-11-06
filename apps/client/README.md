@@ -166,7 +166,7 @@ pnpm --filter @a2uiverse/client record:beats --model <model> --beats 10-26 [--fa
 pnpm --filter @a2uiverse/client record:beats --model <model> --beats 31-34 [--fault-port 10091]
 ```
 
-Every orchestrator a beat runs through is signed in first, through the real sign-in: a canvas opened with a question about the platform, then each app that asks sign-in signed in from it as the fake account the agent's sign-in page offers it, named on its address instead of chosen — so the apps must be in `deterministic` or `stub` mode. A beat may name its own accounts; an account the orchestrator already holds is left as it is.
+Every orchestrator a beat runs through is signed in first, through the real sign-in: a canvas opened with a question about the platform, then each app that asks sign-in signed in from it as the fake account the agent's sign-in page offers it, named on its address instead of chosen — so the apps must be in `deterministic` or `stub` mode. The orchestrator numbers the accounts, so its vault need not be empty: an account it already holds is left as it is, and any other is added. A beat may name its own accounts, signed in in the order named. The recorder prints which accounts were held or added and any others the orchestrator holds. The Planner plans over those others too: a lapsed one paints a sign-in tile, and a question to one app holding two accounts asks which one instead of painting, which the recorder flags, with the file still written. Sign them out from the App Library first if you want them out of the recording.
 
 Beats 1 to 9 and 27 to 30 run against the apps you have running, 7 and 28 to 30 with the marketplace up. Beats 10 to 26 need the apps in `deterministic` mode (`pnpm dev:all`) and port 10091 free: the recorder starts its own orchestrator there for each, on a state directory of its own, with the case's faults and time limits and the Gemini key in the orchestrator's `.env`. It installs into it every app the orchestrator at `--url` has installed, reads the take's journal lines from its own journal, and retakes a take that doesn't show its case, up to three times. The orchestrator you run is left as it was. Beats 31 to 34 run the same way with the marketplace up, the orchestrator you run launched on the mock roster with `--publish --leave-uninstalled shop-b`: each of the recorder's orchestrators gets only the apps the beat names, installs from the offer by id, connects Shop B's demo key and sends the slot's resume press.
 
@@ -185,10 +185,10 @@ pnpm --filter @a2uiverse/client record:store [--marketplace http://localhost:100
 A2UI_FIXTURE_FORBIDDEN="<real address>,<real name>" pnpm --filter @a2uiverse/client check:fixtures
 ```
 
-**Check the relay changes nothing but what it should.** Against `deterministic` apps, it sends one question through the orchestrator and the same requests straight to each app, and checks the two streams match once the orchestrator's own changes are undone. It signs both sides in first: the orchestrator as the recorder does, and each app straight at its own sign-in page, as the same account. It reaches every app the orchestrator has installed at its card URL, advertising the catalogs the orchestrator advertises to it; `--agents id=url,…` points one elsewhere.
+**Check the relay changes nothing but what it should.** Against `deterministic` apps, it sends one question through the orchestrator and the same requests straight to each app, and checks the two streams match once the orchestrator's own changes are undone. It signs both sides in first: the orchestrator as the recorder does, and each app straight at its own sign-in page, as the same account. It reaches every app the orchestrator has installed at its card URL, advertising the catalogs the orchestrator advertises to it; `--agents id=url,…` points one elsewhere. A slot on an account the orchestrator holds beside those isn't compared. An app with two accounts answers the default question by asking which one, so nothing is sent to compare: give it a question about what's waiting on you with `--prompt`.
 
 ```bash
-pnpm --filter @a2uiverse/client check:transparency
+pnpm --filter @a2uiverse/client check:transparency [--prompt "What needs my attention today?"]
 ```
 
 </details>

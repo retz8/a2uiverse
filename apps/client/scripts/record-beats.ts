@@ -33,8 +33,13 @@
  *
  * Every orchestrator a beat runs through is signed in first, through the real flow (task-12.12
  * decision 5): a canvas opened with a question about the platform, then each app that asks sign-in
- * signed in from it as the fake accounts the beat names, or as its one account. An account the
- * orchestrator in daily use already holds is left as it is.
+ * signed in from it as the fake accounts the beat names, or as its one account. The orchestrator
+ * numbers the accounts, so its vault need not be empty: an account it already holds is left as it
+ * is, on whatever number it has, and any other is added under the next. The sign-in line says which,
+ * and names every account the vault holds besides. The Planner plans over those too: one that lapsed
+ * paints a sign-in tile into the recording, and a command for an app holding two takes the account
+ * choice, no fragment painted, unless they are signed out from the App Library first. A take showing
+ * the account choice is flagged.
  */
 import {mkdir, readFile, stat, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
@@ -51,7 +56,7 @@ import type {
   SessionCase,
   SessionPlatform,
 } from './lib/beats';
-import {BEATS} from './lib/beats';
+import {accountChoicesIn, BEATS} from './lib/beats';
 import {
   createSender,
   drivePress,
@@ -64,7 +69,14 @@ import {
 } from './lib/drive';
 import {startOrchestrator} from './lib/orchestrator';
 import {Session} from './lib/session';
-import {openCanvas, signIn, signInSource, type Accounts} from './lib/signIn';
+import {
+  heldBeside,
+  openCanvas,
+  signIn,
+  signInLine,
+  signInSource,
+  type Accounts,
+} from './lib/signIn';
 
 /** The orchestrator's own defaults (`apps/orchestrator/src/config.ts`), unless a case shortens one. */
 const SOFT_DEADLINE_SECONDS = 10;
@@ -83,9 +95,8 @@ async function signedIn(
   accounts?: Accounts,
 ): Promise<void> {
   const canvas = await openCanvas(sender, catalogIds);
-  const held = await signIn(url, canvas, accounts);
-  const named = held.map(a => `${a.source} as ${a.as}${a.label ? ` (${a.label})` : ''}`);
-  console.log(`  signed in · ${named.join(' · ') || 'no app asks sign-in'}`);
+  const signedInNow = await signIn(url, canvas, accounts);
+  console.log(`  ${signInLine(signedInNow, await heldBeside(url, signedInNow))}`);
 }
 
 /** Group the wanted beats so a chained beat always follows the beat it continues. */
@@ -288,6 +299,12 @@ async function main() {
           ],
         };
         const path = await write(outDir, fixture);
+        const choices = accountChoicesIn(batches);
+        const problem = !ok
+          ? 'no createSurface'
+          : choices.length
+            ? `asks which account of ${choices.join(', ')}, no fragment`
+            : undefined;
         // The client-side first-paint reading (task 6.6 decision 3): the shell's layout, then the
         // first vendor fragment, as offsets from send.
         const paintAt = (test: (b: BeatBatch) => boolean) =>
@@ -295,10 +312,10 @@ async function main() {
         const layoutMs = paintAt(b => b.stamp?.role === 'shell');
         const fragmentMs = paintAt(b => b.stamp?.role === 'fragment' && b.stamp.source !== 'shell');
         console.log(
-          `  ${ok ? 'ok' : 'FLAGGED (no createSurface)'} · ${batches.length} batches · ${driven.durationMs} ms` +
+          `  ${problem ? `FLAGGED (${problem})` : 'ok'} · ${batches.length} batches · ${driven.durationMs} ms` +
             ` · layout ${layoutMs ?? '—'} ms · first fragment ${fragmentMs ?? '—'} ms → ${path}`,
         );
-        if (!ok) flagged += 1;
+        if (problem) flagged += 1;
         chainedFrom = name;
       }
     }

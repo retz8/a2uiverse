@@ -10,9 +10,12 @@
  * On demand only — needs live processes.
  *
  * Both sides are signed in through the real flow (task-12.12 decision 7): the hub first, as the
- * recorder signs it in — each app as its one fake account — and the direct side with a token of
- * its own taken straight from each agent through the non-interactive entry, as the account the
- * slot's source names, or with the app's demo key.
+ * recorder signs it in — each app as its one fake account, numbered by the orchestrator — and the
+ * direct side with a token of its own taken straight from each agent through the non-interactive
+ * entry, or with the app's demo key. The direct side pairs a slot's source with the account from the
+ * hub's sign-in result: the i-th source the hub reported for an app is the i-th fake account named
+ * for it, no number assumed. A slot on an account the vault held beside those has no pair, and is
+ * not compared.
  *
  * The agents compared against are every app the hub has installed, each reached at its card URL
  * and sent the entitlement the hub advertises to it (task-11.6 decision 13); `--agents` overrides
@@ -38,7 +41,14 @@ import type {A2AStreamEventData} from '../src/a2a/messages';
 import {extractStampFromEvent} from '../src/a2a/messages';
 import {createSender, driveTurn, supportedCatalogIds} from './lib/drive';
 import {installedApps} from './lib/registry';
-import {accountsFor, agentHeaders, openCanvas, signIn} from './lib/signIn';
+import {
+  agentHeaders,
+  fakeAccountOf,
+  heldBeside,
+  openCanvas,
+  signIn,
+  signInLine,
+} from './lib/signIn';
 import {BEATS} from './lib/beats';
 
 /** A2A envelope ids and clocks — minted per run on both sides. */
@@ -216,8 +226,9 @@ async function main() {
   }
 
   const hubSender = await createSender(values.hub);
-  const held = await signIn(values.hub, await openCanvas(hubSender, catalogIds));
-  console.log(`hub signed in · ${held.map(a => `${a.source} as ${a.as}`).join(' · ') || '—'}`);
+  const signedIn = await signIn(values.hub, await openCanvas(hubSender, catalogIds));
+  const beside = await heldBeside(values.hub, signedIn);
+  console.log(`hub ${signInLine(signedIn, beside)}`);
   // The canvas signed in from writes its own journal line: wait for it before counting.
   await journalSettled(journal);
 
@@ -272,6 +283,10 @@ async function main() {
 
   // ── The relay comparison, per planned slot ──
   for (const slot of planned) {
+    if (beside.some(account => account.source === slot.source)) {
+      console.log(`\n– ${slot.source}: an account this run did not sign in, not compared`);
+      continue;
+    }
     // A source names the app and the account it painted under: the agent is the app's (task 12.4).
     const named = parseSourceId(slot.source);
     const appId = named?.appId ?? slot.source;
@@ -292,7 +307,7 @@ async function main() {
     const request = sentText(relayed) ?? slot.request;
     console.log(`\ndirect → ${slot.source} @ ${agent.url}`);
     console.log(`  request: ${request}`);
-    const as = accountsFor(appId)[(named?.account ?? 1) - 1];
+    const as = fakeAccountOf(slot.source, signedIn);
     const headers = as ? await agentHeaders(agent.url, as) : {};
     const direct = await driveTurn(
       await createSender(agent.url, agent.path, headers),

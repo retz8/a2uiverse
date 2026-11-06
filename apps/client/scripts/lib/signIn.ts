@@ -6,11 +6,14 @@
  * callback, with the cookie; the attempt polled to its outcome. An app on an API key is given its
  * demo key on the orchestrator's key page. The start route signs in from a canvas the orchestrator
  * holds, so a canvas is opened first, with a question about the platform that dispatches no app.
+ * Each account goes out under the bare app id and the orchestrator numbers it, so no number is ever
+ * guessed (task-19.9 decision 1).
  *
  * The same entry signs a script in straight at an agent, the hub left out: the transparency check's
- * direct side, as the account the hub's slot holds.
+ * direct side, as the account the hub was signed in as for the slot's source.
  */
 import {randomBytes, createHash} from 'node:crypto';
+import {parseSourceId} from '@a2uiverse/sdk';
 import type {A2AMessageSender} from '../../src/a2a/client';
 import {driveTurn} from './drive';
 import {installedApps} from './registry';
@@ -36,14 +39,23 @@ export const DEMO_KEYS: Readonly<Record<string, string>> = {
   'shop-b': 'northlight-demo-key-4f7c2a',
 };
 
-/** An app id → its fake accounts, in account order: the first is `<app>.1`. */
+/** An app id → its fake accounts, signed in in this order and numbered by the orchestrator. */
 export type Accounts = Record<string, string[]>;
 
-/** One account signed in: its source, and what it signed in as. */
+/** One account signed in: the source the vault answered, what it signed in as. */
 export interface SignedIn {
   source: string;
   as: string;
   label: string;
+  /** Whether the vault held this account already; otherwise the sign-in added it. */
+  held: boolean;
+}
+
+/** An account the vault holds that the run did not sign in: the Planner plans a slot for it too. */
+export interface HeldBeside {
+  source: string;
+  label: string;
+  lapsed: boolean;
 }
 
 /** The accounts each app signs in as: the beat's own, otherwise the app's one account. */
@@ -110,7 +122,9 @@ const locationOf = (res: Response, what: string): string => {
 
 /**
  * Sign every installed app that asks sign-in into the orchestrator at `orchestrator`, from
- * `canvas`, as `named` says or as its one account. An account already held is left as it is.
+ * `canvas`, as `named` says or as its one account. Each goes out under the bare app id, the vault
+ * numbering it: an identity it holds lands on its own number, refreshed if it had lapsed, and is
+ * otherwise left as it is; any other is added under the next number.
  */
 export async function signIn(
   orchestrator: string,
@@ -122,12 +136,59 @@ export async function signIn(
   for (const app of await installedApps(orchestrator)) {
     const card = await cardOf(app.cardUrl);
     if (!card.security?.length) continue;
-    const accounts = accountsFor(app.id, named);
-    for (const [i, as] of accounts.entries()) {
-      signedIn.push(await signInOne(orchestrator, origin, canvas, `${app.id}.${i + 1}`, as));
+    for (const as of accountsFor(app.id, named)) {
+      signedIn.push(await signInOne(orchestrator, origin, canvas, app.id, as));
     }
   }
   return signedIn;
+}
+
+/**
+ * Every account the vault holds that `signedIn` does not name. The script cannot sign them in, not
+ * knowing the identity behind them, so they stay as they are.
+ */
+export async function heldBeside(
+  orchestrator: string,
+  signedIn: readonly SignedIn[],
+): Promise<HeldBeside[]> {
+  const res = await fetch(`${orchestrator}/auth/accounts.json`);
+  if (!res.ok) throw new Error(`the accounts read answered ${res.status}`);
+  const apps = (await res.json()) as {accounts: HeldBeside[]}[];
+  const run = new Set(signedIn.map(account => account.source));
+  return apps
+    .flatMap(app => app.accounts)
+    .filter(account => !run.has(account.source))
+    .map(({source, label, lapsed}) => ({source, label, lapsed}));
+}
+
+/** What a run says it signed in, and what the vault holds besides. */
+export function signInLine(signedIn: readonly SignedIn[], beside: readonly HeldBeside[]): string {
+  const named = (label: string) => (label ? ` (${label})` : '');
+  const run = signedIn.map(
+    a => `${a.source} as ${a.as}${named(a.label)}, ${a.held ? 'held' : 'added'}`,
+  );
+  const others = beside.map(a => `${a.source}${named(a.label)}${a.lapsed ? ', lapsed' : ''}`);
+  return [
+    `signed in · ${run.join(' · ') || 'no app asks sign-in'}`,
+    ...(others.length ? [`also held, not signed in · ${others.join(' · ')}`] : []),
+  ].join(' · ');
+}
+
+/**
+ * The fake account the hub was signed in as for `source`: the i-th source reported for an app pairs
+ * with the i-th account named for it. None for an app the run signed nothing in on, or an account
+ * it did not sign in.
+ */
+export function fakeAccountOf(
+  source: string,
+  signedIn: readonly SignedIn[],
+  named: Accounts = {},
+): string | undefined {
+  const appId = parseSourceId(source)?.appId ?? source;
+  const i = signedIn
+    .filter(account => parseSourceId(account.source)?.appId === appId)
+    .findIndex(account => account.source === source);
+  return i < 0 ? undefined : accountsFor(appId, named)[i];
 }
 
 /**
@@ -185,13 +246,19 @@ async function signInOne(
   if (outcome.state !== 'signedIn') {
     throw new Error(`signing ${source} in as ${maskKey(as)} ${outcome.state}`);
   }
-  return {source: outcome.source ?? source, as: maskKey(as), label: outcome.label ?? ''};
+  return {
+    source: outcome.source ?? source,
+    as: maskKey(as),
+    label: outcome.label ?? '',
+    held: outcome.existing === true,
+  };
 }
 
 interface Outcome {
   state: string;
   source?: string;
   label?: string;
+  existing?: boolean;
 }
 
 async function outcomeOf(orchestrator: string, attempt: string): Promise<Outcome> {
