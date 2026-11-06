@@ -31,6 +31,9 @@
  * marketplace up. Each installs from the offer by id, sends `useApp`, connects Shop B's key and
  * sends the slot's resume press.
  *
+ * Beat 35 is task-19.6's: beat 1's question on GitHub's v0.9.1-only card, through the daily
+ * orchestrator as beats 1–9 are, so the client's replay tests hold a recorded paint stamped `v0.9.1`.
+ *
  * Every orchestrator a beat runs through is signed in first, through the real flow (task-12.12
  * decision 5): a canvas opened with a question about the platform, then each app that asks sign-in
  * signed in from it as the fake accounts the beat names, or as its one account. The orchestrator

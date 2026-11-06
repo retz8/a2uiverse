@@ -87,7 +87,7 @@ Who a publisher *is* isn't verified: that `a2uiverse-apps` is who it says is no 
 
 ### 2. Index entry: one per app id
 
-The marketplace serves one **entry** per published app, and lists them all in `index.json`. Here is Shop A's as published:
+The marketplace serves one **entry** per published app, and lists them all in `index.json`. Here is Shop A's, as its second publish left it:
 
 ```jsonc
 // GET /apps/shop-a/entry.json (the card trimmed)
@@ -99,17 +99,17 @@ The marketplace serves one **entry** per published app, and lists them all in `i
     "name": "Shop A",
     "description": "Aperture & Co, a boutique camera dealer stocking hand-picked bodies with condition notes and staff ratings.",
     "url": "http://localhost:12001",
-    "version": "0.1.0",
-    "capabilities": {"extensions": [{"uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+    "version": "0.2.0",
+    "capabilities": {"extensions": [{"uri": "https://a2ui.org/a2a-extension/a2ui/v0.9",
       "params": {"supportedCatalogIds": ["https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json"]}}]},
     "skills": [{"id": "browse-cameras", "name": "Browse cameras", "examples": ["What cameras do you have?", "…"]}, {"id": "store-policy", "…": "…"}],
     "…": "the rest of the card, verbatim"
   },
   "catalogs": {
-    "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json": "sha256-g_rV6uea03i4FKcmkaZxY89apVKhxZHHrzX5Fmor8cs"
+    "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json": "sha256-EwxaM_GVu2VR39tDlkH7sDy6pytF6IkoF-20tWCqf0Q"
   },
-  "versions": ["0.1.0"],
-  "publishedAt": "2026-10-25T09:13:46.127Z",
+  "versions": ["0.1.0", "0.2.0"],
+  "publishedAt": "2026-11-04T11:27:50.771Z",
   "retired": []
 }
 ```
@@ -130,11 +130,11 @@ A2UI has one version for a catalog: its id. A2UIVerse keeps that and adds a leve
 
 ```
 catalog id      https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json      the catalog's only version
-  └ build       sha256-g_rV6uea…                                           one artifact for that id
-card version    0.1.0                                                       the agent's version, on the card
+  └ build       sha256-EwxaM_GV…                                           one artifact for that id
+card version    0.2.0                                                       the agent's version, on the card
 ```
 
-- **A build is an artifact for a held id.** A publisher who fixes a colour in Shop A's catalog packs again, gets a new artifact id, and publishes it under the same catalog id. The marketplace accepts the new build only when its schema is an **additive evolution** of the one held — nothing removed, no type changed, no constraint tightened. Removing a component is not a new build; it's a new catalog id. (The descriptor's `package.version`, `0.1.0` here, is shown and never enforced.)
+- **A build is an artifact for a held id.** Shop A's publisher packed its catalog again, got a new artifact id, and published it under the same catalog id: the build above. The marketplace accepts the new build only when its schema is an **additive evolution** of the one held — nothing removed, no type changed, no constraint tightened. Removing a component is not a new build; it's a new catalog id. (The descriptor's `package.version`, `0.2.2` here, is shown and never enforced.)
 - **The card's `version` is the agent's version.** A publish that changes anything on the card must carry a version this app id has never published. A publish at a version already published must leave the card exactly as it was — builds may still move. A version published before and moved past is refused.
 - **An app's version, as the index and a registry see it,** is the card's version plus each catalog id at its build. That's what the update check compares.
 
@@ -154,7 +154,7 @@ Then it judges the answer as the hub judges a paint: the task reached a terminal
 // GET /apps/shop-a/preview.json (trimmed)
 {
   "appId": "shop-a",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "words": "What cameras do you have?",
   "messages": [
     {"version": "v0.9", "createSurface": {"surfaceId": "list", "catalogId": "https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json", "sendDataModel": true}},
@@ -166,7 +166,7 @@ Then it judges the answer as the hub judges a paint: the task reached a terminal
     {"version": "v0.9", "updateComponents": {"surfaceId": "list", "components": [{"id": "root", "component": "Card", "child": "body"}, "…"]}}
   ],
   "capturedBy": "marketplace",
-  "capturedAt": "2026-10-25T09:13:45.762Z"
+  "capturedAt": "2026-11-04T11:27:50.752Z"
 }
 ```
 
@@ -180,7 +180,7 @@ The orchestrator's install takes a card URL and packed folders, or **the app id 
 
 ```bash
 pnpm --filter @a2uiverse/orchestrator registry install shop-a
-# installed shop-a · card 0.1.0 · catalog sha256-g_rV6uea…
+# installed shop-a · card 0.2.0 · catalog sha256-EwxaM_GV…
 ```
 
 With the id alone the registry reads Shop A's entry from the marketplace, fetches the **live card** from the URL the entry names, reads each artifact's descriptor from the marketplace and fetches **only the files it doesn't already hold** — a file whose hash a held artifact lists is copied from disk. Then the ordinary install core runs: the same gate, the same coverage check, the same record, with one more field:
@@ -190,10 +190,10 @@ With the id alone the registry reads Shop A's entry from the marketplace, fetche
 {
   "id": "shop-a",
   "cardUrl": "http://localhost:12001/.well-known/agent-card.json",
-  "card": {"name": "Shop A", "url": "http://localhost:12001", "version": "0.1.0", "…": "…"},
-  "catalogs": {"https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json": "sha256-g_rV6uea03i4FKcmkaZxY89apVKhxZHHrzX5Fmor8cs"},
+  "card": {"name": "Shop A", "url": "http://localhost:12001", "version": "0.2.0", "…": "…"},
+  "catalogs": {"https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json": "sha256-EwxaM_GVu2VR39tDlkH7sDy6pytF6IkoF-20tWCqf0Q"},
   "entitlement": ["https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json", "https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json"],
-  "installedAt": "2026-10-25T09:13:46.279Z",
+  "installedAt": "…",
   "source": "marketplace"
 }
 ```
@@ -238,6 +238,8 @@ flowchart TD
     I --> Q["6. A question composes Shop A,<br/>exactly as a local install would"]
     Q --> U["7. The update check: up to date,<br/>until the publisher ships again"]
 ```
+
+This is Shop A's first publish, from the launch of 2026-10-25, at card `0.1.0` and the build of that day. [The entry above](#2-index-entry-one-per-app-id) is where its second publish left it.
 
 **1. The publisher claims a name.** Once per marketplace. In the launch the launcher did it for the roster — `dev:agents — claimed a2uiverse-apps at http://localhost:10002` — and the marketplace's log said `claimed a2uiverse-apps`. The token went into the launcher's own publisher file; a person's would go into `~/.config/stellify/publisher.json`.
 
@@ -406,7 +408,7 @@ STATE_DIR/
     index.json                      every entry, regenerated after each write
     apps/shop-a/entry.json
     apps/shop-a/preview.json
-    artifacts/sha256-g_rV6uea…/     artifact.json, index.js, catalog.json, dist/theme.css
+    artifacts/sha256-EwxaM_GV…/     artifact.json, index.js, catalog.json, dist/theme.css
   publishers.json                   the ledger, owner-only, never served
   models/                           the embedding model's cache
 ```

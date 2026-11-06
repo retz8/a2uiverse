@@ -19,7 +19,7 @@ Many agents on one UI, an agent marketplace, and full apps composed from agents:
 
 ## Your A2UI agent, unchanged
 
-A2UI's [who-is-it-for page](https://a2ui.org/introduction/who-is-it-for/#3-platform-builders-sdk-creators) asks platform builders: "Do you ship your agent into other apps you don't necessarily control?" Upstream's own restaurant finder was shipped into this one with no change to its code, from its card's address alone.
+A2UI's [who-is-it-for page](https://a2ui.org/introduction/who-is-it-for/#3-platform-builders-sdk-creators) asks platform builders: "Do you ship your agent into other apps you don't necessarily control?" Upstream's own restaurant finder was shipped into this one with no change to its code, from its card's address alone. An agent on A2UI v0.9 or v0.9.1 joins the same way: upstream's Python restaurant finder, whose card declares v0.8 beside v0.9, was installed from its address too, its v0.9 entry read and its v0.8 one passed over.
 
 <p align="center">
   <img src="docs/images/ecosystem-run-question.gif" width="800" alt="The question asked with no restaurant app installed: Calendar's agenda in one slot, the Store's offer of Restaurant Agent in the other, Install through the consent card, and the slot filled with five Chinese restaurants in New York beside the agenda">
@@ -195,7 +195,7 @@ Each model and its effort is a default, set by a variable:
 
 ## Built on
 
-A2UIVerse speaks the A2UI protocol at v0.9.1, on the packages the A2UI project publishes:
+A2UIVerse speaks the A2UI protocol at v0.9 and v0.9.1, on the packages the A2UI project publishes:
 
 | Package          | Version | Used by                                                                                                      |
 | ---------------- | ------- | ------------------------------------------------------------------------------------------------------------ |
@@ -209,7 +209,7 @@ The two npm packages carry local patches, described in the [client README](apps/
 
 ## Where it's headed
 
-- **A2UI v1.0**: the full move once upstream declares v1.0 stable; before it, agents on v0.9 welcome beside the v0.9.1 ones.
+- **A2UI v1.0**: the full move once upstream declares v1.0 stable.
 - **A proposal to the A2UI community**: the deviations the [protocol delta register](SPEC.md#protocol-delta-register-seed) tags as upstream candidates, written up for upstream, with a guide to bringing your own agent.
 - **The apps' agents on Claude**, once the kit's three limits on it are fixed.
 

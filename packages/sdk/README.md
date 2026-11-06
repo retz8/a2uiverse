@@ -143,7 +143,7 @@ contracts/catalog-artifact.schema.json    the artifact descriptor's JSON Schema;
 contracts/marketplace.json                the marketplace contracts' terms — routes, publisher, ownership, versions, evolution, retirement, ahead of the Store, the smoke test, the wire bodies
 contracts/marketplace-entry.schema.json   the index entry's JSON Schema; the package compiles its mirror
 contracts/marketplace-preview.schema.json the captured preview's JSON Schema; the package compiles its mirror
-a2ui-spec/                                a pinned copy of A2UI v0.9.1's common types, capabilities and basic catalog, and upstream's v0.9 validator cases with the catalog they read
+a2ui-spec/                                a pinned copy of A2UI v0.9.1's common types, capabilities and basic catalog, v0.9's server capabilities beside them, and upstream's v0.9 validator cases with the catalog they read
 js/                                       the TypeScript package
 ```
 

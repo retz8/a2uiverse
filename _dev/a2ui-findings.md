@@ -940,3 +940,116 @@ Resolve a child from the node the host holds — `node.context.surface` and web_
 `NodeResolver`, as `renderA2uiNode` does for universal elements — and fall back to the service's
 processor only when the host has no node; and set `node` and `context` on the component host
 element for native entries as `setupWebComponent` does for universal ones.
+
+## 27. The extension specification names one URI per version; a card carrying several has only samples and a helper to go by (spec, samples/agent/adk, a2ui-a2a)
+
+**Component:** at `upstream/main` `551bd0f48`: `specification/v0_9/docs/a2ui_extension_specification.md`
+and `specification/v0_9_1/docs/a2ui_extension_specification.md`, line 11 ("The URI of this extension
+is …"); `samples/agent/adk/restaurant_finder/agent.py`, line 77 (the versions it runs) and lines 111–121
+(`_build_agent_card`, one entry for each); `python/a2ui_a2a/src/a2ui/a2a/extension.py`, line 121
+(`_select_newest_a2ui_extension`) and line 146 (`try_activate_a2ui_extension`).
+
+**Severity:** specification gap — nothing is blocked, and the rule the code follows works. A client
+written from the specification alone has no way to know what a card with several entries means.
+
+**Reported:** not filed; a candidate for the community proposal, beside finding 12.
+
+### Issue
+
+Each version's extension specification has one "Extension URI" section naming one URI: "The URI of this
+extension is https://a2ui.org/a2a-extension/a2ui/v0.9", and the same with `v0.9.1`. Its example card has
+one entry. Neither says that a card may carry an entry per version, what a client does with an entry for
+a version it does not speak, which versions a client names in its request, or which one an agent answers
+in when it is named several. The v1.0 specification says "A2A gives each version its own extension URI"
+(`specification/v1_0/extensions/a2a/docs/a2ui_extension_specification.md`, line 17) and stops there too.
+
+The code assumes several:
+
+- The ADK restaurant finder runs v0.8 and v0.9 and declares one entry for each, each naming that
+  version's basic catalog id.
+- `try_activate_a2ui_extension` "Activates the newest A2UI extension that the client requests and the
+  agent advertises", matching URIs exactly. The conformance suite holds it to that
+  (`conformance/extensions/a2a/a2a_integration.yaml`, `test_select_newest`, line 93).
+- The Python agent guide's "Multiple Version Support" (`python/a2ui_agent/agent_development.md`, line 584)
+  tells an agent to list each version in its card and negotiate through the helper.
+
+So the agent's half has a rule, in code and in a guide. The client's half has none, and two things follow:
+
+- A client that reads only the entry for its own version takes a card declaring catalogs under another
+  version's URI as declaring none.
+- A client naming v0.9.1 alone activates nothing on the finder's card, though v0.9.1's message schemas
+  admit the `v0.9` the agent would answer in. It has to name v0.9 too.
+
+A2UIVerse names the v0.9 and v0.9.1 URIs on every request and reads a card per version: entries under
+those two URIs count; an entry for any other version is passed over; a version with no entry of its own
+takes the other's catalog ids; each paint is checked against the ids of the version it is stamped with.
+
+This reads beside finding 12, the sibling gap on the capabilities key: that one is how an entry's params
+are keyed, this one is which entries there are.
+
+### Reproduction
+
+Run at `9e8a9bac5`, where the sample, the helper and both specifications' URI lines read as they do at
+`551bd0f48`. In `samples/agent/adk/restaurant_finder`, with an API key as its README says:
+
+```bash
+uv run . --port 11006
+curl -s http://localhost:11006/.well-known/agent-card.json | jq -c '.capabilities.extensions[] | {uri, params}'
+# {"uri":"https://a2ui.org/a2a-extension/a2ui/v0.8","params":{"supportedCatalogIds":["https://a2ui.org/specification/v0_8/standard_catalog_definition.json"]}}
+# {"uri":"https://a2ui.org/a2a-extension/a2ui/v0.9","params":{"supportedCatalogIds":["https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"]}}
+```
+
+The helper, against that card:
+
+```python
+from types import SimpleNamespace
+
+from a2a.types import AgentCard
+from a2ui.a2a import try_activate_a2ui_extension
+
+BASE = "https://a2ui.org/a2a-extension/a2ui/"
+card = AgentCard.model_validate(card_json)  # the card fetched above
+
+
+def activate(*versions):
+    context = SimpleNamespace(
+        requested_extensions=[BASE + v for v in versions],
+        message=None,
+        add_activated_extension=lambda uri: None,
+    )
+    return try_activate_a2ui_extension(context, card)
+
+
+activate("v0.9", "v0.9.1")  # A2uiProtocolVersion.V0_9
+activate("v0.8", "v0.9")  # A2uiProtocolVersion.V0_9
+activate("v0.9.1")  # None
+```
+
+Live, on 2026-11-05, the sample on `gemini-3.6-flash` was installed into A2UIVerse from that URL alone. Its
+v0.8 entry was passed over and the catalogs it may paint in were the v0.9 basic catalog alone. Its log
+showed the v0.9 and v0.9.1 URIs requested and `v0.9` activated, and "Find me an Italian restaurant" painted
+its list.
+
+### Fix
+
+Say it in the extension specification; the agent's half needs no code change. A card carries one entry
+per version the agent speaks, each under that version's URI, its params holding for that version. A client
+reads the entries for the versions it speaks and passes over the rest, and names every version it speaks.
+An agent answers in the newest version named that its card advertises, the rule the helper and the
+conformance suite already hold.
+
+Whether a client naming v0.9.1 alone should reach a v0.9 card is a choice for that text: the helper says
+no, and the v0.9.1 message schemas would allow it.
+
+### Prior art
+
+PR [#936](https://github.com/a2ui-project/a2ui/pull/936) ("A2ui extension selection", merged 2026-03-25),
+its commit "Select the newest compatible A2UI extension version during activation", brought the rule into
+the SDK, right after PR [#926](https://github.com/a2ui-project/a2ui/pull/926) ("Refactor A2UI extension
+activation"), whose description reads "The agents may support multiple versions of A2UI extensions". Closed
+issue
+[#700](https://github.com/a2ui-project/a2ui/issues/700) ("Migrate all agent samples to support both v0.9
+and v0.8") asked for the samples. Open PR [#2033](https://github.com/a2ui-project/a2ui/pull/2033) ("remove
+a2a extension activation entirely in v1.0") would take activation out of v1.0, the helper's input with it.
+No issue or pull request on `a2ui-project/a2ui` asks what a card with several entries means, searched on
+2026-11-06.

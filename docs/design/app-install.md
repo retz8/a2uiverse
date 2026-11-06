@@ -44,12 +44,12 @@ An A2A agent describes itself in an **agent card**, a JSON document it serves at
   "name": "GitHub",
   "description": "Reads and acts on your GitHub: finds the pull requests that need you, …",
   "url": "http://localhost:11001",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "capabilities": {
     "streaming": true,
     "extensions": [{
       "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
-      "params": {"supportedCatalogIds": ["https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json"]}
+      "params": {"v0.9.1": {"supportedCatalogIds": ["https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json"]}}
     }]
   },
   "skills": [
@@ -202,7 +202,7 @@ Stellify bundles the built entry, copies every stylesheet the code reaches, runs
 pnpm --filter @a2uiverse/orchestrator registry install github \
   http://localhost:11001/.well-known/agent-card.json \
   ../a2uiverse-apps/github/github-catalog/dist/artifact
-# installed github · card 0.1.0 · catalog sha256-o0lcA0wt…
+# installed github · card 0.2.0 · catalog sha256-o0lcA0wt…
 ```
 
 The command reads the artifact folder, base64-encodes every file, and posts `{appId, cardUrl, catalogs: [{files}]}` to `POST /registry/install` with the write token. The files travel in the request: the orchestrator never reads a path it's handed. It fetches the card, then checks the app, collecting every finding before it answers and refusing the whole app on any:
@@ -222,7 +222,7 @@ The command reads the artifact folder, base64-encodes every file, and posts `{ap
 {
   "id": "github",
   "cardUrl": "http://localhost:11001/.well-known/agent-card.json",
-  "card": {"name": "GitHub", "url": "http://localhost:11001", "version": "0.1.0", "…": "the card as fetched, verbatim"},
+  "card": {"name": "GitHub", "url": "http://localhost:11001", "version": "0.2.0", "…": "the card as fetched, verbatim"},
   "catalogs": {"https://github.com/…/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-o0lcA0wt5e2S9Jv8bXLb47m3_4kvXVto2Bx9zD4tyLM"},
   "entitlement": ["https://a2ui.org/…/basic/catalog.json", "https://github.com/…/github-catalog/catalogs/v0.9.1/catalog.json"],
   "installedAt": "2026-10-03T00:49:11.509Z",
@@ -230,7 +230,7 @@ The command reads the artifact folder, base64-encodes every file, and posts `{ap
 }
 ```
 
-`source` says where the install came by: `local` for a pack handed from disk, `marketplace` for an install by id. Install answers with one line saying what changed, `installed github · card 0.1.0 · catalog sha256-o0lcA0wt…`, and the journal gets a line of kind `registry`. Nothing restarts: the Router ranks GitHub on the very next question, and the Planner's `installed_apps` reader lists it.
+`source` says where the install came by: `local` for a pack handed from disk, `marketplace` for an install by id. Install answers with one line saying what changed, `installed github · card 0.2.0 · catalog sha256-o0lcA0wt…`, and the journal gets a line of kind `registry`. Nothing restarts: the Router ranks GitHub on the very next question, and the Planner's `installed_apps` reader lists it.
 
 **5. A question routes to GitHub.** You ask _"What pull requests need my review?"_. The Router ranks GitHub's card against it (one of its skills' examples is that very question), and the Planner dispatches to it. The AgentsPool reads GitHub's record once, as the dispatch starts, and sends the Planner's request with GitHub's entitlement as the message's `a2uiClientCapabilities`, each version's set under its own key:
 
