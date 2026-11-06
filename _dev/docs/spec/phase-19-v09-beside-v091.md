@@ -61,6 +61,8 @@ The existing row in SPEC §14 on the capabilities key — the v0.9.1 schemas key
 
 The README's section for an outside agent says that an A2UI agent on v0.9 or v0.9.1 joins as it is, pointing at the ADK finder's install from decision 9 — the v0.8 entry beside the v0.9 one on a real upstream card — as its proof. Nothing else on the page changes; Phase 20 rewrites the sentence for v1.0.
 
+*Amended by task 19.7 decisions 1 and 2, on 2026-11-06.* Beside the one sentence, two phrases the phase makes stale are corrected: "Built on" says the platform speaks the A2UI protocol at v0.9 and v0.9.1, and the v1.0 bullet under "Where it's headed" loses its clause on agents on v0.9. The sentence names the finder's install in prose and links nowhere.
+
 ### 13. Finding 27, unreported
 
 Recorded in `_dev/a2ui-findings.md`: the A2UI extension specification names one URI per version and says nothing of a card carrying several entries or of how a client chooses among them, while upstream's own ADK sample declares two and a2ui-a2a's activation helper assumes several and picks the newest the client requested; the platform's reading rule from decision 3 is what A2UIVerse does about it. Marked a candidate for the community proposal in Phase 22 and not filed as an issue now: a specification gap with a working de-facto rule, not a bug that blocks anyone. It reads beside finding 12, the sibling gap on the capabilities key.

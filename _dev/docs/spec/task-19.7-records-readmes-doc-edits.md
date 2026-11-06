@@ -52,3 +52,29 @@ The Backlog's line from 18.3 on the card read under the v0.9.1 extension's URI a
 - `pnpm verify` green in each repo touched.
 - CLAUDE.md's Authority Rule — v0.9.1 the primary authority — stays as it is.
 - The TODO's done line records what the check found.
+
+## Amendments of 2026-11-06
+
+### Where the sentence lands
+
+The README's opening paragraph opens on the who-is-it-for page's question, so the sentence right after the Node finder's install is the paragraph's third by count, not its second. Amends decision 2.
+
+### What moves with the two excerpts
+
+An excerpt beside text still on its earlier version reads as a state the platform refuses: a preview at another version than the card is a refusal at publish. So the check moves what stands on the same card.
+
+- **The app-install record.** The walk that installs GitHub's card, its install line, its record and the sentence quoting the line, at card `0.2.0`. The catalog's build stays `sha256-o0lcA0wt…` at its fifteen sites: the record's descriptor excerpt is one pack, and no sentence says it is the Store's current one. The "Install summary" section's lines show the line's shape and stay.
+- **The marketplace record.** Beside the entry and §3's illustration, §4's preview at `0.2.0` with its capture time, §5's install line and record, and the state directory's artifact folder, on the Store's `sha256-EwxaM_GV…`; the descriptor's package version `0.2.2`. The record's `installedAt` is elided: the real registry holds no Shop A today. "One app, publish to install" stays Shop A's first publish, at card `0.1.0` and that day's build, a first publish being what it walks; one sentence at its head says so.
+
+Amends decision 6.
+
+### What else the check found
+
+- **The sdk README.** `a2ui-spec/` names v0.9's server capabilities, pinned beside v0.9.1's since 19.1.
+- **Two catalog READMEs and a template.** Gmail's "targets A2UI v0.9.1" follows its app to v0.9; Calendar's and the scaffolder's custom catalog template name both. GitHub's stands. The `catalogs/v0.9.1/` paths are catalog ids and stay.
+
+Everything else the check read holds against the code: the sections Phase 19 touched in the app-install, agent-kit, marketplace, client and orchestrator records, the Stellify, client, apps roster and kit READMEs, and every other version sentence.
+
+### What finding 27 adds to its three sites
+
+The finding also cites the conformance suite's `test_select_newest` and the Python agent guide's "Multiple Version Support": the agent's half has its rule written there, and the gap is the client's half and the specification. Its helper snippet was run at `9e8a9bac5` against the sample's own card. Amends decision 5.
