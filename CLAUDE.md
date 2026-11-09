@@ -5,9 +5,11 @@
 > **INSTRUCTION FOR ALL AGENTS — do this before any task:**
 >
 > 1. **Read [SPEC.md](SPEC.md) in full.** It is the authoritative design for this project.
-> 2. **For work on the shell catalog, a vendor catalog, or a renderer:** also read [.claude/skills/a2ui-sdk-design/SKILL.md](.claude/skills/a2ui-sdk-design/SKILL.md) in full.
+> 2. **For authoring, refactoring or reviewing TypeScript — the client, the orchestrator, the marketplace, the sdk, the shell catalog, a vendor catalog:** read [.claude/skills/coding-principles/SKILL.md](.claude/skills/coding-principles/SKILL.md) and follow its routing.
+> 3. **For moving code to a newer A2UI SDK or protocol version:** read [.claude/skills/a2ui-migration/SKILL.md](.claude/skills/a2ui-migration/SKILL.md) in full.
+> 4. **For writing a README, a design record, a doc or a PR description:** read [.claude/skills/natural-writing/SKILL.md](.claude/skills/natural-writing/SKILL.md) in full.
 
-This file (`CLAUDE.md`) holds only the **operational rules** not covered elsewhere. It does **not** restate the project design (that lives in SPEC.md) or the spec-navigation/design mechanics (those live in the `a2ui-sdk-design` skill).
+This file (`CLAUDE.md`) holds only the **operational rules** not covered elsewhere. It does **not** restate the project design (that lives in SPEC.md) or the coding and writing standards (those live in the skills under `.claude/skills/`).
 
 `a2uiverse` is the **platform** of A2UIVerse — `apps/` client (canvas shell) · orchestrator · marketplace, and `packages/` sdk (the app contract vendors depend on) · shell-catalog. It is a **downstream consumer** of the A2UI and A2A protocols — not the protocol repo. The protocol, schemas, and standard catalogs live in the sibling fork at `../A2UI/`, which tracks `a2ui-project/a2ui` via its `upstream` remote. Read the spec from the `upstream/main` ref (see §2), not the fork's working tree.
 
@@ -35,7 +37,11 @@ This project targets a single protocol version at a time.
 - **Refresh the spec:** Include the phrase **"sync spec"** in your prompt. A `UserPromptSubmit` hook (`.claude/hooks/sync-spec-hook.sh`, wired in `.claude/settings.json`) runs a non-destructive `git fetch upstream` that updates the `upstream/main` ref without touching the fork's working tree or branch.
 - Do not hardcode schema contents; read them from the `upstream/main` ref dynamically.
 - **Protocol deviations** are recorded in the protocol delta register in SPEC.md §14, tagged *local convention* or *upstream candidate*. Add every new deviation there.
-- **How to read the spec** (paths, git commands, critical source-of-truth files): see the `a2ui-sdk-design` skill's "Specifications Navigation".
+- **How to read the spec.** From the `upstream/main` ref of `../A2UI`, never its working tree, which is usually on a feature branch:
+  - list a tree: `git -C ../A2UI ls-tree -r --name-only upstream/main specification/`
+  - read a file in full: `git -C ../A2UI show upstream/main:specification/v0_9_1/json/server_to_client.json`
+  - search: `git -C ../A2UI grep <pattern> upstream/main -- specification/`
+- **Critical sources of truth** under `specification/<version>/`, each read in full for the targeted version: the JSON schemas (`json/server_to_client.json` for stream envelopes, `client_to_server.json` for action events, `common_types.json` for the dynamic binding primitives and the other `$defs`); the catalogs (`catalogs/<name>/catalog.json`, bundled under the version for v0.9 and v0.9.1 and under the repo's `catalogs/` from v1.0; the basic catalog is the structural reference when authoring one); the protocol semantics (`docs/a2ui_protocol.md`); the SDK architecture (`docs/sdks_spec.md`: the core SDK, the inference SDK, the framework adapters); the basic catalog implementation guide (`docs/basic_catalog_implementation_guide.md`); custom functions (`docs/a2ui_custom_functions.md`); the conformance suite (`test/`) the sdk's validator is measured against.
 
 ---
 
@@ -45,7 +51,9 @@ This project targets a single protocol version at a time.
 - **No disposition popups — always plain chat.** Never use the `AskUserQuestion` tool to present dispositions, decisions, or choices. Lay out the options, tradeoffs, and a recommendation as plain chat text so the user keeps full flexibility to respond however they want.
 - **Local only.** Everything runs as local processes in separate terminals. Nothing in this project is deployed.
 
-Catalog-authoring and renderer-design conventions live in the `a2ui-sdk-design` skill (read per the top instruction before that work).
+Vocabulary: a **catalog** is the package pairing a `catalog.json` with its framework implementation, named `<vendor>-catalog` (the shell's own is `shell-catalog`); the **catalog schema** is the `catalog.json` and the **catalog implementation** the framework code that renders it, upstream's terms; an **adapter** is upstream's word for the framework layer only (`@a2ui/react` is the React adapter), never a catalog package here.
+
+Catalog-authoring and renderer conventions live in the `coding-principles` skill's TypeScript subskills — A2UIVerse's own in `.claude/skills/coding-principles/subskills/typescript/a2uiverse-catalog-conventions.md` — and the component design flow in `design-catalog-component` and `build-catalog-component`.
 
 ### Setup and gates
 
@@ -70,6 +78,6 @@ The dev workflow (phases → sub-tasks, dispatch, branching, wrap-up) lives in t
 ## 4. Maintenance & Update Policy
 
 - **SPEC.md is the source of truth for design.** When a design decision changes, update SPEC.md — not this file.
-- Keep this file and the `a2ui-sdk-design` skill synchronized with the targeted protocol version as the project evolves.
-- When the targeted A2UI version changes, update the Authority Rule in both this file and the skill.
+- Keep this file synchronized with the targeted protocol version as the project evolves. The skills copied from upstream (`a2ui-migration`, `coding-principles`, `natural-writing`) each open with a provenance line naming the upstream path and commit; refresh one by re-copying it from upstream, keeping A2UIVerse's own additions apart from the copy.
+- When the targeted A2UI version changes, update the Authority Rule in this file.
 - Suggest documentation updates to the user at the end of a task if any change affects documented files.

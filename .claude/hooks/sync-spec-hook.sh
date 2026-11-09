@@ -48,5 +48,5 @@ if git -C "$A2UI_DIR" rev-parse --verify --quiet main >/dev/null; then
   fi
 fi
 
-echo "[sync-spec hook] read the spec from the 'upstream/main' ref (see .claude/skills/a2ui-sdk-design/SKILL.md)."
+echo "[sync-spec hook] read the spec from the 'upstream/main' ref (see CLAUDE.md §2)."
 exit 0

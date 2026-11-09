@@ -152,8 +152,8 @@ Walk every real prop (plus any synthetic prop introduced below) and make one dec
   the prop does. Never name the design system or renderer; the description is read by the
   generating agent, which has no use for that detail.
 
-Only **spec-navigation** — reading the upstream protocol spec itself — points out to the
-`a2ui-sdk-design` skill. The conventions above are self-contained here.
+Only **spec-navigation** — reading the upstream protocol spec itself — points out to
+`CLAUDE.md` §2. The conventions above are self-contained here.
 
 ### Design call
 
