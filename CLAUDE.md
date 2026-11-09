@@ -50,7 +50,7 @@ Catalog-authoring and renderer-design conventions live in the `a2ui-sdk-design` 
 ### Setup and gates
 
 - **Fresh clone:** `pnpm install` at the root (Node ≥ 22; Corepack resolves the pinned pnpm).
-- **Gates:** `pnpm verify` — `turbo run build typecheck test`, then `eslint .` and `prettier --check .`. Must be green before any commit lands on `main`.
+- **Gates:** `pnpm verify` — `turbo run build typecheck test`, then `eslint .` and `prettier --check .`. Must be green before any commit that touches code lands on `main`. A commit that touches only documents — `_dev/`, `docs/`, READMEs, `SPEC.md`, this file — needs only `prettier --check` on the files it changes.
 - **Run:** `pnpm dev` starts all three processes; `pnpm --filter @a2uiverse/<app> dev` runs one. Ports and tunnel URLs: `_dev/docs/tunnel-environment.md`.
 
 ### Daily-work harness
