@@ -59,7 +59,7 @@ Where `@a2a-js/sdk` contradicts a decision in this spec, or refuses an agent tha
 
 Three cases were known when this spec was written, from reading the SDK's source at tag `v1.3.0` without running it:
 
-1. With several interfaces on one binding and version, 1.3.0 picks the last ([issue 734](https://github.com/a2aproject/a2a-js/issues/734), fixed by [pull request 764](https://github.com/a2aproject/a2a-js/pull/764), unreleased).
+1. Inside one binding, 1.3.0 takes a 1.0 interface over a 0.3 one whatever the card's order, and of several 1.0 interfaces the last ([issue 734](https://github.com/a2aproject/a2a-js/issues/734); [pull request 764](https://github.com/a2aproject/a2a-js/pull/764), unreleased, fixes the second and keeps the first).
 2. Its 0.3 translators throw on a card with no `capabilities`, `defaultInputModes`, `defaultOutputModes` or `skills`, and on a message with no `messageId`.
 3. A server built on it leaves a stream open when a task asks for sign-in.
 

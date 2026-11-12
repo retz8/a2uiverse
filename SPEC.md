@@ -532,7 +532,7 @@ Downstream of A2UI/A2A. All deviations ship as **one project-owned wrapper and o
 
 Constraint protected throughout: **an existing A2UI agent composes with zero changes.**
 
-**A2A line:** the platform — client, orchestrator, marketplace — on A2A 1.0, taking agents on A2A 0.3 and 1.0 (Phase 20); the agent kit on 0.3, at the newest versions compatible with the A2UI ecosystem (`a2ui-a2a` pins A2A 0.3), moving to 1.0 when `a2ui-a2a` does.
+**A2A line:** the platform — client, orchestrator, marketplace, Stellify — on A2A 1.0, taking agents on A2A 0.3 and 1.0 over JSON-RPC, HTTP+JSON or gRPC, by the order of each card's own interfaces (Phase 20); the agent kit on A2A 1.0, its agents answering 1.0 and 0.3 on all three bindings, with its own part-building in place of `a2ui-a2a` until `a2ui-a2a`, which pins A2A 0.3, allows 1.x.
 
 ### Protocol delta register (seed)
 
