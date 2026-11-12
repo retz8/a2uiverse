@@ -532,7 +532,7 @@ Downstream of A2UI/A2A. All deviations ship as **one project-owned wrapper and o
 
 Constraint protected throughout: **an existing A2UI agent composes with zero changes.**
 
-**A2A line:** 0.3, at the newest versions compatible with the A2UI ecosystem (`a2ui-a2a` pins A2A 0.3). Migration to A2A 1.0 is gated on `a2ui-a2a` and is done across client, orchestrator, and vendor kit in one move.
+**A2A line:** the platform — client, orchestrator, marketplace — on A2A 1.0, taking agents on A2A 0.3 and 1.0 (Phase 20); the agent kit on 0.3, at the newest versions compatible with the A2UI ecosystem (`a2ui-a2a` pins A2A 0.3), moving to 1.0 when `a2ui-a2a` does.
 
 ### Protocol delta register (seed)
 
