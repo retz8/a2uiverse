@@ -13,14 +13,12 @@ import {
   OPERATION_KINDS,
   PAINT_META_FIELDS,
   PAINT_META_KINDS,
-  PAINT_META_MIME_TYPE,
   PAINT_META_TITLE_MAX_LENGTH,
   QUESTION_PAINT_KIND,
   STAMP_FIELDS,
   SOURCE_ID_SEPARATOR,
   STAMP_KEY,
   SURFACE_NS_SEPARATOR,
-  authRequiredData,
   canvasParentMetadata,
   clientSessionMetadata,
   clipPaintMetaTitle,
@@ -39,6 +37,7 @@ import {
   readStamp,
   sourceId,
 } from './a2uiverse';
+import {A2UI_SHELL_MIME_TYPE} from './a2uiPart';
 
 const contract = JSON.parse(
   readFileSync(new URL('../../contracts/a2uiverse.v0.9.json', import.meta.url), 'utf8'),
@@ -48,7 +47,7 @@ const contract = JSON.parse(
   sourceIdSeparator: string;
   surfaceIdSeparator: string;
   canvasIdentity: {is: string};
-  paintMetaMimeType: string;
+  shellMimeType: string;
   paintMetaTitleMaxLength: number;
   catalogLoadFailedCode: string;
   shapes: Record<
@@ -62,7 +61,7 @@ test('constants match the contract', () => {
   expect(STAMP_KEY).toBe(contract.stampKey);
   expect(SOURCE_ID_SEPARATOR).toBe(contract.sourceIdSeparator);
   expect(SURFACE_NS_SEPARATOR).toBe(contract.surfaceIdSeparator);
-  expect(PAINT_META_MIME_TYPE).toBe(contract.paintMetaMimeType);
+  expect(A2UI_SHELL_MIME_TYPE).toBe(contract.shellMimeType);
   expect(PAINT_META_TITLE_MAX_LENGTH).toBe(contract.paintMetaTitleMaxLength);
   expect(CATALOG_LOAD_FAILED).toBe(contract.catalogLoadFailedCode);
 });
@@ -172,19 +171,41 @@ test('the auth-required request matches the contract', () => {
   expect(AUTH_REQUIRED_STATE).toBe('auth-required');
 });
 
-test("an auth-required request round-trips in the card's own requirement shape", () => {
-  const request = {security: [{github_oauth: ['repo']}, {github_pat: []}]};
-  expect(authRequiredData(request)).toEqual(request);
-  expect(readAuthRequired(authRequiredData(request))).toEqual(request);
+test("an auth-required request is read in A2A 1.0's shape and in A2A 0.3's, to the one shape", () => {
+  const read = {
+    securityRequirements: [
+      {schemes: {github_oauth: {list: ['repo']}}},
+      {schemes: {github_pat: {list: []}}},
+    ],
+  };
+  expect(readAuthRequired(read)).toEqual(read);
+  expect(readAuthRequired({security: [{github_oauth: ['repo']}, {github_pat: []}]})).toEqual(read);
   expect(readAuthRequired({security: [{oauth: ['read', 'write'], api_key: []}]})).toEqual({
-    security: [{oauth: ['read', 'write'], api_key: []}],
+    securityRequirements: [{schemes: {oauth: {list: ['read', 'write']}, api_key: {list: []}}}],
   });
+});
+
+test('a scheme asking no scope may leave its list out, as ProtoJSON writes an empty one', () => {
+  expect(readAuthRequired({securityRequirements: [{schemes: {github_pat: {}}}]})).toEqual({
+    securityRequirements: [{schemes: {github_pat: {list: []}}}],
+  });
+});
+
+test('a body holding both keys is read by securityRequirements alone', () => {
+  expect(
+    readAuthRequired({
+      securityRequirements: [{schemes: {oauth: {list: ['write']}}}],
+      security: [{api_key: []}],
+    }),
+  ).toEqual({securityRequirements: [{schemes: {oauth: {list: ['write']}}}]});
+  expect(readAuthRequired({securityRequirements: [], security: [{api_key: []}]})).toBeUndefined();
 });
 
 test('readAuthRequired refuses what is not a well-formed request', () => {
   expect(readAuthRequired(undefined)).toBeUndefined();
   expect(readAuthRequired('auth-required')).toBeUndefined();
   expect(readAuthRequired({})).toBeUndefined();
+  expect(readAuthRequired([{security: [{oauth: []}]}])).toBeUndefined();
   expect(readAuthRequired({security: []})).toBeUndefined();
   expect(readAuthRequired({security: {oauth: ['repo']}})).toBeUndefined();
   expect(readAuthRequired({security: [{}]})).toBeUndefined();
@@ -194,6 +215,20 @@ test('readAuthRequired refuses what is not a well-formed request', () => {
   expect(readAuthRequired({security: [{oauth: ['']}]})).toBeUndefined();
   expect(readAuthRequired({security: [{oauth: [3]}]})).toBeUndefined();
   expect(readAuthRequired({security: [{oauth: ['repo', 'repo']}]})).toBeUndefined();
+  expect(readAuthRequired({securityRequirements: {schemes: {oauth: {list: []}}}})).toBeUndefined();
+  expect(readAuthRequired({securityRequirements: [{}]})).toBeUndefined();
+  expect(readAuthRequired({securityRequirements: [{schemes: {}}]})).toBeUndefined();
+  expect(readAuthRequired({securityRequirements: [{oauth: ['repo']}]})).toBeUndefined();
+  expect(readAuthRequired({securityRequirements: [{schemes: {oauth: ['repo']}}]})).toBeUndefined();
+  expect(
+    readAuthRequired({securityRequirements: [{schemes: {'': {list: ['repo']}}}]}),
+  ).toBeUndefined();
+  expect(
+    readAuthRequired({securityRequirements: [{schemes: {oauth: {list: 'repo'}}}]}),
+  ).toBeUndefined();
+  expect(
+    readAuthRequired({securityRequirements: [{schemes: {oauth: {list: ['repo', 'repo']}}}]}),
+  ).toBeUndefined();
 });
 
 test('a source is the app and its account: <appId>.<n>, the bare app id with no account', () => {

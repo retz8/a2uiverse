@@ -2,9 +2,11 @@
  * The smoke request's transport (SPEC §9.3; task-20.2 decisions 1, 3, 5): one A2A client, the
  * A2A SDK's, sends the agent one streaming message carrying the A2UI extension and the app's
  * entitlement as its client capabilities, with the credential's header when one is given, and
- * reports what came back — the state the answer ended on with every A2UI message the stream
- * carried, an HTTP 401, a stream that closed on an unfinished task, or an error. The judgement
- * over it stays with its two callers, the marketplace and Stellify, each in its own words.
+ * reports what came back — the state the answer ended on with every A2UI message its messages
+ * carried, an HTTP 401, a stream that closed on an unfinished task, or an error. A2UI is read
+ * from a bare message and from a status message, never from an artifact, through the platform
+ * sdk's one reading (task-20.4 decisions 1, 4). The judgement over it stays with its two callers,
+ * the marketplace and Stellify, each in its own words.
  */
 import {randomUUID} from 'node:crypto';
 import {
@@ -73,9 +75,11 @@ export type SmokeObservation =
   /** The agent answered HTTP 401. */
   | {kind: 'unauthorized'}
   /**
-   * The answer ended: the stream closed after a message, or with its task's last state terminal
-   * or interrupted — `state`, with every A2UI message the stream carried, the auth-required data
-   * part of the message it ended on when it carried one, and the agent's own words.
+   * The answer ended: the task reached auth-required, whether or not the agent closed its stream
+   * (task-20.4 decision 10), or the stream closed after a message, or with its task's last state
+   * terminal or interrupted — `state`, with every A2UI message the answer's messages carried, the
+   * auth-required data part of the message it ended on when it carried one, and the agent's own
+   * words.
    */
   | {kind: 'ended'; state: string; messages: A2uiMessage[]; data?: unknown; text?: string}
   /**
@@ -113,7 +117,10 @@ const NO_RESOLVER: AgentCardResolver = {
 export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeRunner {
   const base = options.fetchImpl ?? fetch;
   return async ({card, entitlement, words, timeoutMs, headers}) => {
-    const signal = AbortSignal.timeout(timeoutMs);
+    const timeout = AbortSignal.timeout(timeoutMs);
+    // The runner leaves a stream its agent holds open once the answer has ended.
+    const left = new AbortController();
+    const signal = AbortSignal.any([timeout, left.signal]);
     // A 401 becomes an error of its own, thrown out through the A2A client, which the A2A SDK's
     // own error would only name in its message.
     const fetchImpl: typeof fetch = async (input, init) => {
@@ -166,13 +173,18 @@ export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeR
         const status = statusOf(event);
         if (status) last = status;
         if (event.payload?.$case === 'message') answered = parts;
+        // An answer that reaches auth-required has ended there: A2A 1.0 asks an agent to keep
+        // its stream open after it asks for sign-in.
+        if (status?.state === TaskState.TASK_STATE_AUTH_REQUIRED) break;
       }
     } catch (err) {
       if (err instanceof UnauthorizedError) return {kind: 'unauthorized'};
-      if (signal.aborted) {
+      if (timeout.aborted) {
         return {kind: 'error', message: `the agent did not answer within ${timeoutMs / 1000} s`};
       }
       return {kind: 'error', message: (err as Error).message};
+    } finally {
+      left.abort();
     }
     if (last && ENDED_STATES.has(last.state)) {
       return {
@@ -194,7 +206,7 @@ export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeR
   };
 }
 
-/** The parts an event carries: a message's own, a status message's, or an artifact's. */
+/** The parts of the message an event carries: a bare message's, or a status message's. */
 function partsOf(event: StreamResponse): Part[] {
   const payload = event.payload;
   switch (payload?.$case) {
@@ -203,8 +215,6 @@ function partsOf(event: StreamResponse): Part[] {
     case 'task':
     case 'statusUpdate':
       return payload.value.status?.message?.parts ?? [];
-    case 'artifactUpdate':
-      return payload.value.artifact?.parts ?? [];
     default:
       return [];
   }

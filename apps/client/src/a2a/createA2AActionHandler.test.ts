@@ -1,6 +1,7 @@
 import {describe, it, expect, vi} from 'vitest';
 import {Role, TaskState, type Part, type SendMessageRequest} from '@a2a-js/sdk';
 import type {A2uiClientAction, A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
+import {a2uiPart} from '@a2uiverse/sdk';
 import {dataPart, type A2AStreamEventData} from './messages';
 import type {A2AMessageSender} from './client';
 import {createA2AActionHandler} from './createA2AActionHandler';
@@ -64,7 +65,7 @@ describe('createA2AActionHandler', () => {
     await handler(ACTION);
 
     expect(sent).toHaveLength(1);
-    expect(sent[0].message!.parts).toEqual([dataPart({version: 'v0.9', action: ACTION})]);
+    expect(sent[0].message!.parts).toEqual([a2uiPart({version: 'v0.9', action: ACTION})]);
     expect(applied).toEqual([[A2UI_DATA]]);
   });
 

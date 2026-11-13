@@ -55,9 +55,10 @@ export function workingUpdate(
   return statusUpdate(ctx, TaskState.TASK_STATE_WORKING, fields);
 }
 
-/** The parts an event carries: its status message's, or its artifact's. */
+/**
+ * The parts of the status message an event carries. An artifact's parts are relayed and never
+ * read (task-20.4 decision 4).
+ */
 export function partsOf(event: WireEvent): Part[] {
-  return event.kind === 'statusUpdate'
-    ? (event.data.status?.message?.parts ?? [])
-    : (event.data.artifact?.parts ?? []);
+  return event.kind === 'statusUpdate' ? (event.data.status?.message?.parts ?? []) : [];
 }

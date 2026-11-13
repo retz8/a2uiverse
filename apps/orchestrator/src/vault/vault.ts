@@ -440,8 +440,8 @@ export class AuthVault implements AccountStore {
         valid: true,
       });
     } else if (read.kind === 'invalid') {
-      const scopes = (request?.security ?? []).flatMap(alternative =>
-        Object.values(alternative).flat(),
+      const scopes = (request?.securityRequirements ?? []).flatMap(alternative =>
+        Object.values(alternative.schemes).flatMap(scopes => scopes.list),
       );
       this.#deps.journal({
         event: 'escalationRequested',
@@ -461,8 +461,8 @@ export class AuthVault implements AccountStore {
     const need = cardNeed(card);
     if (need.kind === 'none') return {kind: 'unsigned'};
     if (!request) return {kind: 'unauthorized'};
-    for (const alternative of request.security) {
-      for (const [key, scopes] of Object.entries(alternative)) {
+    for (const alternative of request.securityRequirements) {
+      for (const [key, {list: scopes}] of Object.entries(alternative.schemes)) {
         const declared = card?.securitySchemes?.[key];
         if (!declared) return {kind: 'invalid', reason: `the card declares no scheme ${key}`};
         const scheme = schemeOf(card, key);
@@ -477,14 +477,14 @@ export class AuthVault implements AccountStore {
       }
     }
     const account = this.#account(appId, n);
-    for (const alternative of request.security) {
-      const keys = Object.keys(alternative);
+    for (const alternative of request.securityRequirements) {
+      const keys = Object.keys(alternative.schemes);
       if (keys.length !== 1) continue;
       const key = keys[0]!;
       const scheme = schemeOf(card, key);
       if (!scheme) continue;
       const granted = new Set(account?.scheme === key ? account.scopes : []);
-      const missing = (alternative[key] ?? []).filter(scope => !granted.has(scope));
+      const missing = (alternative.schemes[key]?.list ?? []).filter(scope => !granted.has(scope));
       if (account?.scheme === key && missing.length === 0) return {kind: 'unauthorized'};
       return {kind: 'escalate', scheme: key, keys: missing, words: wordsFor(scheme, missing)};
     }

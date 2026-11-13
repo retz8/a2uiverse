@@ -1,6 +1,6 @@
 {
   "name": "@a2uiverse/stellify",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Stellify \u2014 turns a catalog package into the A2UIVerse catalog artifact and takes it to the marketplace: pack and check, claim, preview, publish, unpublish and list, with the host and stylesheet imports rewritten so the vendor's source is untouched.",
   "license": "MIT",
   "repository": {

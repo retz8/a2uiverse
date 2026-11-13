@@ -8,16 +8,16 @@ import {randomUUID} from 'node:crypto';
 import {TaskState, type Message, type Part} from '@a2a-js/sdk';
 import {
   BASIC_CATALOG_ID,
-  a2uiMessagesIn,
+  a2uiPart,
   credentialInputIn,
   describeCredentialFinding,
   type CatalogOptions,
   type CredentialFinding,
 } from '@a2uiverse/sdk';
-import {agentMessage, dataOf, dataPart, textPart} from '../a2a/parts.js';
+import {agentMessage, textPart} from '../a2a/parts.js';
 import type {AgentCard} from '@a2a-js/sdk';
 import {isSecureOrLocal} from '../vault/oauth.js';
-import {partsOf, STAMP_KEY, withParts, type VendorEvent} from './relay.js';
+import {a2uiMessagesOf, partsOf, STAMP_KEY, withParts, type VendorEvent} from './relay.js';
 
 /** The way out, said in the guidance sentence and again at the end of the repair. */
 const WAY_OUT = 'for anything like that, offer a link to your own website instead.';
@@ -112,7 +112,7 @@ export function takeDown(shown: readonly CreatedSurface[]): VendorEvent {
         status: {
           state: TaskState.TASK_STATE_WORKING,
           message: agentMessage(
-            shown.map(({surfaceId, version}) => dataPart({version, deleteSurface: {surfaceId}})),
+            shown.map(({surfaceId, version}) => a2uiPart({version, deleteSurface: {surfaceId}})),
             {taskId, contextId},
           ),
           timestamp: undefined,
@@ -147,11 +147,11 @@ export function withCredentialField(event: VendorEvent): VendorEvent {
   if (!existing) return event;
   const version = existing.version as string;
   const added: Part[] = [
-    dataPart({
+    a2uiPart({
       version,
       createSurface: {surfaceId: CREDENTIAL_FAULT_SURFACE, catalogId: BASIC_CATALOG_ID},
     }),
-    dataPart({
+    a2uiPart({
       version,
       updateComponents: {
         surfaceId: CREDENTIAL_FAULT_SURFACE,
@@ -160,11 +160,6 @@ export function withCredentialField(event: VendorEvent): VendorEvent {
     }),
   ];
   return withParts(event, [...partsOf(event), ...added]);
-}
-
-/** Every A2UI message an event carries, through the sdk's one reader of both wire forms. */
-function a2uiMessagesOf(event: VendorEvent): Record<string, unknown>[] {
-  return partsOf(event).flatMap(part => a2uiMessagesIn(dataOf(part)));
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

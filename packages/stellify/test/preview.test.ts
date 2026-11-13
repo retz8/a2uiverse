@@ -3,18 +3,19 @@ import {
   A2UI_EXTENSION_URIS,
   ARTIFACT_DESCRIPTOR_FILE,
   artifactIdOf,
-  authRequiredData,
   BASIC_CATALOG_ID,
   SMOKE_GREETING,
 } from '@a2uiverse/sdk';
 import {a2aSmokeRunner, type SmokeRunner} from '@a2uiverse/smoke-transport';
 import {
+  authRequiredBody,
   finalUpdate,
   firstTurnTask,
   paintParts,
   statusUpdate,
 } from '@a2uiverse/smoke-transport/testing';
 import {
+  authRequiredScriptV1,
   cardForV1,
   completingScriptV1,
   paintPartsV1,
@@ -197,6 +198,40 @@ describe('preview of an agent on A2A 1.0 (task-20.3 decisions 11, 20)', () => {
     expect(result.signIn).toBe(true);
     expect(fake.requests[0]?.headers['x-star-key']).toBe('k-1');
   });
+
+  test.each<[string, '1.0' | '0.3']>([
+    ["A2A 1.0's requirement shape", '1.0'],
+    ["A2A 0.3's requirement shape", '0.3'],
+  ])(
+    'an agent that asks to sign in and holds its stream open: the preview ends at the state, the finding naming what it asked in %s (task-20.4 decisions 9, 10)',
+    async (_name, shape) => {
+      agentV1 = await startFakeAgentV1({
+        script: authRequiredScriptV1('key', ['write'], shape),
+        card: interfaces =>
+          cardForV1(interfaces, {
+            name: 'Star Agent',
+            catalogs: [STAR_CATALOG_ID],
+            card: {
+              securitySchemes: {
+                key: {apiKeySecurityScheme: {location: 'header', name: 'X-Star-Key'}},
+              },
+              securityRequirements: [{schemes: {key: {list: []}}}],
+            },
+          }),
+      });
+      const started = Date.now();
+      const result = await preview({
+        appId: 'star',
+        cardUrl: agentV1.cardUrl,
+        catalogs: [star],
+        credential: 'k-1',
+      });
+      expect(Date.now() - started).toBeLessThan(3000);
+      expect(result.findings).toEqual([
+        'the agent asked to sign in although a credential was sent: key (write)',
+      ]);
+    },
+  );
 });
 
 describe('preview of an app whose card requires sign-in', () => {
@@ -263,6 +298,26 @@ describe('preview of an app whose card requires sign-in', () => {
     ]);
   });
 
+  test("the agent asks to sign in in A2A 1.0's requirement shape: the same finding (task-20.4 decision 9)", async () => {
+    agent = await startFakeAgent({
+      signIn: 'oauth',
+      script: ({ctx}) => [
+        finalUpdate(ctx, 'auth-required', [
+          {kind: 'data', data: authRequiredBody('1.0', 'signIn', ['write'])},
+        ]),
+      ],
+    });
+    const result = await preview({
+      appId: 'star',
+      cardUrl: agent.cardUrl,
+      catalogs: [star],
+      credential: 'tok',
+    });
+    expect(result.findings).toEqual([
+      'the agent asked to sign in although a credential was sent: signIn (write)',
+    ]);
+  });
+
   test('a stream closing on auth-required, set by an update not marked final, has ended asking to sign in (task-20.2 decision 6)', async () => {
     agent = await startFakeAgent({
       signIn: 'oauth',
@@ -271,7 +326,7 @@ describe('preview of an app whose card requires sign-in', () => {
         statusUpdate(
           ctx,
           'auth-required',
-          [{kind: 'data', data: {...authRequiredData({security: [{signIn: ['write']}]})}}],
+          [{kind: 'data', data: authRequiredBody('0.3', 'signIn', ['write'])}],
           false,
         ),
       ],

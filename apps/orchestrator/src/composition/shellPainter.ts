@@ -1,7 +1,12 @@
 import type {Part} from '@a2a-js/sdk';
-import {PAINT_META_MIME_TYPE, paintMetaData, STAMP_KEY, type A2uiComponent} from '@a2uiverse/sdk';
+import {
+  a2uiPart as markedA2uiPart,
+  paintMetaData,
+  shellPart,
+  STAMP_KEY,
+  type A2uiComponent,
+} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
-import {dataPart} from '../a2a/parts.js';
 import {workingUpdate, type WireContext, type WireStatusUpdate} from '../a2a/wire.js';
 import {PAINTER_ID_PREFIX} from '../planner/validate.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
@@ -41,11 +46,7 @@ export function shellRepaintParts(state: CompositionState): Part[] {
 /** The composition's `paintMeta` when the Planner titled it: ahead of a create, or alone once written late. */
 export function shellTitleParts(state: CompositionState): Part[] {
   if (!state.title) return [];
-  return [
-    dataPart(paintMetaData({surfaceId: shellSurfaceId(), title: state.title}), {
-      mimeType: PAINT_META_MIME_TYPE,
-    }),
-  ];
+  return [shellPart(paintMetaData({surfaceId: shellSurfaceId(), title: state.title}))];
 }
 
 /** The literal data model the tree binds to: with the create, or alone once written after it (task 17.9). */
@@ -325,6 +326,7 @@ function paintedUpdate(update: UpdateFinding): Record<string, unknown> {
   };
 }
 
+/** One of the shell's own A2UI messages, in the platform's one spelling of an A2UI part. */
 export function a2uiPart(op: Record<string, unknown>): Part {
-  return dataPart({version: A2UI_VERSION, ...op});
+  return markedA2uiPart({version: A2UI_VERSION, ...op});
 }

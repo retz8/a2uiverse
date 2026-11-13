@@ -6,6 +6,8 @@ import type {
   TaskState,
   TaskStatus,
 } from '@a2a-js/sdk';
+import {a2uiMessagesIn, type A2uiMessage} from '@a2uiverse/sdk';
+import {valueOf} from '../a2a/parts.js';
 
 /** One event of an agent's answer, as the A2A SDK's client yields it for an agent on either A2A version. */
 export type VendorEvent = StreamResponse;
@@ -26,7 +28,10 @@ export const STAMP_KEY = 'a2uiverse';
 
 type Metadata = Record<string, unknown> | undefined;
 
-/** The parts an event carries: a message's own, a status message's, or an artifact's. */
+/**
+ * The parts of the message an event carries: a bare message's, or a status message's. An
+ * artifact's parts are relayed and never read (task-20.4 decision 4).
+ */
 export function partsOf(event: VendorEvent): Part[] {
   const payload = event.payload;
   switch (payload?.$case) {
@@ -35,11 +40,17 @@ export function partsOf(event: VendorEvent): Part[] {
     case 'task':
     case 'statusUpdate':
       return payload.value.status?.message?.parts ?? [];
-    case 'artifactUpdate':
-      return payload.value.artifact?.parts ?? [];
     default:
       return [];
   }
+}
+
+/**
+ * Every A2UI message an event's message carries, in order, through the platform sdk's one
+ * reading (task-20.4 decision 1): one message per data part, or a bare list.
+ */
+export function a2uiMessagesOf(event: VendorEvent): A2uiMessage[] {
+  return partsOf(event).flatMap(part => a2uiMessagesIn(valueOf(part)));
 }
 
 /** The task state an event names: a task's or a status update's; none for any other event. */
@@ -64,7 +75,7 @@ export function idsOf(event: VendorEvent): {taskId?: string; contextId?: string}
   return {...(taskId ? {taskId} : {}), ...(contextId ? {contextId} : {})};
 }
 
-/** The same event carrying other parts; an event with nothing to carry them back as it is. */
+/** The same event, its message carrying other parts; an event with no message back as it is. */
 export function withParts(event: VendorEvent, parts: Part[]): VendorEvent {
   const payload = event.payload;
   switch (payload?.$case) {
@@ -78,16 +89,6 @@ export function withParts(event: VendorEvent, parts: Part[]): VendorEvent {
       return payload.$case === 'task'
         ? {payload: {$case: 'task', value: {...payload.value, status: carried}}}
         : {payload: {$case: 'statusUpdate', value: {...payload.value, status: carried}}};
-    }
-    case 'artifactUpdate': {
-      const artifact = payload.value.artifact;
-      if (!artifact) return event;
-      return {
-        payload: {
-          $case: 'artifactUpdate',
-          value: {...payload.value, artifact: {...artifact, parts}},
-        },
-      };
     }
     default:
       return event;

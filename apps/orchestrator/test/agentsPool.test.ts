@@ -11,7 +11,7 @@ import {
 import type {Fault} from '../src/agentsPool/faults.js';
 import type {DispatchTurn} from '../src/agentsPool/types.js';
 import type {Refetched, UpdateCase, UpdateFinding} from '../src/registry/updateTile.js';
-import {A2UI_EXTENSION_URIS, BASIC_CATALOG_ID} from '@a2uiverse/sdk';
+import {A2UI_EXTENSION_URIS, a2uiPart, BASIC_CATALOG_ID} from '@a2uiverse/sdk';
 import {
   A2UI_PART,
   FAKE_CATALOG_ID,
@@ -683,7 +683,7 @@ describe('AgentsPool — catalog entitlement and the installed set (task-11.4 de
 
     test('a stamp that is neither version is checked against the union: in either set relayed, outside both refused with the plain line', async () => {
       for (const [catalogId, stamp] of [
-        [FAKE_CATALOG_ID, undefined],
+        [FAKE_CATALOG_ID, 'v0.8'],
         [V091_ONLY_CATALOG_ID, 'v1.0'],
       ] as const) {
         const {pool} = await poolForTwoEntries({script: paintScript(catalogId, stamp)});
@@ -691,7 +691,7 @@ describe('AgentsPool — catalog entitlement and the installed set (task-11.4 de
         expect(record.outcome).toBe('completed');
         expect(JSON.stringify(events)).toContain(catalogId);
       }
-      const {pool} = await poolForTwoEntries({script: paintScript('urn:other')});
+      const {pool} = await poolForTwoEntries({script: paintScript('urn:other', 'v1.0')});
       const {record} = await drain(pool.dispatch('github', turn()));
       expect(record).toMatchObject({
         outcome: 'failed',
@@ -699,6 +699,16 @@ describe('AgentsPool — catalog entitlement and the installed set (task-11.4 de
         catalogId: 'urn:other',
         error: 'painted in catalog "urn:other", outside its entitlement',
       });
+    });
+
+    test('a createSurface carrying no version is no A2UI message: relayed as written, judged by no reader (task-20.4 decisions 1, 2)', async () => {
+      const {pool} = await poolForTwoEntries({script: paintScript('urn:other')});
+      const {events, record} = await drain(pool.dispatch('github', turn()));
+      expect(record.outcome).toBe('completed');
+      expect(record.catalogId).toBeUndefined();
+      expect(events.flatMap(datasOf)).toEqual([
+        {createSurface: {surfaceId: 's1', catalogId: 'urn:other'}},
+      ]);
     });
 
     test('the refetch after a refusal the axis made runs as today, on the union', async () => {
@@ -1058,8 +1068,9 @@ describe('AgentsPool — the credential bar at the paint (task 12.7)', () => {
     const takenDown = events[down];
     expect(takenDown.payload?.$case).toBe('statusUpdate');
     expect(stateOf(takenDown)).toBe(TaskState.TASK_STATE_WORKING);
+    // In the platform's one spelling of an A2UI part (task-20.4 decision 5).
     expect(partsOf(takenDown)).toEqual([
-      dataPart({version: 'v0.9', deleteSurface: {surfaceId: 's1'}}),
+      a2uiPart({version: 'v0.9', deleteSurface: {surfaceId: 's1'}}),
     ]);
     expect(JSON.stringify(events)).not.toContain('obscured');
     expect(record.outcome).toBe('completed');

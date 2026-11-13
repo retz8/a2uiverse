@@ -78,7 +78,7 @@ describe('a press', () => {
     ]);
     await vi.waitFor(() => expect(canvas.store.getState().presses[0]?.status).toBe('running'));
     expect(canvas.store.getState().merge).toEqual({working: {sources: ['gmail']}});
-    expect(sent[0]!.message!.parts).toEqual([dataPart({version: 'v0.9', operation: include})]);
+    expect(sent[0]!.message!.parts).toEqual([shellPart({version: 'v0.9', operation: include})]);
     // Not a turn: nothing in flight, nothing on the progress line.
     expect(canvas.store.getState().inFlight).toBeNull();
     release();
@@ -156,7 +156,7 @@ describe('a press', () => {
     await vi.waitFor(() => expect(sent).toHaveLength(2));
     expect(sent[1].message!.contextId).toBe('ctx-1');
     expect(sent[1].message!.parts).toEqual([
-      dataPart({version: 'v0.9', operation: {kind: 'close', sources: []}}),
+      shellPart({version: 'v0.9', operation: {kind: 'close', sources: []}}),
     ]);
   });
 });
@@ -167,7 +167,7 @@ import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {snapshotCatalogId} from '../../tests/snapshot';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
-import {STAMP_KEY, SYNTHESIS_KEY} from '@a2uiverse/sdk';
+import {shellPart, STAMP_KEY, SYNTHESIS_KEY} from '@a2uiverse/sdk';
 import {replayBeatOnCanvas} from './replayBeat';
 import {SYNTHESIS_BEAT} from '../beats/syntheticBeats';
 import {
@@ -261,7 +261,7 @@ describe('a step (task 9.7)', () => {
       expect.objectContaining({operation: stepBack, status: 'sent'}),
     ]);
     await pressing;
-    expect(sent[0]!.message!.parts).toEqual([dataPart({version: 'v0.9', operation: stepBack})]);
+    expect(sent[0]!.message!.parts).toEqual([shellPart({version: 'v0.9', operation: stepBack})]);
     const dataModel = sent[0]!.message!.metadata?.a2uiClientDataModel as {
       surfaces: Record<string, unknown>;
     };
@@ -298,12 +298,12 @@ describe('a step (task 9.7)', () => {
     await wiring.press(back);
     expect(rootText(canvas, 'github:pr-list')).toBe('four PRs');
     expect(sent.at(-1)!.message!.parts).toEqual([
-      dataPart({version: 'v0.9', operation: {...back, step: 0}}),
+      shellPart({version: 'v0.9', operation: {...back, step: 0}}),
     ]);
     await wiring.press({kind: 'step', sources: ['github'], step: 1});
     expect(rootText(canvas, 'github:pr-list')).toBe('the detail');
     expect(sent.at(-1)!.message!.parts).toEqual([
-      dataPart({version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 1}}),
+      shellPart({version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 1}}),
     ]);
   });
 

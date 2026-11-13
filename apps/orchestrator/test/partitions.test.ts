@@ -48,16 +48,26 @@ describe('materialization', () => {
     });
   });
 
-  test('a rootless updateDataModel replaces the whole model; the messages[] form is read too', () => {
+  test('a rootless updateDataModel replaces the whole model; a bare list of messages is read too', () => {
+    const p = new Partitions();
+    const event = carrying([
+      {version: 'v0.9', createSurface: {surfaceId: S, catalogId: 'cat'}},
+      {version: 'v0.9', updateDataModel: {surfaceId: S, value: {items, note: 'hi'}}},
+    ]);
+    p.apply(event);
+    expect(p.get(S)).toEqual({items, note: 'hi'});
+  });
+
+  test('an object holding a messages list is not read (task-20.4 decision 3)', () => {
     const p = new Partitions();
     const event = carrying({
       messages: [
         {version: 'v0.9', createSurface: {surfaceId: S, catalogId: 'cat'}},
-        {version: 'v0.9', updateDataModel: {surfaceId: S, value: {items, note: 'hi'}}},
+        {version: 'v0.9', updateDataModel: {surfaceId: S, value: {items}}},
       ],
     });
-    p.apply(event);
-    expect(p.get(S)).toEqual({items, note: 'hi'});
+    expect(p.apply(event)).toEqual([]);
+    expect(p.has(S)).toBe(false);
   });
 
   test('deleteSurface removes the model; refs into it stop resolving', () => {

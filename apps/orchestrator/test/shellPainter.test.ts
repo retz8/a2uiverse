@@ -3,12 +3,12 @@
  * each vendor `Slot` wrapped in an `Attribution` carrying its weight, the synthesis slot and gap
  * slots bare, the painter-owned props written, the literal data model sent, repaints by source.
  */
-import {clipPaintMetaTitle, PAINT_META_MIME_TYPE} from '@a2uiverse/sdk';
+import {a2uiPart, clipPaintMetaTitle, shellPart} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {SlotApi} from '@a2uiverse/shell-catalog/schema';
 import {TaskState, type Part} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
-import {dataOf as partData, dataPart} from '../src/a2a/parts.js';
+import {dataOf as partData} from '../src/a2a/parts.js';
 import {Sources} from '../src/accounts/accounts.js';
 import {chooseAccount, compositionFrom, fillGap} from '../src/composition/state.js';
 import {
@@ -399,12 +399,26 @@ describe('shellCreateParts', () => {
       compositionFrom({...layout, title: long}, new Sources(registry), 'x'),
     );
     expect(parts).toHaveLength(3);
+    // The A2UIVerse extension's own part, marked application/a2ui-shell+json in both fields
+    // (task-20.4 decision 8).
     expect(parts[0]).toEqual(
-      dataPart(
-        {paintMeta: {surfaceId: 'shell:main', title: clipPaintMetaTitle(long)}},
-        {mimeType: PAINT_META_MIME_TYPE},
-      ),
+      shellPart({paintMeta: {surfaceId: 'shell:main', title: clipPaintMetaTitle(long)}}),
     );
+    expect(parts[0]).toMatchObject({
+      metadata: {mimeType: 'application/a2ui-shell+json'},
+      mediaType: 'application/a2ui-shell+json',
+    });
+    // The shell's own paints, in the platform's one spelling of an A2UI part (decision 5).
+    expect(parts[1]).toEqual(
+      a2uiPart({
+        version: 'v0.9',
+        createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID},
+      }),
+    );
+    expect(parts[2]).toMatchObject({
+      metadata: {mimeType: 'application/a2ui+json'},
+      mediaType: 'application/a2ui+json',
+    });
     expect(dataOf(parts[1]!).createSurface).toBeDefined();
     expect(
       shellCreateParts(compositionFrom({...layout, title: '  '}, new Sources(registry), 'x')),

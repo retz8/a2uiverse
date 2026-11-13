@@ -29,9 +29,10 @@ import {
   type AuthRequired,
   type CatalogIdsByVersion,
   type CredentialFinding,
+  withA2uiMessages,
   type PaintOutside,
 } from '@a2uiverse/sdk';
-import {agentMessage, dataOf, textOf, textPart, withData} from '../a2a/parts.js';
+import {agentMessage, dataOf, textOf, textPart, valueOf, withData} from '../a2a/parts.js';
 import type {Registry} from '../registry/registry.js';
 import type {Refetched, UpdateCase, UpdateFinding} from '../registry/updateTile.js';
 import type {AppRecord} from '../registry/types.js';
@@ -48,6 +49,7 @@ import {
 } from './credentialBar.js';
 import type {Fault, FaultMap} from './faults.js';
 import {
+  a2uiMessagesOf,
   idsOf,
   partsOf,
   prepareOutgoing,
@@ -693,27 +695,20 @@ interface CatalogOutside {
  * the sets when the stamp is neither version (task-19.2 decisions 2, 7), by the sdk's one rule.
  */
 function catalogOutside(event: VendorEvent, sets: CatalogIdsByVersion): CatalogOutside | undefined {
-  for (const part of partsOf(event)) {
-    const data = dataOf(part);
-    if (!data) continue;
-    const messages = Array.isArray(data.messages) ? data.messages : [data];
-    for (const message of messages) {
-      if (typeof message !== 'object' || message === null) continue;
-      const {version, createSurface: create} = message as Record<string, unknown>;
-      if (typeof create !== 'object' || create === null) continue;
-      const catalogId = (create as {catalogId?: unknown}).catalogId;
-      if (typeof catalogId !== 'string') continue;
-      const outside = paintOutside(version, catalogId, sets);
-      if (outside) return {catalogId, outside};
-    }
+  for (const {version, createSurface: create} of a2uiMessagesOf(event)) {
+    if (typeof create !== 'object' || create === null) continue;
+    const catalogId = (create as {catalogId?: unknown}).catalogId;
+    if (typeof catalogId !== 'string') continue;
+    const outside = paintOutside(version, catalogId, sets);
+    if (outside) return {catalogId, outside};
   }
   return undefined;
 }
 
 /**
- * An agent's auth-required: the task moving to it, with the request in the card's `security`
- * shape when its status message carries one (task-12.2 decision 12), and the agent's own words.
- * Undefined for any other event.
+ * An agent's auth-required: the task moving to it, with the request when its status message
+ * carries one, in A2A 1.0's requirement shape or A2A 0.3's (task-12.2 decision 12; task-20.4
+ * decision 9), and the agent's own words. Undefined for any other event.
  */
 function authRequiredOf(
   event: VendorEvent,
@@ -786,15 +781,9 @@ function failedFinal(message: string | undefined): VendorEvent {
 
 const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'deleteSurface'];
 
-function isA2ui(data: Record<string, unknown>): boolean {
-  return typeof data.version === 'string' && A2UI_OPS.some(op => op in data);
-}
-
+/** Whether the event's message carries an A2UI message that creates, changes or deletes a surface. */
 function carriesA2ui(event: VendorEvent): boolean {
-  return partsOf(event).some(part => {
-    const data = dataOf(part);
-    return data !== undefined && isA2ui(data);
-  });
+  return a2uiMessagesOf(event).some(message => A2UI_OPS.some(op => op in message));
 }
 
 /** The props the `invalid` fault breaks: every catalog types them, none as a number. */
@@ -811,31 +800,32 @@ export const REJECTED_VALUE = 0;
  */
 function withRejectedProp(event: VendorEvent): VendorEvent {
   let swapped = false;
-  const swap = (parts: Part[]): Part[] =>
-    parts.map(part => {
-      const data = dataOf(part);
-      if (swapped || !data) return part;
-      const update = data.updateComponents as {components?: unknown} | undefined;
-      const components = update?.components;
-      if (!Array.isArray(components)) return part;
-      const index = components.findIndex(c =>
-        BREAKABLE_PROPS.some(prop => typeof c === 'object' && c !== null && prop in c),
-      );
-      if (index < 0) return part;
-      const component = components[index] as Record<string, unknown>;
-      const prop = BREAKABLE_PROPS.find(p => p in component)!;
-      swapped = true;
-      return withData(part, {
-        ...data,
-        updateComponents: {
-          ...update,
-          components: components.map((c, i) =>
-            i === index ? {...component, [prop]: REJECTED_VALUE} : c,
-          ),
-        },
-      });
-    });
-  if (event.payload?.$case === 'artifactUpdate') return event;
-  const parts = swap(partsOf(event));
+  const broken = (message: Record<string, unknown>): Record<string, unknown> => {
+    if (swapped) return message;
+    const update = message.updateComponents as {components?: unknown} | undefined;
+    const components = update?.components;
+    if (!Array.isArray(components)) return message;
+    const index = components.findIndex(c =>
+      BREAKABLE_PROPS.some(prop => typeof c === 'object' && c !== null && prop in c),
+    );
+    if (index < 0) return message;
+    const component = components[index] as Record<string, unknown>;
+    const prop = BREAKABLE_PROPS.find(p => p in component)!;
+    swapped = true;
+    return {
+      ...message,
+      updateComponents: {
+        ...update,
+        components: components.map((c, i) =>
+          i === index ? {...component, [prop]: REJECTED_VALUE} : c,
+        ),
+      },
+    };
+  };
+  const parts = partsOf(event).map(part => {
+    const value = valueOf(part);
+    const swappedValue = withA2uiMessages(value, broken);
+    return swappedValue === value ? part : withData(part, swappedValue);
+  });
   return swapped ? withParts(event, parts) : event;
 }

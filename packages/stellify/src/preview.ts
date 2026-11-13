@@ -270,10 +270,10 @@ function judge(
 function askedFor(data: unknown): string {
   const request = readAuthRequired(data);
   if (!request) return 'naming no scheme';
-  return request.security
+  return request.securityRequirements
     .map(alternative =>
-      Object.entries(alternative)
-        .map(([scheme, scopes]) =>
+      Object.entries(alternative.schemes)
+        .map(([scheme, {list: scopes}]) =>
           scopes.length > 0 ? `${scheme} (${scopes.join(', ')})` : scheme,
         )
         .join(' and '),

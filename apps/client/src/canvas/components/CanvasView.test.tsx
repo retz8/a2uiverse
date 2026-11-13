@@ -9,9 +9,9 @@ import userEvent from '@testing-library/user-event';
 import {TaskState, type SendMessageRequest} from '@a2a-js/sdk';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
-import type {CompositionStamp} from '@a2uiverse/sdk';
+import {shellPart, type CompositionStamp} from '@a2uiverse/sdk';
 import type {A2AMessageSender} from '../../a2a/client';
-import {dataPart, statusUpdateEvent, type A2AStreamEventData} from '../../a2a/messages';
+import {statusUpdateEvent, type A2AStreamEventData} from '../../a2a/messages';
 import {CatalogProvider} from '../../catalogs/CatalogContext';
 import {Providers} from '../../providers';
 import {createCanvasWiring} from '../createCanvasWiring';
@@ -147,7 +147,7 @@ describe('the way back on the canvas (task 9.7)', () => {
     expect(screen.queryByRole('button', {name: /^Back/})).toBeNull();
     expect(screen.getByRole('button', {name: 'Forward to PR #42'})).toBeInTheDocument();
     expect(sent.map(params => params.message!.parts[0])).toEqual([
-      dataPart({version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}}),
+      shellPart({version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}}),
     ]);
   });
 });

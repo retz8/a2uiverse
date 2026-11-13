@@ -18,7 +18,7 @@ import {
   type RequestContext,
 } from '@a2a-js/sdk-v0_3/server';
 import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk-v0_3/server/express';
-import {A2UI_EXTENSION_URIS, authRequiredData} from '@a2uiverse/sdk';
+import {A2UI_EXTENSION_URIS} from '@a2uiverse/sdk';
 
 /** The 0.3 shapes a test's script and card are written in. */
 export type {AgentCard, AgentExecutionEvent, Message, RequestContext, Task};
@@ -167,15 +167,42 @@ export const completingScript =
     finalUpdate(ctx, 'completed', parts),
   ];
 
-/** Ends the task as `auth-required`, naming `scheme` and `scopes`. */
+/** The A2A version whose requirement shape an auth-required request is written in. */
+export type RequirementShape = '1.0' | '0.3';
+
+/**
+ * The body of an auth-required request naming `scheme` and `scopes`: `securityRequirements` in
+ * A2A 1.0's requirement shape, or `security` in A2A 0.3's.
+ */
+export const authRequiredBody = (
+  shape: RequirementShape,
+  scheme: string,
+  scopes: string[],
+): Record<string, unknown> =>
+  shape === '1.0'
+    ? {securityRequirements: [{schemes: {[scheme]: {list: scopes}}}]}
+    : {security: [{[scheme]: scopes}]};
+
+/** Ends the task as `auth-required`, naming `scheme` and `scopes` in the shape of `shape`. */
 export const authRequiredScript =
-  (scheme: string, scopes: string[]): Script =>
+  (scheme: string, scopes: string[], shape: RequirementShape = '0.3'): Script =>
   ({ctx}) => [
     finalUpdate(ctx, 'auth-required', [
       {kind: 'text', text: 'Please sign in.'},
-      {kind: 'data', data: {...authRequiredData({security: [{[scheme]: scopes}]})}},
+      {kind: 'data', data: authRequiredBody(shape, scheme, scopes)},
     ]),
   ];
+
+/** An artifact update carrying `parts`: where the platform reads no A2UI. */
+export const artifactUpdate = (
+  ctx: RequestContext,
+  parts: Message['parts'],
+): AgentExecutionEvent => ({
+  kind: 'artifact-update',
+  taskId: ctx.taskId,
+  contextId: ctx.contextId,
+  artifact: {artifactId: randomUUID(), parts},
+});
 
 /** Ends the task as failed, in its own words. */
 export const failedScript: Script = ({ctx}) => [

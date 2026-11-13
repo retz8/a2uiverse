@@ -1,0 +1,116 @@
+{
+  "agent": "Python a2a-sdk[http-server]==1.3.0",
+  "asked": "artifact",
+  "a2aVersion": "1.0",
+  "card": {
+    "name": "Scratch Agent",
+    "description": "a scratch agent that answers with A2UI",
+    "supportedInterfaces": [
+      {
+        "url": "http://127.0.0.1:18741/",
+        "protocolBinding": "JSONRPC",
+        "protocolVersion": "1.0"
+      },
+      {
+        "url": "http://127.0.0.1:18741/",
+        "protocolBinding": "JSONRPC",
+        "protocolVersion": "0.3"
+      }
+    ],
+    "version": "0.1.0",
+    "capabilities": {
+      "streaming": true,
+      "extensions": [
+        {
+          "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+          "params": {
+            "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+          },
+          "required": false
+        }
+      ]
+    },
+    "securitySchemes": {
+      "signIn": {
+        "oauth2SecurityScheme": {
+          "flows": {
+            "authorizationCode": {
+              "authorizationUrl": "http://127.0.0.1:18741/authorize",
+              "tokenUrl": "http://127.0.0.1:18741/token",
+              "scopes": {
+                "things.write": "Change your things",
+                "things.read": "Read your things"
+              }
+            }
+          }
+        },
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "http://127.0.0.1:18741/authorize",
+            "scopes": {
+              "things.write": "Change your things",
+              "things.read": "Read your things"
+            },
+            "tokenUrl": "http://127.0.0.1:18741/token"
+          }
+        },
+        "type": "oauth2"
+      }
+    },
+    "defaultInputModes": ["text"],
+    "defaultOutputModes": ["text"],
+    "skills": [
+      {
+        "id": "scratch",
+        "name": "Scratch",
+        "description": "Answers with A2UI in the spelling asked for",
+        "tags": ["scratch"],
+        "examples": ["one"]
+      }
+    ],
+    "preferredTransport": "JSONRPC",
+    "protocolVersion": "0.3",
+    "url": "http://127.0.0.1:18741/"
+  },
+  "request": {
+    "headers": {
+      "a2a-version": "1.0",
+      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+      "accept": "text/event-stream",
+      "content-type": "application/json"
+    },
+    "body": {
+      "jsonrpc": "2.0",
+      "method": "SendStreamingMessage",
+      "params": {
+        "message": {
+          "messageId": "948510a8-8ac8-4dfa-ba24-fdd094d156bc",
+          "role": "ROLE_USER",
+          "parts": [
+            {
+              "text": "artifact"
+            }
+          ],
+          "metadata": {
+            "a2uiClientCapabilities": {
+              "v0.9": {
+                "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+              },
+              "v0.9.1": {
+                "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+              }
+            }
+          }
+        },
+        "configuration": {}
+      },
+      "id": 1
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "text/event-stream",
+    "body": "data: {\"result\": {\"task\": {\"id\": \"6107530c-d8d0-4e7d-8304-caba1e1a4e23\", \"contextId\": \"45534e8d-8ae6-471c-913a-247c50d9938d\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"948510a8-8ac8-4dfa-ba24-fdd094d156bc\", \"contextId\": \"45534e8d-8ae6-471c-913a-247c50d9938d\", \"taskId\": \"6107530c-d8d0-4e7d-8304-caba1e1a4e23\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"artifact\"}], \"metadata\": {\"a2uiClientCapabilities\": {\"v0.9.1\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}, \"v0.9\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\ndata: {\"result\": {\"artifactUpdate\": {\"taskId\": \"6107530c-d8d0-4e7d-8304-caba1e1a4e23\", \"contextId\": \"45534e8d-8ae6-471c-913a-247c50d9938d\", \"artifact\": {\"artifactId\": \"9f917a59-1ac3-4c9b-95bc-35a65112792d\", \"name\": \"paint\", \"parts\": [{\"data\": {\"createSurface\": {\"surfaceId\": \"s1\", \"catalogId\": \"https://example.com/catalogs/fake/v1/catalog.json\"}, \"version\": \"v0.9\"}}, {\"data\": {\"updateComponents\": {\"surfaceId\": \"s1\", \"components\": [{\"id\": \"root\", \"component\": \"Text\", \"text\": \"hi\"}]}, \"version\": \"v0.9\"}}]}}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\ndata: {\"result\": {\"statusUpdate\": {\"taskId\": \"6107530c-d8d0-4e7d-8304-caba1e1a4e23\", \"contextId\": \"45534e8d-8ae6-471c-913a-247c50d9938d\", \"status\": {\"state\": \"TASK_STATE_COMPLETED\", \"timestamp\": \"2026-11-13T13:44:47.683409Z\"}}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\n",
+    "closedByAgent": true
+  }
+}

@@ -1,5 +1,6 @@
 import {TaskState, type Part} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
+import {shellPart} from '@a2uiverse/sdk';
 import {agentMessage, dataOf, dataPart, textPart} from '../src/a2a/parts.js';
 import {partsOf, workingUpdate, type WireEvent} from '../src/a2a/wire.js';
 import type {VendorEvent} from '../src/agentsPool/relay.js';
@@ -51,19 +52,54 @@ describe('composeFragment', () => {
     expect((datas[3].deleteSurface as {surfaceId: string}).surfaceId).toBe('github:s1');
   });
 
-  test('handles the messages[] wire form', () => {
+  test('a bare list in data is namespaced entry by entry, its other entries as written (task-20.4 decision 3)', () => {
+    const unspoken = {version: 'v0.8', beginRendering: {surfaceId: 's1'}};
     const event = statusUpdate([
-      dataPart({
-        messages: [
-          {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: 'cat'}},
-          {version: 'v0.9', deleteSurface: {surfaceId: 's2'}},
-        ],
-      }),
+      dataPart([
+        {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: 'cat'}},
+        {note: {surfaceId: 's1'}},
+        unspoken,
+        {version: 'v0.9', deleteSurface: {surfaceId: 's2'}},
+      ]),
     ]);
     const [part] = partsOf(composeFragment(event, ctx));
-    const messages = dataOf(part)?.messages as Array<Record<string, {surfaceId: string}>>;
-    expect(messages[0].createSurface.surfaceId).toBe('github:s1');
-    expect(messages[1].deleteSurface.surfaceId).toBe('github:s2');
+    expect(part.content).toEqual({
+      $case: 'data',
+      value: [
+        {version: 'v0.9', createSurface: {surfaceId: 'github:s1', catalogId: 'cat'}},
+        {note: {surfaceId: 's1'}},
+        unspoken,
+        {version: 'v0.9', deleteSurface: {surfaceId: 'github:s2'}},
+      ],
+    });
+  });
+
+  test('an object holding a messages list is not read: relayed as written (task-20.4 decision 3)', () => {
+    const wrapped = dataPart({
+      messages: [{version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: 'cat'}}],
+    });
+    const [part] = partsOf(composeFragment(statusUpdate([wrapped]), ctx));
+    expect(part).toBe(wrapped);
+  });
+
+  test("an agent's part keeps its form and its marks, its surface id alone rewritten (task-20.4 decision 6)", () => {
+    const marks = {
+      metadata: {mimeType: 'application/json+a2ui', other: 1},
+      mediaType: 'application/a2ui+json',
+    };
+    const event = statusUpdate([
+      {...a2uiPart({createSurface: {surfaceId: 's1', catalogId: 'cat'}}), ...marks},
+      {...dataPart({paintMeta: {surfaceId: 's1', title: 'Open PRs'}}), ...marks},
+    ]);
+    const [create, meta] = partsOf(composeFragment(event, ctx));
+    expect(create).toEqual({
+      ...a2uiPart({createSurface: {surfaceId: 'github:s1', catalogId: 'cat'}}),
+      ...marks,
+    });
+    expect(meta).toEqual({
+      ...dataPart({paintMeta: {surfaceId: 'github:s1', title: 'Open PRs'}}),
+      ...marks,
+    });
   });
 
   test('leaves non-A2UI parts untouched by reference and never mutates the original', () => {
@@ -77,23 +113,26 @@ describe('composeFragment', () => {
     expect(original).toEqual(snapshot);
   });
 
-  test('namespaces the surface a paintMeta titles, as the client sees it; its title, kind and mark kept (task 10.9)', () => {
-    const paintMeta = dataPart(
-      {paintMeta: {surfaceId: 'run-detail', title: 'Run 812', kind: 'question'}},
-      {mimeType: 'application/json+a2ui-shell'},
-    );
-    const [part] = partsOf(composeFragment(statusUpdate([paintMeta]), ctx));
-    expect(part).toEqual({
-      ...paintMeta,
-      content: {
-        $case: 'data',
-        value: {paintMeta: {surfaceId: 'github:run-detail', title: 'Run 812', kind: 'question'}},
-      },
-    });
-    expect(dataOf(paintMeta)).toEqual({
-      paintMeta: {surfaceId: 'run-detail', title: 'Run 812', kind: 'question'},
-    });
-  });
+  test.each([
+    ['the older string', {metadata: {mimeType: 'application/json+a2ui-shell'}}],
+    ['the new string in both fields', {...shellPart({}), content: undefined}],
+    ['no mark', {}],
+  ])(
+    'namespaces the surface a paintMeta titles, as the client sees it, read by its key under %s; its title, kind and mark kept (task 10.9; task-20.4 decisions 2, 6)',
+    (_name, marks) => {
+      const body = {paintMeta: {surfaceId: 'run-detail', title: 'Run 812', kind: 'question'}};
+      const paintMeta: Part = {...dataPart(body), ...marks, content: {$case: 'data', value: body}};
+      const [part] = partsOf(composeFragment(statusUpdate([paintMeta]), ctx));
+      expect(part).toEqual({
+        ...paintMeta,
+        content: {
+          $case: 'data',
+          value: {paintMeta: {surfaceId: 'github:run-detail', title: 'Run 812', kind: 'question'}},
+        },
+      });
+      expect(dataOf(paintMeta)).toEqual(body);
+    },
+  );
 
   test('demotes every state a vendor names to working, terminal or interrupted, parts intact (task-20.1 decision 6)', () => {
     for (const state of [
@@ -158,7 +197,7 @@ describe('composeFragment', () => {
     expect(out.data.metadata?.a2uiverse).toEqual({source: 'github', role: 'fragment'});
   });
 
-  test('an artifact update is relayed as it is, its surfaces namespaced and its stamp given the role (task-20.1 decision 6)', () => {
+  test('an artifact update is relayed as it is, its parts unread and its stamp given the role (task-20.1 decision 6; task-20.4 decision 4)', () => {
     const out = composeFragment(
       {
         payload: {
@@ -180,7 +219,7 @@ describe('composeFragment', () => {
           },
         },
       },
-      ctx,
+      {...ctx, builds: {cat: 'sha256-aaa'}},
     );
     expect(out.kind).toBe('artifactUpdate');
     expect(out.data).toMatchObject({
@@ -189,12 +228,15 @@ describe('composeFragment', () => {
       append: true,
       lastChunk: false,
       artifact: {artifactId: 'a1', name: 'report'},
+      // No A2UI is read from an artifact, so the stamp names no build.
       metadata: {a2uiverse: {source: 'github', role: 'fragment'}},
     });
-    expect(dataOf(partsOf(out)[0])).toEqual({
-      version: 'v0.9',
-      updateDataModel: {surfaceId: 'github:s1', value: {}},
-    });
+    expect((out.data.metadata?.a2uiverse as {builds?: unknown}).builds).toBeUndefined();
+    if (out.kind !== 'artifactUpdate') return;
+    expect(out.data.artifact?.parts).toEqual([
+      a2uiPart({updateDataModel: {surfaceId: 's1', value: {}}}),
+    ]);
+    expect(partsOf(out)).toEqual([]);
   });
 
   test('stamp gains role while keeping source and existing keys', () => {

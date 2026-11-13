@@ -9,7 +9,6 @@ import {afterEach, describe, expect, test} from 'vitest';
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
   A2UI_EXTENSION_URIS,
-  authRequiredData,
   BASIC_CATALOG_ID,
   clientCapabilities,
   SMOKE_GREETING,
@@ -19,18 +18,23 @@ import {readCard, type ServedCard} from '@a2uiverse/card';
 import {FakeEmbedder} from '@a2uiverse/embedder';
 import {a2aSmokeRunner, type SmokeRunner} from '@a2uiverse/smoke-transport';
 import {
+  authRequiredBody,
   finalUpdate,
   firstTurnTask,
   paintParts,
   statusUpdate,
+  type RequirementShape,
 } from '@a2uiverse/smoke-transport/testing';
 import {
+  authRequiredScriptV1,
   cardForV1,
   completingScriptV1,
   paintPartsV1,
   startFakeAgentV1,
   type CardV1Options,
+  type FakeA2aVersion,
   type FakeAgentV1,
+  type ScriptV1,
 } from '@a2uiverse/smoke-transport/testing/v1';
 import {
   Marketplace,
@@ -110,10 +114,13 @@ async function agentOf(options: FakeAgentOptions = {}): Promise<FakeAgent> {
   return agent;
 }
 
-/** A fake A2A 1.0 agent painting in `CAT`, its card as `options` say. */
-async function agentV1Of(options: CardV1Options = {}): Promise<FakeAgentV1> {
+/** A fake A2A 1.0 agent, painting in `CAT` unless `script` says otherwise, its card as `options` say. */
+async function agentV1Of(
+  options: CardV1Options = {},
+  script: ScriptV1 = completingScriptV1(paintPartsV1(CAT)),
+): Promise<FakeAgentV1> {
   const agent = await startFakeAgentV1({
-    script: completingScriptV1(paintPartsV1(CAT)),
+    script,
     card: interfaces => cardForV1(interfaces, {catalogs: [CAT], ...options}),
   });
   agents.push(agent);
@@ -686,7 +693,7 @@ describe('publish, the smoke test', () => {
         statusUpdate(
           ctx,
           'auth-required',
-          [{kind: 'data', data: {...authRequiredData({security: [{signIn: ['read']}]})}}],
+          [{kind: 'data', data: authRequiredBody('0.3', 'signIn', ['read'])}],
           false,
         ),
       ],
@@ -972,6 +979,83 @@ describe('publish, an agent on A2A 1.0 (task-20.3 decisions 11, 12, 20)', () => 
     ]);
     expect(current.requests).toHaveLength(0);
     expect(marketplace.entry('shop')!.card).toEqual(legacy.card);
+  });
+});
+
+describe('publish, a sign-in agent on A2A 1.0 (task-20.4 decisions 9, 10)', () => {
+  /** A sign-in card in A2A 1.0's JSON: one OAuth scheme, required with its scope `read`. */
+  const signInCard = {
+    securitySchemes: {
+      signIn: {
+        oauth2SecurityScheme: {
+          flows: {
+            authorizationCode: {
+              authorizationUrl: 'https://shop.example/oauth/authorize',
+              tokenUrl: 'https://shop.example/oauth/token',
+              scopes: {read: 'See your things'},
+            },
+          },
+        },
+      },
+    },
+    securityRequirements: [{schemes: {signIn: {list: ['read']}}}],
+  };
+
+  test.each<[string, FakeA2aVersion[], RequirementShape]>([
+    ["A2A 1.0's requirement shape, at its A2A 1.0 interface", ['1.0'], '1.0'],
+    ["A2A 0.3's requirement shape, at its A2A 1.0 interface", ['1.0'], '0.3'],
+    ["A2A 1.0's requirement shape, through its 0.3 layer", ['0.3', '1.0'], '1.0'],
+  ])(
+    'it passes by auth-required naming its scheme, holding its stream open after it asks: %s',
+    async (_name, order, shape) => {
+      const {marketplace, cards} = await made();
+      await claimed(marketplace);
+      const agent = await agentV1Of(
+        {name: 'Locked', order, card: signInCard},
+        authRequiredScriptV1('signIn', ['read'], shape),
+      );
+      const started = Date.now();
+      const answer = ok(
+        await marketplace.publish(
+          'acme',
+          body(
+            'locked',
+            cards.serveAt(agent.cardUrl, agent.served as object),
+            [await fixtureArtifact(CAT)],
+            previewFor('locked', '0.1.0', CAT, 'publisher'),
+          ),
+        ),
+      );
+      // The smoke request ends at the state, well inside its five seconds.
+      expect(Date.now() - started).toBeLessThan(3000);
+      expect(answer.summary).toContain('published locked');
+      expect(agent.requests.map(r => r.reached)).toEqual([order[0]]);
+    },
+  );
+
+  test('a scheme its card does not declare is refused in the same words, in either shape', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    for (const shape of ['1.0', '0.3'] as const) {
+      const agent = await agentV1Of(
+        {name: 'Locked', card: signInCard},
+        authRequiredScriptV1('elsewhere', [], shape),
+      );
+      const answer = refused(
+        await marketplace.publish(
+          'acme',
+          body(
+            'locked',
+            cards.serveAt(agent.cardUrl, agent.served as object),
+            [await fixtureArtifact(CAT)],
+            previewFor('locked', '0.1.0', CAT, 'publisher'),
+          ),
+        ),
+      );
+      expect(answer.findings).toEqual([
+        'the auth-required answer names scheme "elsewhere", which the card does not declare',
+      ]);
+    }
   });
 });
 

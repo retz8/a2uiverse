@@ -67,33 +67,54 @@ function checkConfig(value) {
 var messageOf = (error) => error instanceof Error ? error.message : String(error);
 
 // ../sdk/js/dist/a2uiverse.js
-function readAuthRequired(data) {
-  if (typeof data !== "object" || data === null || Array.isArray(data))
+var isRecord = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+function scopesOf(scopes) {
+  if (!Array.isArray(scopes))
     return void 0;
-  const { security } = data;
-  if (!Array.isArray(security) || security.length === 0)
+  if (!scopes.every((scope) => typeof scope === "string" && scope !== ""))
     return void 0;
-  const alternatives = [];
-  for (const alternative of security) {
-    if (typeof alternative !== "object" || alternative === null || Array.isArray(alternative)) {
+  if (new Set(scopes).size !== scopes.length)
+    return void 0;
+  return [...scopes];
+}
+function requirementOf(schemes, scopesIn) {
+  if (!isRecord(schemes))
+    return void 0;
+  const entries = Object.entries(schemes);
+  if (entries.length === 0)
+    return void 0;
+  const requirement = { schemes: {} };
+  for (const [scheme, value] of entries) {
+    const list = scheme === "" ? void 0 : scopesOf(scopesIn(value));
+    if (!list)
       return void 0;
-    }
-    const entries = Object.entries(alternative);
-    if (entries.length === 0)
-      return void 0;
-    const requirement = {};
-    for (const [scheme, scopes] of entries) {
-      if (scheme === "" || !Array.isArray(scopes))
-        return void 0;
-      if (!scopes.every((scope) => typeof scope === "string" && scope !== ""))
-        return void 0;
-      if (new Set(scopes).size !== scopes.length)
-        return void 0;
-      requirement[scheme] = [...scopes];
-    }
-    alternatives.push(requirement);
+    requirement.schemes[scheme] = { list };
   }
-  return { security: alternatives };
+  return requirement;
+}
+function readAuthRequired(data) {
+  if (!isRecord(data))
+    return void 0;
+  const inV1 = "securityRequirements" in data;
+  const alternatives = inV1 ? data.securityRequirements : data.security;
+  if (!Array.isArray(alternatives) || alternatives.length === 0)
+    return void 0;
+  const securityRequirements = [];
+  for (const alternative of alternatives) {
+    const requirement = inV1 ? requirementOf(isRecord(alternative) ? alternative.schemes : void 0, (value) => isRecord(value) ? value.list ?? [] : void 0) : requirementOf(alternative, (value) => value);
+    if (!requirement)
+      return void 0;
+    securityRequirements.push(requirement);
+  }
+  return { securityRequirements };
+}
+
+// ../sdk/js/dist/a2uiPart.js
+var isMessage = (value) => typeof value === "object" && value !== null && !Array.isArray(value) && typeof value.version === "string";
+function a2uiMessagesIn(data) {
+  if (Array.isArray(data))
+    return data.filter(isMessage);
+  return isMessage(data) ? [data] : [];
 }
 
 // ../sdk/js/dist/synthesis.js
@@ -1090,16 +1111,6 @@ function smokeWords(card) {
   return typeof example === "string" && example.trim() !== "" ? example : SMOKE_GREETING;
 }
 var isObject3 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
-function a2uiMessagesIn(data) {
-  if (!isObject3(data))
-    return [];
-  if (typeof data.version === "string")
-    return [data];
-  if (Array.isArray(data.messages)) {
-    return data.messages.filter((m) => isObject3(m) && typeof m.version === "string");
-  }
-  return [];
-}
 var OPERATIONS = ["createSurface", "updateComponents", "updateDataModel", "deleteSurface"];
 var ROOT_ID = "root";
 function settled(own, refs) {
@@ -1791,7 +1802,9 @@ var NO_RESOLVER = {
 function a2aSmokeRunner(options = {}) {
   const base = options.fetchImpl ?? fetch;
   return async ({ card, entitlement, words, timeoutMs, headers }) => {
-    const signal = AbortSignal.timeout(timeoutMs);
+    const timeout = AbortSignal.timeout(timeoutMs);
+    const left = new AbortController();
+    const signal = AbortSignal.any([timeout, left.signal]);
     const fetchImpl = async (input, init) => {
       const response = await base(input, { ...init, signal });
       if (response.status === 401) {
@@ -1841,14 +1854,18 @@ function a2aSmokeRunner(options = {}) {
           last = status;
         if (event.payload?.$case === "message")
           answered = parts;
+        if (status?.state === TaskState2.TASK_STATE_AUTH_REQUIRED)
+          break;
       }
     } catch (err) {
       if (err instanceof UnauthorizedError)
         return { kind: "unauthorized" };
-      if (signal.aborted) {
+      if (timeout.aborted) {
         return { kind: "error", message: `the agent did not answer within ${timeoutMs / 1e3} s` };
       }
       return { kind: "error", message: err.message };
+    } finally {
+      left.abort();
     }
     if (last && ENDED_STATES.has(last.state)) {
       return {
@@ -1877,8 +1894,6 @@ function partsOf(event) {
     case "task":
     case "statusUpdate":
       return payload.value.status?.message?.parts ?? [];
-    case "artifactUpdate":
-      return payload.value.artifact?.parts ?? [];
     default:
       return [];
   }
@@ -2201,9 +2216,9 @@ function judge(seen, credentialSent) {
 function askedFor(data) {
   const request = readAuthRequired(data);
   if (!request) return "naming no scheme";
-  return request.security.map(
-    (alternative) => Object.entries(alternative).map(
-      ([scheme, scopes]) => scopes.length > 0 ? `${scheme} (${scopes.join(", ")})` : scheme
+  return request.securityRequirements.map(
+    (alternative) => Object.entries(alternative.schemes).map(
+      ([scheme, { list: scopes }]) => scopes.length > 0 ? `${scheme} (${scopes.join(", ")})` : scheme
     ).join(" and ")
   ).join(" or ");
 }

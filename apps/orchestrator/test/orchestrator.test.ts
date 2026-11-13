@@ -66,7 +66,8 @@ import {
   clientSessionMetadata,
   clipPaintMetaTitle,
   operationData,
-  PAINT_META_MIME_TYPE,
+  A2UI_SHELL_MIME_TYPE,
+  shellPart,
   SYNTHESIS_KEY,
   type SynthesisPayload,
 } from '@a2uiverse/sdk';
@@ -371,10 +372,7 @@ describe('orchestrator', () => {
     )!;
     const parts = partsOf(create);
     expect(parts[0]).toEqual(
-      dataPart(
-        {paintMeta: {surfaceId: 'shell:main', title: clipPaintMetaTitle(long)}},
-        {mimeType: PAINT_META_MIME_TYPE},
-      ),
+      shellPart({paintMeta: {surfaceId: 'shell:main', title: clipPaintMetaTitle(long)}}),
     );
     expect(dataOf(parts[1]!)?.createSurface).toBeDefined();
     // Not an A2UI message: the extractor never takes it.
@@ -596,6 +594,25 @@ describe('orchestrator', () => {
     expect((received?.kind === 'data' ? received.data.action : {}) as object).toMatchObject({
       surfaceId: 's1',
     });
+    // The press as the platform writes it to an agent, whatever marks the client's part had:
+    // one message in the part, marked application/a2ui+json in its metadata, and no `mediaType`
+    // on the A2A 0.3 wire (task-20.4 decision 5).
+    expect(wire.parts).toEqual([
+      {
+        kind: 'data',
+        data: {
+          version: 'v0.9',
+          action: {
+            name: 'approve',
+            surfaceId: 's1',
+            sourceComponentId: 'btn',
+            timestamp: 't',
+            context: {n: 1},
+          },
+        },
+        metadata: {mimeType: 'application/a2ui+json'},
+      },
+    ]);
     expect(wire.metadata?.a2uiClientDataModel).toEqual({
       version: 'v0.9',
       surfaces: {s1: {a: 1}},
@@ -3790,7 +3807,10 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
     // The title rides the create, ahead of it.
     const create = events.find(e => isShellPaint(e))!;
     const meta = partsOf(create)[0]!;
-    expect(meta).toMatchObject({metadata: {mimeType: PAINT_META_MIME_TYPE}});
+    expect(meta).toMatchObject({
+      metadata: {mimeType: A2UI_SHELL_MIME_TYPE},
+      mediaType: A2UI_SHELL_MIME_TYPE,
+    });
   });
 
   test('the data model written after the first component is painted on its own (decision 3)', async () => {

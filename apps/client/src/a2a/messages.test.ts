@@ -3,6 +3,7 @@ import {Role, TaskState, type Message, type Part} from '@a2a-js/sdk';
 import type {A2uiClientAction, A2uiClientDataModel} from '@a2ui/web_core/v0_9';
 import {
   buildActionMessageParams,
+  buildErrorMessageParams,
   buildOperationMessageParams,
   buildTextMessageParams,
   dataPart,
@@ -32,18 +33,29 @@ const A2UI_DATA_V091 = {version: 'v0.9.1', createSurface: {surfaceId: 't', catal
 
 const ACTION = {name: 'click', surfaceId: 's'} as unknown as A2uiClientAction;
 
+/** A vendor's paintMeta as the agent kit writes it today, under the older string. */
+const PAINT_META_PART: Part = {
+  ...dataPart({paintMeta: {surfaceId: 's', title: 'Open PRs — a2ui'}}),
+  metadata: {mimeType: 'application/json+a2ui-shell'},
+};
+
 const CLIENT_DM = {
   version: 'v0.9',
   surfaces: {s: {prs: [{title: 'one', selected: true}]}},
 } as unknown as A2uiClientDataModel;
 
-/** A whole part as a sent message holds it, spelled out beside the builders that write it. */
-const sentPart = (content: Part['content']): Part => ({
+/**
+ * A whole part as a sent message holds it, spelled out beside the builders that write it: its
+ * MIME type in the part's metadata and in its `mediaType` (task-20.4 decisions 5, 8).
+ */
+const sentPart = (content: Part['content'], mimeType: string): Part => ({
   content,
-  metadata: undefined,
+  metadata: {mimeType},
   filename: '',
-  mediaType: '',
+  mediaType: mimeType,
 });
+const A2UI = 'application/a2ui+json';
+const SHELL = 'application/a2ui-shell+json';
 
 function message(parts: Part[], contextId = '', role = Role.ROLE_AGENT): Message {
   return {
@@ -119,7 +131,15 @@ describe('buildTextMessageParams', () => {
     const params = buildTextMessageParams('show me open PRs');
     expect(params.message!.role).toBe(Role.ROLE_USER);
     expect(params.message!.messageId).toBeTruthy();
-    expect(params.message!.parts).toEqual([sentPart({$case: 'text', value: 'show me open PRs'})]);
+    // A text part carries no mark.
+    expect(params.message!.parts).toEqual([
+      {
+        content: {$case: 'text', value: 'show me open PRs'},
+        metadata: undefined,
+        filename: '',
+        mediaType: '',
+      },
+    ]);
     expect(params.message!.contextId).toBe('');
   });
 
@@ -145,12 +165,21 @@ describe('buildTextMessageParams', () => {
 });
 
 describe('buildActionMessageParams', () => {
-  it('wraps the action as a version-tagged DataPart without a contextId by default', () => {
+  it('wraps the action as one version-tagged message in a part marked application/a2ui+json, without a contextId by default', () => {
     const params = buildActionMessageParams(ACTION);
     expect(params.message!.parts).toEqual([
-      sentPart({$case: 'data', value: {version: 'v0.9', action: ACTION}}),
+      sentPart({$case: 'data', value: {version: 'v0.9', action: ACTION}}, A2UI),
     ]);
     expect(params.message!.contextId).toBe('');
+    expect(params.message!.extensions).toEqual([]);
+  });
+
+  it('an error report rides the same spelling of an A2UI part (task-20.4 decision 5)', () => {
+    const error = {code: 'VALIDATION_FAILED', surfaceId: 'github:s1', message: 'no root'};
+    const params = buildErrorMessageParams(error, 'ctx-9');
+    expect(params.message!.parts).toEqual([
+      sentPart({$case: 'data', value: {version: 'v0.9', error}}, A2UI),
+    ]);
   });
 
   it('threads a contextId when given', () => {
@@ -187,10 +216,13 @@ describe('buildOperationMessageParams', () => {
     ]);
     expect(params.message!.contextId).toBe('ctx');
     expect(params.message!.parts).toEqual([
-      sentPart({
-        $case: 'data',
-        value: {version: 'v0.9', operation: {kind: 'include', sources: ['gmail']}},
-      }),
+      sentPart(
+        {
+          $case: 'data',
+          value: {version: 'v0.9', operation: {kind: 'include', sources: ['gmail']}},
+        },
+        SHELL,
+      ),
     ]);
     // It acts on the composition in its context: no data model rides it.
     expect(params.message!.metadata).toEqual({
@@ -210,10 +242,13 @@ describe('buildOperationMessageParams', () => {
       CLIENT_DM,
     );
     expect(params.message!.parts).toEqual([
-      sentPart({
-        $case: 'data',
-        value: {version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}},
-      }),
+      sentPart(
+        {
+          $case: 'data',
+          value: {version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}},
+        },
+        SHELL,
+      ),
     ]);
     expect(params.message!.metadata).toEqual({
       a2uiClientCapabilities: {
@@ -250,6 +285,55 @@ describe('extractA2uiMessagesFromEvent', () => {
 
   it('returns [] for a Task with no status message', () => {
     expect(extractA2uiMessagesFromEvent(task(undefined))).toEqual([]);
+  });
+});
+
+describe('a part is A2UI by what its data holds (task-20.4 decisions 1 to 4)', () => {
+  const UPDATE = {version: 'v0.9', updateComponents: {surfaceId: 's', components: []}};
+
+  it.each<[string, Partial<Part>]>([
+    ['application/a2ui+json in metadata.mimeType', {metadata: {mimeType: A2UI}}],
+    ['application/json+a2ui in metadata.mimeType', {metadata: {mimeType: 'application/json+a2ui'}}],
+    ['application/a2ui+json in mediaType', {mediaType: A2UI}],
+    ['application/json+a2ui in mediaType', {mediaType: 'application/json+a2ui'}],
+    ['application/a2ui+json in both', {metadata: {mimeType: A2UI}, mediaType: A2UI}],
+    ['text/plain in both', {metadata: {mimeType: 'text/plain'}, mediaType: 'text/plain'}],
+    ['nothing', {}],
+  ])('a part marked %s is read', (_name, marks) => {
+    const event = statusUpdate([{...DATA_PART, ...marks}]);
+    expect(extractA2uiMessagesFromEvent(event)).toEqual([A2UI_DATA]);
+  });
+
+  it('a bare list in data is read in order, beside a part carrying one message', () => {
+    const event = statusUpdate([dataPart([A2UI_DATA, UPDATE]), dataPart(A2UI_DATA_V091)]);
+    expect(extractA2uiMessagesFromEvent(event)).toEqual([A2UI_DATA, UPDATE, A2UI_DATA_V091]);
+  });
+
+  it('each entry of a list is judged on its own: one in a version the platform does not speak is passed over', () => {
+    const list = [
+      A2UI_DATA,
+      {version: 'v0.8', beginRendering: {surfaceId: 's'}},
+      {createSurface: {surfaceId: 'no-version', catalogId: 'cat'}},
+      'text',
+      UPDATE,
+    ];
+    expect(extractA2uiMessagesFromEvent(statusUpdate([dataPart(list)]))).toEqual([
+      A2UI_DATA,
+      UPDATE,
+    ]);
+  });
+
+  it('an object holding a messages list is not read', () => {
+    const event = statusUpdate([dataPart({messages: [A2UI_DATA, UPDATE]})]);
+    expect(extractA2uiMessagesFromEvent(event)).toEqual([]);
+  });
+
+  it('A2UI in an artifact is not read, in either form: the client counts no paint for it', () => {
+    expect(extractA2uiMessagesFromEvent(artifactUpdate([DATA_PART]))).toEqual([]);
+    expect(extractA2uiMessagesFromEvent(artifactUpdate([dataPart([A2UI_DATA, UPDATE])]))).toEqual(
+      [],
+    );
+    expect(extractPaintMetasFromEvent(artifactUpdate([PAINT_META_PART]))).toEqual([]);
   });
 });
 
@@ -362,11 +446,6 @@ describe('the canvas on a message (task-9.2 decisions 1, 2)', () => {
   });
 });
 
-const PAINT_META_PART: Part = {
-  ...dataPart({paintMeta: {surfaceId: 's', title: 'Open PRs — a2ui'}}),
-  metadata: {mimeType: 'application/json+a2ui-shell'},
-};
-
 describe('paintMeta extraction', () => {
   it('extracts the shell part from a status-update, alongside A2UI parts', () => {
     const event = statusUpdate([PAINT_META_PART, DATA_PART, TEXT_PART]);
@@ -376,6 +455,18 @@ describe('paintMeta extraction', () => {
   it('the A2UI extractor never takes a paintMeta part for a protocol message', () => {
     const event = statusUpdate([PAINT_META_PART, DATA_PART]);
     expect(extractA2uiMessagesFromEvent(event)).toEqual([A2UI_DATA]);
+  });
+
+  it.each<[string, Partial<Part>]>([
+    ['the older string', {metadata: {mimeType: 'application/json+a2ui-shell'}}],
+    ['the new string in both fields', {metadata: {mimeType: SHELL}, mediaType: SHELL}],
+    ['the new string in mediaType alone', {mediaType: SHELL}],
+    ['no mark', {}],
+  ])('is read by its paintMeta key under %s (task-20.4 decision 2)', (_name, marks) => {
+    const part: Part = {...PAINT_META_PART, metadata: undefined, mediaType: '', ...marks};
+    expect(extractPaintMetasFromEvent(statusUpdate([part]))).toEqual([
+      {surfaceId: 's', title: 'Open PRs — a2ui'},
+    ]);
   });
 
   it('carries the question kind through', () => {

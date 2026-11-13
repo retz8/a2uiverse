@@ -273,7 +273,14 @@ async function signIn(
   return {attempt, start, authorize, callback, outcome, cookie};
 }
 
-function authRequired(security: unknown[] | undefined): Script {
+/**
+ * An agent asking for more access: `security` in A2A 0.3's requirement shape, or — given a body —
+ * whatever the data part holds.
+ */
+function authRequired(
+  security: unknown[] | undefined,
+  body: Record<string, unknown> | undefined = security ? {security} : undefined,
+): Script {
   return ({ctx, vendorContextId}) => [
     {
       kind: 'status-update',
@@ -288,7 +295,7 @@ function authRequired(security: unknown[] | undefined): Script {
           role: 'agent',
           parts: [
             {kind: 'text', text: 'More access is needed.'},
-            ...(security ? [{kind: 'data' as const, data: {security}}] : []),
+            ...(body ? [{kind: 'data' as const, data: body}] : []),
           ],
           contextId: vendorContextId,
           taskId: ctx.taskId,
@@ -944,6 +951,84 @@ describe("the agent's requests for more access", () => {
     const refused = await collect(client, press('dismiss', 'shop.1', canvas));
     expect(stateOf(refused.at(-1)!)).toBe(TaskState.TASK_STATE_FAILED);
     expect(vendors[0]!.requests).toHaveLength(requests);
+  });
+
+  test("a request in A2A 1.0's requirement shape asks the same, and a part holding both shapes is read by it (task-20.4 decision 9)", async () => {
+    const {base, client} = await boot({
+      apps: {
+        shop: {
+          card: oauthCard(),
+          admit: admitsTokens(),
+          script: sequence(
+            authRequired(undefined, {
+              securityRequirements: [{schemes: {signIn: {list: ['write']}}}],
+            }),
+            authRequired(undefined, {
+              securityRequirements: [{schemes: {signIn: {list: ['write']}}}],
+              security: [{signIn: ['delete']}],
+            }),
+          ),
+        },
+      },
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    for (const _shape of ['securityRequirements alone', 'both keys']) {
+      const events = await collect(client, press('retry', 'shop.1', canvas));
+      expect(slotOf(events, 'shop.1')).toMatchObject({
+        state: 'authority',
+        authority: {cause: 'more', quiet: true, scopes: ['Change your orders']},
+      });
+    }
+    await signInLinesWith({
+      event: 'escalationRequested',
+      appId: 'shop',
+      source: 'shop.1',
+      scopes: ['write'],
+      valid: true,
+    });
+  });
+
+  test("a key the card does not declare, named in A2A 1.0's requirement shape, fails the slot (task-20.4 decision 9)", async () => {
+    const {base, client} = await boot({
+      apps: {
+        shop: {
+          card: oauthCard(),
+          admit: admitsTokens(),
+          script: sequence(
+            authRequired(undefined, {
+              securityRequirements: [{schemes: {signIn: {list: ['delete']}}}],
+            }),
+            authRequired(undefined, {
+              securityRequirements: [{schemes: {elsewhere: {list: []}}}],
+            }),
+          ),
+        },
+      },
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    const scope = await collect(client, press('retry', 'shop.1', canvas));
+    expect(slotOf(scope, 'shop.1')).toMatchObject({state: 'failed', failure: {cause: 'invalid'}});
+    await signInLinesWith({
+      event: 'escalationRequested',
+      appId: 'shop',
+      source: 'shop.1',
+      scopes: ['delete'],
+      valid: false,
+      reason: 'the card declares no scope delete',
+    });
+    const scheme = await collect(client, press('retry', 'shop.1', canvas));
+    expect(slotOf(scheme, 'shop.1')).toMatchObject({state: 'failed', failure: {cause: 'invalid'}});
+    await signInLinesWith({
+      event: 'escalationRequested',
+      appId: 'shop',
+      source: 'shop.1',
+      valid: false,
+      reason: 'the card declares no scheme elsewhere',
+    });
   });
 
   test('a key the card does not declare fails the slot; a request naming nothing is a 401', async () => {

@@ -21,7 +21,7 @@ describe('touchesOf', () => {
     expect(touchesOf(ev)).toEqual({created: ['s1'], updated: ['s1', 's2'], deleted: ['s3']});
   });
 
-  test('reads an artifact update’s parts', () => {
+  test('reads no A2UI from an artifact update (task-20.4 decision 4)', () => {
     const artifact: WireEvent = {
       kind: 'artifactUpdate',
       data: {
@@ -40,7 +40,7 @@ describe('touchesOf', () => {
         metadata: undefined,
       },
     };
-    expect(touchesOf(artifact).updated).toEqual(['d']);
+    expect(touchesOf(artifact)).toEqual(emptyTouches());
   });
 
   test('ignores non-A2UI data parts and text parts', () => {
@@ -48,11 +48,22 @@ describe('touchesOf', () => {
     expect(touchesOf(ev)).toEqual(emptyTouches());
   });
 
-  test('accepts the spec array form under data.messages', () => {
+  test('reads a bare list of messages in data, each entry on its own (task-20.4 decision 3)', () => {
+    const ev = statusUpdate([
+      dataPart([
+        {version: 'v0.9.1', createSurface: {surfaceId: 'arr'}},
+        {createSurface: {surfaceId: 'no-version'}},
+        {version: 'v0.9', deleteSurface: {surfaceId: 'gone'}},
+      ]),
+    ]);
+    expect(touchesOf(ev)).toEqual({created: ['arr'], updated: [], deleted: ['gone']});
+  });
+
+  test('does not read an object holding a messages list (task-20.4 decision 3)', () => {
     const ev = statusUpdate([
       dataPart({messages: [{version: 'v0.9.1', createSurface: {surfaceId: 'arr'}}]}),
     ]);
-    expect(touchesOf(ev).created).toEqual(['arr']);
+    expect(touchesOf(ev)).toEqual(emptyTouches());
   });
 
   test('does not mutate the event', () => {

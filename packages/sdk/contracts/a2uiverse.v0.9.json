@@ -1,7 +1,7 @@
 {
   "name": "a2uiverse",
   "version": "0.9.0",
-  "description": "The A2UIVerse extension (SPEC §14): the platform's one A2A extension. Between orchestrator and client, the metadata contract for cross-agent UI composition. A canvas is an A2A context: an utterance that opens one carries no contextId, the orchestrator mints it, and every later message in the canvas carries it. Outbound, the composition stamp (provenance, role) on every relayed event, the paintMeta part naming a paint ahead of its createSurface — the orchestrator's own for the layout surface, carrying the Planner's title for the canvas — and the synthesis payload — the derived data model of formula leaves, its match claims, and the sort declarations of a merged view — on the event that paints a synthesis surface; inbound, the parent canvas on the utterance that opens a child, and the composition operation — the reader's press on the composition: Retry, Include, Try again, a fragment's step back, a scope request dismissed, the canvas closed — on a message of its own. From an agent, read and never required, the auth-required request in A2A's own requirement shape. Nothing a2uiverse-specific rides the vendor wire. Normative for every language projection; each projection's contract test asserts against this file.",
+  "description": "The A2UIVerse extension (SPEC §14): the platform's one A2A extension. Between orchestrator and client, the metadata contract for cross-agent UI composition. A canvas is an A2A context: an utterance that opens one carries no contextId, the orchestrator mints it, and every later message in the canvas carries it. Outbound, the composition stamp (provenance, role) on every relayed event, the paintMeta part naming a paint ahead of its createSurface — the orchestrator's own for the layout surface, carrying the Planner's title for the canvas — and the synthesis payload — the derived data model of formula leaves, its match claims, and the sort declarations of a merged view — on the event that paints a synthesis surface; inbound, the parent canvas on the utterance that opens a child, and the composition operation — the reader's press on the composition: Retry, Include, Try again, a fragment's step back, a scope request dismissed, the canvas closed — on a message of its own. From an agent, read and never required, the auth-required request in the requirement shape of either A2A version. Nothing a2uiverse-specific rides the vendor wire. Normative for every language projection; each projection's contract test asserts against this file.",
   "extensionUri": "https://a2uiverse.dev/ext/a2uiverse/v0.9",
   "stampKey": "a2uiverse",
   "sourceIdSeparator": ".",
@@ -55,7 +55,7 @@
     },
     "compositionOperation": {
       "direction": "client → orchestrator",
-      "carriedOn": "a data part of its own, {version, operation}, on a new A2A message in the canvas's context — beside the A2UI action, the error report and the utterance; version is the A2UI version the client speaks",
+      "carriedOn": "a data part of its own, {version, operation}, on a new A2A message in the canvas's context — beside the A2UI action, the error report and the utterance; version is the A2UI version the client speaks. The client marks the part shellMimeType, in its part metadata mimeType and in its mediaType. The orchestrator reads the part by its version and operation keys, whatever its mark, or with none",
       "required": ["kind", "sources"],
       "optional": ["step", "gap"],
       "kinds": ["retry", "include", "tryAgain", "step", "dismiss", "close", "useAccount", "useApp"],
@@ -80,7 +80,7 @@
     },
     "paintMeta": {
       "direction": "orchestrator → client",
-      "carriedOn": "a data part of its own, {paintMeta: {...}} with no version field, its part metadata mimeType paintMetaMimeType, emitted ahead of the createSurface it names; the A2UI extractor never takes it",
+      "carriedOn": "a data part of its own, {paintMeta: {...}} with no version field, emitted ahead of the createSurface it names; the A2UI extractor never takes it. Read by its paintMeta key, whatever the part's mark — shellMimeType, the older application/json+a2ui-shell, any other, in its part metadata mimeType or in its mediaType — or with none. The orchestrator marks its own shellMimeType, in the part metadata mimeType and in mediaType",
       "required": ["surfaceId"],
       "optional": ["title", "kind"],
       "kinds": ["question"],
@@ -89,17 +89,18 @@
         "title": "A short title for the paint, at most paintMetaTitleMaxLength characters. On the layout surface it is the Planner's title for the canvas, naming its entry in the trail; a longer one is clipped with an ellipsis by the orchestrator and journaled, never a plan finding; absent, the client falls back to the question. On a fragment it is the agent's own title for the paint, naming it in the fragment's history.",
         "kind": "The paint's declared kind: 'question' marks a surface the canvas routes to its overlay slot."
       },
-      "authors": "The orchestrator emits the part for its own layout surface. A vendor agent's part is the agent kit's, in this same shape, relayed untouched; the contract describes the part, it does not own the kit's emission — an agent that never emits one composes, its paints titled from their cause."
+      "authors": "The orchestrator emits the part for its own layout surface. A vendor agent's part is the agent kit's, in this same shape, relayed with the marks its agent gave it, its surfaceId namespaced; the contract describes the part, it does not own the kit's emission — an agent that never emits one composes, its paints titled from their cause."
     },
     "authRequired": {
       "direction": "agent → orchestrator",
-      "carriedOn": "a data part of the status message of a task in A2A's `auth-required` state, recognized by the state and its `security` key; no A2UIVerse marker",
-      "required": ["security"],
-      "optional": [],
+      "carriedOn": "a data part of the status message of a task in A2A's auth-required state — `auth-required` on A2A 0.3, `TASK_STATE_AUTH_REQUIRED` on A2A 1.0 — recognized by the state and by one of its two keys; the part carries no mark, and none is read. The request is read in either shape from an agent on either A2A version; a part holding both keys is read by securityRequirements alone. An answer that reaches the state has ended there, whether or not the agent closes its stream",
+      "required": [],
+      "optional": ["securityRequirements", "security"],
       "fields": {
-        "security": "What the agent needs, in the card's own `security` requirement shape: a list of alternatives, at least one, each mapping a scheme key on the card to the scope keys in that scheme's `scopes` map it is missing. An empty scope list asks for a sign-in with that scheme. A key the installed card does not declare makes the request invalid."
+        "securityRequirements": "What the agent needs, in A2A 1.0's requirement shape: a list of alternatives, at least one, each {schemes: {<scheme>: {list: [<scope>]}}} — a scheme key on the card to the scope keys in that scheme's `scopes` map it is missing. An empty list, or none, asks for a sign-in with that scheme. A key the installed card does not declare makes the request invalid.",
+        "security": "The same request in A2A 0.3's requirement shape: a list of alternatives, at least one, each {<scheme>: [<scope>]}. Read to the shape of securityRequirements."
       },
-      "authors": "An agent that needs authority mid-task — scope escalation — moves its task to `auth-required` with this part, as A2A's in-task authentication describes (A2A 0.3 §4.5). The agent kit emits it for the platform's own agents; any other agent may, in the same plain A2A vocabulary. The contract describes the part, it does not own an agent's emission; an agent that never emits one is read as its card declares."
+      "authors": "An agent that needs authority mid-task — scope escalation — moves its task to the auth-required state with this part, as A2A's in-task authorization describes (A2A 0.3 §4.5, A2A 1.0 §7.6). Any agent may, in the same plain A2A vocabulary. The contract describes the part as the platform reads it; it does not own an agent's emission, and which shape an agent kit agent writes is the agent kit's. An agent that never emits one is read as its card declares."
     },
     "synthesizeDataModel": {
       "direction": "orchestrator → client",
@@ -288,7 +289,7 @@
     "is": "the A2A contextId",
     "rule": "Each canvas is its own A2A context. The utterance that opens a canvas is sent with no contextId; the orchestrator mints one and the client reads it from the first event. Every later message in the canvas — action, press, error report — carries it. The orchestrator holds one composition per context for the session; a vendor's context is per canvas."
   },
-  "paintMetaMimeType": "application/json+a2ui-shell",
+  "shellMimeType": "application/a2ui-shell+json",
   "paintMetaTitleMaxLength": 48,
   "catalogLoadFailedCode": "CATALOG_LOAD_FAILED"
 }

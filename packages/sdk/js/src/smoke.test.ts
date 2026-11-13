@@ -4,7 +4,7 @@ import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
 import {BASIC_CATALOG_SCHEMA} from './a2ui/spec.generated';
 import type {A2uiCatalogSchema} from './a2ui/types';
 import {BASIC_CATALOG_ID} from './catalog';
-import {SMOKE_GREETING, a2uiMessagesIn, checkPaint, checkSignInAnswer, smokeWords} from './smoke';
+import {SMOKE_GREETING, checkPaint, checkSignInAnswer, smokeWords} from './smoke';
 
 const VENDOR = 'cat/v1';
 const vendor = {...(BASIC_CATALOG_SCHEMA as A2uiCatalogSchema), catalogId: VENDOR};
@@ -33,18 +33,6 @@ describe('smokeWords', () => {
     expect(smokeWords({skills: [{examples: ['  ']}]})).toBe(SMOKE_GREETING);
     expect(smokeWords({})).toBe(SMOKE_GREETING);
     expect(SMOKE_GREETING).toBe('Hello! Show me what you can do.');
-  });
-});
-
-describe('a2uiMessagesIn', () => {
-  test('one message, or the messages list form; any other body carries none', () => {
-    const one = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'c'}};
-    const two = {version: 'v0.9', deleteSurface: {surfaceId: 's'}};
-    expect(a2uiMessagesIn(one)).toEqual([one]);
-    expect(a2uiMessagesIn({messages: [one, two, {noVersion: true}]})).toEqual([one, two]);
-    expect(a2uiMessagesIn({paintMeta: {surfaceId: 's'}})).toEqual([]);
-    expect(a2uiMessagesIn('text')).toEqual([]);
-    expect(a2uiMessagesIn(undefined)).toEqual([]);
   });
 });
 
@@ -328,10 +316,19 @@ describe('checkSignInAnswer', () => {
     expect(checkSignInAnswer({httpStatus: 401}, card)).toEqual([]);
   });
 
-  test('an auth-required task naming a scheme the card declares passes', () => {
+  test('an auth-required task naming a scheme the card declares passes, in either shape', () => {
     expect(
       checkSignInAnswer(
         {taskState: 'auth-required', data: {security: [{oauth: ['mail.read']}]}},
+        card,
+      ),
+    ).toEqual([]);
+    expect(
+      checkSignInAnswer(
+        {
+          taskState: 'auth-required',
+          data: {securityRequirements: [{schemes: {oauth: {list: ['mail.read']}}}]},
+        },
         card,
       ),
     ).toEqual([]);
@@ -340,6 +337,15 @@ describe('checkSignInAnswer', () => {
   test('an auth-required task naming a scheme the card does not declare, or no requirement', () => {
     expect(
       checkSignInAnswer({taskState: 'auth-required', data: {security: [{apiKey: []}]}}, card),
+    ).toEqual(['the auth-required answer names scheme "apiKey", which the card does not declare']);
+    expect(
+      checkSignInAnswer(
+        {
+          taskState: 'auth-required',
+          data: {securityRequirements: [{schemes: {apiKey: {list: []}}}]},
+        },
+        card,
+      ),
     ).toEqual(['the auth-required answer names scheme "apiKey", which the card does not declare']);
     expect(checkSignInAnswer({taskState: 'auth-required', data: {}}, card)).toEqual([
       'the auth-required answer carries no security requirement',

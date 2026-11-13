@@ -1,0 +1,121 @@
+{
+  "agent": "Python a2a-sdk[http-server]==1.3.0",
+  "asked": "list",
+  "a2aVersion": "0.3",
+  "card": {
+    "name": "Scratch Agent",
+    "description": "a scratch agent that answers with A2UI",
+    "supportedInterfaces": [
+      {
+        "url": "http://127.0.0.1:18741/",
+        "protocolBinding": "JSONRPC",
+        "protocolVersion": "0.3"
+      },
+      {
+        "url": "http://127.0.0.1:18741/",
+        "protocolBinding": "JSONRPC",
+        "protocolVersion": "1.0"
+      }
+    ],
+    "version": "0.1.0",
+    "capabilities": {
+      "streaming": true,
+      "extensions": [
+        {
+          "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+          "params": {
+            "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+          },
+          "required": false
+        }
+      ]
+    },
+    "securitySchemes": {
+      "signIn": {
+        "oauth2SecurityScheme": {
+          "flows": {
+            "authorizationCode": {
+              "authorizationUrl": "http://127.0.0.1:18741/authorize",
+              "tokenUrl": "http://127.0.0.1:18741/token",
+              "scopes": {
+                "things.read": "Read your things",
+                "things.write": "Change your things"
+              }
+            }
+          }
+        },
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "http://127.0.0.1:18741/authorize",
+            "scopes": {
+              "things.read": "Read your things",
+              "things.write": "Change your things"
+            },
+            "tokenUrl": "http://127.0.0.1:18741/token"
+          }
+        },
+        "type": "oauth2"
+      }
+    },
+    "defaultInputModes": ["text"],
+    "defaultOutputModes": ["text"],
+    "skills": [
+      {
+        "id": "scratch",
+        "name": "Scratch",
+        "description": "Answers with A2UI in the spelling asked for",
+        "tags": ["scratch"],
+        "examples": ["one"]
+      }
+    ],
+    "preferredTransport": "JSONRPC",
+    "protocolVersion": "0.3",
+    "url": "http://127.0.0.1:18741/"
+  },
+  "request": {
+    "headers": {
+      "a2a-version": "0.3",
+      "x-a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+      "accept": "text/event-stream",
+      "content-type": "application/json"
+    },
+    "body": {
+      "id": 1,
+      "jsonrpc": "2.0",
+      "method": "message/stream",
+      "params": {
+        "message": {
+          "kind": "message",
+          "messageId": "9d3f4834-4ac3-4e79-8b42-457b8eb791ae",
+          "role": "user",
+          "parts": [
+            {
+              "kind": "text",
+              "text": "list"
+            }
+          ],
+          "metadata": {
+            "a2uiClientCapabilities": {
+              "v0.9": {
+                "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+              },
+              "v0.9.1": {
+                "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+              }
+            }
+          }
+        },
+        "configuration": {
+          "blocking": true,
+          "acceptedOutputModes": []
+        }
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "text/event-stream",
+    "body": "data: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"7518d320-6d2b-4f55-a1e5-04f174f4476f\",\"history\":[{\"contextId\":\"7518d320-6d2b-4f55-a1e5-04f174f4476f\",\"kind\":\"message\",\"messageId\":\"9d3f4834-4ac3-4e79-8b42-457b8eb791ae\",\"metadata\":{\"a2uiClientCapabilities\":{\"v0.9.1\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]},\"v0.9\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]}}},\"parts\":[{\"kind\":\"text\",\"text\":\"list\"}],\"role\":\"user\",\"taskId\":\"e6086f54-e923-4240-b629-6c117e8f3dce\"}],\"id\":\"e6086f54-e923-4240-b629-6c117e8f3dce\",\"kind\":\"task\",\"status\":{\"state\":\"submitted\"}}}\r\n\r\ndata: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"7518d320-6d2b-4f55-a1e5-04f174f4476f\",\"final\":true,\"kind\":\"status-update\",\"status\":{\"message\":{\"contextId\":\"7518d320-6d2b-4f55-a1e5-04f174f4476f\",\"kind\":\"message\",\"messageId\":\"ebcfd6d9-fa89-4cce-a0f5-5cc60f8f3dd9\",\"parts\":[{\"data\":{\"value\":[{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"s1\",\"catalogId\":\"https://example.com/catalogs/fake/v1/catalog.json\"}},{\"version\":\"v0.9\",\"updateComponents\":{\"components\":[{\"text\":\"hi\",\"id\":\"root\",\"component\":\"Text\"}],\"surfaceId\":\"s1\"}}]},\"kind\":\"data\",\"metadata\":{\"mimeType\":\"application/a2ui+json\",\"data_part_compat\":true}}],\"role\":\"agent\",\"taskId\":\"e6086f54-e923-4240-b629-6c117e8f3dce\"},\"state\":\"completed\",\"timestamp\":\"2026-11-13T13:44:51.433412Z\"},\"taskId\":\"e6086f54-e923-4240-b629-6c117e8f3dce\"}}\r\n\r\n",
+    "closedByAgent": true
+  }
+}

@@ -1,5 +1,5 @@
 import {a2uiMessagesIn, type A2uiMessage} from '@a2uiverse/sdk';
-import {dataOf} from '../a2a/parts.js';
+import {valueOf} from '../a2a/parts.js';
 import {partsOf, type WireEvent} from '../a2a/wire.js';
 
 export interface SurfaceTouches {
@@ -32,11 +32,11 @@ export function touchesOf(event: WireEvent): SurfaceTouches {
 }
 
 /**
- * Every A2UI message an event's parts carry, in order: one message object per data part (a2ui-github
- * agents) or the spec's array form under `messages`, through the sdk's reader.
+ * Every A2UI message the parts of an event's status message carry, in order, through the platform
+ * sdk's one reading: one message object per data part, or a bare list.
  */
 export function a2uiMessagesOf(event: WireEvent): A2uiMessage[] {
-  return partsOf(event).flatMap(part => a2uiMessagesIn(dataOf(part)));
+  return partsOf(event).flatMap(part => a2uiMessagesIn(valueOf(part)));
 }
 
 const OPS: ReadonlyArray<[key: string, bucket: keyof SurfaceTouches]> = [

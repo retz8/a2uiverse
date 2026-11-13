@@ -5,6 +5,7 @@
  */
 export const SDK_NAME = '@a2uiverse/sdk';
 export * from './a2uiverse.js';
+export * from './a2uiPart.js';
 export * from './synthesis.js';
 export * from './pointer.js';
 export * from './walk.js';

@@ -1,8 +1,8 @@
 /**
  * The A2UIVerse extension (SPEC §14), the platform's one A2A extension: between orchestrator and
  * client, the metadata contract for cross-agent UI composition; from an agent, read and never
- * required, the `auth-required` request in A2A's own requirement shape — nothing a2uiverse-specific
- * rides the vendor wire. The normative definition is `../contracts/a2uiverse.v0.9.json`;
+ * required, the `auth-required` request in either A2A version's requirement shape — nothing
+ * a2uiverse-specific rides the vendor wire. The normative definition is `../contracts/a2uiverse.v0.9.json`;
  * `a2uiverse.contract.test.ts` asserts this projection against it. The synthesis half of the
  * contract (the synthesize data model) lives in `synthesis.ts`.
  *
@@ -231,9 +231,6 @@ export function readClientSession(
     : {session};
 }
 
-/** The MIME type on the data part's metadata that marks a paintMeta part. */
-export const PAINT_META_MIME_TYPE = 'application/json+a2ui-shell';
-
 /** The most characters a paint's title carries; a longer one is clipped (task-9.2 decision 4). */
 export const PAINT_META_TITLE_MAX_LENGTH = 48;
 
@@ -246,11 +243,11 @@ export const QUESTION_PAINT_KIND: PaintMetaKind = 'question';
 
 /**
  * Inbound, orchestrator → client: a per-paint shell object riding the A2A stream as a data part of
- * its own — `{paintMeta: {...}}`, no inline `version`, its part metadata `mimeType`
- * {@link PAINT_META_MIME_TYPE} — emitted ahead of the `createSurface` it names, so the A2UI
- * extractor never sees it. The orchestrator emits one for its layout surface carrying the
- * Planner's title for the canvas; a vendor's is the agent kit's, in this shape, relayed untouched
- * (task-9.2 decision 3).
+ * its own — `{paintMeta: {...}}`, no inline `version` — emitted ahead of the `createSurface` it
+ * names, so the A2UI extractor never sees it. Read by its `paintMeta` key, whatever the part's
+ * mark, or with none (task-20.4 decision 2). The orchestrator emits one for its layout surface
+ * carrying the Planner's title for the canvas, marked `A2UI_SHELL_MIME_TYPE`; a vendor's is the
+ * agent kit's, in this shape, relayed as written (task-9.2 decision 3).
  */
 export interface PaintMeta {
   /** The surface the paint creates, as the client will see it. */
@@ -327,7 +324,8 @@ export type OperationKind = (typeof OPERATION_KINDS)[number];
 
 /**
  * Outbound, client → orchestrator: a press on the composition, as a data part of its own —
- * `{version, operation}` — on a new A2A message in the canvas's context. `retry` names the one
+ * `{version, operation}`, marked `A2UI_SHELL_MIME_TYPE` — on a new A2A message in the canvas's
+ * context. `retry` names the one
  * source whose slot sends again what it keeps — also the resume after sign-in (task-12.2 decision
  * 9) — `include` the late sources it folds in, `tryAgain` none; `dismiss` the one source whose
  * scope request Not now drops (task-12.2 decision 10); `useAccount` the one account the account
@@ -466,71 +464,88 @@ export function readCatalogLoadFailure(error: unknown): CatalogLoadFailure | und
   return {code, surfaceId, message: typeof message === 'string' ? message : '', catalogId};
 }
 
-/** The A2A task state an agent moves to when it needs authority mid-task (A2A 0.3 §4.5). */
+/**
+ * The A2A task state an agent moves to when it needs authority mid-task, as A2A 0.3 spells it
+ * (A2A 0.3 §4.5); `TASK_STATE_AUTH_REQUIRED` on A2A 1.0 (§7.6).
+ */
 export const AUTH_REQUIRED_STATE = 'auth-required';
 
 /**
- * One alternative of a card's `security` requirement, A2A's own shape: a scheme key on the card →
- * the scope keys in that scheme's `scopes` map. An empty list asks for the scheme alone.
+ * One alternative of a sign-in requirement, in A2A 1.0's shape: a scheme key on the card → the
+ * scope keys in that scheme's `scopes` map, under `list`. An empty list asks for the scheme alone.
  */
-export type SecurityRequirement = Record<string, string[]>;
-
-/**
- * From an agent, agent → orchestrator (task-12.2 decision 12): the data part of an `auth-required`
- * status message — `{security}`, the card's own requirement shape, at least one alternative, each
- * naming what the agent is missing by its keys on the card. Recognized by the task state and the
- * `security` key; whether the keys are the installed card's is the orchestrator's to check.
- */
-export interface AuthRequired {
-  security: SecurityRequirement[];
+export interface SecurityRequirement {
+  schemes: Record<string, {list: string[]}>;
 }
 
-/** Wire field names, typechecked against the interface; the contract test compares them to the contract. */
-export const AUTH_REQUIRED_FIELDS = ['security'] as const satisfies readonly (keyof AuthRequired)[];
+/**
+ * From an agent, agent → orchestrator (task-12.2 decision 12; task-20.4 decision 9): the request a
+ * data part of an `auth-required` status message carries, once read — at least one alternative,
+ * each naming what the agent is missing by its keys on the card. On the wire the part holds
+ * `securityRequirements` in A2A 1.0's shape or `security` in A2A 0.3's, on either A2A version;
+ * read, a request has the one shape, A2A 1.0's. Whether the keys are the installed card's is the
+ * reader's to check.
+ */
+export interface AuthRequired {
+  securityRequirements: SecurityRequirement[];
+}
 
-const _authRequiredComplete: Exclude<
-  keyof AuthRequired,
-  (typeof AUTH_REQUIRED_FIELDS)[number]
-> extends never
-  ? true
-  : never = true;
-void _authRequiredComplete;
+/**
+ * The keys the request rides under on the wire, one of the two: A2A 1.0's first, read alone when
+ * a part holds both. The contract test compares them to the contract.
+ */
+export const AUTH_REQUIRED_FIELDS = ['securityRequirements', 'security'] as const;
 
-/** The data part's body carrying an `auth-required` request: `{security}`. */
-export function authRequiredData(request: AuthRequired): AuthRequired {
-  return {
-    security: request.security.map(alternative =>
-      Object.fromEntries(
-        Object.entries(alternative).map(([scheme, scopes]) => [scheme, [...scopes]]),
-      ),
-    ),
-  };
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** A scheme's scope keys: distinct, none empty. */
+function scopesOf(scopes: unknown): string[] | undefined {
+  if (!Array.isArray(scopes)) return undefined;
+  if (!scopes.every(scope => typeof scope === 'string' && scope !== '')) return undefined;
+  if (new Set(scopes).size !== scopes.length) return undefined;
+  return [...(scopes as string[])];
+}
+
+/** One alternative read: at least one scheme, each by a non-empty key with well-formed scopes. */
+function requirementOf(
+  schemes: unknown,
+  scopesIn: (value: unknown) => unknown,
+): SecurityRequirement | undefined {
+  if (!isRecord(schemes)) return undefined;
+  const entries = Object.entries(schemes);
+  if (entries.length === 0) return undefined;
+  const requirement: SecurityRequirement = {schemes: {}};
+  for (const [scheme, value] of entries) {
+    const list = scheme === '' ? undefined : scopesOf(scopesIn(value));
+    if (!list) return undefined;
+    requirement.schemes[scheme] = {list};
+  }
+  return requirement;
 }
 
 /**
  * The `auth-required` request a data part's body carries, if it is one and well formed: at least
  * one alternative, each naming at least one scheme by a non-empty key, each scheme a list of
- * distinct non-empty scope keys.
+ * distinct non-empty scope keys. `securityRequirements` is read in A2A 1.0's shape — an
+ * alternative `{schemes: {<scheme>: {list: [<scope>]}}}`, a `list` left out an empty one, as
+ * ProtoJSON writes it — and `security` in A2A 0.3's, `{<scheme>: [<scope>]}`; a body holding both
+ * is read by `securityRequirements` alone.
  */
 export function readAuthRequired(data: unknown): AuthRequired | undefined {
-  if (typeof data !== 'object' || data === null || Array.isArray(data)) return undefined;
-  const {security} = data as Record<string, unknown>;
-  if (!Array.isArray(security) || security.length === 0) return undefined;
-  const alternatives: SecurityRequirement[] = [];
-  for (const alternative of security) {
-    if (typeof alternative !== 'object' || alternative === null || Array.isArray(alternative)) {
-      return undefined;
-    }
-    const entries = Object.entries(alternative as Record<string, unknown>);
-    if (entries.length === 0) return undefined;
-    const requirement: SecurityRequirement = {};
-    for (const [scheme, scopes] of entries) {
-      if (scheme === '' || !Array.isArray(scopes)) return undefined;
-      if (!scopes.every(scope => typeof scope === 'string' && scope !== '')) return undefined;
-      if (new Set(scopes).size !== scopes.length) return undefined;
-      requirement[scheme] = [...(scopes as string[])];
-    }
-    alternatives.push(requirement);
+  if (!isRecord(data)) return undefined;
+  const inV1 = 'securityRequirements' in data;
+  const alternatives = inV1 ? data.securityRequirements : data.security;
+  if (!Array.isArray(alternatives) || alternatives.length === 0) return undefined;
+  const securityRequirements: SecurityRequirement[] = [];
+  for (const alternative of alternatives) {
+    const requirement = inV1
+      ? requirementOf(isRecord(alternative) ? alternative.schemes : undefined, value =>
+          isRecord(value) ? (value.list ?? []) : undefined,
+        )
+      : requirementOf(alternative, value => value);
+    if (!requirement) return undefined;
+    securityRequirements.push(requirement);
   }
-  return {security: alternatives};
+  return {securityRequirements};
 }

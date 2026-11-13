@@ -1,6 +1,6 @@
 import {TaskState, type Message, type Part} from '@a2a-js/sdk';
-import {namespaceSurfaceId, STAMP_KEY} from '@a2uiverse/sdk';
-import {dataOf, textOf, withData} from '../a2a/parts.js';
+import {namespaceSurfaceId, STAMP_KEY, withA2uiMessages} from '@a2uiverse/sdk';
+import {textOf, valueOf, withData} from '../a2a/parts.js';
 import type {WireEvent} from '../a2a/wire.js';
 import {FAILED_STATES} from '../agentsPool/agentsPool.js';
 import {partsOf, stateOf, withParts, type VendorEvent} from '../agentsPool/relay.js';
@@ -12,13 +12,15 @@ const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'delet
  * The composition half of the relay, applied after {@link relayEvent}'s id
  * rewrites: the stamp gains `role: 'fragment'` beside its `source`, and surfaceIds
  * are namespaced on the four A2UI ops and on the vendor's `paintMeta` — the
- * surface it titles, as the client will see it (SPEC §14). The event leaves in
+ * surface it titles, as the client will see it (SPEC §14). A part is otherwise
+ * passed as its agent wrote it, in its form and with its marks (task-20.4
+ * decision 6). The event leaves in
  * the private wire's shape (task-20.1 decision 6): an agent's task becomes a
  * status update carrying its status message, a bare message a status update
  * carrying that message, and every state is demoted to `working` — under
  * fan-out several vendors end on one orchestrator task, so the executor owns
- * the turn's one terminal update; an artifact update is relayed as it is. An
- * event that carries A2UI names on its stamp the build the registry holds of
+ * the turn's one terminal update; an artifact update is relayed as it is, its
+ * parts never read (task-20.4 decision 4). An event that carries A2UI names on its stamp the build the registry holds of
  * each of the app's catalogs (task-15.6 decision 2). The original event is
  * never mutated.
  */
@@ -33,19 +35,7 @@ export interface ComposeContext {
 export function composeFragment(event: VendorEvent, ctx: ComposeContext): WireEvent {
   const payload = event.payload;
   if (payload?.$case === 'artifactUpdate') {
-    const update = payload.value;
-    return withStamp(
-      {
-        kind: 'artifactUpdate',
-        data: {
-          ...update,
-          artifact: update.artifact
-            ? {...update.artifact, parts: namespaceParts(update.artifact.parts, ctx.source)}
-            : undefined,
-        },
-      },
-      ctx,
-    );
+    return withStamp({kind: 'artifactUpdate', data: payload.value}, ctx);
   }
   const carried: {message: Message | undefined; timestamp: string | undefined} =
     payload?.$case === 'message'
@@ -97,8 +87,7 @@ function carriesA2ui(event: WireEvent): boolean {
 
 function namespaceParts(parts: Part[], source: string): Part[] {
   return parts.map(part => {
-    const data = dataOf(part);
-    if (!data) return part;
+    const data = valueOf(part);
     const namespaced = namespaceData(data, source);
     return namespaced === data ? part : withData(part, namespaced);
   });
@@ -107,29 +96,20 @@ function namespaceParts(parts: Part[], source: string): Part[] {
 type Data = Record<string, unknown>;
 
 /**
- * Handles both wire forms: one message object per part, and the spec's `messages[]` list; and the
- * vendor's `paintMeta` part, whose title and question kind the client files under the surface id
- * it sees (task 10.9).
+ * A part's data with its surface ids namespaced: on each A2UI message it carries, one message or
+ * a bare list, through the platform sdk's one judgement of what a message is; and on the vendor's
+ * `paintMeta` part, read by its key, whose title and question kind the client files under the
+ * surface id it sees (task 10.9).
  */
-function namespaceData(data: Data, source: string): Data {
-  if (typeof data.version === 'string') return namespaceMessage(data, source);
-  const meta = data.paintMeta;
-  if (typeof meta === 'object' && meta !== null) {
-    const surfaceId = (meta as {surfaceId?: unknown}).surfaceId;
-    if (typeof surfaceId !== 'string') return data;
-    return {...data, paintMeta: {...meta, surfaceId: namespaceSurfaceId(source, surfaceId)}};
-  }
-  if (Array.isArray(data.messages)) {
-    return {
-      ...data,
-      messages: data.messages.map(m =>
-        typeof m === 'object' && m !== null && typeof (m as Data).version === 'string'
-          ? namespaceMessage(m as Data, source)
-          : m,
-      ),
-    };
-  }
-  return data;
+function namespaceData(data: unknown, source: string): unknown {
+  const namespaced = withA2uiMessages(data, message => namespaceMessage(message, source));
+  if (namespaced !== data) return namespaced;
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return data;
+  const meta = (data as Data).paintMeta;
+  if (typeof meta !== 'object' || meta === null) return data;
+  const surfaceId = (meta as {surfaceId?: unknown}).surfaceId;
+  if (typeof surfaceId !== 'string') return data;
+  return {...data, paintMeta: {...meta, surfaceId: namespaceSurfaceId(source, surfaceId)}};
 }
 
 function namespaceMessage(message: Data, source: string): Data {

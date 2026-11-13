@@ -1,8 +1,7 @@
 /**
  * The hello-fragment smoke test's checks (SPEC §9.3; task-13.2 decision 12), run by the
  * marketplace at publish and by Stellify's `preview` on the publisher's machine: the words the
- * agent is asked, the A2UI messages a data part carries, the check over the paint, and the check
- * over a sign-in agent's answer. Sending the A2A request and seeing the answer end stay with the
+ * agent is asked, the check over the paint, and the check over a sign-in agent's answer. Sending the A2A request and seeing the answer end stay with the
  * smoke request's transport; nothing here depends on an A2A package.
  */
 import {Catalog} from '@a2ui/web_core/catalog';
@@ -13,6 +12,7 @@ import {
   type ComponentRefMap,
 } from '@a2ui/web_core/validation';
 import type {A2uiCatalogSchema} from './a2ui/types.js';
+import type {A2uiMessage} from './a2uiPart.js';
 import {createA2uiValidator, formatA2uiFinding, type A2uiValidator} from './a2ui/validator.js';
 import {readAuthRequired, AUTH_REQUIRED_STATE} from './a2uiverse.js';
 import {
@@ -43,27 +43,8 @@ export function smokeWords(card: CardForWords): string {
   return typeof example === 'string' && example.trim() !== '' ? example : SMOKE_GREETING;
 }
 
-/** An A2UI server-to-client message as the wire carries it: `version` and one operation. */
-export type A2uiMessage = Record<string, unknown>;
-
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
-
-/**
- * The A2UI messages a data part's body carries, in both wire forms: one message object — `version`
- * and an operation — or the spec's list under `messages`. Anything else, a `paintMeta` part among
- * it, carries none.
- */
-export function a2uiMessagesIn(data: unknown): A2uiMessage[] {
-  if (!isObject(data)) return [];
-  if (typeof data.version === 'string') return [data];
-  if (Array.isArray(data.messages)) {
-    return data.messages.filter(
-      (m): m is A2uiMessage => isObject(m) && typeof m.version === 'string',
-    );
-  }
-  return [];
-}
 
 /** What the paint is checked against. */
 export interface PaintCheck {
@@ -258,8 +239,8 @@ export function checkSignInAnswer(answer: SignInAnswer, card: CardForSignIn): st
     const request = readAuthRequired(answer.data);
     if (!request) return ['the auth-required answer carries no security requirement'];
     const declared = Object.keys(card.securitySchemes ?? {});
-    const unknown = request.security.flatMap(alternative =>
-      Object.keys(alternative).filter(scheme => !declared.includes(scheme)),
+    const unknown = request.securityRequirements.flatMap(alternative =>
+      Object.keys(alternative.schemes).filter(scheme => !declared.includes(scheme)),
     );
     return [...new Set(unknown)].map(
       scheme =>

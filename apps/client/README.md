@@ -204,7 +204,8 @@ src/
                      the page's reads and writes — the Store, the App Library, Publish
   catalogs/          the client's own catalogs, the host interface, the loader, the gate
   canvas/            the canvas and the page over it, with a short code guide
-  a2a/               the A2A side: the agent card, each answer's session, sending, paintMeta, the person's clock
+  a2a/               the A2A side: the agent card, each answer's session, sending, the A2UI and paintMeta an event carries,
+                     the person's clock
   a2ui/              applying streamed A2UI batches to a processor
   beats/             the beat format, replay, the synthetic beats
   shared/            error describers and the surface error boundary
@@ -221,6 +222,7 @@ recordings/          the recorded beats, and the Store's captures
 - [`docs/design/client.md`](../../docs/design/client.md) — the canvas, end to end.
 - [`docs/design/synthesis.md`](../../docs/design/synthesis.md) — the merged view and how it stays live.
 - [`docs/design/authority.md`](../../docs/design/authority.md) — sign-in, end to end.
+- [`docs/design/a2ui-on-a2a.md`](../../docs/design/a2ui-on-a2a.md) — an A2UI part on A2A 0.3 and 1.0: how it is read, how the platform writes one, and when an answer that asks for sign-in has ended.
 - [`docs/design/app-install.md`](../../docs/design/app-install.md) — one artifact from Stellify's pack to its first paint.
 - [`docs/design/trusted-page.md`](../../docs/design/trusted-page.md) — the Store, the App Library and Publish, end to end.
 - [`docs/design/store-loop.md`](../../docs/design/store-loop.md) — an app offered, installed and updated in the slot that needs it.

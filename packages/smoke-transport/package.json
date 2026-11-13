@@ -32,6 +32,12 @@
         "types": "./dist/testing/fakeAgentV1.d.ts",
         "default": "./dist/testing/fakeAgentV1.js"
       }
+    },
+    "./testing/wire": {
+      "import": {
+        "types": "./dist/testing/capturedWire.d.ts",
+        "default": "./dist/testing/capturedWire.js"
+      }
     }
   },
   "files": [

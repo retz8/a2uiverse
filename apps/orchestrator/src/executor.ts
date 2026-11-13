@@ -2,6 +2,7 @@ import {randomUUID} from 'node:crypto';
 import {TaskState, type Message, type Part, type Task} from '@a2a-js/sdk';
 import type {AgentExecutor, ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
 import {
+  a2uiPart,
   clipPaintMetaTitle,
   parseSourceId,
   parseSurfaceId,
@@ -12,7 +13,7 @@ import {
   type SynthesisPayload,
 } from '@a2uiverse/sdk';
 import {SHELL_ACTIONS, type SlotCollapse} from '@a2uiverse/shell-catalog/schema';
-import {dataOf, textPart, userMessage, withData} from './a2a/parts.js';
+import {dataOf, textPart, userMessage} from './a2a/parts.js';
 import {
   statusUpdate,
   workingUpdate,
@@ -904,11 +905,13 @@ export class OrchestratorExecutor implements AgentExecutor {
       this.#repaint([sink], composition);
     }
 
+    // The press as the platform writes it to an agent: one A2UI message in the part, marked
+    // (task-20.4 decision 5).
     const message: Message = {
       ...ctx.userMessage,
       parts: ctx.userMessage.parts.map(part =>
         dataOf(part) === action.part
-          ? withData(part, unnamespaceAction(action.part, parsed.surfaceId))
+          ? a2uiPart(unnamespaceAction(action.part, parsed.surfaceId))
           : part,
       ),
       metadata: vendorMetadata(ctx.userMessage.metadata, owner),

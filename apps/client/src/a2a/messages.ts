@@ -16,12 +16,15 @@ import type {
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
   A2UI_VERSIONS,
+  a2uiMessagesIn,
+  a2uiPart,
   clientCapabilities,
   clientSessionMetadata,
   operationData,
   readPaintMeta,
   readStamp,
   readSynthesis,
+  shellPart,
 } from '@a2uiverse/sdk';
 import {logClientDataModelSize} from './dataModelSize';
 import {PAGE_SESSION} from './pageSession';
@@ -39,9 +42,21 @@ export function textPart(text: string): Part {
   return {content: {$case: 'text', value: text}, metadata: undefined, filename: '', mediaType: ''};
 }
 
-/** A data part in the SDK's in-memory shape. */
+/**
+ * A data part in the SDK's in-memory shape, carrying no mark. The parts the client sends it
+ * writes through the platform sdk's builders, `a2uiPart` and `shellPart`, which mark them
+ * (task-20.4 decisions 5, 8).
+ */
 export function dataPart(data: unknown): Part {
   return {content: {$case: 'data', value: data}, metadata: undefined, filename: '', mediaType: ''};
+}
+
+/**
+ * What a data part carries, whatever JSON value it is; undefined for any other part. What the
+ * platform sdk's one reading of A2UI, `a2uiMessagesIn`, is handed.
+ */
+export function valueOf(part: Part): unknown {
+  return part.content?.$case === 'data' ? part.content.value : undefined;
 }
 
 /** The object a data part carries; undefined for any other part, and for data that is no object. */
@@ -173,7 +188,10 @@ function messageMetadata(
   return metadata;
 }
 
-/** Wrap an A2UI client action as A2A send params carrying one A2UI DataPart in the client's version. */
+/**
+ * Wrap an A2UI client action as A2A send params carrying one A2UI part in the client's version:
+ * one message in the part, marked `application/a2ui+json` (task-20.4 decision 5).
+ */
 export function buildActionMessageParams(
   action: A2uiClientAction,
   contextId?: string,
@@ -181,7 +199,7 @@ export function buildActionMessageParams(
   supportedCatalogIds?: string[],
 ): SendMessageRequest {
   return sendRequest(
-    [dataPart({version: CLIENT_A2UI_VERSION, action})],
+    [a2uiPart({version: CLIENT_A2UI_VERSION, action})],
     messageMetadata(clientDataModel, supportedCatalogIds),
     contextId,
   );
@@ -213,7 +231,7 @@ export function buildErrorMessageParams(
   supportedCatalogIds?: string[],
 ): SendMessageRequest {
   return sendRequest(
-    [dataPart({version: CLIENT_A2UI_VERSION, error})],
+    [a2uiPart({version: CLIENT_A2UI_VERSION, error})],
     messageMetadata(clientDataModel, supportedCatalogIds),
     contextId,
   );
@@ -222,7 +240,7 @@ export function buildErrorMessageParams(
 /**
  * Wrap the reader's press — Retry, Include, Try again, or a step in a fragment's history — as A2A
  * send params carrying the A2UIVerse extension's operation as a data part of its own (task-8.4
- * decision 14). The press acts on the composition in its context; a step alone carries the data
+ * decision 14), marked `application/a2ui-shell+json` (task-20.4 decision 8). The press acts on the composition in its context; a step alone carries the data
  * model, the restored paint's among it, so the orchestrator writes its partition from what is on
  * screen (task-9.2 decision 5).
  */
@@ -233,7 +251,7 @@ export function buildOperationMessageParams(
   clientDataModel?: A2uiClientDataModel,
 ): SendMessageRequest {
   return sendRequest(
-    [dataPart(operationData(operation, CLIENT_A2UI_VERSION))],
+    [shellPart(operationData(operation, CLIENT_A2UI_VERSION))],
     messageMetadata(clientDataModel, supportedCatalogIds),
     contextId,
   );
@@ -259,22 +277,19 @@ export function buildTextMessageParams(
 /**
  * Pull A2UI messages out of a single A2A stream event.
  *
- * A2UI rides the status message of a task or a status update (and the parts of a direct agent
- * message) as version-tagged data parts. An artifact update is ignored — our agents never deliver
- * A2UI as artifacts.
+ * A2UI is read from a bare message and from the status message of a task or a status update,
+ * never from an artifact (task-20.4 decision 4), through the platform sdk's one reading: a part
+ * is A2UI by what its `data` holds — one message, or a bare list of them — and no mark is read
+ * (decisions 1 to 3).
  *
  * A message is taken when its version is one the sdk lists, `v0.9` or `v0.9.1`: web_core draws
- * both through one adapter. A message in any other version is passed over with nothing said
- * (task-19.3 decisions 1, 2).
+ * both through one adapter. A message in any other version is passed over with nothing said, an
+ * entry of a list like a message alone (task-19.3 decisions 1, 2).
  */
 export function extractA2uiMessagesFromEvent(event: A2AStreamEventData): A2uiMessage[] {
-  return (
-    (messageOf(event)?.parts ?? [])
-      .map(dataOf)
-      // Keyed off the inline `version` field each A2UI message carries — NOT the
-      // DataPart's MIME metadata (the A2A SDK tags version there, not in `data`).
-      .filter((d): d is Record<string, unknown> => isSpokenVersion(d?.version)) as A2uiMessage[]
-  );
+  return (messageOf(event)?.parts ?? [])
+    .flatMap(part => a2uiMessagesIn(valueOf(part)))
+    .filter(message => isSpokenVersion(message.version)) as A2uiMessage[];
 }
 
 /**
@@ -300,7 +315,8 @@ export function extractAgentTextFromEvent(event: A2AStreamEventData): string[] {
 
 /**
  * Pull paintMeta shell objects — the A2UIVerse extension's `paintMeta` part, `@a2uiverse/sdk`'s
- * `readPaintMeta` — out of a single A2A stream event. Emitted ahead of the `createSurface` it
+ * `readPaintMeta` — out of a single A2A stream event. Read by its `paintMeta` key, whatever the
+ * part's mark, or with none (task-20.4 decision 2). Emitted ahead of the `createSurface` it
  * names, so the A2UI extractor above never sees it.
  */
 export function extractPaintMetasFromEvent(event: A2AStreamEventData): PaintMeta[] {

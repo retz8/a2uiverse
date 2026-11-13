@@ -22,7 +22,7 @@ import {
 } from '@a2a-js/sdk/server';
 import {jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
 import {A2UI_EXTENSION_URIS} from '@a2uiverse/sdk';
-import {cardUrlOf} from './fakeAgent.js';
+import {authRequiredBody, cardUrlOf, type RequirementShape} from './fakeAgent.js';
 
 export type {AgentExecutionEvent, RequestContext};
 
@@ -64,6 +64,8 @@ export interface FakeAgentV1 {
   /** The card as the card URL answers it. */
   served: unknown;
   requests: ReceivedRequestV1[];
+  /** How many connections to the agent are open: a stream a caller left counts none. */
+  connections(): Promise<number>;
   close(): Promise<void>;
 }
 
@@ -130,8 +132,18 @@ const part = (content: Part['content']): Part => ({
 /** A text part. */
 export const textPartV1 = (text: string): Part => part({$case: 'text', value: text});
 
-/** A data part. */
-export const dataPartV1 = (data: unknown): Part => part({$case: 'data', value: data});
+/** How a data part is marked: its part metadata, and its own `mediaType`. */
+export interface PartMarksV1 {
+  metadata?: Record<string, unknown>;
+  mediaType?: string;
+}
+
+/** A data part, unmarked unless `marks` says otherwise. */
+export const dataPartV1 = (data: unknown, marks: PartMarksV1 = {}): Part => ({
+  ...part({$case: 'data', value: data}),
+  metadata: marks.metadata,
+  mediaType: marks.mediaType ?? '',
+});
 
 /** One surface, `s1`, created in `catalogId` and drawn as one component carrying `text`. */
 export const paintPartsV1 = (
@@ -185,6 +197,45 @@ export const statusUpdateV1 = (
     metadata: undefined,
   },
 });
+
+/** An artifact update carrying `parts`: where the platform reads no A2UI. */
+export const artifactUpdateV1 = (ctx: RequestContext, parts: Part[]): AgentExecutionEvent => ({
+  kind: 'artifactUpdate',
+  data: {
+    taskId: ctx.taskId,
+    contextId: ctx.contextId,
+    artifact: {
+      artifactId: randomUUID(),
+      name: '',
+      description: '',
+      parts,
+      metadata: undefined,
+      extensions: [],
+    },
+    append: false,
+    lastChunk: true,
+    metadata: undefined,
+  },
+});
+
+/**
+ * Moves the task to auth-required, naming `scheme` and `scopes` in the shape of `shape`, and
+ * holds its stream open from there, as A2A 1.0 asks of an agent that waits for a credential: the
+ * script never ends, so nothing closes the stream but the caller leaving it.
+ */
+export const authRequiredScriptV1 = (
+  scheme: string,
+  scopes: string[],
+  shape: RequirementShape = '1.0',
+): ScriptV1 =>
+  async function* ({ctx, firstTurn}) {
+    if (firstTurn) yield firstTurnTaskV1(ctx);
+    yield statusUpdateV1(ctx, TaskState.TASK_STATE_AUTH_REQUIRED, [
+      textPartV1('Please sign in.'),
+      dataPartV1(authRequiredBody(shape, scheme, scopes)),
+    ]);
+    await new Promise<never>(() => {});
+  };
 
 /** Answers `parts` on a completed task. */
 export const completingScriptV1 =
@@ -270,6 +321,10 @@ export async function startFakeAgentV1(options: FakeAgentV1Options): Promise<Fak
     card,
     served,
     requests,
+    connections: () =>
+      new Promise<number>((resolve, reject) =>
+        server.getConnections((err, count) => (err ? reject(err) : resolve(count))),
+      ),
     close: () =>
       new Promise<void>((resolve, reject) => {
         server.closeAllConnections();

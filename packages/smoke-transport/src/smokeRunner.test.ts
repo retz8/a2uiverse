@@ -1,20 +1,18 @@
 /**
  * The smoke request's transport against an A2A 0.3 agent, the server of `@a2a-js/sdk` 0.3.14
  * (task-20.2 decisions 1, 6, 11), and against an A2A 1.0 agent, the server of `@a2a-js/sdk` 1.x
- * (task-20.3 decisions 11, 20): one A2A message to the interface taken, what came back.
+ * (task-20.3 decisions 11, 20): one A2A message to the interface taken, what came back. The A2UI
+ * an answer carries is read by content, in each spelling, from each (task-20.4 decision 15).
  */
 import {randomUUID} from 'node:crypto';
 import {createServer, type Server} from 'node:http';
-import {afterEach, describe, expect, test} from 'vitest';
+import {afterEach, describe, expect, test, vi} from 'vitest';
 import {noInterfaceFinding, readCard} from '@a2uiverse/card';
-import {
-  A2UI_CLIENT_CAPABILITIES_KEY,
-  authRequiredData,
-  clientCapabilities,
-  readAuthRequired,
-} from '@a2uiverse/sdk';
+import {A2UI_CLIENT_CAPABILITIES_KEY, clientCapabilities, readAuthRequired} from '@a2uiverse/sdk';
 import {a2aSmokeRunner} from './smokeRunner.js';
 import {
+  artifactUpdate,
+  authRequiredBody,
   authRequiredScript,
   cardFor,
   completingScript,
@@ -32,13 +30,21 @@ import {
   type Script,
 } from './testing/fakeAgent.js';
 import {
+  artifactUpdateV1,
+  authRequiredScriptV1,
   cardForV1,
   completingScriptV1,
+  dataPartV1,
+  firstTurnTaskV1,
   paintPartsV1,
   startFakeAgentV1,
+  statusUpdateV1,
   type FakeA2aVersion,
   type FakeAgentV1,
+  type PartMarksV1,
+  type ScriptV1,
 } from './testing/fakeAgentV1.js';
+import {TaskState} from '@a2a-js/sdk';
 
 const CATALOG_ID = 'https://example.com/fake/catalog.json';
 const ENTITLEMENT = ['https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json', CATALOG_ID];
@@ -77,6 +83,16 @@ const smoke = (
 
 const operationsOf = (messages: Record<string, unknown>[]) =>
   messages.map(m => Object.keys(m).find(k => k !== 'version'));
+
+/** A request for the scheme `signIn` and its scope `read`, as read from either shape. */
+const SIGN_IN_READ = {securityRequirements: [{schemes: {signIn: {list: ['read']}}}]};
+
+/** The two A2UI messages of one paint, as `data` carries them. */
+const CREATE = {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: CATALOG_ID}};
+const UPDATE = {
+  version: 'v0.9',
+  updateComponents: {surfaceId: 's1', components: [{id: 'root', component: 'Text', text: 'hi'}]},
+};
 
 describe('a2aSmokeRunner, the request', () => {
   test('one message in the words given, the entitlement as its client capabilities, the A2UI extensions asked for', async () => {
@@ -149,8 +165,18 @@ describe('a2aSmokeRunner, an answer that ended', () => {
     expect(seen.kind).toBe('ended');
     if (seen.kind !== 'ended') return;
     expect(seen.state).toBe('auth-required');
-    expect(readAuthRequired(seen.data)).toEqual({security: [{signIn: ['read']}]});
+    expect(readAuthRequired(seen.data)).toEqual(SIGN_IN_READ);
     expect(seen.text).toBe('Please sign in.');
+  });
+
+  test("an auth-required request in A2A 1.0's requirement shape, from an agent on A2A 0.3", async () => {
+    const {card} = await start(authRequiredScript('signIn', ['read'], '1.0'));
+    const seen = await smoke(card);
+    expect(seen.kind).toBe('ended');
+    if (seen.kind !== 'ended') return;
+    expect(seen.state).toBe('auth-required');
+    expect(seen.data).toEqual({securityRequirements: [{schemes: {signIn: {list: ['read']}}}]});
+    expect(readAuthRequired(seen.data)).toEqual(SIGN_IN_READ);
   });
 
   test('a stream closing on auth-required set by an update not marked final has ended asking to sign in (task-20.2 decision 6)', async () => {
@@ -159,7 +185,7 @@ describe('a2aSmokeRunner, an answer that ended', () => {
       statusUpdate(
         ctx,
         'auth-required',
-        [{kind: 'data', data: {...authRequiredData({security: [{signIn: ['read']}]})}}],
+        [{kind: 'data', data: authRequiredBody('0.3', 'signIn', ['read'])}],
         false,
       ),
     ]);
@@ -167,7 +193,7 @@ describe('a2aSmokeRunner, an answer that ended', () => {
     expect(seen.kind).toBe('ended');
     if (seen.kind !== 'ended') return;
     expect(seen.state).toBe('auth-required');
-    expect(readAuthRequired(seen.data)).toEqual({security: [{signIn: ['read']}]});
+    expect(readAuthRequired(seen.data)).toEqual(SIGN_IN_READ);
   });
 
   test('an agent that ends the task as failed, in its words', async () => {
@@ -336,5 +362,179 @@ describe('a2aSmokeRunner, an agent on A2A 1.0', () => {
       headers: {'X-Api-Key': 'k-1'},
     });
     expect(fake.requests[0]!.headers['x-api-key']).toBe('k-1');
+  });
+});
+
+describe('a2aSmokeRunner, the A2UI an agent on A2A 0.3 carries (task-20.4 decisions 2 to 4)', () => {
+  type Parts03 = Parameters<typeof completingScript>[0];
+  const data03 = (data: unknown, metadata?: Record<string, unknown>) =>
+    ({kind: 'data', data, ...(metadata ? {metadata} : {})}) as Parts03[number];
+  const messagesOf = async (parts: Parts03) => {
+    const {card} = await start(completingScript(parts));
+    const seen = await smoke(card);
+    expect(seen.kind).toBe('ended');
+    return seen.kind === 'ended' ? seen.messages : [];
+  };
+
+  test.each([['application/a2ui+json'], ['application/json+a2ui'], ['text/plain'], [undefined]])(
+    'a part marked %s in metadata.mimeType is read by what it holds',
+    async mimeType => {
+      const marks = mimeType ? {mimeType} : undefined;
+      expect(await messagesOf([data03(CREATE, marks), data03(UPDATE, marks)])).toEqual([
+        CREATE,
+        UPDATE,
+      ]);
+    },
+  );
+
+  test('a bare list in data is read, each entry on its own', async () => {
+    const unspoken = {version: 'v0.8', beginRendering: {surfaceId: 's1'}};
+    expect(await messagesOf([data03([CREATE, {note: 'no version'}, unspoken, UPDATE])])).toEqual([
+      CREATE,
+      unspoken,
+      UPDATE,
+    ]);
+  });
+
+  test('a list the 0.3 layer of an A2A SDK wrapped arrives as a bare list', async () => {
+    expect(await messagesOf([data03({value: [CREATE, UPDATE]}, {data_part_compat: true})])).toEqual(
+      [CREATE, UPDATE],
+    );
+  });
+
+  test('an object holding a messages list is not read', async () => {
+    expect(await messagesOf([data03({messages: [CREATE, UPDATE]})])).toEqual([]);
+  });
+
+  test('A2UI in an artifact is not read', async () => {
+    const {card} = await start(({ctx}) => [
+      firstTurnTask(ctx),
+      artifactUpdate(ctx, [data03(CREATE), data03(UPDATE)]),
+      finalUpdate(ctx, 'completed', []),
+    ]);
+    const seen = await smoke(card);
+    expect(seen).toEqual({kind: 'ended', state: 'completed', messages: []});
+  });
+});
+
+describe('a2aSmokeRunner, the A2UI an agent on A2A 1.0 carries (task-20.4 decisions 2 to 4)', () => {
+  async function startScript(script: ScriptV1, order: FakeA2aVersion[] = ['1.0']) {
+    agentV1 = await startFakeAgentV1({
+      script,
+      card: interfaces => cardForV1(interfaces, {catalogs: [CATALOG_ID], order}),
+    });
+    return agentV1;
+  }
+  const smokeOf = (fake: FakeAgentV1) =>
+    run({card: readCard(fake.served), entitlement: ENTITLEMENT, words: 'x', timeoutMs: 5000});
+  const messagesOf = async (parts: ReturnType<typeof dataPartV1>[], order?: FakeA2aVersion[]) => {
+    const seen = await smokeOf(await startScript(completingScriptV1(parts), order));
+    expect(seen.kind).toBe('ended');
+    return seen.kind === 'ended' ? seen.messages : [];
+  };
+
+  const MARKS: Array<[string, PartMarksV1]> = [
+    ['application/a2ui+json in metadata.mimeType', {metadata: {mimeType: 'application/a2ui+json'}}],
+    ['application/json+a2ui in metadata.mimeType', {metadata: {mimeType: 'application/json+a2ui'}}],
+    ['application/a2ui+json in mediaType', {mediaType: 'application/a2ui+json'}],
+    ['application/json+a2ui in mediaType', {mediaType: 'application/json+a2ui'}],
+    [
+      'application/a2ui+json in both',
+      {metadata: {mimeType: 'application/a2ui+json'}, mediaType: 'application/a2ui+json'},
+    ],
+    ['text/plain in mediaType', {mediaType: 'text/plain'}],
+    ['nothing', {}],
+  ];
+
+  test.each(MARKS)('a part marked %s is read by what it holds', async (_name, marks) => {
+    expect(await messagesOf([dataPartV1(CREATE, marks), dataPartV1(UPDATE, marks)])).toEqual([
+      CREATE,
+      UPDATE,
+    ]);
+  });
+
+  test.each(MARKS)(
+    'through the 0.3 layer of its A2A SDK, a part marked %s is read by what it holds',
+    async (_name, marks) => {
+      expect(
+        await messagesOf([dataPartV1(CREATE, marks), dataPartV1(UPDATE, marks)], ['0.3', '1.0']),
+      ).toEqual([CREATE, UPDATE]);
+    },
+  );
+
+  test('a bare list in data is read, each entry on its own', async () => {
+    const unspoken = {version: 'v0.8', beginRendering: {surfaceId: 's1'}};
+    const list = [CREATE, {note: 'no version'}, unspoken, UPDATE];
+    expect(await messagesOf([dataPartV1(list)])).toEqual([CREATE, unspoken, UPDATE]);
+  });
+
+  test('a list its 0.3 layer wraps reaches the reading as a bare list', async () => {
+    expect(await messagesOf([dataPartV1([CREATE, UPDATE])], ['0.3', '1.0'])).toEqual([
+      CREATE,
+      UPDATE,
+    ]);
+  });
+
+  test('an object holding a messages list is not read', async () => {
+    expect(await messagesOf([dataPartV1({messages: [CREATE, UPDATE]})])).toEqual([]);
+  });
+
+  test.each<[FakeA2aVersion[]]>([[['1.0']], [['0.3', '1.0']]])(
+    'A2UI in an artifact is not read, listed %j',
+    async order => {
+      const fake = await startScript(
+        ({ctx}) => [
+          firstTurnTaskV1(ctx),
+          artifactUpdateV1(ctx, [dataPartV1(CREATE), dataPartV1(UPDATE)]),
+          statusUpdateV1(ctx, TaskState.TASK_STATE_COMPLETED, []),
+        ],
+        order,
+      );
+      expect(await smokeOf(fake)).toEqual({kind: 'ended', state: 'completed', messages: []});
+    },
+  );
+});
+
+describe('a2aSmokeRunner, an agent on A2A 1.0 asking to sign in (task-20.4 decisions 9, 10)', () => {
+  const start = async (script: ScriptV1, order: FakeA2aVersion[]) => {
+    agentV1 = await startFakeAgentV1({
+      script,
+      card: interfaces => cardForV1(interfaces, {catalogs: [CATALOG_ID], order}),
+    });
+    return agentV1;
+  };
+
+  test.each<[string, FakeA2aVersion[], '1.0' | '0.3']>([
+    ["A2A 1.0's shape on A2A 1.0", ['1.0'], '1.0'],
+    ["A2A 0.3's shape on A2A 1.0", ['1.0'], '0.3'],
+    ["A2A 1.0's shape through its 0.3 layer", ['0.3', '1.0'], '1.0'],
+    ["A2A 0.3's shape through its 0.3 layer", ['0.3', '1.0'], '0.3'],
+  ])(
+    'the answer ends at the state while the agent holds its stream open: %s',
+    async (_name, order, shape) => {
+      const fake = await start(authRequiredScriptV1('signIn', ['read'], shape), order);
+      const started = Date.now();
+      const seen = await run({
+        card: readCard(fake.served),
+        entitlement: ENTITLEMENT,
+        words: 'x',
+        timeoutMs: 5000,
+      });
+      expect(Date.now() - started).toBeLessThan(3000);
+      expect(seen.kind).toBe('ended');
+      if (seen.kind !== 'ended') return;
+      expect(seen.state).toBe('auth-required');
+      expect(readAuthRequired(seen.data)).toEqual(SIGN_IN_READ);
+      expect(seen.text).toBe('Please sign in.');
+    },
+  );
+
+  test('the stream the runner left is closed behind it, within the keep-alive time of fetch', async () => {
+    const fake = await start(authRequiredScriptV1('signIn', ['read']), ['1.0']);
+    await run({card: readCard(fake.served), entitlement: ENTITLEMENT, words: 'x', timeoutMs: 5000});
+    await vi.waitFor(async () => expect(await fake.connections()).toBe(0), {
+      timeout: 10_000,
+      interval: 100,
+    });
   });
 });
