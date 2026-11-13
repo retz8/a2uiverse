@@ -1,10 +1,10 @@
-import type {AgentCard} from '@a2a-js/sdk';
+import type {InstalledCard} from '../src/registry/installedCard.js';
 import {describe, expect, test} from 'vitest';
 import {asksSignIn, NO_ACCOUNTS, Sources, type AccountStore} from '../src/accounts/accounts.js';
 import {cardFor, testRegistry} from './registryFixture.js';
 
 /** A card asking for sign-in: one OAuth scheme, required. */
-const signingIn = (agentUrl: string, name: string): AgentCard => ({
+const signingIn = (agentUrl: string, name: string): InstalledCard => ({
   ...cardFor(agentUrl, {name}),
   securitySchemes: {
     oauth: {

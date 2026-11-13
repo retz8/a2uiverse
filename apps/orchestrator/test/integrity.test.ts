@@ -5,6 +5,7 @@
  */
 import type {Ref, SynthesisPayload} from '@a2uiverse/sdk';
 import {describe, expect, test} from 'vitest';
+import {paint as paintEvent} from './wireEvents.js';
 import {
   changeAccount,
   checkSynthesisPayload,
@@ -86,16 +87,10 @@ describe('appearance and the relations that no longer hold (task-7.6 decisions 1
   const CI = 'circleci:runs';
 
   function paint(models: Record<string, unknown>, into = new Partitions()): Partitions {
-    const message = (op: Record<string, unknown>) => ({
-      kind: 'message' as const,
-      messageId: 'm',
-      role: 'agent' as const,
-      parts: [{kind: 'data' as const, data: {version: 'v0.9', ...op}}],
-    });
     for (const [surface, value] of Object.entries(models)) {
       if (!into.has(surface))
-        into.apply(message({createSurface: {surfaceId: surface, catalogId: 'c'}}));
-      into.apply(message({updateDataModel: {surfaceId: surface, value}}));
+        into.apply(paintEvent({createSurface: {surfaceId: surface, catalogId: 'c'}}));
+      into.apply(paintEvent({updateDataModel: {surfaceId: surface, value}}));
     }
     return into;
   }
@@ -224,16 +219,10 @@ describe('a source the view reads nothing from, painting again (task-7.9)', () =
   const GH = 'github:prs';
 
   function paint(models: Record<string, unknown>, into = new Partitions()): Partitions {
-    const message = (op: Record<string, unknown>) => ({
-      kind: 'message' as const,
-      messageId: 'm',
-      role: 'agent' as const,
-      parts: [{kind: 'data' as const, data: {version: 'v0.9', ...op}}],
-    });
     for (const [surface, value] of Object.entries(models)) {
       if (!into.has(surface))
-        into.apply(message({createSurface: {surfaceId: surface, catalogId: 'c'}}));
-      into.apply(message({updateDataModel: {surfaceId: surface, value}}));
+        into.apply(paintEvent({createSurface: {surfaceId: surface, catalogId: 'c'}}));
+      into.apply(paintEvent({updateDataModel: {surfaceId: surface, value}}));
     }
     return into;
   }

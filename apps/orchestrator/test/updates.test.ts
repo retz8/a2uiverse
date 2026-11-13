@@ -5,7 +5,7 @@
  */
 import {rm} from 'node:fs/promises';
 import {afterEach, describe, expect, test} from 'vitest';
-import type {AgentCard} from '@a2a-js/sdk';
+import type {InstalledCard} from '../src/registry/installedCard.js';
 import {BASIC_CATALOG_ID, readUpdateState, type IndexEntry} from '@a2uiverse/sdk';
 import type {EntryLookup} from '../src/registry/marketplace.js';
 import {MarketplaceClient} from '../src/registry/marketplace.js';
@@ -20,7 +20,7 @@ const CALENDAR = 'https://example.com/calendar/catalog.json';
 const AGENT = 'http://127.0.0.1:11002';
 
 const record = (
-  card: AgentCard,
+  card: InstalledCard,
   catalogs: Record<string, string>,
   source: InstalledRecord['source'] = 'marketplace',
 ): InstalledRecord => ({
@@ -34,7 +34,7 @@ const record = (
 });
 
 const entryOf = (
-  card: AgentCard,
+  card: InstalledCard,
   catalogs: Record<string, string>,
   extra: Partial<IndexEntry> = {},
 ): EntryLookup => ({
@@ -52,7 +52,7 @@ const entryOf = (
   },
 });
 
-const v = (card: AgentCard, version: string): AgentCard => ({...card, version});
+const v = (card: InstalledCard, version: string): InstalledCard => ({...card, version});
 
 describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-13.5 decision 7)', () => {
   const installedCard = cardFor(AGENT, {catalogs: [GMAIL]});
@@ -114,7 +114,7 @@ describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-1
   });
 
   test('a forced or a major update names the new scopes its published card asks (task-15.5 decision 7)', () => {
-    const asking = (card: AgentCard): AgentCard => ({
+    const asking = (card: InstalledCard): InstalledCard => ({
       ...card,
       securitySchemes: {google: {type: 'oauth2', flows: {}}},
       security: [{google: ['mail.read', 'mail.send']}],
@@ -162,12 +162,12 @@ describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-1
   });
 
   test('a card update when the version moved with no id added or dropped: the new scopes from `security`, a build riding with it named', () => {
-    const was: AgentCard = {
+    const was: InstalledCard = {
       ...installedCard,
       securitySchemes: {google: {type: 'oauth2', flows: {}}},
       security: [{google: ['mail.read']}],
     };
-    const published: AgentCard = {
+    const published: InstalledCard = {
       ...v(installedCard, '0.1.0'),
       securitySchemes: {
         google: {type: 'oauth2', flows: {}},

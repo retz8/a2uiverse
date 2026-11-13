@@ -1,19 +1,37 @@
 import {describe, expect, test} from 'vitest';
 import {A2UI_EXTENSION_URIS, A2UI_VERSIONS} from '@a2uiverse/sdk';
-import {buildAgentCard} from '../src/agentCard.js';
+import {buildAgentCard, indexedPlatformCard} from '../src/agentCard.js';
 
 describe('buildAgentCard', () => {
   const card = buildAgentCard('https://x-10001.asse.devtunnels.ms');
 
-  test('advertises the given base URL over JSON-RPC with streaming', () => {
-    expect(card.url).toBe('https://x-10001.asse.devtunnels.ms');
-    expect(card.preferredTransport).toBe('JSONRPC');
-    expect(card.capabilities.streaming).toBe(true);
-    expect(card.protocolVersion).toBe('0.3.0');
+  test('lists one interface, A2A 1.0 over JSON-RPC at the given base URL, with streaming (phase-20 decision 3)', () => {
+    expect(card.supportedInterfaces).toEqual([
+      {
+        url: 'https://x-10001.asse.devtunnels.ms',
+        protocolBinding: 'JSONRPC',
+        protocolVersion: '1.0',
+        tenant: '',
+      },
+    ]);
+    expect(card.capabilities?.streaming).toBe(true);
+  });
+
+  test('the card the Registry indexes carries the same name, words, skills and extensions in the shape its readers read (task-20.1 decision 1)', () => {
+    const indexed = indexedPlatformCard(card);
+    expect(indexed.url).toBe('https://x-10001.asse.devtunnels.ms');
+    expect(indexed).toMatchObject({name: card.name, description: card.description});
+    expect(indexed.skills.map(s => s.id)).toEqual(card.skills.map(s => s.id));
+    expect(indexed.skills[1]!.examples).toEqual(card.skills[1]!.examples);
+    expect(indexed.skills[0]).not.toHaveProperty('examples');
+    expect(indexed.capabilities.extensions?.map(e => e.uri)).toEqual(
+      A2UI_VERSIONS.map(v => A2UI_EXTENSION_URIS[v]),
+    );
+    expect(indexed.security).toBeUndefined();
   });
 
   test('declares one bare A2UI extension entry per version the platform speaks, none required (task-19.2 decision 5)', () => {
-    const extensions = card.capabilities.extensions ?? [];
+    const extensions = card.capabilities?.extensions ?? [];
     expect(extensions.map(e => e.uri)).toEqual(A2UI_VERSIONS.map(v => A2UI_EXTENSION_URIS[v]));
     for (const [i, ext] of extensions.entries()) {
       expect(ext.params).toBeUndefined();

@@ -1,6 +1,6 @@
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import type {AgentCard} from '@a2a-js/sdk';
+import type {InstalledCard} from './installedCard.js';
 import {
   aheadOfStore,
   ARTIFACT_DESCRIPTOR_FILE,
@@ -43,12 +43,12 @@ import {
 } from './types.js';
 
 /** How the registry fetches a card from its full URL; injected so tests need no network. */
-export type ResolveCard = (cardUrl: string) => Promise<AgentCard>;
+export type ResolveCard = (cardUrl: string) => Promise<InstalledCard>;
 
 /** An agent the Router can rank: record + this run's card + corpus vector. */
 export interface RoutableApp {
   record: AppRecord;
-  card: AgentCard;
+  card: InstalledCard;
   vector: number[];
 }
 
@@ -111,7 +111,7 @@ export interface InstallRequest {
   /** Where the install came by (task-13.5 decision 3); a local pack unless said otherwise. */
   source?: InstallSource;
   /** The card already fetched from `cardUrl` by the marketplace path, so it is fetched once. */
-  card?: AgentCard;
+  card?: InstalledCard;
   /** An install the update check runs by itself (task-13.5 decision 9), journaled as such. */
   automatic?: boolean;
   /** Who made the write, journaled (task-14.3 decision 13). */
@@ -149,7 +149,7 @@ export interface RegistryDeps {
   embedder: Embedder;
   journal?: RegistryJournal;
   /** The orchestrator's own card, indexed under `shell` beside the installed apps. */
-  platformCard?: AgentCard;
+  platformCard?: InstalledCard;
   /** The marketplace an install by id resolves through (task-13.5 decision 2). */
   marketplace?: MarketplaceClient;
 }
@@ -177,9 +177,9 @@ export class Registry {
   /** The options each artifact's schema declares, by artifact id: what the credential bar reads. */
   readonly #options = new Map<string, CatalogOptions>();
   /** This run's cards: null when the startup fetch failed; absent before it ran. */
-  readonly #cards = new Map<string, AgentCard | null>();
+  readonly #cards = new Map<string, InstalledCard | null>();
   readonly #vectors = new Map<string, number[]>();
-  readonly #platform: {record: AppRecord; card: AgentCard} | undefined;
+  readonly #platform: {record: AppRecord; card: InstalledCard} | undefined;
   #queue: Promise<unknown> = Promise.resolve();
   readonly #uninstalled: ((
     appId: string,
@@ -285,7 +285,7 @@ export class Registry {
     );
     this.#cards.clear();
     this.#vectors.clear();
-    const carded: {id: string; card: AgentCard}[] = [];
+    const carded: {id: string; card: InstalledCard}[] = [];
     records.forEach((record, i) => {
       this.#cards.set(record.id, cards[i]);
       if (cards[i]) carded.push({id: record.id, card: cards[i]});
@@ -309,7 +309,7 @@ export class Registry {
     const fetched = await Promise.all(
       records.map(record => this.#fetchCard(record.cardUrl).catch(() => null)),
     );
-    const changed: {id: string; card: AgentCard}[] = [];
+    const changed: {id: string; card: InstalledCard}[] = [];
     records.forEach((record, i) => {
       const card = fetched[i];
       if (!card || !this.#records.has(record.id)) return;
@@ -332,10 +332,10 @@ export class Registry {
    * replaces the one held, its corpus vector recomputed when it changed, and is returned; one that
    * does not answer in time, or at all, leaves the one held and returns none.
    */
-  async refetchLiveCard(appId: string, timeoutMs: number): Promise<AgentCard | undefined> {
+  async refetchLiveCard(appId: string, timeoutMs: number): Promise<InstalledCard | undefined> {
     const record = this.#records.get(appId);
     if (!record) return undefined;
-    let card: AgentCard;
+    let card: InstalledCard;
     try {
       card = await withTimeout(this.#fetchCard(record.cardUrl), timeoutMs);
     } catch {
@@ -383,12 +383,12 @@ export class Registry {
   }
 
   /** This run's card: null when unreachable at startup, undefined before the fetch or unknown. */
-  card(appId: string): AgentCard | null | undefined {
+  card(appId: string): InstalledCard | null | undefined {
     return this.#cards.get(appId);
   }
 
   /** The card stored at install. */
-  storedCard(appId: string): AgentCard | undefined {
+  storedCard(appId: string): InstalledCard | undefined {
     return this.#records.get(appId)?.card;
   }
 
@@ -497,7 +497,7 @@ export class Registry {
       ]);
     }
     const {entry} = looked;
-    let card: AgentCard;
+    let card: InstalledCard;
     try {
       card = await this.#fetchCard(entry.cardUrl);
     } catch (err) {
@@ -626,7 +626,7 @@ export class Registry {
     const findings = [...checkAppId(appId)];
     const journalExtra = {...(automatic ? {automatic: true as const} : {}), ...(by ? {by} : {})};
 
-    let card: AgentCard | undefined = fetched;
+    let card: InstalledCard | undefined = fetched;
     if (!card) {
       try {
         card = await this.#fetchCard(cardUrl);
@@ -839,7 +839,7 @@ export class Registry {
     }
   }
 
-  async #fetchCard(cardUrl: string): Promise<AgentCard> {
+  async #fetchCard(cardUrl: string): Promise<InstalledCard> {
     const card = await this.#deps.resolveCard(cardUrl);
     if (typeof card !== 'object' || card === null) throw new Error('not an agent card');
     if (typeof card.url !== 'string' || typeof card.name !== 'string') {

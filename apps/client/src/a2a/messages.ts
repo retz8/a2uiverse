@@ -1,10 +1,10 @@
-import type {
-  MessageSendParams,
-  Task,
-  TaskArtifactUpdateEvent,
-  TaskStatusUpdateEvent,
-  Message,
-  Part,
+import {
+  Role,
+  TaskState,
+  type Message,
+  type Part,
+  type SendMessageRequest,
+  type StreamResponse,
 } from '@a2a-js/sdk';
 import type {A2uiClientAction, A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {
@@ -28,10 +28,109 @@ import {PAGE_SESSION} from './pageSession';
 import {readClock} from './clock';
 
 /**
- * What `sendMessageStream` yields. The SDK declares this union on its client but does not export
- * it publicly, so it is restated here from the public event types.
+ * What `sendMessageStream` yields: one event of the orchestrator's stream, in the A2A SDK's
+ * in-memory shape. On the private wire (task-20.1 decision 6) that is the orchestrator's task,
+ * then `working` status updates and agents' artifact updates, then one terminal status update.
  */
-export type A2AStreamEventData = Message | Task | TaskStatusUpdateEvent | TaskArtifactUpdateEvent;
+export type A2AStreamEventData = StreamResponse;
+
+/** A text part in the SDK's in-memory shape, every key of which is required. */
+export function textPart(text: string): Part {
+  return {content: {$case: 'text', value: text}, metadata: undefined, filename: '', mediaType: ''};
+}
+
+/** A data part in the SDK's in-memory shape. */
+export function dataPart(data: unknown): Part {
+  return {content: {$case: 'data', value: data}, metadata: undefined, filename: '', mediaType: ''};
+}
+
+/** The object a data part carries; undefined for any other part, and for data that is no object. */
+export function dataOf(part: Part): Record<string, unknown> | undefined {
+  if (part.content?.$case !== 'data') return undefined;
+  const value: unknown = part.content.value;
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+/** The message an event carries: a direct message, or a task's or a status update's status message. */
+export function messageOf(event: A2AStreamEventData): Message | undefined {
+  const payload = event.payload;
+  switch (payload?.$case) {
+    case 'message':
+      return payload.value;
+    case 'task':
+    case 'statusUpdate':
+      return payload.value.status?.message;
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * A status update of the orchestrator's task, as the SDK's client yields one: its state, the
+ * agent message its parts ride — none leaves the message out — and the event's metadata. What the
+ * replay rebuilds a recorded batch into.
+ */
+export function statusUpdateEvent(fields: {
+  taskId: string;
+  contextId: string;
+  state: TaskState;
+  parts?: Part[];
+  metadata?: Record<string, unknown>;
+}): A2AStreamEventData {
+  const {taskId, contextId, state, parts, metadata} = fields;
+  return {
+    payload: {
+      $case: 'statusUpdate',
+      value: {
+        taskId,
+        contextId,
+        status: {
+          state,
+          message:
+            parts && parts.length > 0
+              ? {
+                  messageId: crypto.randomUUID(),
+                  contextId,
+                  taskId,
+                  role: Role.ROLE_AGENT,
+                  parts,
+                  metadata: undefined,
+                  extensions: [],
+                  referenceTaskIds: [],
+                }
+              : undefined,
+          timestamp: undefined,
+        },
+        metadata,
+      },
+    },
+  };
+}
+
+/** One message from the canvas shell, as the request the SDK's client sends. */
+function sendRequest(
+  parts: Part[],
+  metadata: {[k: string]: unknown},
+  contextId?: string,
+): SendMessageRequest {
+  return {
+    tenant: '',
+    message: {
+      messageId: crypto.randomUUID(),
+      contextId: contextId ?? '',
+      taskId: '',
+      role: Role.ROLE_USER,
+      parts,
+      metadata,
+      extensions: [],
+      referenceTaskIds: [],
+    },
+    configuration: undefined,
+    metadata: undefined,
+  };
+}
 
 /**
  * The A2UI version the client writes — on every action, error report, operation and data model it
@@ -80,17 +179,12 @@ export function buildActionMessageParams(
   contextId?: string,
   clientDataModel?: A2uiClientDataModel,
   supportedCatalogIds?: string[],
-): MessageSendParams {
-  return {
-    message: {
-      kind: 'message',
-      role: 'user',
-      messageId: crypto.randomUUID(),
-      contextId,
-      parts: [{kind: 'data', data: {version: CLIENT_A2UI_VERSION, action}}],
-      metadata: messageMetadata(clientDataModel, supportedCatalogIds),
-    },
-  };
+): SendMessageRequest {
+  return sendRequest(
+    [dataPart({version: CLIENT_A2UI_VERSION, action})],
+    messageMetadata(clientDataModel, supportedCatalogIds),
+    contextId,
+  );
 }
 
 /** The protocol's `VALIDATION_FAILED` code — a fragment that would not validate or mount. */
@@ -117,17 +211,12 @@ export function buildErrorMessageParams(
   contextId?: string,
   clientDataModel?: A2uiClientDataModel,
   supportedCatalogIds?: string[],
-): MessageSendParams {
-  return {
-    message: {
-      kind: 'message',
-      role: 'user',
-      messageId: crypto.randomUUID(),
-      contextId,
-      parts: [{kind: 'data', data: {version: CLIENT_A2UI_VERSION, error}}],
-      metadata: messageMetadata(clientDataModel, supportedCatalogIds),
-    },
-  };
+): SendMessageRequest {
+  return sendRequest(
+    [dataPart({version: CLIENT_A2UI_VERSION, error})],
+    messageMetadata(clientDataModel, supportedCatalogIds),
+    contextId,
+  );
 }
 
 /**
@@ -142,17 +231,12 @@ export function buildOperationMessageParams(
   contextId?: string,
   supportedCatalogIds?: string[],
   clientDataModel?: A2uiClientDataModel,
-): MessageSendParams {
-  return {
-    message: {
-      kind: 'message',
-      role: 'user',
-      messageId: crypto.randomUUID(),
-      contextId,
-      parts: [{kind: 'data', data: operationData(operation, CLIENT_A2UI_VERSION)}],
-      metadata: messageMetadata(clientDataModel, supportedCatalogIds),
-    },
-  };
+): SendMessageRequest {
+  return sendRequest(
+    [dataPart(operationData(operation, CLIENT_A2UI_VERSION))],
+    messageMetadata(clientDataModel, supportedCatalogIds),
+    contextId,
+  );
 }
 
 /**
@@ -165,49 +249,31 @@ export function buildTextMessageParams(
   clientDataModel?: A2uiClientDataModel,
   supportedCatalogIds?: string[],
   parent?: string,
-): MessageSendParams {
-  return {
-    message: {
-      kind: 'message',
-      role: 'user',
-      messageId: crypto.randomUUID(),
-      parts: [{kind: 'text', text}],
-      metadata: messageMetadata(clientDataModel, supportedCatalogIds, parent),
-    },
-  };
+): SendMessageRequest {
+  return sendRequest(
+    [textPart(text)],
+    messageMetadata(clientDataModel, supportedCatalogIds, parent),
+  );
 }
 
 /**
  * Pull A2UI messages out of a single A2A stream event.
  *
- * A2UI rides the status message of `Task` / `TaskStatusUpdateEvent` (and the parts of a direct
- * agent `Message`) as version-tagged DataParts. `TaskArtifactUpdateEvent` is ignored — our agents
- * never deliver A2UI as artifacts.
+ * A2UI rides the status message of a task or a status update (and the parts of a direct agent
+ * message) as version-tagged data parts. An artifact update is ignored — our agents never deliver
+ * A2UI as artifacts.
  *
  * A message is taken when its version is one the sdk lists, `v0.9` or `v0.9.1`: web_core draws
  * both through one adapter. A message in any other version is passed over with nothing said
  * (task-19.3 decisions 1, 2).
  */
 export function extractA2uiMessagesFromEvent(event: A2AStreamEventData): A2uiMessage[] {
-  let parts: Part[];
-  switch (event.kind) {
-    case 'message':
-      parts = event.parts;
-      break;
-    case 'task':
-    case 'status-update':
-      parts = event.status.message?.parts ?? [];
-      break;
-    default:
-      return [];
-  }
   return (
-    parts
-      .filter((p): p is Extract<Part, {kind: 'data'}> => p.kind === 'data')
-      .map(p => p.data as unknown)
+    (messageOf(event)?.parts ?? [])
+      .map(dataOf)
       // Keyed off the inline `version` field each A2UI message carries — NOT the
       // DataPart's MIME metadata (the A2A SDK tags version there, not in `data`).
-      .filter((d): d is A2uiMessage => isSpokenVersion((d as {version?: unknown}).version))
+      .filter((d): d is Record<string, unknown> => isSpokenVersion(d?.version)) as A2uiMessage[]
   );
 }
 
@@ -225,28 +291,11 @@ export function extractA2uiMessagesFromEvent(event: A2AStreamEventData): A2uiMes
  * accumulated response is blank belongs to the consumer, which is what sees the chunks together.
  */
 export function extractAgentTextFromEvent(event: A2AStreamEventData): string[] {
-  let message: Message | undefined;
-  switch (event.kind) {
-    case 'message':
-      message = event;
-      break;
-    case 'task':
-    case 'status-update':
-      message = event.status.message;
-      break;
-    default:
-      return [];
-  }
-  if (!message || message.role !== 'agent') return [];
+  const message = messageOf(event);
+  if (!message || message.role !== Role.ROLE_AGENT) return [];
   return message.parts
-    .filter((p): p is Extract<Part, {kind: 'text'}> => p.kind === 'text')
-    .map(p => p.text)
+    .flatMap(part => (part.content?.$case === 'text' ? [part.content.value] : []))
     .filter(text => text.length > 0);
-}
-
-/** Pull A2UI messages out of a non-streaming A2A send result. */
-export function extractA2uiMessages(result: Task | Message): A2uiMessage[] {
-  return extractA2uiMessagesFromEvent(result);
 }
 
 /**
@@ -255,21 +304,8 @@ export function extractA2uiMessages(result: Task | Message): A2uiMessage[] {
  * names, so the A2UI extractor above never sees it.
  */
 export function extractPaintMetasFromEvent(event: A2AStreamEventData): PaintMeta[] {
-  let parts: Part[];
-  switch (event.kind) {
-    case 'message':
-      parts = event.parts;
-      break;
-    case 'task':
-    case 'status-update':
-      parts = event.status.message?.parts ?? [];
-      break;
-    default:
-      return [];
-  }
-  return parts
-    .filter((p): p is Extract<Part, {kind: 'data'}> => p.kind === 'data')
-    .map(p => readPaintMeta(p.data))
+  return (messageOf(event)?.parts ?? [])
+    .map(part => readPaintMeta(dataOf(part)))
     .filter((m): m is PaintMeta => m !== undefined);
 }
 
@@ -281,7 +317,7 @@ export function extractPaintMetasFromEvent(event: A2AStreamEventData): PaintMeta
  * Absent on any stream that did not come through a composing hub.
  */
 export function extractStampFromEvent(event: A2AStreamEventData): CompositionStamp | undefined {
-  return readStamp((event as {metadata?: Record<string, unknown>}).metadata);
+  return readStamp(event.payload?.value.metadata);
 }
 
 /**
@@ -289,10 +325,17 @@ export function extractStampFromEvent(event: A2AStreamEventData): CompositionSta
  * paints the synthesis surface. Envelope-checked here; validated by the synthesis session.
  */
 export function extractSynthesisFromEvent(event: A2AStreamEventData): SynthesisPayload | undefined {
-  return readSynthesis((event as {metadata?: Record<string, unknown>}).metadata);
+  return readSynthesis(event.payload?.value.metadata);
 }
 
 /** The conversation contextId carried by an A2A stream event, if any. */
 export function extractContextId(event: A2AStreamEventData): string | undefined {
-  return event.contextId;
+  return event.payload?.value.contextId || undefined;
+}
+
+/** The orchestrator's task an A2A stream event belongs to, if it names one. */
+export function extractTaskId(event: A2AStreamEventData): string | undefined {
+  const payload = event.payload;
+  if (!payload) return undefined;
+  return (payload.$case === 'task' ? payload.value.id : payload.value.taskId) || undefined;
 }

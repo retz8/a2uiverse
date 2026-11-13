@@ -2,11 +2,10 @@ import {join} from 'node:path';
 import cors from 'cors';
 import express, {type Express} from 'express';
 import {AGENT_CARD_PATH} from '@a2a-js/sdk';
-import {DefaultAgentCardResolver} from '@a2a-js/sdk/client';
 import {DefaultRequestHandler, InMemoryTaskStore} from '@a2a-js/sdk/server';
 import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
 import {Sources, type AccountStore} from './accounts/accounts.js';
-import {buildAgentCard} from './agentCard.js';
+import {buildAgentCard, indexedPlatformCard} from './agentCard.js';
 import {AgentsPool} from './agentsPool/agentsPool.js';
 import {Compositions} from './composition/compositions.js';
 import {STEP_QUIET_MS, type Config} from './config.js';
@@ -24,6 +23,7 @@ import {MARKETPLACE_ROUTE_PREFIX, marketplaceRoutes} from './marketplace/routes.
 import type {PlatformReaders} from './planner/readers.js';
 import {storeSearch, type StoreSearch} from './planner/storeSearch.js';
 import {registryRoutes, REGISTRY_ROUTE_PREFIX} from './registry/api.js';
+import type {InstalledCard} from './registry/installedCard.js';
 import {MarketplaceClient} from './registry/marketplace.js';
 import {Registry, type ResolveCard} from './registry/registry.js';
 import {issueWriteToken} from './registry/token.js';
@@ -114,7 +114,7 @@ export function buildOrchestrator({
     resolveCard,
     embedder,
     journal,
-    platformCard: card,
+    platformCard: indexedPlatformCard(card),
     marketplace,
   });
   const updates = new UpdateCheck({registry, marketplace});
@@ -249,7 +249,11 @@ export function buildOrchestrator({
       guard,
     }),
   );
-  app.use(`/${AGENT_CARD_PATH}`, agentCardHandler({agentCardProvider: requestHandler}));
+  // Served fresh on every fetch: the card is local, and it names the address the client calls.
+  app.use(
+    `/${AGENT_CARD_PATH}`,
+    agentCardHandler({agentCardProvider: requestHandler, cache: {maxAge: 0}}),
+  );
   app.use('/', jsonRpcHandler({requestHandler, userBuilder: UserBuilder.noAuthentication}));
 
   const orchestrator: Orchestrator = {
@@ -337,8 +341,17 @@ function synthesisModelFrom(config: Config): SynthesisModel {
   });
 }
 
-/** Fetches a card from its full URL: the path is part of the URL, none appended. */
+/**
+ * Fetches a card from its full URL: the path is part of the URL, none appended. The card is kept
+ * as its agent served it (task-20.1 decision 1), so the A2A SDK's resolver, which returns its own
+ * translation of a card, is not what fetches it.
+ */
 function defaultResolveCard(): ResolveCard {
-  const resolver = new DefaultAgentCardResolver();
-  return url => resolver.resolve(url, '');
+  return async url => {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Agent Card from ${url}: ${response.status}`);
+    }
+    return (await response.json()) as InstalledCard;
+  };
 }

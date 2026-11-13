@@ -1,21 +1,18 @@
 import {describe, it, expect, vi} from 'vitest';
-import type {
-  Message,
-  Part,
-  Task,
-  TaskArtifactUpdateEvent,
-  TaskStatusUpdateEvent,
-} from '@a2a-js/sdk';
+import {Role, TaskState, type Message, type Part} from '@a2a-js/sdk';
 import type {A2uiClientAction, A2uiClientDataModel} from '@a2ui/web_core/v0_9';
 import {
   buildActionMessageParams,
   buildOperationMessageParams,
   buildTextMessageParams,
-  extractA2uiMessages,
+  dataPart,
   extractA2uiMessagesFromEvent,
   extractAgentTextFromEvent,
   extractContextId,
   extractPaintMetasFromEvent,
+  statusUpdateEvent,
+  textPart,
+  type A2AStreamEventData,
 } from './messages';
 import {PAGE_SESSION} from './pageSession';
 
@@ -27,9 +24,9 @@ vi.mock('./clock', () => ({readClock: () => CLOCK}));
 const SESSION = {a2uiverse: {session: PAGE_SESSION, ...CLOCK}};
 
 const A2UI_DATA = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'cat'}};
-const DATA_PART: Part = {kind: 'data', data: A2UI_DATA};
-const TEXT_PART: Part = {kind: 'text', text: 'hello'};
-const FOREIGN_PART: Part = {kind: 'data', data: {version: 'v0.8', foo: 1}};
+const DATA_PART: Part = dataPart(A2UI_DATA);
+const TEXT_PART: Part = textPart('hello');
+const FOREIGN_PART: Part = dataPart({version: 'v0.8', foo: 1});
 /** A v0.9.1 agent's paint, as its message carries it (task-19.3 decision 1). */
 const A2UI_DATA_V091 = {version: 'v0.9.1', createSurface: {surfaceId: 't', catalogId: 'cat'}};
 
@@ -40,60 +37,104 @@ const CLIENT_DM = {
   surfaces: {s: {prs: [{title: 'one', selected: true}]}},
 } as unknown as A2uiClientDataModel;
 
-function agentMessage(parts: Part[], contextId?: string): Message {
-  return {kind: 'message', role: 'agent', messageId: 'm1', parts, contextId};
-}
+/** A whole part as a sent message holds it, spelled out beside the builders that write it. */
+const sentPart = (content: Part['content']): Part => ({
+  content,
+  metadata: undefined,
+  filename: '',
+  mediaType: '',
+});
 
-function task(parts: Part[] | undefined, contextId = 'ctx-task'): Task {
+function message(parts: Part[], contextId = '', role = Role.ROLE_AGENT): Message {
   return {
-    kind: 'task',
-    id: 't1',
+    messageId: 'm1',
     contextId,
-    status: {state: 'completed', message: parts ? agentMessage(parts) : undefined},
+    taskId: '',
+    role,
+    parts,
+    metadata: undefined,
+    extensions: [],
+    referenceTaskIds: [],
   };
 }
 
-function statusUpdate(parts: Part[] | undefined, contextId = 'ctx-status'): TaskStatusUpdateEvent {
+function agentMessage(parts: Part[], contextId?: string): A2AStreamEventData {
+  return {payload: {$case: 'message', value: message(parts, contextId)}};
+}
+
+function task(parts: Part[] | undefined, contextId = 'ctx-task'): A2AStreamEventData {
   return {
-    kind: 'status-update',
-    taskId: 't1',
-    contextId,
-    final: false,
-    status: {state: 'working', message: parts ? agentMessage(parts) : undefined},
+    payload: {
+      $case: 'task',
+      value: {
+        id: 't1',
+        contextId,
+        status: {
+          state: TaskState.TASK_STATE_COMPLETED,
+          message: parts ? message(parts) : undefined,
+          timestamp: undefined,
+        },
+        artifacts: [],
+        history: [],
+        metadata: undefined,
+      },
+    },
   };
 }
 
-function artifactUpdate(parts: Part[]): TaskArtifactUpdateEvent {
-  return {
-    kind: 'artifact-update',
+function statusUpdate(parts: Part[] | undefined, contextId = 'ctx-status'): A2AStreamEventData {
+  return statusUpdateEvent({
     taskId: 't1',
-    contextId: 'ctx-artifact',
-    artifact: {artifactId: 'a1', parts},
+    contextId,
+    state: TaskState.TASK_STATE_WORKING,
+    parts,
+  });
+}
+
+function artifactUpdate(parts: Part[]): A2AStreamEventData {
+  return {
+    payload: {
+      $case: 'artifactUpdate',
+      value: {
+        taskId: 't1',
+        contextId: 'ctx-artifact',
+        artifact: {
+          artifactId: 'a1',
+          name: '',
+          description: '',
+          parts,
+          metadata: undefined,
+          extensions: [],
+        },
+        append: false,
+        lastChunk: false,
+        metadata: undefined,
+      },
+    },
   };
 }
 
 describe('buildTextMessageParams', () => {
   it('wraps user text as a single TextPart user message', () => {
     const params = buildTextMessageParams('show me open PRs');
-    expect(params.message.kind).toBe('message');
-    expect(params.message.role).toBe('user');
-    expect(params.message.messageId).toBeTruthy();
-    expect(params.message.parts).toEqual([{kind: 'text', text: 'show me open PRs'}]);
-    expect(params.message.contextId).toBeUndefined();
+    expect(params.message!.role).toBe(Role.ROLE_USER);
+    expect(params.message!.messageId).toBeTruthy();
+    expect(params.message!.parts).toEqual([sentPart({$case: 'text', value: 'show me open PRs'})]);
+    expect(params.message!.contextId).toBe('');
   });
 
   it('attaches the client data model as message metadata when given', () => {
     const params = buildTextMessageParams('show', CLIENT_DM);
-    expect(params.message.metadata).toEqual({a2uiClientDataModel: CLIENT_DM, ...SESSION});
+    expect(params.message!.metadata).toEqual({a2uiClientDataModel: CLIENT_DM, ...SESSION});
   });
 
   it('names only the page-load session when no client data model is given', () => {
-    expect(buildTextMessageParams('show').message.metadata).toEqual(SESSION);
+    expect(buildTextMessageParams('show').message!.metadata).toEqual(SESSION);
   });
 
   it('advertises the supported catalogs as a2uiClientCapabilities when given', () => {
     const params = buildTextMessageParams('show', undefined, ['cat-a']);
-    expect(params.message.metadata).toEqual({
+    expect(params.message!.metadata).toEqual({
       a2uiClientCapabilities: {
         'v0.9': {supportedCatalogIds: ['cat-a']},
         'v0.9.1': {supportedCatalogIds: ['cat-a']},
@@ -106,27 +147,29 @@ describe('buildTextMessageParams', () => {
 describe('buildActionMessageParams', () => {
   it('wraps the action as a version-tagged DataPart without a contextId by default', () => {
     const params = buildActionMessageParams(ACTION);
-    expect(params.message.parts).toEqual([{kind: 'data', data: {version: 'v0.9', action: ACTION}}]);
-    expect(params.message.contextId).toBeUndefined();
+    expect(params.message!.parts).toEqual([
+      sentPart({$case: 'data', value: {version: 'v0.9', action: ACTION}}),
+    ]);
+    expect(params.message!.contextId).toBe('');
   });
 
   it('threads a contextId when given', () => {
     const params = buildActionMessageParams(ACTION, 'ctx-9');
-    expect(params.message.contextId).toBe('ctx-9');
+    expect(params.message!.contextId).toBe('ctx-9');
   });
 
   it('attaches the client data model as message metadata when given', () => {
     const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM);
-    expect(params.message.metadata).toEqual({a2uiClientDataModel: CLIENT_DM, ...SESSION});
+    expect(params.message!.metadata).toEqual({a2uiClientDataModel: CLIENT_DM, ...SESSION});
   });
 
   it('names only the page-load session when no client data model is given', () => {
-    expect(buildActionMessageParams(ACTION).message.metadata).toEqual(SESSION);
+    expect(buildActionMessageParams(ACTION).message!.metadata).toEqual(SESSION);
   });
 
   it('advertises the supported catalogs alongside the data model', () => {
     const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM, ['cat-a']);
-    expect(params.message.metadata).toEqual({
+    expect(params.message!.metadata).toEqual({
       a2uiClientCapabilities: {
         'v0.9': {supportedCatalogIds: ['cat-a']},
         'v0.9.1': {supportedCatalogIds: ['cat-a']},
@@ -142,12 +185,15 @@ describe('buildOperationMessageParams', () => {
     const params = buildOperationMessageParams({kind: 'include', sources: ['gmail']}, 'ctx', [
       'cat',
     ]);
-    expect(params.message.contextId).toBe('ctx');
-    expect(params.message.parts).toEqual([
-      {kind: 'data', data: {version: 'v0.9', operation: {kind: 'include', sources: ['gmail']}}},
+    expect(params.message!.contextId).toBe('ctx');
+    expect(params.message!.parts).toEqual([
+      sentPart({
+        $case: 'data',
+        value: {version: 'v0.9', operation: {kind: 'include', sources: ['gmail']}},
+      }),
     ]);
     // It acts on the composition in its context: no data model rides it.
-    expect(params.message.metadata).toEqual({
+    expect(params.message!.metadata).toEqual({
       a2uiClientCapabilities: {
         'v0.9': {supportedCatalogIds: ['cat']},
         'v0.9.1': {supportedCatalogIds: ['cat']},
@@ -163,13 +209,13 @@ describe('buildOperationMessageParams', () => {
       ['cat'],
       CLIENT_DM,
     );
-    expect(params.message.parts).toEqual([
-      {
-        kind: 'data',
-        data: {version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}},
-      },
+    expect(params.message!.parts).toEqual([
+      sentPart({
+        $case: 'data',
+        value: {version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}},
+      }),
     ]);
-    expect(params.message.metadata).toEqual({
+    expect(params.message!.metadata).toEqual({
       a2uiClientCapabilities: {
         'v0.9': {supportedCatalogIds: ['cat']},
         'v0.9.1': {supportedCatalogIds: ['cat']},
@@ -208,7 +254,7 @@ describe('extractA2uiMessagesFromEvent', () => {
 });
 
 describe('the message’s version on the way in and out (task-19.3 decisions 1, 2, 5)', () => {
-  const part = (data: Record<string, unknown>): Part => ({kind: 'data', data});
+  const part = (data: Record<string, unknown>): Part => dataPart(data);
 
   it('takes a message in v0.9 and one in v0.9.1, side by side in one event, in order', () => {
     const event = statusUpdate([DATA_PART, part(A2UI_DATA_V091)]);
@@ -230,16 +276,6 @@ describe('the message’s version on the way in and out (task-19.3 decisions 1, 
     expect(warn).not.toHaveBeenCalled();
     error.mockRestore();
     warn.mockRestore();
-  });
-});
-
-describe('extractA2uiMessages (terminal result)', () => {
-  it('still extracts from a completed Task', () => {
-    expect(extractA2uiMessages(task([DATA_PART]))).toEqual([A2UI_DATA]);
-  });
-
-  it('still extracts from a direct agent Message', () => {
-    expect(extractA2uiMessages(agentMessage([DATA_PART]))).toEqual([A2UI_DATA]);
   });
 });
 
@@ -274,25 +310,30 @@ describe('extractAgentTextFromEvent', () => {
   });
 
   it('ignores a user-role message, so the prompt is never echoed into the transcript', () => {
-    const userEcho: Message = {kind: 'message', role: 'user', messageId: 'm0', parts: [TEXT_PART]};
+    const userEcho: A2AStreamEventData = {
+      payload: {
+        $case: 'message',
+        value: {...message([TEXT_PART], '', Role.ROLE_USER), messageId: 'm0'},
+      },
+    };
     expect(extractAgentTextFromEvent(userEcho)).toEqual([]);
   });
 
   it('returns text verbatim, so the spaces joining stream chunks survive', () => {
-    const chunked = agentMessage([{kind: 'text', text: 'requests on '}]);
+    const chunked = agentMessage([textPart('requests on ')]);
     expect(extractAgentTextFromEvent(chunked)).toEqual(['requests on ']);
   });
 
   it('drops empty parts, which carry nothing to join or render', () => {
-    expect(extractAgentTextFromEvent(agentMessage([{kind: 'text', text: ''}]))).toEqual([]);
+    expect(extractAgentTextFromEvent(agentMessage([textPart('')]))).toEqual([]);
   });
 });
 
 describe('the canvas on a message (task-9.2 decisions 1, 2)', () => {
   it('a question opens a canvas of its own: no contextId, the parent under the stamp key', () => {
     const params = buildTextMessageParams('what changed?', CLIENT_DM, undefined, 'ctx-parent');
-    expect(params.message.contextId).toBeUndefined();
-    expect(params.message.metadata).toEqual({
+    expect(params.message!.contextId).toBe('');
+    expect(params.message!.metadata).toEqual({
       a2uiClientDataModel: CLIENT_DM,
       a2uiverse: {session: PAGE_SESSION, ...CLOCK, parent: 'ctx-parent'},
     });
@@ -300,8 +341,8 @@ describe('the canvas on a message (task-9.2 decisions 1, 2)', () => {
 
   it('a root question names no parent', () => {
     const params = buildTextMessageParams('what changed?');
-    expect(params.message.contextId).toBeUndefined();
-    expect(params.message.metadata).toEqual(SESSION);
+    expect(params.message!.contextId).toBe('');
+    expect(params.message!.metadata).toEqual(SESSION);
   });
 
   it('every message names the page-load session, one id for the page (task-12.5 decision 6)', () => {
@@ -309,21 +350,20 @@ describe('the canvas on a message (task-9.2 decisions 1, 2)', () => {
       buildTextMessageParams('what changed?'),
       buildActionMessageParams(ACTION, 'ctx-9'),
       buildOperationMessageParams({kind: 'retry', sources: ['gmail.1']}, 'ctx-9'),
-    ].map(params => (params.message.metadata as typeof SESSION).a2uiverse.session);
+    ].map(params => (params.message!.metadata as typeof SESSION).a2uiverse.session);
     expect(new Set(sessions)).toEqual(new Set([PAGE_SESSION]));
     expect(PAGE_SESSION).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('an action carries its canvas as the contextId and no parent', () => {
     const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM);
-    expect(params.message.contextId).toBe('ctx-9');
-    expect(params.message.metadata).toEqual({a2uiClientDataModel: CLIENT_DM, ...SESSION});
+    expect(params.message!.contextId).toBe('ctx-9');
+    expect(params.message!.metadata).toEqual({a2uiClientDataModel: CLIENT_DM, ...SESSION});
   });
 });
 
 const PAINT_META_PART: Part = {
-  kind: 'data',
-  data: {paintMeta: {surfaceId: 's', title: 'Open PRs — a2ui'}},
+  ...dataPart({paintMeta: {surfaceId: 's', title: 'Open PRs — a2ui'}}),
   metadata: {mimeType: 'application/json+a2ui-shell'},
 };
 
@@ -339,10 +379,9 @@ describe('paintMeta extraction', () => {
   });
 
   it('carries the question kind through', () => {
-    const part: Part = {
-      kind: 'data',
-      data: {paintMeta: {surfaceId: 'q', title: 'Which repo?', kind: 'question'}},
-    };
+    const part: Part = dataPart({
+      paintMeta: {surfaceId: 'q', title: 'Which repo?', kind: 'question'},
+    });
     expect(extractPaintMetasFromEvent(agentMessage([part]))).toEqual([
       {surfaceId: 'q', title: 'Which repo?', kind: 'question'},
     ]);

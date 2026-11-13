@@ -1,25 +1,31 @@
-import type {AgentCard} from '@a2a-js/sdk';
+import {A2A_PROTOCOL_VERSION, AgentCard} from '@a2a-js/sdk';
 import {A2UI_EXTENSION_URIS, A2UI_VERSIONS} from '@a2uiverse/sdk';
+import type {InstalledCard} from './registry/installedCard.js';
+
+/** The one binding the orchestrator's endpoint serves. */
+const JSON_RPC = 'JSONRPC';
 
 /**
  * The orchestrator's AgentCard (SPEC §10): the one the client fetches and the one the Registry
- * indexes under `shell` beside the installed apps' cards (phase-6 decision 1). Its skills are
- * hand-authored: what A2UIVerse is, what the canvas can do, describing the installed apps, and
- * how apps are found and installed — the texts that let the Router rank a platform question and
- * the Planner tell one from a capability gap. No union of installed apps' skills: every question
- * is sent here regardless, and the Registry reader describes the apps on demand. Its extensions
- * are one bare entry per A2UI version the platform speaks, from the sdk's map (task-19.2
- * decision 5): the claim's own card says both.
+ * indexes under `shell` beside the installed apps' cards (phase-6 decision 1). Its endpoint is a
+ * private wire (phase-20 decision 3): the card lists one interface, A2A 1.0 over JSON-RPC. Its
+ * skills are hand-authored: what A2UIVerse is, what the canvas can do, describing the installed
+ * apps, and how apps are found and installed — the texts that let the Router rank a platform
+ * question and the Planner tell one from a capability gap. No union of installed apps' skills:
+ * every question is sent here regardless, and the Registry reader describes the apps on demand.
+ * Its extensions are one bare entry per A2UI version the platform speaks, from the sdk's map
+ * (task-19.2 decision 5): the claim's own card says both. Written as the card's JSON; the SDK's
+ * codec fills what its in-memory shape requires.
  */
 export function buildAgentCard(baseUrl: string): AgentCard {
-  return {
+  return AgentCard.fromJSON({
     name: 'A2UIVerse Orchestrator',
     description:
       'The A2UIVerse hub: the platform that composes installed A2UI apps onto one canvas. Routes each question to the apps, relays their surfaces, merges their answers, and answers questions about itself.',
     version: '0.0.0',
-    protocolVersion: '0.3.0',
-    url: baseUrl,
-    preferredTransport: 'JSONRPC',
+    supportedInterfaces: [
+      {url: baseUrl, protocolBinding: JSON_RPC, protocolVersion: A2A_PROTOCOL_VERSION},
+    ],
     capabilities: {
       streaming: true,
       extensions: A2UI_VERSIONS.map(version => ({
@@ -111,5 +117,36 @@ export function buildAgentCard(baseUrl: string): AgentCard {
         ],
       },
     ],
+  });
+}
+
+/**
+ * The platform's card as the Registry indexes it under `shell`: in the shape the orchestrator's
+ * card readers read until the card's one reading lands (task-20.1 decision 1).
+ */
+export function indexedPlatformCard(card: AgentCard): InstalledCard {
+  const {capabilities} = card;
+  return {
+    name: card.name,
+    description: card.description,
+    version: card.version,
+    url: card.supportedInterfaces[0]?.url ?? '',
+    capabilities: {
+      ...(capabilities?.streaming !== undefined ? {streaming: capabilities.streaming} : {}),
+      extensions: (capabilities?.extensions ?? []).map(({uri, description, required}) => ({
+        uri,
+        description,
+        required,
+      })),
+    },
+    defaultInputModes: card.defaultInputModes,
+    defaultOutputModes: card.defaultOutputModes,
+    skills: card.skills.map(({id, name, description, tags, examples}) => ({
+      id,
+      name,
+      description,
+      tags,
+      ...(examples.length > 0 ? {examples} : {}),
+    })),
   };
 }

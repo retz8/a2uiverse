@@ -1,4 +1,5 @@
 import {describe, expect, test} from 'vitest';
+import {dataPart, textPart, userMessage} from '../src/a2a/parts.js';
 import {classifyTurn, unnamespaceAction} from '../src/composition/classify.js';
 import {shellSurfaceId} from '../src/composition/constants.js';
 import {filterClientDataModel, vendorMetadata} from '../src/composition/partition.js';
@@ -25,9 +26,9 @@ describe('outcomeToSlotState', () => {
 });
 
 describe('classifyTurn', () => {
-  const base = {kind: 'message' as const, messageId: 'm', role: 'user' as const};
+  const base = userMessage([]);
   test('text is an utterance', () => {
-    expect(classifyTurn({...base, parts: [{kind: 'text', text: 'catch me up'}]})).toEqual({
+    expect(classifyTurn({...base, parts: [textPart('catch me up')]})).toEqual({
       kind: 'utterance',
       text: 'catch me up',
     });
@@ -43,7 +44,7 @@ describe('classifyTurn', () => {
         context: {},
       },
     };
-    expect(classifyTurn({...base, parts: [{kind: 'data', data}]})).toEqual({
+    expect(classifyTurn({...base, parts: [dataPart(data)]})).toEqual({
       kind: 'action',
       part: data,
       surfaceId: 'github:s1',
@@ -51,12 +52,12 @@ describe('classifyTurn', () => {
   });
   test('a press on the composition classifies as an operation; a malformed one is unknown (task-8.4 decision 14)', () => {
     const data = {version: 'v0.9', operation: {kind: 'include', sources: ['calendar']}};
-    expect(classifyTurn({...base, parts: [{kind: 'data', data}]})).toEqual({
+    expect(classifyTurn({...base, parts: [dataPart(data)]})).toEqual({
       kind: 'operation',
       operation: {kind: 'include', sources: ['calendar']},
     });
     const malformed = {version: 'v0.9', operation: {kind: 'retry', sources: []}};
-    expect(classifyTurn({...base, parts: [{kind: 'data', data: malformed}]})).toEqual({
+    expect(classifyTurn({...base, parts: [dataPart(malformed)]})).toEqual({
       kind: 'unknown',
     });
   });
@@ -65,7 +66,7 @@ describe('classifyTurn', () => {
       version: 'v0.9',
       error: {code: 'VALIDATION_FAILED', surfaceId: 'gmail:s2', path: '/x', message: 'bad'},
     };
-    expect(classifyTurn({...base, parts: [{kind: 'data', data}]})).toEqual({
+    expect(classifyTurn({...base, parts: [dataPart(data)]})).toEqual({
       kind: 'clientError',
       code: 'VALIDATION_FAILED',
       surfaceId: 'gmail:s2',
@@ -81,7 +82,7 @@ describe('classifyTurn', () => {
         catalogId: 'urn:catalog:gmail',
       },
     };
-    expect(classifyTurn({...base, parts: [{kind: 'data', data}]})).toEqual({
+    expect(classifyTurn({...base, parts: [dataPart(data)]})).toEqual({
       kind: 'clientError',
       code: 'CATALOG_LOAD_FAILED',
       surfaceId: 'gmail:s2',
@@ -89,7 +90,7 @@ describe('classifyTurn', () => {
     });
   });
   test('nothing usable is unknown', () => {
-    expect(classifyTurn({...base, parts: [{kind: 'text', text: '   '}]})).toEqual({
+    expect(classifyTurn({...base, parts: [textPart('   ')]})).toEqual({
       kind: 'unknown',
     });
     expect(classifyTurn({...base, parts: []})).toEqual({kind: 'unknown'});

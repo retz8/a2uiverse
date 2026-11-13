@@ -1,6 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {elapsedMs, logLine} from '../log.js';
-import type {Message, Part, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {TaskState, taskStateToJSON, type Message, type Part} from '@a2a-js/sdk';
 import {
   ClientFactory,
   DefaultAgentCardResolver,
@@ -13,7 +13,6 @@ import type {FailureCause} from '@a2uiverse/shell-catalog/schema';
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
   A2UI_EXTENSION_URIS,
-  AUTH_REQUIRED_STATE,
   clientCapabilities,
   describePaintOutside,
   paintOutside,
@@ -24,6 +23,7 @@ import {
   type CredentialFinding,
   type PaintOutside,
 } from '@a2uiverse/sdk';
+import {agentMessage, dataOf, textOf, textPart, withData} from '../a2a/parts.js';
 import type {Registry} from '../registry/registry.js';
 import type {Refetched, UpdateCase, UpdateFinding} from '../registry/updateTile.js';
 import type {AppRecord} from '../registry/types.js';
@@ -39,7 +39,16 @@ import {
   type CreatedSurface,
 } from './credentialBar.js';
 import type {Fault, FaultMap} from './faults.js';
-import {prepareOutgoing, relayEvent, type VendorEvent} from './relay.js';
+import {
+  idsOf,
+  partsOf,
+  prepareOutgoing,
+  relayEvent,
+  stateOf,
+  statusOf,
+  withParts,
+  type VendorEvent,
+} from './relay.js';
 import type {DispatchHandle, DispatchOutcome, DispatchRecord, DispatchTurn} from './types.js';
 
 export interface AgentsPoolOptions {
@@ -87,9 +96,22 @@ export class UnauthorizedError extends Error {
   }
 }
 
-/** The final states that end a vendor's task as a failure it declared itself. */
-export const FAILED_STATES: ReadonlySet<TaskState> = new Set(['failed', 'canceled', 'rejected']);
-const TERMINAL_STATES: ReadonlySet<TaskState> = new Set([...FAILED_STATES, 'completed']);
+/** The states that end a vendor's task as a failure it declared itself. */
+export const FAILED_STATES: ReadonlySet<TaskState> = new Set([
+  TaskState.TASK_STATE_FAILED,
+  TaskState.TASK_STATE_CANCELED,
+  TaskState.TASK_STATE_REJECTED,
+]);
+/**
+ * The states an agent's answer ends on (task-20.1 decision 2): the terminal ones, and the
+ * interrupted ones, where the task waits on the person.
+ */
+const ENDED_STATES: ReadonlySet<TaskState> = new Set([
+  ...FAILED_STATES,
+  TaskState.TASK_STATE_COMPLETED,
+  TaskState.TASK_STATE_INPUT_REQUIRED,
+  TaskState.TASK_STATE_AUTH_REQUIRED,
+]);
 
 /**
  * A2A connections to vendor agents (SPEC §10). Dispatch unit `(endpoint, credential)`, by source —
@@ -151,7 +173,6 @@ export class AgentsPool {
       clientTaskId: turn.clientTaskId,
       startedAt: new Date().toISOString(),
       outcome: 'failed',
-      sawFinal: false,
       deadlineMs: this.#options.hardCapMs,
     };
     const startedAt = Date.now();
@@ -232,13 +253,15 @@ export class AgentsPool {
     };
     const fault = this.#faultFor(source, turn);
     if (fault) record.fault = fault.fault;
-    let finalState: TaskState | undefined;
-    let finalMessage: string | undefined;
-    // A non-streaming vendor answers with one Task in a terminal state and no final update.
-    let terminalTaskState: TaskState | undefined;
-    // The state the stream last named: a stream closing on `input-required` has ended, final or
-    // not, as A2A 0.3.0 §7.2.1 has a stream complete once its task is interrupted (task 18.5.1).
+    // How the answer ended is read from its states alone (task-20.1 decision 2): the state the
+    // stream last named — a task's or a status update's — and whether a message arrived. `final`
+    // is not read.
     let lastState: TaskState | undefined;
+    let answered = false;
+    // The agent's words on the state its answer ended on.
+    let finalMessage: string | undefined;
+    // The agent asked for sign-in where nothing can meet it: a failure it declared itself.
+    let unmet = false;
     let broke = false;
     let invalid: string | undefined;
     // The source's app as the registry holds it now: the entitlement this dispatch is sent under
@@ -259,8 +282,7 @@ export class AgentsPool {
       if (fault?.fault === 'refuse') throw new Error('connection refused (fault map)');
       if (fault?.fault === 'fail') {
         const event = failedFinal(fault.message);
-        record.sawFinal = true;
-        finalState = 'failed';
+        lastState = TaskState.TASK_STATE_FAILED;
         finalMessage = fault.message;
         yield relayEvent(event, relayCtx);
       } else {
@@ -288,6 +310,9 @@ export class AgentsPool {
         if (updates?.permissionChanged(source) && (await stopped('permission'))) return;
         let headers = prepared?.headers ?? {};
         const client = await this.#connect(app);
+        // The interface the SDK chose from the card (task-20.1 decision 5).
+        record.a2aVersion = client.protocolVersion;
+        record.binding = client.transport.protocolName;
         // The catalog each of the source's surfaces was created in: its options are what a
         // painted value is matched by.
         const catalogs = this.#surfaceCatalogs(turn.clientContextId, source);
@@ -323,14 +348,13 @@ export class AgentsPool {
               },
             };
             let refused = false;
-            record.sawFinal = false;
-            finalState = undefined;
-            terminalTaskState = undefined;
             lastState = undefined;
+            answered = false;
+            unmet = false;
             try {
               for await (const event of client.sendMessageStream(params, options)) {
                 this.#learnIds(event, source, turn, record);
-                sendTaskId ??= taskIdOf(event);
+                sendTaskId ??= idsOf(event).taskId;
                 // A paint outside the app's entitlement — the set of its stamp — is refused at
                 // the hub, never relayed (task-11.4 decision 12; task-19.2 decision 2): the
                 // dispatch ends failed on the catalog's id.
@@ -341,6 +365,7 @@ export class AgentsPool {
                 // the installed card, never relayed.
                 const asked = authRequiredOf(event);
                 if (asked !== undefined) {
+                  lastState = TaskState.TASK_STATE_AUTH_REQUIRED;
                   const request = credentials?.requested(source, asked.request) ?? {
                     kind: 'unsigned',
                   };
@@ -357,8 +382,7 @@ export class AgentsPool {
                   } else if (request.kind === 'invalid') {
                     invalid = request.reason;
                   } else {
-                    record.sawFinal = true;
-                    finalState = 'failed';
+                    unmet = true;
                     finalMessage = asked.text;
                   }
                   break;
@@ -376,26 +400,18 @@ export class AgentsPool {
                   foundOnTerminal = isTerminal(event);
                   break;
                 }
-                if (event.kind === 'status-update' || event.kind === 'task') {
-                  lastState = event.status.state;
+                const state = stateOf(event);
+                if (state !== undefined) {
+                  lastState = state;
+                  if (ENDED_STATES.has(state)) finalMessage = wordsOf(partsOf(event));
                 }
-                if (event.kind === 'message') {
-                  record.sawFinal = true;
-                } else if (event.kind === 'status-update' && event.final) {
-                  record.sawFinal = true;
-                  finalState = event.status.state;
-                  finalMessage = textOf(event.status.message?.parts);
-                } else if (event.kind === 'task' && TERMINAL_STATES.has(event.status.state)) {
-                  terminalTaskState = event.status.state;
-                  finalMessage = textOf(event.status.message?.parts);
-                }
+                if (event.payload?.$case === 'message') answered = true;
                 shown.push(...createdIn(out));
                 yield relayEvent(out, relayCtx);
-                // The first paint forwarded, then no final — even where the vendor's paint rode
-                // its final, which the relay has already demoted (task 8.6: the deterministic
-                // roster paints that way).
+                // The first paint forwarded, then the stream broken — even where the vendor's
+                // paint rode the state its answer ended on (task 8.6: the deterministic roster
+                // paints that way).
                 if (fault?.fault === 'break' && carriesA2ui(event)) {
-                  record.sawFinal = false;
                   broke = true;
                   break;
                 }
@@ -436,8 +452,16 @@ export class AgentsPool {
           outgoing = repairOf(outgoing, found);
         }
       }
-      const interrupted = lastState === 'input-required' ? lastState : undefined;
-      const endState = record.sawFinal ? finalState : (terminalTaskState ?? interrupted);
+      // An answer has ended when the stream's body ends with the task's last state terminal or
+      // interrupted, or after a message; a body that ends any other way broke.
+      const endState = broke
+        ? undefined
+        : lastState !== undefined && ENDED_STATES.has(lastState)
+          ? lastState
+          : answered
+            ? TaskState.TASK_STATE_COMPLETED
+            : undefined;
+      if (endState !== undefined) record.endState = taskStateToJSON(endState);
       if (record.authority) {
         finish('failed', {error: 'the app needs sign-in'});
       } else if (invalid !== undefined) {
@@ -472,14 +496,17 @@ export class AgentsPool {
           error: 'painted a credential input, and again after the repair',
           cause: 'credential',
         });
-      } else if (broke || (!record.sawFinal && !terminalTaskState && !interrupted)) {
+      } else if (endState === undefined) {
         finish('failed', {
-          error: `stream ended without a final event${broke ? ' (fault map)' : ''}`,
+          error: `the stream ended before the answer did${broke ? ' (fault map)' : ''}`,
           cause: 'unreachable',
         });
-      } else if (endState && FAILED_STATES.has(endState)) {
+      } else if (FAILED_STATES.has(endState) || unmet) {
         if (finalMessage) record.vendorMessage = finalMessage;
-        finish('failed', {error: `vendor ended the task as ${endState}`, cause: 'vendor'});
+        finish('failed', {
+          error: `vendor ended the task as ${taskStateToJSON(endState)}`,
+          cause: 'vendor',
+        });
       } else if (!painted && (await this.#caughtWithNoUi(app.id, record))) {
         finish('failed', {
           error: 'answered with no UI, its live card naming nothing it is installed with',
@@ -545,7 +572,7 @@ export class AgentsPool {
   /** A2A's cancel for one vendor task, fire and forget. */
   #cancelTask(source: string, app: AppRecord, record: DispatchRecord, id: string): void {
     void this.#connect(app)
-      .then(client => client.cancelTask({id}))
+      .then(client => client.cancelTask({tenant: '', id, metadata: undefined}))
       .then(
         () => logLine(`✗ ${source} task=${record.clientTaskId} cancel sent`),
         err =>
@@ -556,18 +583,19 @@ export class AgentsPool {
   }
 
   #learnIds(event: VendorEvent, source: string, turn: DispatchTurn, record: DispatchRecord): void {
-    const contextId = event.contextId;
+    const {contextId, taskId} = idsOf(event);
     if (contextId && !record.vendorContextId) {
       record.vendorContextId = contextId;
       this.#contexts.set(turn.clientContextId, source, contextId);
     }
-    const taskId = event.kind === 'task' ? event.id : event.taskId;
     if (taskId && !record.vendorTaskId) record.vendorTaskId = taskId;
   }
 
   /**
    * A client for the app's agent, from this run's card — the stored one when the agent was down at
-   * startup — so a dispatch fetches no card of its own (task-11.4 decision 8).
+   * startup — so a dispatch fetches no card of its own (task-11.4 decision 8). The card is handed
+   * to the SDK as its agent served it (task-20.1 decision 1): the SDK's 0.3 layer reads a card
+   * written for A2A 0.3 and speaks 0.3 to its agent. JSON-RPC is the one binding spoken.
    */
   #connect(app: AppRecord): Promise<Client> {
     const {agentUrl} = app;
@@ -584,12 +612,18 @@ export class AgentsPool {
         }
         return response;
       };
+      const legacyCompat = {enabled: true};
+      const cardResolver = new DefaultAgentCardResolver({fetchImpl, legacyCompat});
       const factory = new ClientFactory({
-        transports: [new JsonRpcTransportFactory({fetchImpl})],
-        cardResolver: new DefaultAgentCardResolver({fetchImpl}),
+        transports: [new JsonRpcTransportFactory({fetchImpl, legacyCompat})],
+        cardResolver,
       });
       const card = this.#registry.card(app.id) ?? this.#registry.storedCard(app.id);
-      const created = card ? factory.createFromAgentCard(card) : factory.createFromUrl(agentUrl);
+      const created = card
+        ? Promise.resolve()
+            .then(() => cardResolver.normalizeAgentCard(card))
+            .then(read => factory.createFromAgentCard(read))
+        : factory.createFromUrl(agentUrl);
       pending = created.catch(err => {
         this.#clients.delete(agentUrl);
         throw err;
@@ -626,9 +660,10 @@ interface CatalogOutside {
  * the sets when the stamp is neither version (task-19.2 decisions 2, 7), by the sdk's one rule.
  */
 function catalogOutside(event: VendorEvent, sets: CatalogIdsByVersion): CatalogOutside | undefined {
-  for (const part of partsOfEvent(event)) {
-    if (part.kind !== 'data') continue;
-    const messages = Array.isArray(part.data.messages) ? part.data.messages : [part.data];
+  for (const part of partsOf(event)) {
+    const data = dataOf(part);
+    if (!data) continue;
+    const messages = Array.isArray(data.messages) ? data.messages : [data];
     for (const message of messages) {
       if (typeof message !== 'object' || message === null) continue;
       const {version, createSurface: create} = message as Record<string, unknown>;
@@ -643,45 +678,40 @@ function catalogOutside(event: VendorEvent, sets: CatalogIdsByVersion): CatalogO
 }
 
 /**
- * An agent's `auth-required` (A2A 0.3 §4.5): the task moving to it, with the request in the
- * card's `security` shape when its status message carries one (task-12.2 decision 12), and the
- * agent's own words. Undefined for any other event.
+ * An agent's auth-required: the task moving to it, with the request in the card's `security`
+ * shape when its status message carries one (task-12.2 decision 12), and the agent's own words.
+ * Undefined for any other event.
  */
 function authRequiredOf(
   event: VendorEvent,
 ): {request: AuthRequired | undefined; text: string | undefined} | undefined {
-  const status = event.kind === 'status-update' || event.kind === 'task' ? event.status : undefined;
-  if (status?.state !== AUTH_REQUIRED_STATE) return undefined;
+  const status = statusOf(event);
+  if (status?.state !== TaskState.TASK_STATE_AUTH_REQUIRED) return undefined;
   const parts = status.message?.parts ?? [];
   let request: AuthRequired | undefined;
   for (const part of parts) {
-    if (part.kind !== 'data') continue;
-    request = readAuthRequired(part.data);
+    const data = dataOf(part);
+    if (!data) continue;
+    request = readAuthRequired(data);
     if (request) break;
   }
-  return {request, text: textOf(parts)};
+  return {request, text: wordsOf(parts)};
 }
 
 /** The text parts of a status message, joined: the vendor's own words. */
-function textOf(parts: Part[] | undefined): string | undefined {
-  const text = (parts ?? [])
-    .flatMap(part => (part.kind === 'text' ? [part.text.trim()] : []))
+function wordsOf(parts: Part[]): string | undefined {
+  const text = parts
+    .flatMap(part => [textOf(part)?.trim()])
     .filter(Boolean)
     .join('\n');
   return text === '' ? undefined : text;
 }
 
-/** The vendor task an event belongs to. */
-function taskIdOf(event: VendorEvent): string | undefined {
-  return event.kind === 'task' ? event.id : event.taskId;
-}
-
-/** An event that ends the vendor's task: nothing left to cancel. */
+/** An event that ends the vendor's answer: nothing left to cancel. */
 function isTerminal(event: VendorEvent): boolean {
-  if (event.kind === 'message') return true;
-  if (event.kind === 'status-update') return event.final;
-  if (event.kind === 'task') return TERMINAL_STATES.has(event.status.state);
-  return false;
+  if (event.payload?.$case === 'message') return true;
+  const state = stateOf(event);
+  return state !== undefined && ENDED_STATES.has(state);
 }
 
 /** Waits `ms`, or forever for `Infinity`; rejects when the dispatch is aborted. */
@@ -700,47 +730,38 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
-/** The `fail` fault's answer: a vendor final ending the task failed, the fault's words on it. */
-function failedFinal(message: string | undefined): TaskStatusUpdateEvent {
+/** The `fail` fault's answer: a vendor's status update ending the task failed, the fault's words on it. */
+function failedFinal(message: string | undefined): VendorEvent {
   const taskId = randomUUID();
   const contextId = randomUUID();
   return {
-    kind: 'status-update',
-    taskId,
-    contextId,
-    final: true,
-    status: {
-      state: 'failed',
-      ...(message
-        ? {
-            message: {
-              kind: 'message',
-              messageId: randomUUID(),
-              role: 'agent',
-              parts: [{kind: 'text', text: message}],
-              contextId,
-              taskId,
-            },
-          }
-        : {}),
+    payload: {
+      $case: 'statusUpdate',
+      value: {
+        taskId,
+        contextId,
+        status: {
+          state: TaskState.TASK_STATE_FAILED,
+          message: message ? agentMessage([textPart(message)], {taskId, contextId}) : undefined,
+          timestamp: undefined,
+        },
+        metadata: undefined,
+      },
     },
   };
 }
 
 const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'deleteSurface'];
 
-function partsOfEvent(event: VendorEvent): Part[] {
-  if (event.kind === 'message') return event.parts;
-  if (event.kind === 'artifact-update') return event.artifact.parts;
-  return event.status.message?.parts ?? [];
-}
-
 function isA2ui(data: Record<string, unknown>): boolean {
   return typeof data.version === 'string' && A2UI_OPS.some(op => op in data);
 }
 
 function carriesA2ui(event: VendorEvent): boolean {
-  return partsOfEvent(event).some(part => part.kind === 'data' && isA2ui(part.data));
+  return partsOf(event).some(part => {
+    const data = dataOf(part);
+    return data !== undefined && isA2ui(data);
+  });
 }
 
 /** The props the `invalid` fault breaks: every catalog types them, none as a number. */
@@ -759,8 +780,9 @@ function withRejectedProp(event: VendorEvent): VendorEvent {
   let swapped = false;
   const swap = (parts: Part[]): Part[] =>
     parts.map(part => {
-      if (swapped || part.kind !== 'data') return part;
-      const update = part.data.updateComponents as {components?: unknown} | undefined;
+      const data = dataOf(part);
+      if (swapped || !data) return part;
+      const update = data.updateComponents as {components?: unknown} | undefined;
       const components = update?.components;
       if (!Array.isArray(components)) return part;
       const index = components.findIndex(c =>
@@ -770,26 +792,17 @@ function withRejectedProp(event: VendorEvent): VendorEvent {
       const component = components[index] as Record<string, unknown>;
       const prop = BREAKABLE_PROPS.find(p => p in component)!;
       swapped = true;
-      return {
-        ...part,
-        data: {
-          ...part.data,
-          updateComponents: {
-            ...update,
-            components: components.map((c, i) =>
-              i === index ? {...component, [prop]: REJECTED_VALUE} : c,
-            ),
-          },
+      return withData(part, {
+        ...data,
+        updateComponents: {
+          ...update,
+          components: components.map((c, i) =>
+            i === index ? {...component, [prop]: REJECTED_VALUE} : c,
+          ),
         },
-      };
+      });
     });
-  if (event.kind === 'message') {
-    const parts = swap(event.parts);
-    return swapped ? {...event, parts} : event;
-  }
-  if (event.kind === 'artifact-update') return event;
-  const message = event.status.message;
-  if (!message) return event;
-  const parts = swap(message.parts);
-  return swapped ? {...event, status: {...event.status, message: {...message, parts}}} : event;
+  if (event.payload?.$case === 'artifactUpdate') return event;
+  const parts = swap(partsOf(event));
+  return swapped ? withParts(event, parts) : event;
 }

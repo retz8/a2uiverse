@@ -7,7 +7,7 @@
  * local pack (task-13.8 decision 12), an app ahead of the Store reported, and the states answered as
  * they stand after. Behind `GET /registry/updates.json` and the boot.
  */
-import type {AgentCard} from '@a2a-js/sdk';
+import type {InstalledCard} from './installedCard.js';
 import {
   aheadOfStore,
   PUBLIC_CATALOG_IDS,
@@ -268,7 +268,7 @@ function localFollowers(
 export function updateStateOf(
   record: InstalledRecord,
   lookup: EntryLookup,
-  liveCard: AgentCard | null | undefined,
+  liveCard: InstalledCard | null | undefined,
 ): UpdateState {
   const base = {appId: record.id, installedVersion: versionOf(record.card)};
   if (lookup.kind === 'unreached' || lookup.kind === 'malformed')
@@ -308,7 +308,7 @@ export function updateStateOf(
   return {...base, state: 'up-to-date', publishedVersion};
 }
 
-const versionOf = (card: AgentCard) => card.version ?? '?';
+const versionOf = (card: InstalledCard) => card.version ?? '?';
 
 /** The part of a card the scopes are read from: the alternatives of its `security`, structurally. */
 interface CardWithSecurity {

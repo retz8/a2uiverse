@@ -6,7 +6,9 @@
 import {clipPaintMetaTitle, PAINT_META_MIME_TYPE} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {SlotApi} from '@a2uiverse/shell-catalog/schema';
+import {TaskState, type Part} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
+import {dataOf as partData, dataPart} from '../src/a2a/parts.js';
 import {Sources} from '../src/accounts/accounts.js';
 import {chooseAccount, compositionFrom, fillGap} from '../src/composition/state.js';
 import {
@@ -52,8 +54,8 @@ const layout: LayoutSurface = {
 };
 
 type A2uiData = {version: string} & Record<string, unknown>;
-const dataOf = (part: {kind: string; data?: unknown}) => part.data as A2uiData;
-const componentsOf = (part: {kind: string; data?: unknown}) =>
+const dataOf = (part: Part) => partData(part) as A2uiData;
+const componentsOf = (part: Part) =>
   (dataOf(part).updateComponents as {components: Array<Record<string, unknown>>}).components;
 
 describe('paintLayout', () => {
@@ -397,11 +399,12 @@ describe('shellCreateParts', () => {
       compositionFrom({...layout, title: long}, new Sources(registry), 'x'),
     );
     expect(parts).toHaveLength(3);
-    expect(parts[0]).toEqual({
-      kind: 'data',
-      data: {paintMeta: {surfaceId: 'shell:main', title: clipPaintMetaTitle(long)}},
-      metadata: {mimeType: PAINT_META_MIME_TYPE},
-    });
+    expect(parts[0]).toEqual(
+      dataPart(
+        {paintMeta: {surfaceId: 'shell:main', title: clipPaintMetaTitle(long)}},
+        {mimeType: PAINT_META_MIME_TYPE},
+      ),
+    );
     expect(dataOf(parts[1]!).createSurface).toBeDefined();
     expect(
       shellCreateParts(compositionFrom({...layout, title: '  '}, new Sources(registry), 'x')),
@@ -465,15 +468,14 @@ describe('shellRepaintParts', () => {
 });
 
 describe('shellEnvelope', () => {
-  test('is a non-final working status-update stamped as the shell', () => {
+  test('is a working status update stamped as the shell', () => {
     const state = compositionFrom(layout, new Sources(registry), 'x');
     const event = shellEnvelope({taskId: 't1', contextId: 'c1'}, shellCreateParts(state));
-    expect(event.kind).toBe('status-update');
-    expect(event.final).toBe(false);
-    expect(event.status.state).toBe('working');
-    expect(event.taskId).toBe('t1');
-    expect(event.status.message?.parts).toHaveLength(2);
-    expect(event.metadata?.a2uiverse).toEqual({source: 'shell', role: 'shell'});
+    expect(event.kind).toBe('statusUpdate');
+    expect(event.data.status?.state).toBe(TaskState.TASK_STATE_WORKING);
+    expect(event.data.taskId).toBe('t1');
+    expect(event.data.status?.message?.parts).toHaveLength(2);
+    expect(event.data.metadata?.a2uiverse).toEqual({source: 'shell', role: 'shell'});
   });
 });
 

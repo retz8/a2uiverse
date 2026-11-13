@@ -11,9 +11,22 @@ import {randomBytes} from 'node:crypto';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
-import type {AgentCard, Message} from '@a2a-js/sdk';
-import type {AgentExecutionEvent} from '@a2a-js/sdk/server';
+import type {Message} from '@a2a-js/sdk';
 import {ClientFactory, type Client} from '@a2a-js/sdk/client';
+import {
+  clientMessage,
+  collect,
+  contextOf,
+  dataPart,
+  datasOf,
+  endsTurn,
+  isStatusUpdate,
+  stampOf,
+  stateOf,
+  TaskState,
+  textPart,
+  type WireEvent,
+} from './privateWire.js';
 import type {Express, Request} from 'express';
 import {clientSessionMetadata, operationData} from '@a2uiverse/sdk';
 import {buildOrchestrator, JOURNAL_FILE, type Orchestrator} from '../src/app.js';
@@ -26,6 +39,8 @@ import {
   deterministicScript,
   FAKE_CATALOG_ID,
   startFakeVendor,
+  type AgentCard,
+  type AgentExecutionEvent,
   type FakeVendor,
   type Script,
 } from './fakeVendor.js';
@@ -167,16 +182,12 @@ async function boot(options: {
 }
 
 function utterance(text: string, session = 'page-1'): Message {
-  return {
-    kind: 'message',
-    messageId: crypto.randomUUID(),
-    role: 'user',
-    parts: [{kind: 'text', text}],
+  return clientMessage([textPart(text)], {
     metadata: {
       a2uiClientDataModel: {version: 'v0.9', surfaces: {}},
       ...clientSessionMetadata(session),
     },
-  };
+  });
 }
 
 function press(
@@ -184,60 +195,39 @@ function press(
   source: string,
   contextId: string,
 ): Message {
-  return {
-    kind: 'message',
-    messageId: crypto.randomUUID(),
-    role: 'user',
+  return clientMessage([dataPart(operationData({kind, sources: [source]}, 'v0.9'))], {
     contextId,
-    parts: [{kind: 'data', data: operationData({kind, sources: [source]}, 'v0.9')}],
     metadata: clientSessionMetadata('page-1'),
-  };
+  });
 }
 
 function action(source: string, contextId: string): Message {
-  return {
-    kind: 'message',
-    messageId: crypto.randomUUID(),
-    role: 'user',
-    contextId,
-    parts: [
-      {
-        kind: 'data',
-        data: {
-          version: 'v0.9',
-          action: {name: 'close', surfaceId: `${source}:s1`, sourceComponentId: 'b', context: {}},
-        },
-      },
+  return clientMessage(
+    [
+      dataPart({
+        version: 'v0.9',
+        action: {name: 'close', surfaceId: `${source}:s1`, sourceComponentId: 'b', context: {}},
+      }),
     ],
-    metadata: {
-      a2uiClientDataModel: {version: 'v0.9', surfaces: {}},
-      ...clientSessionMetadata('page-1'),
+    {
+      contextId,
+      metadata: {
+        a2uiClientDataModel: {version: 'v0.9', surfaces: {}},
+        ...clientSessionMetadata('page-1'),
+      },
     },
-  };
+  );
 }
 
-async function collect(client: Client, message: Message) {
-  const events = [];
-  for await (const e of client.sendMessageStream({message})) events.push(e);
-  return events;
-}
-type AnyEvent = Awaited<ReturnType<typeof collect>>[number];
-
-function contextOf(events: AnyEvent[]): string {
-  return events.find(e => e.contextId)!.contextId!;
-}
+type AnyEvent = WireEvent;
 
 /** The components of the last shell paint. */
 function lastShell(events: AnyEvent[]): Array<Record<string, unknown>> {
   const paints = events.flatMap(e => {
-    if (e.kind !== 'status-update' || e.final) return [];
-    const stamp = e.metadata?.a2uiverse as {role?: string} | undefined;
-    if (stamp?.role !== 'shell') return [];
-    return (e.status.message?.parts ?? []).flatMap(p => {
-      const update =
-        p.kind === 'data'
-          ? (p.data.updateComponents as {components?: unknown[]} | undefined)
-          : undefined;
+    if (!isStatusUpdate(e) || endsTurn(e)) return [];
+    if (stampOf(e)?.role !== 'shell') return [];
+    return datasOf(e).flatMap(data => {
+      const update = data.updateComponents as {components?: unknown[]} | undefined;
       return update?.components ? [update.components as Array<Record<string, unknown>>] : [];
     });
   });
@@ -634,19 +624,13 @@ describe('the store loop (task 15.4)', () => {
       ],
     });
     const canvas = contextOf(await collect(client, utterance('my orders')));
-    const pressed = await collect(client, {
-      kind: 'message',
-      messageId: crypto.randomUUID(),
-      role: 'user',
-      contextId: canvas,
-      parts: [
-        {
-          kind: 'data',
-          data: operationData({kind: 'useApp', sources: ['shop'], gap: 'orders'}, 'v0.9'),
-        },
-      ],
-      metadata: clientSessionMetadata('page-1'),
-    });
+    const pressed = await collect(
+      client,
+      clientMessage(
+        [dataPart(operationData({kind: 'useApp', sources: ['shop'], gap: 'orders'}, 'v0.9'))],
+        {contextId: canvas, metadata: clientSessionMetadata('page-1')},
+      ),
+    );
     expect(slotOf(pressed, 'shop.1')).toMatchObject({
       id: 'g',
       state: 'authority',
@@ -895,7 +879,7 @@ describe("the agent's requests for more access", () => {
     expect(attributionOf(asked, 'shop.1')).toMatchObject({
       escalation: {scopes: ['Change your orders']},
     });
-    expect(asked.at(-1)).toMatchObject({status: {state: 'completed'}});
+    expect(stateOf(asked.at(-1)!)).toBe(TaskState.TASK_STATE_COMPLETED);
 
     await signInLinesWith({
       event: 'escalationRequested',
@@ -958,7 +942,7 @@ describe("the agent's requests for more access", () => {
     });
     const requests = vendors[0]!.requests.length;
     const refused = await collect(client, press('dismiss', 'shop.1', canvas));
-    expect(refused.at(-1)).toMatchObject({status: {state: 'failed'}});
+    expect(stateOf(refused.at(-1)!)).toBe(TaskState.TASK_STATE_FAILED);
     expect(vendors[0]!.requests).toHaveLength(requests);
   });
 

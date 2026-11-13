@@ -1,7 +1,7 @@
 import {describe, it, expect, vi} from 'vitest';
-import type {MessageSendParams, Part, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {TaskState, type Part, type SendMessageRequest} from '@a2a-js/sdk';
 import type {A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {A2AStreamEventData} from './messages';
+import {dataPart, statusUpdateEvent, textPart, type A2AStreamEventData} from './messages';
 import type {A2AMessageSender} from './client';
 import {createA2ASession} from './session';
 import {streamUserMessage} from './streamUserMessage';
@@ -12,24 +12,26 @@ const CLOCK = vi.hoisted(() => ({now: '2026-10-09T14:20:00+09:00', timeZone: 'As
 vi.mock('./clock', () => ({readClock: () => CLOCK}));
 
 const A2UI_DATA = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'cat'}};
-const DATA_PART: Part = {kind: 'data', data: A2UI_DATA};
+const DATA_PART: Part = dataPart(A2UI_DATA);
 
-function statusUpdate(parts: Part[], contextId = 'ctx-1', final = false): TaskStatusUpdateEvent {
-  return {
-    kind: 'status-update',
+function statusUpdate(
+  parts: Part[],
+  contextId = 'ctx-1',
+  final = false,
+  metadata?: Record<string, unknown>,
+): A2AStreamEventData {
+  return statusUpdateEvent({
     taskId: 't1',
     contextId,
-    final,
-    status: {
-      state: final ? 'completed' : 'working',
-      message: {kind: 'message', role: 'agent', messageId: 'm1', parts},
-    },
-  };
+    state: final ? TaskState.TASK_STATE_COMPLETED : TaskState.TASK_STATE_WORKING,
+    parts,
+    metadata,
+  });
 }
 
 /** Fake sender: records params, replays the given events. */
 function fakeSender(events: A2AStreamEventData[]) {
-  const sent: MessageSendParams[] = [];
+  const sent: SendMessageRequest[] = [];
   const sender: A2AMessageSender = {
     async *sendMessageStream(params) {
       sent.push(params);
@@ -43,10 +45,8 @@ describe('streamUserMessage', () => {
   it('hands each prose chunk the stamp of the event that carried it', async () => {
     const github = {source: 'github', role: 'fragment'};
     const gmail = {source: 'gmail', role: 'fragment'};
-    const said = (text: string, stamp?: Record<string, unknown>) => {
-      const event = statusUpdate([{kind: 'text', text}]);
-      return stamp ? {...event, metadata: {a2uiverse: stamp}} : event;
-    };
+    const said = (text: string, stamp?: Record<string, unknown>) =>
+      statusUpdate([textPart(text)], 'ctx-1', false, stamp ? {a2uiverse: stamp} : undefined);
     // Three agents streaming at once: the chunks interleave, so only the stamp can say which
     // sentence each one belongs to.
     const {getSender} = fakeSender([
@@ -81,7 +81,7 @@ describe('streamUserMessage', () => {
     await streamUserMessage('show me open PRs', {getSender, apply: m => applied.push(m)});
 
     expect(sent).toHaveLength(1);
-    expect(sent[0].message.parts).toEqual([{kind: 'text', text: 'show me open PRs'}]);
+    expect(sent[0].message!.parts).toEqual([textPart('show me open PRs')]);
     expect(applied).toEqual([[A2UI_DATA], [A2UI_DATA]]);
   });
 
@@ -100,13 +100,13 @@ describe('streamUserMessage', () => {
 
     await streamUserMessage('first', {getSender, apply: () => {}, session});
     expect(session.get()).toBe('ctx-42');
-    expect(sent[0].message.contextId).toBeUndefined();
+    expect(sent[0].message!.contextId).toBe('');
   });
 
   it('names the canvas it was asked from as the parent', async () => {
     const {getSender, sent} = fakeSender([statusUpdate([DATA_PART], 'ctx-43', true)]);
     await streamUserMessage('child', {getSender, apply: () => {}, parent: 'ctx-42'});
-    expect(sent[0].message.metadata).toEqual({
+    expect(sent[0].message!.metadata).toEqual({
       a2uiverse: {session: PAGE_SESSION, ...CLOCK, parent: 'ctx-42'},
     });
   });
@@ -124,7 +124,7 @@ describe('streamUserMessage', () => {
       getClientDataModel: () => clientDataModel,
     });
 
-    expect(sent[0].message.metadata).toEqual({
+    expect(sent[0].message!.metadata).toEqual({
       a2uiClientDataModel: clientDataModel,
       a2uiverse: {session: PAGE_SESSION, ...CLOCK},
     });
@@ -139,7 +139,7 @@ describe('streamUserMessage', () => {
       getClientDataModel: () => undefined,
     });
 
-    expect(sent[0].message.metadata).toEqual({a2uiverse: {session: PAGE_SESSION, ...CLOCK}});
+    expect(sent[0].message!.metadata).toEqual({a2uiverse: {session: PAGE_SESSION, ...CLOCK}});
   });
 
   it('never throws: stream errors are logged and apply is skipped', async () => {

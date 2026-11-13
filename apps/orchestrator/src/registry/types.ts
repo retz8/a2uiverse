@@ -1,4 +1,4 @@
-import type {AgentCard} from '@a2a-js/sdk';
+import type {InstalledCard} from './installedCard.js';
 import type {CatalogIdsByVersion} from '@a2uiverse/sdk';
 
 /**
@@ -21,7 +21,7 @@ export type InstallSource = 'marketplace' | 'local';
 export interface InstalledRecord {
   id: string;
   cardUrl: string;
-  card: AgentCard;
+  card: InstalledCard;
   catalogs: Record<string, string>;
   entitlement: string[];
   installedAt: string;

@@ -8,7 +8,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {jsonSchema, tool} from 'ai';
 import {MockLanguageModelV4} from 'ai/test';
-import type {AgentCard} from '@a2a-js/sdk';
+import type {InstalledCard} from '../src/registry/installedCard.js';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import type {DispatchRecord} from '../src/agentsPool/types.js';
 import type {JournalEntry, PlanRecord} from '../src/journal/types.js';
@@ -56,7 +56,7 @@ const dispatch = (over: Partial<DispatchRecord> = {}): DispatchRecord => ({
   clientTaskId: 't',
   startedAt: '2026-10-30T00:00:00.000Z',
   outcome: 'completed',
-  sawFinal: true,
+  endState: 'TASK_STATE_COMPLETED',
   deadlineMs: 300000,
   ...over,
 });
@@ -254,8 +254,8 @@ describe('ModelPlanner with the plan cache (decisions 7, 10)', () => {
     thisComposition: () => undefined,
     recentTurns: () => [],
   };
-  const card = (name: string): AgentCard =>
-    ({name, description: `${name} things`, skills: []}) as unknown as AgentCard;
+  const card = (name: string): InstalledCard =>
+    ({name, description: `${name} things`, skills: []}) as unknown as InstalledCard;
   const shortlist = [{record: {id: 'github'}, card: card('GitHub')}] as unknown as ShortlistEntry[];
   const good: LayoutSurface = {
     dispatch: [{source: 'github', request: 'My open pull requests.'}],

@@ -1,104 +1,106 @@
-import type {Message, Part, Task, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {TaskState, type Message, type Part} from '@a2a-js/sdk';
 import {namespaceSurfaceId, STAMP_KEY} from '@a2uiverse/sdk';
-import type {VendorEvent} from '../agentsPool/relay.js';
+import {dataOf, textOf, withData} from '../a2a/parts.js';
+import type {WireEvent} from '../a2a/wire.js';
+import {FAILED_STATES} from '../agentsPool/agentsPool.js';
+import {partsOf, stateOf, withParts, type VendorEvent} from '../agentsPool/relay.js';
 import {touchesOf} from '../journal/surfaces.js';
 
-const TERMINAL: ReadonlySet<TaskState> = new Set(['completed', 'failed', 'canceled', 'rejected']);
-const FAILED: ReadonlySet<TaskState> = new Set(['failed', 'canceled', 'rejected']);
 const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'deleteSurface'] as const;
 
 /**
  * The composition half of the relay, applied after {@link relayEvent}'s id
- * rewrites: the stamp gains `role: 'fragment'` beside its `source`, surfaceIds
+ * rewrites: the stamp gains `role: 'fragment'` beside its `source`, and surfaceIds
  * are namespaced on the four A2UI ops and on the vendor's `paintMeta` — the
- * surface it titles, as the client will see it (SPEC §14) — and vendor finals
- * are demoted — under fan-out several vendors end on one orchestrator task, so
- * the executor owns the single turn-final. An event that carries A2UI names on
- * its stamp the build the registry holds of each of the app's catalogs
- * (task-15.6 decision 2). The original event is never mutated.
+ * surface it titles, as the client will see it (SPEC §14). The event leaves in
+ * the private wire's shape (task-20.1 decision 6): an agent's task becomes a
+ * status update carrying its status message, a bare message a status update
+ * carrying that message, and every state is demoted to `working` — under
+ * fan-out several vendors end on one orchestrator task, so the executor owns
+ * the turn's one terminal update; an artifact update is relayed as it is. An
+ * event that carries A2UI names on its stamp the build the registry holds of
+ * each of the app's catalogs (task-15.6 decision 2). The original event is
+ * never mutated.
  */
 export interface ComposeContext {
   source: string;
+  /** The orchestrator's task the event rides: what a bare message, which names no task, takes. */
+  taskId: string;
   /** The build of each of the source's app's catalogs the registry holds now, by catalog id. */
   builds?: Readonly<Record<string, string>>;
 }
 
-export function composeFragment(event: VendorEvent, ctx: ComposeContext): VendorEvent {
-  switch (event.kind) {
-    case 'task':
-      return withStamp(
-        {
-          ...event,
-          status: demoteStatus(rewriteStatus(event.status, ctx.source)),
-          ...(event.history
-            ? {history: event.history.map(m => rewriteMessage(m, ctx.source))}
-            : {}),
+export function composeFragment(event: VendorEvent, ctx: ComposeContext): WireEvent {
+  const payload = event.payload;
+  if (payload?.$case === 'artifactUpdate') {
+    const update = payload.value;
+    return withStamp(
+      {
+        kind: 'artifactUpdate',
+        data: {
+          ...update,
+          artifact: update.artifact
+            ? {...update.artifact, parts: namespaceParts(update.artifact.parts, ctx.source)}
+            : undefined,
         },
-        ctx,
-      );
-    case 'status-update':
-      return withStamp(demoteStatusUpdate(rewriteStatusUpdate(event, ctx.source)), ctx);
-    case 'artifact-update':
-      return withStamp(
-        {
-          ...event,
-          artifact: {...event.artifact, parts: namespaceParts(event.artifact.parts, ctx.source)},
-        },
-        ctx,
-      );
-    case 'message':
-      return withStamp(rewriteMessage(event, ctx.source), ctx);
+      },
+      ctx,
+    );
   }
-}
-
-function withStamp<E extends VendorEvent>(event: E, ctx: ComposeContext): E {
-  const existing = event.metadata?.[STAMP_KEY];
-  const builds = ctx.builds && Object.keys(ctx.builds).length > 0 ? ctx.builds : undefined;
-  return {
-    ...event,
-    metadata: {
-      ...event.metadata,
-      [STAMP_KEY]: {
-        ...(typeof existing === 'object' && existing !== null ? existing : {}),
-        source: ctx.source,
-        role: 'fragment',
-        ...(builds && carriesA2ui(event) ? {builds: {...builds}} : {}),
+  const carried: {message: Message | undefined; timestamp: string | undefined} =
+    payload?.$case === 'message'
+      ? {message: payload.value, timestamp: undefined}
+      : {message: payload?.value.status?.message, timestamp: payload?.value.status?.timestamp};
+  const taskId = payload?.$case === 'task' ? payload.value.id : payload?.value.taskId;
+  return withStamp(
+    {
+      kind: 'statusUpdate',
+      data: {
+        taskId: taskId || ctx.taskId,
+        contextId: payload?.value.contextId ?? '',
+        status: {
+          state: TaskState.TASK_STATE_WORKING,
+          message: carried.message
+            ? {...carried.message, parts: namespaceParts(carried.message.parts, ctx.source)}
+            : undefined,
+          timestamp: carried.timestamp,
+        },
+        metadata: payload?.value.metadata,
       },
     },
+    ctx,
+  );
+}
+
+function withStamp(event: WireEvent, ctx: ComposeContext): WireEvent {
+  const existing = event.data.metadata?.[STAMP_KEY] as unknown;
+  const builds = ctx.builds && Object.keys(ctx.builds).length > 0 ? ctx.builds : undefined;
+  const metadata = {
+    ...event.data.metadata,
+    [STAMP_KEY]: {
+      ...(typeof existing === 'object' && existing !== null ? existing : {}),
+      source: ctx.source,
+      role: 'fragment',
+      ...(builds && carriesA2ui(event) ? {builds: {...builds}} : {}),
+    },
   };
+  return event.kind === 'statusUpdate'
+    ? {...event, data: {...event.data, metadata}}
+    : {...event, data: {...event.data, metadata}};
 }
 
 /** Whether the event creates, changes or deletes a surface. */
-function carriesA2ui(event: VendorEvent): boolean {
+function carriesA2ui(event: WireEvent): boolean {
   const {created, updated, deleted} = touchesOf(event);
   return created.length + updated.length + deleted.length > 0;
 }
 
-function demoteStatusUpdate(event: TaskStatusUpdateEvent): TaskStatusUpdateEvent {
-  return {...event, final: false, status: demoteStatus(event.status)};
-}
-
-function demoteStatus<S extends Task['status']>(status: S): S {
-  return TERMINAL.has(status.state) ? {...status, state: 'working'} : status;
-}
-
-function rewriteStatusUpdate(event: TaskStatusUpdateEvent, source: string): TaskStatusUpdateEvent {
-  return {...event, status: rewriteStatus(event.status, source)};
-}
-
-function rewriteStatus(status: Task['status'], source: string): Task['status'] {
-  return status.message ? {...status, message: rewriteMessage(status.message, source)} : status;
-}
-
-function rewriteMessage(message: Message, source: string): Message {
-  return {...message, parts: namespaceParts(message.parts, source)};
-}
-
 function namespaceParts(parts: Part[], source: string): Part[] {
   return parts.map(part => {
-    if (part.kind !== 'data') return part;
-    const data = namespaceData(part.data, source);
-    return data === part.data ? part : {...part, data};
+    const data = dataOf(part);
+    if (!data) return part;
+    const namespaced = namespaceData(data, source);
+    return namespaced === data ? part : withData(part, namespaced);
   });
 }
 
@@ -142,39 +144,34 @@ function namespaceMessage(message: Data, source: string): Data {
 }
 
 /**
- * A vendor's failed final without its words (task-8.3 decision 6): they ride on the `Slot`'s
- * failure, painted by the shell, and reach the client nowhere else. Data parts stay.
+ * A vendor's event naming a failed state without its words (task-8.3 decision 6): they ride on the
+ * `Slot`'s failure, painted by the shell, and reach the client nowhere else. Data parts stay.
  */
 export function withoutFailureWords(event: VendorEvent): VendorEvent {
-  if (event.kind !== 'status-update' && event.kind !== 'task') return event;
-  const failed = FAILED.has(event.status.state) && (event.kind === 'task' || event.final);
-  const message = event.status.message;
-  if (!failed || !message || !message.parts.some(part => part.kind === 'text')) return event;
-  const parts = message.parts.filter(part => part.kind !== 'text');
-  return {...event, status: {...event.status, message: {...message, parts}}};
+  const state = stateOf(event);
+  if (state === undefined || !FAILED_STATES.has(state)) return event;
+  const parts = partsOf(event);
+  if (!parts.some(part => textOf(part) !== undefined)) return event;
+  return withParts(
+    event,
+    parts.filter(part => textOf(part) === undefined),
+  );
 }
 
 /**
  * A relayed event moved onto another orchestrator task: an answer held under the plan's task and
  * drawn by a Retry rides the Retry's stream (task-8.4 decision 15). Parts and stamp stay.
  */
-export function retask(event: VendorEvent, taskId: string): VendorEvent {
-  const message = (m: Message): Message => (m.taskId !== undefined ? {...m, taskId} : m);
-  const status = (s: Task['status']): Task['status'] =>
-    s.message ? {...s, message: message(s.message)} : s;
-  switch (event.kind) {
-    case 'task':
-      return {
-        ...event,
-        id: taskId,
-        status: status(event.status),
-        ...(event.history ? {history: event.history.map(message)} : {}),
-      };
-    case 'status-update':
-      return {...event, taskId, status: status(event.status)};
-    case 'artifact-update':
-      return {...event, taskId};
-    case 'message':
-      return message(event);
-  }
+export function retask(event: WireEvent, taskId: string): WireEvent {
+  if (event.kind === 'artifactUpdate') return {...event, data: {...event.data, taskId}};
+  const {status} = event.data;
+  const message = status?.message;
+  return {
+    ...event,
+    data: {
+      ...event.data,
+      taskId,
+      status: status && message?.taskId ? {...status, message: {...message, taskId}} : status,
+    },
+  };
 }

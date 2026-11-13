@@ -1,4 +1,4 @@
-import type {AgentCard} from '@a2a-js/sdk';
+import type {InstalledCard} from '../registry/installedCard.js';
 import {parseSourceId, sourceId, sourceName} from '@a2uiverse/sdk';
 import type {Registry} from '../registry/registry.js';
 
@@ -95,7 +95,7 @@ export class Sources {
   }
 
   /** The app's card as installed; none when the app is not installed (task-15.4 decision 10). */
-  installedCard(appId: string): AgentCard | undefined {
+  installedCard(appId: string): InstalledCard | undefined {
     return this.#registry.storedCard(appId);
   }
 }
@@ -104,7 +104,7 @@ export class Sources {
  * Whether the card asks for sign-in: a card-level `security` none of whose alternatives is empty.
  * Absent or empty, or with an empty alternative, nothing is needed.
  */
-export function asksSignIn(card: AgentCard | null | undefined): boolean {
+export function asksSignIn(card: InstalledCard | null | undefined): boolean {
   const security = card?.security;
   if (!security || security.length === 0) return false;
   return security.every(requirement => Object.keys(requirement).length > 0);

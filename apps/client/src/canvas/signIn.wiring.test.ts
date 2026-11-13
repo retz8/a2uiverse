@@ -5,53 +5,42 @@
  * action opens the window on the bare app id.
  */
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import type {MessageSendParams, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {TaskState, type SendMessageRequest} from '@a2a-js/sdk';
 import type {A2AMessageSender} from '../a2a/client';
+import {dataOf, dataPart, statusUpdateEvent, type A2AStreamEventData} from '../a2a/messages';
 import type {AttemptOutcome} from '../orchestratorApi';
 import {CATALOGS} from '../../tests/helpers';
 import {createCanvasWiring} from './createCanvasWiring';
 import {POLL_INTERVAL_MS} from './signIn';
 
 /** The orchestrator's repaint of Gmail's slot as the authority tile. */
-const tile: TaskStatusUpdateEvent = {
-  kind: 'status-update',
+const tile: A2AStreamEventData = statusUpdateEvent({
   taskId: 'press-1',
   contextId: 'ctx-1',
-  final: false,
-  status: {
-    state: 'working',
-    message: {
-      kind: 'message',
-      role: 'agent',
-      messageId: 'm1',
-      parts: [
-        {
-          kind: 'data',
-          data: {
-            version: 'v0.9',
-            updateComponents: {
-              surfaceId: 'shell:main',
-              components: [
-                {id: 'a-gmail', component: 'Attribution', source: 'gmail.1', child: 's-gmail'},
-                {
-                  id: 's-gmail',
-                  component: 'Slot',
-                  source: 'gmail.1',
-                  state: 'authority',
-                  authority: {cause: 'signIn', scopes: ['Read your email']},
-                },
-              ],
-            },
+  state: TaskState.TASK_STATE_WORKING,
+  parts: [
+    dataPart({
+      version: 'v0.9',
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: [
+          {id: 'a-gmail', component: 'Attribution', source: 'gmail.1', child: 's-gmail'},
+          {
+            id: 's-gmail',
+            component: 'Slot',
+            source: 'gmail.1',
+            state: 'authority',
+            authority: {cause: 'signIn', scopes: ['Read your email']},
           },
-        },
-      ],
-    },
-  },
+        ],
+      },
+    }),
+  ],
   metadata: {a2uiverse: {source: 'shell', role: 'shell'}},
-};
+});
 
 function setup() {
-  const sent: MessageSendParams[] = [];
+  const sent: SendMessageRequest[] = [];
   /** Whether the orchestrator's next answer paints Gmail's tile. */
   const answers = {tile: true};
   const client: A2AMessageSender = {
@@ -78,9 +67,10 @@ function setup() {
   const answer = (next: AttemptOutcome) => (outcome = next);
   const operations = () =>
     sent.flatMap(params =>
-      params.message.parts.flatMap(part =>
-        part.kind === 'data' && 'operation' in part.data ? [part.data.operation] : [],
-      ),
+      params.message!.parts.flatMap(part => {
+        const data = dataOf(part);
+        return data && 'operation' in data ? [data.operation] : [];
+      }),
     );
   return {wiring, canvas, opened, answer, operations, answers};
 }

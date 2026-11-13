@@ -6,7 +6,7 @@
 import {mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import type {AgentCard} from '@a2a-js/sdk';
+import type {InstalledCard} from '../src/registry/installedCard.js';
 import {
   A2UI_EXTENSION_URIS,
   ARTIFACT_DESCRIPTOR_FILE,
@@ -29,12 +29,12 @@ export interface CardOptions {
   description?: string;
   /** The catalog ids the card declares under the A2UI extension; none declares nothing. */
   catalogs?: string[];
-  skills?: AgentCard['skills'];
+  skills?: InstalledCard['skills'];
   /** Whether the agent streams, as its card says; true by default. */
   streaming?: boolean;
 }
 
-export function cardFor(agentUrl: string, options: CardOptions = {}): AgentCard {
+export function cardFor(agentUrl: string, options: CardOptions = {}): InstalledCard {
   const {catalogs} = options;
   return {
     name: options.name ?? 'Fake Vendor',
@@ -104,19 +104,19 @@ export async function fixtureArtifact(
  * Mutable, so a test can move an agent.
  */
 export class CardServer {
-  readonly cards = new Map<string, AgentCard>();
+  readonly cards = new Map<string, InstalledCard>();
   readonly hanging = new Set<string>();
   readonly fetched: string[] = [];
 
-  serve(card: AgentCard): string {
+  serve(card: InstalledCard): string {
     const url = cardUrlOf(card.url);
     this.cards.set(url, card);
     return url;
   }
 
-  resolve = async (url: string): Promise<AgentCard> => {
+  resolve = async (url: string): Promise<InstalledCard> => {
     this.fetched.push(url);
-    if (this.hanging.has(url)) return new Promise<AgentCard>(() => {});
+    if (this.hanging.has(url)) return new Promise<InstalledCard>(() => {});
     const card = this.cards.get(url);
     if (!card) throw new Error(`fetch failed: ${url}`);
     return card;
@@ -125,7 +125,7 @@ export class CardServer {
 
 export interface TestApp {
   id: string;
-  card: AgentCard;
+  card: InstalledCard;
   catalogs?: ArtifactFiles[];
 }
 
@@ -151,7 +151,7 @@ export class JournalSpy implements RegistryJournal {
 export async function testRegistry(
   apps: readonly TestApp[] = [],
   options: {
-    platformCard?: AgentCard;
+    platformCard?: InstalledCard;
     embedder?: Embedder;
     stateDir?: string;
     marketplace?: MarketplaceClient;

@@ -6,11 +6,12 @@
 import {afterEach, describe, expect, it} from 'vitest';
 import {cleanup, render, screen, act} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type {MessageSendParams, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {TaskState, type SendMessageRequest} from '@a2a-js/sdk';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {CompositionStamp} from '@a2uiverse/sdk';
 import type {A2AMessageSender} from '../../a2a/client';
+import {dataPart, statusUpdateEvent, type A2AStreamEventData} from '../../a2a/messages';
 import {CatalogProvider} from '../../catalogs/CatalogContext';
 import {Providers} from '../../providers';
 import {createCanvasWiring} from '../createCanvasWiring';
@@ -60,16 +61,14 @@ const githubPaint = (title: string, text: string) => [
   }),
 ];
 
-const completed: TaskStatusUpdateEvent = {
-  kind: 'status-update',
+const completed: A2AStreamEventData = statusUpdateEvent({
   taskId: 'press-1',
   contextId: 'ctx-1',
-  final: true,
-  status: {state: 'completed'},
-};
+  state: TaskState.TASK_STATE_COMPLETED,
+});
 
 function setup() {
-  const sent: MessageSendParams[] = [];
+  const sent: SendMessageRequest[] = [];
   const client: A2AMessageSender = {
     sendMessageStream(params) {
       sent.push(params);
@@ -147,11 +146,8 @@ describe('the way back on the canvas (task 9.7)', () => {
     expect(screen.getByText('four PRs')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /^Back/})).toBeNull();
     expect(screen.getByRole('button', {name: 'Forward to PR #42'})).toBeInTheDocument();
-    expect(sent.map(params => params.message.parts[0])).toEqual([
-      {
-        kind: 'data',
-        data: {version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}},
-      },
+    expect(sent.map(params => params.message!.parts[0])).toEqual([
+      dataPart({version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}}),
     ]);
   });
 });

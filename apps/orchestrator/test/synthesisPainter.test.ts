@@ -1,7 +1,9 @@
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {SYNTHESIS_KEY, type SynthesisPayload} from '@a2uiverse/sdk';
 import type {SynthesisTree} from '../src/synthesizer/document.js';
+import {TaskState} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
+import {dataOf} from '../src/a2a/parts.js';
 import {
   synthesisEnvelope,
   synthesisParts,
@@ -22,7 +24,7 @@ describe('the model-authored tree (task-5.4 decision 10)', () => {
   test('creates the shell:synthesis surface in the shell catalog', () => {
     const parts = synthesisParts(tree);
     expect(synthesisSurfaceId()).toBe('shell:synthesis');
-    expect((parts[0] as {data: Record<string, unknown>}).data).toEqual({
+    expect(dataOf(parts[0])).toEqual({
       version: 'v0.9',
       createSurface: {surfaceId: 'shell:synthesis', catalogId: SHELL_CATALOG_ID},
     });
@@ -30,7 +32,7 @@ describe('the model-authored tree (task-5.4 decision 10)', () => {
 
   test('paints the components verbatim', () => {
     const parts = synthesisParts(tree);
-    expect((parts[1] as {data: Record<string, unknown>}).data).toEqual({
+    expect(dataOf(parts[1])).toEqual({
       version: 'v0.9',
       updateComponents: {surfaceId: 'shell:synthesis', components: tree.components},
     });
@@ -38,12 +40,12 @@ describe('the model-authored tree (task-5.4 decision 10)', () => {
 
   test('the envelope claims the synthesis slot as a fragment of the shell, the payload on its metadata', () => {
     const event = synthesisEnvelope({taskId: 't1', contextId: 'c1'}, synthesisParts(tree), payload);
-    expect(event.metadata?.a2uiverse).toEqual({
+    expect(event.data.metadata?.a2uiverse).toEqual({
       source: 'shell',
       role: 'fragment',
     });
-    expect(event.metadata?.[SYNTHESIS_KEY]).toEqual(payload);
-    expect(event.metadata?.a2uiverseWiring).toBeUndefined();
-    expect(event.final).toBe(false);
+    expect(event.data.metadata?.[SYNTHESIS_KEY]).toEqual(payload);
+    expect(event.data.metadata?.a2uiverseWiring).toBeUndefined();
+    expect(event.data.status?.state).toBe(TaskState.TASK_STATE_WORKING);
   });
 });

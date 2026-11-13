@@ -1,12 +1,14 @@
 /**
- * An in-process A2A vendor agent for tests, built on the same SDK server
- * pieces the orchestrator uses. Scripted: the test supplies the events each
- * turn emits. Records what it received so tests can assert on the wire.
+ * An in-process A2A 0.3 vendor agent for tests, built on the server of
+ * `@a2a-js/sdk` 0.3.14, which the orchestrator keeps under an alias for this
+ * file alone (task-20.1 decision 3). Scripted: the test supplies the events
+ * each turn emits, in A2A 0.3's shapes. Records what it received so tests can
+ * assert on the wire.
  */
 import {createServer, type Server} from 'node:http';
 import {randomUUID} from 'node:crypto';
 import express, {type Request, type Response, type NextFunction} from 'express';
-import {HTTP_EXTENSION_HEADER, type AgentCard, type Message, type Task} from '@a2a-js/sdk';
+import {HTTP_EXTENSION_HEADER, type AgentCard, type Message, type Task} from '@a2a-js/sdk-v0_3';
 import {
   DefaultRequestHandler,
   InMemoryTaskStore,
@@ -14,8 +16,11 @@ import {
   type AgentExecutor,
   type ExecutionEventBus,
   type RequestContext,
-} from '@a2a-js/sdk/server';
-import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
+} from '@a2a-js/sdk-v0_3/server';
+import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk-v0_3/server/express';
+
+/** The 0.3 shapes a test's script and card are written in. */
+export type {AgentCard, AgentExecutionEvent, Message, Task};
 
 export interface ScriptContext {
   ctx: RequestContext;

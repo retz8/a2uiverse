@@ -1,7 +1,8 @@
-import {randomUUID} from 'node:crypto';
-import type {Part, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import type {Part} from '@a2a-js/sdk';
 import {PAINT_META_MIME_TYPE, paintMetaData, STAMP_KEY, type A2uiComponent} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
+import {dataPart} from '../a2a/parts.js';
+import {workingUpdate, type WireContext, type WireStatusUpdate} from '../a2a/wire.js';
 import {PAINTER_ID_PREFIX} from '../planner/validate.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import type {UpdateFinding} from '../registry/updateTile.js';
@@ -41,11 +42,9 @@ export function shellRepaintParts(state: CompositionState): Part[] {
 export function shellTitleParts(state: CompositionState): Part[] {
   if (!state.title) return [];
   return [
-    {
-      kind: 'data',
-      data: paintMetaData({surfaceId: shellSurfaceId(), title: state.title}),
-      metadata: {mimeType: PAINT_META_MIME_TYPE},
-    },
+    dataPart(paintMetaData({surfaceId: shellSurfaceId(), title: state.title}), {
+      mimeType: PAINT_META_MIME_TYPE,
+    }),
   ];
 }
 
@@ -61,29 +60,12 @@ export function shellTakeDownParts(): Part[] {
   return [a2uiPart({deleteSurface: {surfaceId: shellSurfaceId()}})];
 }
 
-/** The shell paint envelope: a non-final working status-update stamped as the shell's own. */
-export function shellEnvelope(
-  ctx: {taskId: string; contextId: string},
-  parts: Part[],
-): TaskStatusUpdateEvent {
-  return {
-    kind: 'status-update',
-    taskId: ctx.taskId,
-    contextId: ctx.contextId,
-    final: false,
-    status: {
-      state: 'working',
-      message: {
-        kind: 'message',
-        messageId: randomUUID(),
-        role: 'agent',
-        parts,
-        contextId: ctx.contextId,
-        taskId: ctx.taskId,
-      },
-    },
+/** The shell paint envelope: a working status update stamped as the shell's own. */
+export function shellEnvelope(ctx: WireContext, parts: Part[]): WireStatusUpdate {
+  return workingUpdate(ctx, {
+    parts,
     metadata: {[STAMP_KEY]: {source: SHELL_SOURCE_ID, role: 'shell'}},
-  };
+  });
 }
 
 function updateComponentsPart(state: CompositionState): Part {
@@ -344,5 +326,5 @@ function paintedUpdate(update: UpdateFinding): Record<string, unknown> {
 }
 
 export function a2uiPart(op: Record<string, unknown>): Part {
-  return {kind: 'data', data: {version: A2UI_VERSION, ...op}};
+  return dataPart({version: A2UI_VERSION, ...op});
 }

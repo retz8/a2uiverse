@@ -3,10 +3,32 @@ import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
-import type {Message, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import type {Message} from '@a2a-js/sdk';
 import {ClientFactory, type Client} from '@a2a-js/sdk/client';
+import {
+  a2uiDatas,
+  clientMessage,
+  collect,
+  contextIdOf,
+  contextOf,
+  dataPart,
+  endsTurn,
+  isStatusUpdate,
+  metadataOf,
+  partsOf,
+  requestOf,
+  stampOf,
+  stateOf,
+  statusOf,
+  taskIdOf,
+  TaskState,
+  textPart,
+  textsOf as wordsIn,
+  type WireEvent,
+} from './privateWire.js';
 import type {Express} from 'express';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
+import {dataOf} from '../src/a2a/parts.js';
 import {buildOrchestrator} from '../src/app.js';
 import type {PlanRecord, SynthesisRecord} from '../src/journal/types.js';
 import type {LayoutSurface} from '../src/planner/document.js';
@@ -54,6 +76,7 @@ import {
   FAKE_CATALOG_ID,
   startFakeVendor,
   type FakeVendor,
+  type Message as VendorMessage,
   type Script,
 } from './fakeVendor.js';
 import {fixtureArtifact} from './registryFixture.js';
@@ -184,47 +207,21 @@ async function boot(
  * unless a test sets one, and, asked from a composition, that composition as its parent (decision 2).
  */
 function utterance(text: string, contextId?: string, parent?: string): Message {
-  return {
-    kind: 'message',
-    messageId: crypto.randomUUID(),
-    role: 'user',
-    parts: [{kind: 'text', text}],
+  return clientMessage([textPart(text)], {
     ...(contextId ? {contextId} : {}),
     metadata: {
       a2uiClientDataModel: {version: 'v0.9', surfaces: {}},
       ...(parent ? canvasParentMetadata(parent) : {}),
     },
-  };
+  });
 }
 
-async function collect(client: Client, message: Message) {
-  const events = [];
-  for await (const e of client.sendMessageStream({message})) events.push(e);
-  return events;
-}
-
-type AnyEvent = Awaited<ReturnType<typeof collect>>[number];
-
-function stampOf(event: AnyEvent): Record<string, unknown> | undefined {
-  return event.metadata?.a2uiverse as Record<string, unknown> | undefined;
-}
-
-function a2uiDatas(event: AnyEvent): Array<Record<string, unknown>> {
-  const parts =
-    event.kind === 'message'
-      ? event.parts
-      : event.kind === 'task' || event.kind === 'status-update'
-        ? (event.status.message?.parts ?? [])
-        : [];
-  return parts.flatMap(p =>
-    p.kind === 'data' && typeof p.data.version === 'string' ? [p.data] : [],
-  );
-}
+type AnyEvent = WireEvent;
 
 /** The shell paints in stream order: each as its list of A2UI ops. */
 function shellPaints(events: AnyEvent[]): Array<Array<Record<string, unknown>>> {
   return events
-    .filter(e => e.kind === 'status-update' && stampOf(e)?.role === 'shell' && !e.final)
+    .filter(e => isStatusUpdate(e) && stampOf(e)?.role === 'shell' && !endsTurn(e))
     .map(a2uiDatas)
     .filter(datas => datas.length > 0);
 }
@@ -278,9 +275,7 @@ describe('orchestrator', () => {
     expect(vendors.github!.requests).toHaveLength(1);
     expect(vendors.gmail!.requests).toHaveLength(1);
     expect(vendors.calendar!.requests).toHaveLength(0);
-    const final = events.at(-1) as TaskStatusUpdateEvent;
-    expect(final.final).toBe(true);
-    expect(final.status.state).toBe('completed');
+    expect(stateOf(events.at(-1)!)).toBe(TaskState.TASK_STATE_COMPLETED);
     // Not dispatched means no dispatch record — and no failed slot from a dispatch that never could succeed.
     const [line] = await journalLines(1);
     const dispatched = (line.dispatch as Array<{source: string}>).map(d => d.source).sort();
@@ -294,7 +289,7 @@ describe('orchestrator', () => {
     try {
       const {client} = await boot();
       const events = await collect(client, utterance('my day at a glance'));
-      const taskId = (events[0] as {id: string}).id;
+      const taskId = taskIdOf(events[0]!);
       // The client's stream ends on the final status; the closing line lands a tick later.
       await new Promise(resolve => setTimeout(resolve, 100));
       const lines = log.mock.calls.map(c => String(c[0]));
@@ -312,8 +307,8 @@ describe('orchestrator', () => {
   test('serves the card with the A2UI extension and the platform’s skills at the configured base URL', async () => {
     const {client, url} = await boot();
     const card = await client.getAgentCard();
-    expect(card.url).toBe(url);
-    expect(card.capabilities.extensions?.map(e => e.uri)).toEqual(
+    expect(card.supportedInterfaces.map(i => i.url)).toEqual([url]);
+    expect(card.capabilities?.extensions.map(e => e.uri)).toEqual(
       A2UI_VERSIONS.map(v => A2UI_EXTENSION_URIS[v]),
     );
     expect(card.skills.map(s => s.id)).toEqual([
@@ -342,13 +337,13 @@ describe('orchestrator', () => {
     // A question asked from that composition names it: the readers describe it.
     const [child] = await collect(
       client,
-      utterance('and the calendar?', undefined, first.contextId),
+      utterance('and the calendar?', undefined, contextIdOf(first)),
     );
-    expect(child.contextId).not.toBe(first.contextId);
-    expect(planner.calls[1]!.askedFrom).toBe(first.contextId);
+    expect(contextIdOf(child)).not.toBe(contextIdOf(first));
+    expect(planner.calls[1]!.askedFrom).toBe(contextIdOf(first));
     const lines = await journalLines(2);
-    expect(lines.find(l => l.clientContextId === child.contextId)!.plan).toMatchObject({
-      parent: first.contextId,
+    expect(lines.find(l => l.clientContextId === contextIdOf(child))!.plan).toMatchObject({
+      parent: contextIdOf(first),
     });
   });
 
@@ -356,7 +351,7 @@ describe('orchestrator', () => {
     const planner = new FakePlanner();
     const {client} = await boot({planner});
     const events = await collect(client, utterance('hello', undefined, 'ctx-gone'));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(planner.calls[0]!.askedFrom).toBeUndefined();
     const lines = await journalLines(1);
     expect(lines[0]!.plan).not.toHaveProperty('parent');
@@ -370,17 +365,18 @@ describe('orchestrator', () => {
     const events = await collect(client, utterance('what needs my review?'));
     const create = events.find(
       e =>
-        e.kind === 'status-update' &&
+        isStatusUpdate(e) &&
         stampOf(e)?.role === 'shell' &&
         a2uiDatas(e).some(d => d.createSurface !== undefined),
-    ) as TaskStatusUpdateEvent;
-    const parts = create.status.message!.parts;
-    expect(parts[0]).toEqual({
-      kind: 'data',
-      data: {paintMeta: {surfaceId: 'shell:main', title: clipPaintMetaTitle(long)}},
-      metadata: {mimeType: PAINT_META_MIME_TYPE},
-    });
-    expect((parts[1] as {data: Record<string, unknown>}).data.createSurface).toBeDefined();
+    )!;
+    const parts = partsOf(create);
+    expect(parts[0]).toEqual(
+      dataPart(
+        {paintMeta: {surfaceId: 'shell:main', title: clipPaintMetaTitle(long)}},
+        {mimeType: PAINT_META_MIME_TYPE},
+      ),
+    );
+    expect(dataOf(parts[1]!)?.createSurface).toBeDefined();
     // Not an A2UI message: the extractor never takes it.
     expect(a2uiDatas(create).some(d => d.paintMeta !== undefined)).toBe(false);
     const lines = await journalLines(1);
@@ -392,13 +388,11 @@ describe('orchestrator', () => {
     const events = await collect(client, utterance('what needs my review?'));
     const create = events.find(
       e =>
-        e.kind === 'status-update' &&
+        isStatusUpdate(e) &&
         stampOf(e)?.role === 'shell' &&
         a2uiDatas(e).some(d => d.createSurface !== undefined),
-    ) as TaskStatusUpdateEvent;
-    expect(
-      (create.status.message!.parts[0] as {data: Record<string, unknown>}).data.createSurface,
-    ).toBeDefined();
+    )!;
+    expect(dataOf(partsOf(create)[0]!)?.createSurface).toBeDefined();
   });
 
   test('a message received twice runs once: the second is refused, nothing dispatched again (task-7.9)', async () => {
@@ -408,13 +402,13 @@ describe('orchestrator', () => {
     const {client} = await boot({planner});
     const message = utterance('what apps do I have?');
     const first = await collect(client, message);
-    expect((first.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    expect(stateOf(first.at(-1)!)).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(planner.calls).toHaveLength(1);
 
-    const second = await collect(client, {...message, contextId: first[0]!.contextId!});
-    const final = second.at(-1) as TaskStatusUpdateEvent;
-    expect(final.final).toBe(true);
-    expect(final.status.state).toBe('failed');
+    const second = await collect(client, {...message, contextId: contextOf(first)});
+    const final = second.at(-1)!;
+    expect(endsTurn(final)).toBe(true);
+    expect(stateOf(final)).toBe(TaskState.TASK_STATE_FAILED);
     expect(planner.calls).toHaveLength(1);
     expect(await journalLines(1)).toHaveLength(1);
   });
@@ -424,7 +418,7 @@ describe('orchestrator', () => {
     const events = await collect(client, utterance('my day at a glance'));
 
     // Synthetic task first, stamped as the shell.
-    expect(events[0].kind).toBe('task');
+    expect(events[0].payload?.$case).toBe('task');
     expect(stampOf(events[0])).toEqual({source: 'shell', role: 'shell'});
 
     // The first paint is the shell surface, before any vendor-sourced event.
@@ -494,10 +488,10 @@ describe('orchestrator', () => {
     }
 
     // Exactly one final, owned by the executor, completed.
-    const finals = events.filter(e => e.kind === 'status-update' && e.final);
+    const finals = events.filter(e => endsTurn(e));
     expect(finals).toHaveLength(1);
     expect(events.at(-1)).toBe(finals[0]);
-    expect((finals[0] as TaskStatusUpdateEvent).status.state).toBe('completed');
+    expect(stateOf(finals[0]!)).toBe(TaskState.TASK_STATE_COMPLETED);
 
     // Vendors received the Planner's prose, not the utterance, with no a2uiverse metadata.
     for (const appId of APPS) {
@@ -516,16 +510,16 @@ describe('orchestrator', () => {
   test('degenerate single-agent turn routes and paints; a question asked from it opens its own composition with a fresh vendor conversation (task-9.3)', async () => {
     const {client} = await boot({planner: new FakePlanner(() => planFor(['github']))});
     const [first] = await collect(client, utterance('what needs my review?'));
-    const events = await collect(client, utterance('and now?', undefined, first.contextId));
+    const events = await collect(client, utterance('and now?', undefined, contextIdOf(first)));
 
     const github = vendors.github!;
-    expect(events[0]!.contextId).not.toBe(first.contextId);
+    expect(contextIdOf(events[0]!)).not.toBe(contextIdOf(first));
     expect(github.contextIds).toHaveLength(2);
     expect(github.requests[1].message.contextId).toBeUndefined();
     expect(vendors.gmail!.requests).toHaveLength(0);
-    const finals = events.filter(e => e.kind === 'status-update' && e.final);
+    const finals = events.filter(e => endsTurn(e));
     expect(finals).toHaveLength(1);
-    expect((finals[0] as TaskStatusUpdateEvent).status.state).toBe('completed');
+    expect(stateOf(finals[0]!)).toBe(TaskState.TASK_STATE_COMPLETED);
   });
 
   test('one vendor down: its slot repaints failed, others unaffected, turn completes', async () => {
@@ -537,9 +531,9 @@ describe('orchestrator', () => {
     expect(last['gmail']).toBe('failed');
     expect(last['github']).toBe('pending');
     expect(last['calendar']).toBe('pending');
-    const final = events.at(-1) as TaskStatusUpdateEvent;
-    expect(final.final).toBe(true);
-    expect(final.status.state).toBe('completed');
+    const final = events.at(-1)!;
+    expect(endsTurn(final)).toBe(true);
+    expect(stateOf(final)).toBe(TaskState.TASK_STATE_COMPLETED);
   });
 
   test('a clean completion with zero surfaces collapses its slot', async () => {
@@ -558,7 +552,7 @@ describe('orchestrator', () => {
     const last = slotStates(shellPaints(events).at(-1)!);
     expect(last['calendar']).toBe('collapsed');
     expect(last['github']).toBe('pending');
-    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    expect(stateOf(events.at(-1)!)).toBe(TaskState.TASK_STATE_COMPLETED);
   });
 
   test('an action routes only to the surface owner, un-namespaced, with only its partition', async () => {
@@ -569,41 +563,37 @@ describe('orchestrator', () => {
       gmail: vendors.gmail!.requests.length,
       calendar: vendors.calendar!.requests.length,
     };
-    const action: Message = {
-      kind: 'message',
-      messageId: crypto.randomUUID(),
-      role: 'user',
-      contextId: first.contextId,
-      parts: [
-        {
-          kind: 'data',
-          data: {
+    const action: Message = clientMessage(
+      [
+        dataPart({
+          version: 'v0.9',
+          action: {
+            name: 'approve',
+            surfaceId: 'github:s1',
+            sourceComponentId: 'btn',
+            timestamp: 't',
+            context: {n: 1},
+          },
+        }),
+      ],
+      {
+        contextId: contextIdOf(first),
+        metadata: {
+          a2uiClientDataModel: {
             version: 'v0.9',
-            action: {
-              name: 'approve',
-              surfaceId: 'github:s1',
-              sourceComponentId: 'btn',
-              timestamp: 't',
-              context: {n: 1},
-            },
+            surfaces: {'github:s1': {a: 1}, 'gmail:s1': {b: 2}},
           },
         },
-      ],
-      metadata: {
-        a2uiClientDataModel: {
-          version: 'v0.9',
-          surfaces: {'github:s1': {a: 1}, 'gmail:s1': {b: 2}},
-        },
       },
-    };
+    );
     const events = await collect(client, action);
 
     expect(vendors.gmail!.requests.length).toBe(before.gmail);
     expect(vendors.calendar!.requests.length).toBe(before.calendar);
     expect(vendors.github!.requests.length).toBe(before.github + 1);
     const wire = vendors.github!.requests.at(-1)!.message;
-    const dataPart = wire.parts.find(p => p.kind === 'data');
-    expect((dataPart?.kind === 'data' ? dataPart.data.action : {}) as object).toMatchObject({
+    const received = wire.parts.find(p => p.kind === 'data');
+    expect((received?.kind === 'data' ? received.data.action : {}) as object).toMatchObject({
       surfaceId: 's1',
     });
     expect(wire.metadata?.a2uiClientDataModel).toEqual({
@@ -618,39 +608,33 @@ describe('orchestrator', () => {
       ),
     );
     expect(created).toEqual(['github:s1']);
-    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    expect(stateOf(events.at(-1)!)).toBe(TaskState.TASK_STATE_COMPLETED);
   });
 
   test('a shell action on the shell surface is journaled and nothing else: no dispatch, no paint (task-6.5 decisions 5–6)', async () => {
     const {client} = await boot();
     const [first] = await collect(client, utterance('my day'));
     const before = Object.fromEntries(APPS.map(appId => [appId, vendors[appId]!.requests.length]));
-    const action: Message = {
-      kind: 'message',
-      messageId: crypto.randomUUID(),
-      role: 'user',
-      contextId: first.contextId,
-      parts: [
-        {
-          kind: 'data',
-          data: {
-            version: 'v0.9',
-            action: {
-              name: 'openStore',
-              surfaceId: 'shell:main',
-              sourceComponentId: 'gap-flight',
-              timestamp: 't',
-              context: {query: 'flight booking'},
-            },
+    const action: Message = clientMessage(
+      [
+        dataPart({
+          version: 'v0.9',
+          action: {
+            name: 'openStore',
+            surfaceId: 'shell:main',
+            sourceComponentId: 'gap-flight',
+            timestamp: 't',
+            context: {query: 'flight booking'},
           },
-        },
+        }),
       ],
-    };
+      {contextId: contextIdOf(first)},
+    );
     const events = await collect(client, action);
 
     for (const appId of APPS) expect(vendors[appId]!.requests.length).toBe(before[appId]);
     expect(events.flatMap(a2uiDatas)).toEqual([]);
-    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    expect(stateOf(events.at(-1)!)).toBe(TaskState.TASK_STATE_COMPLETED);
     const lines = await journalLines(2);
     expect(lines.find(l => l.kind === 'action')).toMatchObject({
       kind: 'action',
@@ -664,57 +648,45 @@ describe('orchestrator', () => {
   test('a name outside the shell’s closed action set on the shell surface is a failed turn', async () => {
     const {client} = await boot();
     const [first] = await collect(client, utterance('my day'));
-    const action: Message = {
-      kind: 'message',
-      messageId: crypto.randomUUID(),
-      role: 'user',
-      contextId: first.contextId,
-      parts: [
-        {
-          kind: 'data',
-          data: {
-            version: 'v0.9',
-            action: {
-              name: 'installApp',
-              surfaceId: 'shell:main',
-              sourceComponentId: 'x',
-              timestamp: 't',
-              context: {},
-            },
+    const action: Message = clientMessage(
+      [
+        dataPart({
+          version: 'v0.9',
+          action: {
+            name: 'installApp',
+            surfaceId: 'shell:main',
+            sourceComponentId: 'x',
+            timestamp: 't',
+            context: {},
           },
-        },
+        }),
       ],
-    };
+      {contextId: contextIdOf(first)},
+    );
     const events = await collect(client, action);
-    const final = events.at(-1) as TaskStatusUpdateEvent;
-    expect(final.status.state).toBe('failed');
-    const said = final.status.message?.parts.find(p => p.kind === 'text');
-    expect(said && 'text' in said ? said.text : '').toContain('unknown shell action: installApp');
+    const final = events.at(-1)!;
+    expect(stateOf(final)).toBe(TaskState.TASK_STATE_FAILED);
+    const [said] = wordsIn(final);
+    expect(said ?? '').toContain('unknown shell action: installApp');
   });
 
   test('VALIDATION_FAILED flips the slot to failed via shell repaint and is journaled', async () => {
     const {client} = await boot();
     const [first] = await collect(client, utterance('my day'));
-    const error: Message = {
-      kind: 'message',
-      messageId: crypto.randomUUID(),
-      role: 'user',
-      contextId: first.contextId,
-      parts: [
-        {
-          kind: 'data',
-          data: {
-            version: 'v0.9',
-            error: {code: 'VALIDATION_FAILED', surfaceId: 'gmail:s1', path: '/x', message: 'bad'},
-          },
-        },
+    const error: Message = clientMessage(
+      [
+        dataPart({
+          version: 'v0.9',
+          error: {code: 'VALIDATION_FAILED', surfaceId: 'gmail:s1', path: '/x', message: 'bad'},
+        }),
       ],
-    };
+      {contextId: contextIdOf(first)},
+    );
     const events = await collect(client, error);
 
     const last = slotStates(shellPaints(events).at(-1)!);
     expect(last['gmail']).toBe('failed');
-    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    expect(stateOf(events.at(-1)!)).toBe(TaskState.TASK_STATE_COMPLETED);
     // Found by kind, not by index: the two turns' lines are written asynchronously and either
     // can land first, so position in the file says nothing about which turn wrote it.
     const lines = await journalLines(2);
@@ -728,26 +700,20 @@ describe('orchestrator', () => {
   test('CATALOG_LOAD_FAILED fails the slot with the load cause, carrying the catalog (task-11.5 decision 4)', async () => {
     const {client} = await boot();
     const [first] = await collect(client, utterance('my day'));
-    const error: Message = {
-      kind: 'message',
-      messageId: crypto.randomUUID(),
-      role: 'user',
-      contextId: first.contextId,
-      parts: [
-        {
-          kind: 'data',
-          data: {
-            version: 'v0.9',
-            error: {
-              code: 'CATALOG_LOAD_FAILED',
-              surfaceId: 'gmail:s1',
-              message: 'the entry threw',
-              catalogId: 'urn:catalog:gmail',
-            },
+    const error: Message = clientMessage(
+      [
+        dataPart({
+          version: 'v0.9',
+          error: {
+            code: 'CATALOG_LOAD_FAILED',
+            surfaceId: 'gmail:s1',
+            message: 'the entry threw',
+            catalogId: 'urn:catalog:gmail',
           },
-        },
+        }),
       ],
-    };
+      {contextId: contextIdOf(first)},
+    );
     const events = await collect(client, error);
     expect(slotsOf(shellPaints(events).at(-1)!)['gmail']).toMatchObject({
       state: 'failed',
@@ -762,9 +728,9 @@ describe('orchestrator', () => {
   test('a broken plan is a broken turn: failed final, journaled failed', async () => {
     const {client} = await boot({planner: new ThrowingPlanner(new Error('no plan today'))});
     const events = await collect(client, utterance('anything'));
-    const final = events.at(-1) as TaskStatusUpdateEvent;
-    expect(final.final).toBe(true);
-    expect(final.status.state).toBe('failed');
+    const final = events.at(-1)!;
+    expect(endsTurn(final)).toBe(true);
+    expect(stateOf(final)).toBe(TaskState.TASK_STATE_FAILED);
     const [line] = await journalLines(1);
     expect(line.outcome).toBe('failed');
     expect(line.kind).toBe('utterance');
@@ -775,11 +741,11 @@ describe('orchestrator', () => {
     try {
       const {client} = await boot({planner: new MalformedPlanner()});
       const events = await collect(client, utterance('anything'));
-      const taskId = (events[0] as {id: string}).id;
-      const final = events.at(-1) as TaskStatusUpdateEvent;
-      expect(final.status.state).toBe('failed');
-      const said = final.status.message?.parts.find(p => p.kind === 'text');
-      const text = said && 'text' in said ? said.text : '';
+      const taskId = taskIdOf(events[0]!);
+      const final = events.at(-1)!;
+      expect(stateOf(final)).toBe(TaskState.TASK_STATE_FAILED);
+      const [said] = wordsIn(final);
+      const text = said ?? '';
       expect(text).toBe(
         'A2UIVerse couldn’t work out how to answer that. Ask again, or try other words.',
       );
@@ -823,9 +789,9 @@ describe('orchestrator', () => {
       surfaceId: 'shell:main',
       value: {answer: 'Three apps are installed.'},
     });
-    const final = events.at(-1) as TaskStatusUpdateEvent;
-    expect(final.final).toBe(true);
-    expect(final.status.state).toBe('completed');
+    const final = events.at(-1)!;
+    expect(endsTurn(final)).toBe(true);
+    expect(stateOf(final)).toBe(TaskState.TASK_STATE_COMPLETED);
     const [line] = await journalLines(1);
     expect(line.dispatch).toEqual([]);
     expect(line.synthesis).toBeUndefined();
@@ -848,7 +814,7 @@ describe('orchestrator', () => {
       {id: 'root', component: 'Column', children: ['gap-0']},
       {id: 'gap-0', component: 'Slot', gap: 'flight booking', offer: {apps: [], none: 'nothing'}},
     ]);
-    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    expect(stateOf(events.at(-1)!)).toBe(TaskState.TASK_STATE_COMPLETED);
   });
 
   test('journals one line per fan-out turn: plan, non-null embedding, all dispatches, namespaced surfaces', async () => {
@@ -946,30 +912,23 @@ const camerasB = [
 ];
 
 function synthesisEvents(events: AnyEvent[]) {
-  return events.filter(e => e.metadata?.[SYNTHESIS_KEY] !== undefined);
+  return events.filter(e => metadataOf(e)?.[SYNTHESIS_KEY] !== undefined);
 }
 
 function payloadOf(event: AnyEvent): SynthesisPayload {
-  return event.metadata![SYNTHESIS_KEY] as SynthesisPayload;
+  return metadataOf(event)![SYNTHESIS_KEY] as SynthesisPayload;
 }
 
 function actionOn(surfaceId: string, contextId: string): Message {
-  return {
-    kind: 'message',
-    messageId: crypto.randomUUID(),
-    role: 'user',
-    contextId,
-    parts: [
-      {
-        kind: 'data',
-        data: {
-          version: 'v0.9',
-          action: {name: 'sort', surfaceId, sourceComponentId: 'btn', timestamp: 't', context: {}},
-        },
-      },
+  return clientMessage(
+    [
+      dataPart({
+        version: 'v0.9',
+        action: {name: 'sort', surfaceId, sourceComponentId: 'btn', timestamp: 't', context: {}},
+      }),
     ],
-    metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}},
-  };
+    {contextId, metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}}},
+  );
 }
 
 describe('synthesis (tasks 4.4, 5.4)', () => {
@@ -1004,7 +963,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     const payload = payloadOf(paint!);
     expect(payload.dataModel.rows).toHaveLength(2);
     expect(payload.sorts[0]).toMatchObject({path: '/rows', key: '/best'});
-    expect(paint!.metadata!.a2uiverseWiring).toBeUndefined();
+    expect(metadataOf(paint!)!.a2uiverseWiring).toBeUndefined();
     const datas = a2uiDatas(paint!);
     expect(datas[0]).toMatchObject({createSurface: {surfaceId: 'shell:synthesis'}});
     const painted = (datas[1]!.updateComponents as {components: unknown[]}).components;
@@ -1071,7 +1030,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
       scripts: scripts(),
     });
     const events = await collect(client, utterance('compare camera prices'));
-    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    expect(stateOf(events.at(-1)!)).toBe(TaskState.TASK_STATE_COMPLETED);
     const [line] = await journalLines(1);
     const plan = line.plan as PlanRecord;
     expect(plan.shortlistMs).toEqual(expect.any(Number));
@@ -1103,7 +1062,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
       planCache: true,
     });
     const events = await collect(client, utterance('compare camera prices'));
-    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    expect(stateOf(events.at(-1)!)).toBe(TaskState.TASK_STATE_COMPLETED);
     const [line] = await journalLines(1);
     const plan = line.plan as PlanRecord;
     expect(plan.cache).toEqual({key: 'k1'});
@@ -1124,11 +1083,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     expect(synthesisEvents(events)).toHaveLength(0);
     expect(slotStates(shellPaints(events).at(-1)!)['shell']).toBe('collapsed');
     // The reason is said once, on the collapsed slot — never as prose beside it (task 8.5).
-    const spoken = events.some(
-      e =>
-        e.kind === 'status-update' &&
-        e.status.message?.parts.some(p => p.kind === 'text' && p.text === 'nothing joinable'),
-    );
+    const spoken = events.some(e => isStatusUpdate(e) && wordsIn(e).includes('nothing joinable'));
     expect(spoken).toBe(false);
     expect(slotsOf(shellPaints(events).at(-1)!)['shell']).toMatchObject({
       declined: {reason: 'nothing joinable'},
@@ -1208,7 +1163,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
       scripts: {github, gmail: shopScript(camerasB)},
     });
     const first = await collect(client, utterance('compare camera prices'));
-    const contextId = first[0]!.contextId!;
+    const contextId = contextOf(first);
     expect(synthesizer.calls).toHaveLength(1);
     const firstDocument = bestPriceView(synthesizer.calls[0]!);
 
@@ -1236,8 +1191,8 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     expect(again.prompt).toContain('- these refs no longer resolve:');
     const [repaint] = synthesisEvents(drill);
     expect(repaint).toBeDefined();
-    const final = drill.at(-1) as TaskStatusUpdateEvent;
-    expect(final.final).toBe(true);
+    const final = drill.at(-1)!;
+    expect(endsTurn(final)).toBe(true);
     const lines = await journalLines(4);
     expect(lines[3]!.synthesis).toMatchObject({outcome: 'synthesized'});
   });
@@ -1258,7 +1213,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
       scripts: {github: shopScript(camerasA), gmail},
     });
     const first = await collect(client, utterance('compare camera prices'));
-    const contextId = first[0]!.contextId!;
+    const contextId = contextOf(first);
     expect(synthesizer.calls).toHaveLength(1);
 
     const repainted = await collect(client, actionOn('gmail:s1', contextId));
@@ -1309,7 +1264,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
       scripts: {github, gmail: shopScript(named(camerasB, 'Lumen X100'))},
     });
     const first = await collect(client, utterance('compare camera prices'));
-    const contextId = first[0]!.contextId!;
+    const contextId = contextOf(first);
     expect(synthesizer.calls).toHaveLength(1);
 
     // The matched name changes: the client marks the value broken; the orchestrator calls no one.
@@ -1420,15 +1375,7 @@ function inWords(words: string): Script {
 }
 
 function textsIn(events: AnyEvent[]): string[] {
-  return events.flatMap(e => {
-    const parts =
-      e.kind === 'message'
-        ? e.parts
-        : e.kind === 'task' || e.kind === 'status-update'
-          ? (e.status.message?.parts ?? [])
-          : [];
-    return parts.flatMap(p => (p.kind === 'text' ? [p.text] : []));
-  });
+  return events.flatMap(e => wordsIn(e));
 }
 
 describe('late arrival and failure (task 8.3)', () => {
@@ -1456,13 +1403,13 @@ describe('late arrival and failure (task 8.3)', () => {
       {source: 'calendar', name: 'Google Calendar', state: 'loading'},
     ]);
     // The merge lands before the straggler; the straggler's fragment still arrives in the turn.
-    const merged = events.findIndex(e => e.metadata?.[SYNTHESIS_KEY] !== undefined);
+    const merged = events.findIndex(e => metadataOf(e)?.[SYNTHESIS_KEY] !== undefined);
     const late = events.findIndex(
       e => stampOf(e)?.source === 'calendar' && a2uiDatas(e).some(d => d.createSurface),
     );
     expect(merged).toBeGreaterThan(-1);
     expect(late).toBeGreaterThan(merged);
-    expect((events.at(-1) as TaskStatusUpdateEvent).final).toBe(true);
+    expect(endsTurn(events.at(-1)!)).toBe(true);
     const [line] = await journalLines(1);
     expect(line.synthesis).toMatchObject({
       outcome: 'synthesized',
@@ -1650,11 +1597,9 @@ describe('late arrival and failure (task 8.3)', () => {
     const planner = new FakePlanner(() => layoutFor(['github']));
     const {client} = await boot({planner});
     const [first] = await collect(client, utterance('first'));
-    const events = await collect(client, utterance('second', first.contextId));
-    expect(finalOf(events).status.state).toBe('failed');
-    expect(textsOf(finalOf(events).status.message!)).toEqual([
-      'A question opens a context of its own.',
-    ]);
+    const events = await collect(client, utterance('second', contextIdOf(first)));
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_FAILED);
+    expect(wordsIn(finalOf(events))).toEqual(['A question opens a context of its own.']);
     expect(planner.calls).toHaveLength(1);
     const lines = await journalLines(2);
     expect(lines.find(l => l.refused)).toMatchObject({
@@ -1670,13 +1615,13 @@ describe('late arrival and failure (task 8.3)', () => {
     });
     const firstTurn = streamOf(client, utterance('first'));
     await until(() => firstTurn.events.length > 0, 'the first composition opened');
-    const contextId = firstTurn.events[0]!.contextId!;
+    const contextId = contextOf(firstTurn.events);
     await wait(200);
     const second = await collect(client, utterance('second', undefined, contextId));
-    expect(second[0]!.contextId).not.toBe(contextId);
-    expect(finalOf(second).status.state).toBe('completed');
+    expect(contextIdOf(second[0]!)).not.toBe(contextId);
+    expect(stateOf(finalOf(second))).toBe(TaskState.TASK_STATE_COMPLETED);
     const events = await firstTurn.done;
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(arrivedIn(events, 'gmail')).toBe(true);
     expect(vendors.gmail!.methods).not.toContain('tasks/cancel');
   });
@@ -1691,17 +1636,17 @@ describe('late arrival and failure (task 8.3)', () => {
       () => firstTurn.events.some(e => stampOf(e)?.source === 'github' && stampOf(e)?.settled),
       'GitHub settled',
     );
-    const contextId = firstTurn.events[0]!.contextId!;
+    const contextId = contextOf(firstTurn.events);
     const closed = await collect(client, press('close', [], contextId));
-    expect(finalOf(closed).status.state).toBe('completed');
+    expect(stateOf(finalOf(closed))).toBe(TaskState.TASK_STATE_COMPLETED);
     const events = await firstTurn.done;
-    expect(finalOf(events).status.state).toBe('canceled');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_CANCELED);
     await until(() => vendors.gmail!.methods.includes('tasks/cancel'), 'Gmail cancelled');
     const later = await collect(client, actionOn('github:s1', contextId));
-    expect(finalOf(later).status.state).toBe('failed');
-    expect(textsOf(finalOf(later).status.message!)).toEqual(['This context is closed.']);
+    expect(stateOf(finalOf(later))).toBe(TaskState.TASK_STATE_FAILED);
+    expect(wordsIn(finalOf(later))).toEqual(['This context is closed.']);
     const again = await collect(client, press('close', [], contextId));
-    expect(finalOf(again).status.state).toBe('failed');
+    expect(stateOf(finalOf(again))).toBe(TaskState.TASK_STATE_FAILED);
     const lines = await journalLines(4);
     expect(lines.find(l => l.kind === 'utterance')).toMatchObject({
       closed: true,
@@ -1731,11 +1676,11 @@ describe('late arrival and failure (task 8.3)', () => {
     const {client} = await boot({planner});
     const turn = streamOf(client, utterance('first'));
     await until(() => turn.events.length > 0, 'the composition opened');
-    const contextId = turn.events[0]!.contextId!;
+    const contextId = contextOf(turn.events);
     const closed = await collect(client, press('close', [], contextId));
-    expect(finalOf(closed).status.state).toBe('completed');
+    expect(stateOf(finalOf(closed))).toBe(TaskState.TASK_STATE_COMPLETED);
     const events = await turn.done;
-    expect(finalOf(events).status.state).toBe('canceled');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_CANCELED);
     held.open();
   });
 
@@ -1753,7 +1698,7 @@ describe('late arrival and failure (task 8.3)', () => {
     });
     const events = await collect(client, utterance('compare'));
     expect(synthesizer.calls).toHaveLength(1);
-    await collect(client, actionOn('github:s1', events[0]!.contextId!));
+    await collect(client, actionOn('github:s1', contextOf(events)));
     expect(synthesizer.calls).toHaveLength(1);
   });
 
@@ -1770,21 +1715,16 @@ describe('late arrival and failure (task 8.3)', () => {
       scripts: {github: shopScript(camerasA), gmail: shopScript(camerasB)},
     });
     const [first] = await collect(client, utterance('join'));
-    const report = (surfaceId: string): Message => ({
-      kind: 'message',
-      messageId: crypto.randomUUID(),
-      role: 'user',
-      contextId: first!.contextId,
-      parts: [
-        {
-          kind: 'data',
-          data: {
+    const report = (surfaceId: string): Message =>
+      clientMessage(
+        [
+          dataPart({
             version: 'v0.9',
             error: {code: 'VALIDATION_FAILED', surfaceId, path: '/', message: 'bad'},
-          },
-        },
-      ],
-    });
+          }),
+        ],
+        {contextId: contextIdOf(first!)},
+      );
     const events = await collect(client, report('github:s1'));
     const slots = slotsOf(shellPaints(events).at(-1)!);
     expect(slots['github']).toMatchObject({state: 'failed', failure: {cause: 'invalid'}});
@@ -1863,7 +1803,7 @@ function pressHeld(opened: Promise<void>, script: Script): Script {
 function streamOf(client: Client, message: Message) {
   const events: AnyEvent[] = [];
   const done = (async () => {
-    for await (const e of client.sendMessageStream({message})) events.push(e);
+    for await (const e of client.sendMessageStream(requestOf(message))) events.push(e);
     return events;
   })();
   return {events, done};
@@ -1922,7 +1862,7 @@ describe('quiescence (task 8.10)', () => {
     expect(itemsOf(synthesizer.calls[0]!, 'github')).toEqual([camerasA[0]]);
     expect(synthesisEvents(events)).toHaveLength(1);
     const lines = await journalLines(2);
-    const line = lines.find(l => l.turnId === events[0]!.id)!;
+    const line = lines.find(l => l.turnId === taskIdOf(events[0]!))!;
     expect(line.synthesis).toMatchObject({release: {by: 'soft-deadline'}});
     const waited = (line.synthesis as {waited: Array<{source: string; ms: number}>}).waited;
     expect(waited.map(w => w.source)).toEqual(['github']);
@@ -1977,10 +1917,12 @@ describe('quiescence (task 8.10)', () => {
     await wait(700);
     const beats = turn.events
       .slice(before)
-      .filter(e => e.kind === 'status-update' && e.status.state === 'working' && !e.final);
+      .filter(
+        e => isStatusUpdate(e) && stateOf(e) === TaskState.TASK_STATE_WORKING && !endsTurn(e),
+      );
     expect(beats.length).toBeGreaterThanOrEqual(2);
     for (const beat of beats) {
-      expect((beat as {status: {message?: unknown}}).status.message).toBeUndefined();
+      expect(statusOf(beat)?.message).toBeUndefined();
       expect(stampOf(beat)).toBeUndefined();
     }
     made.open();
@@ -2012,7 +1954,7 @@ describe('quiescence (task 8.10)', () => {
     expect(synthesizer.calls[1]!.input.previous).toBeUndefined();
     expect(synthesisEvents([...events, ...action])).toHaveLength(1);
     const lines = await journalLines(2);
-    const line = lines.find(l => l.turnId === events[0]!.id)!;
+    const line = lines.find(l => l.turnId === taskIdOf(events[0]!))!;
     expect(line.synthesis).toMatchObject({
       outcome: 'synthesized',
       thrownAway: [{changed: ['github:s1']}],
@@ -2084,7 +2026,7 @@ describe('quiescence (task 8.10)', () => {
     await until(() => synthesizer.calls.length === 2, 'the rebuild is being made');
     rebuild.open();
     expect(synthesisEvents(await github.done)).toHaveLength(1);
-    expect(calendar.events.some(e => e.kind === 'status-update' && e.final)).toBe(false);
+    expect(calendar.events.some(e => endsTurn(e))).toBe(false);
 
     calendarPress.open();
     await calendar.done;
@@ -2107,21 +2049,18 @@ describe('quiescence (task 8.10)', () => {
     const contextId = crypto.randomUUID();
     const turn = streamOf(client, utterance('compare', contextId));
     await until(() => synthesizer.calls.length === 1, 'the merge is being made');
-    await collect(client, {
-      kind: 'message',
-      messageId: crypto.randomUUID(),
-      role: 'user',
-      contextId,
-      parts: [
-        {
-          kind: 'data',
-          data: {
+    await collect(
+      client,
+      clientMessage(
+        [
+          dataPart({
             version: 'v0.9',
             error: {code: 'VALIDATION_FAILED', surfaceId: 'gmail:s1', path: '/', message: 'bad'},
-          },
-        },
-      ],
-    });
+          }),
+        ],
+        {contextId},
+      ),
+    );
     made.open();
     const events = await turn.done;
     expect(synthesisEvents(events)).toHaveLength(1);
@@ -2134,7 +2073,7 @@ describe('quiescence (task 8.10)', () => {
       'github',
     ]);
     const lines = await journalLines(2);
-    const line = lines.find(l => l.turnId === events[0]!.id)!;
+    const line = lines.find(l => l.turnId === taskIdOf(events[0]!))!;
     expect(line.synthesis).toMatchObject({
       outcome: 'synthesized',
       thrownAway: [{changed: ['gmail']}],
@@ -2188,13 +2127,7 @@ function press(
   sources: string[],
   contextId: string,
 ): Message {
-  return {
-    kind: 'message',
-    messageId: crypto.randomUUID(),
-    role: 'user',
-    contextId,
-    parts: [{kind: 'data', data: operationData({kind, sources}, 'v0.9')}],
-  };
+  return clientMessage([dataPart(operationData({kind, sources}, 'v0.9'))], {contextId});
 }
 
 /** The script answering as on a first turn: a vendor answering a new task paints anew. */
@@ -2208,7 +2141,7 @@ function sequence(...scripts: Script[]): Script {
 
 const shellSlotOf = (events: AnyEvent[]) => slotsOf(shellPaints(events).at(-1)!)['shell']!;
 
-const finalOf = (events: AnyEvent[]) => events.at(-1) as TaskStatusUpdateEvent;
+const finalOf = (events: AnyEvent[]) => events.at(-1)!;
 
 describe('the person’s now in the words of each request (task-12.13 decision 47)', () => {
   const CLOCK = {now: '2026-10-09T14:20:00+09:00', timeZone: 'Asia/Seoul'};
@@ -2259,15 +2192,15 @@ describe('one press at a time per fragment (task-12.13 decision 46)', () => {
       scripts: {github: sequence(shopScript(camerasA), after(400, shopScript(camerasA)))},
     });
     const first = await collect(client, utterance('cameras'));
-    const contextId = first[0]!.contextId!;
+    const contextId = contextOf(first);
     const running = streamOf(client, actionOn('github:s1', contextId));
     await until(() => vendors.github!.requests.length === 2, 'the first press reached the app');
     const second = await collect(client, actionOn('github:s1', contextId));
-    expect(finalOf(second).status.state).toBe('failed');
-    expect(textsOf(finalOf(second).status.message!)).toEqual([
+    expect(stateOf(finalOf(second))).toBe(TaskState.TASK_STATE_FAILED);
+    expect(wordsIn(finalOf(second))).toEqual([
       'GitHub is still working on that. Try again once it has finished.',
     ]);
-    expect(finalOf(await running.done).status.state).toBe('completed');
+    expect(stateOf(finalOf(await running.done))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(vendors.github!.requests).toHaveLength(2);
     const lines = await journalLines(3);
     expect(lines.find(l => l.refused)).toMatchObject({
@@ -2288,13 +2221,13 @@ describe('one press at a time per fragment (task-12.13 decision 46)', () => {
       },
     });
     const first = await collect(client, utterance('cameras'));
-    const contextId = first[0]!.contextId!;
+    const contextId = contextOf(first);
     await collect(client, actionOn('github:s1', contextId));
     const retrying = streamOf(client, press('retry', ['github'], contextId));
     await until(() => vendors.github!.requests.length === 3, 'the Retry reached the app');
     const second = await collect(client, actionOn('github:s1', contextId));
-    expect(finalOf(second).status.state).toBe('failed');
-    expect(textsOf(finalOf(second).status.message!)).toEqual([
+    expect(stateOf(finalOf(second))).toBe(TaskState.TASK_STATE_FAILED);
+    expect(wordsIn(finalOf(second))).toEqual([
       'GitHub is still working on that. Try again once it has finished.',
     ]);
     await retrying.done;
@@ -2322,7 +2255,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     expect(shellSlotOf(plan)).toMatchObject({merged: ['github', 'gmail']});
 
     const events = await collect(client, press('retry', ['calendar'], contextId));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     const paints = shellPaints(events);
     expect(slotsOf(paints[0]!)['calendar']).toMatchObject({state: 'pending'});
     expect(slotsOf(paints[0]!)['calendar']).not.toHaveProperty('failure');
@@ -2343,7 +2276,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     const line = lines.find(l => l.kind === 'operation')!;
     expect(line).toMatchObject({
       descriptor: 'retry calendar',
-      composition: plan[0]!.id,
+      composition: taskIdOf(plan[0]!),
       outcome: 'completed',
       synthesis: {outcome: 'synthesized', release: {by: 'retry'}, joined: ['calendar']},
     });
@@ -2368,7 +2301,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
       e => stampOf(e)?.source === 'gmail' && a2uiDatas(e).some(d => d.createSurface),
     );
     expect(drawn).toHaveLength(1);
-    expect((drawn[0] as TaskStatusUpdateEvent).taskId).toBe(events[0]!.id);
+    expect(taskIdOf(drawn[0]!)).toBe(taskIdOf(events[0]!));
     const lines = await journalLines(2);
     const record = (
       lines.find(l => l.kind === 'operation')!.dispatch as Array<Record<string, unknown>>
@@ -2416,7 +2349,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     );
     expect(drawn).toHaveLength(1);
     expect(JSON.stringify(a2uiDatas(drawn[0]!))).toContain('949'); // camerasB: the original's
-    expect((drawn[0] as TaskStatusUpdateEvent).taskId).toBe(events[0]!.id);
+    expect(taskIdOf(drawn[0]!)).toBe(taskIdOf(events[0]!));
     await until(() => vendors.gmail!.methods.includes('tasks/cancel'), 'the re-dispatch cancelled');
   });
 
@@ -2431,9 +2364,9 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     expect(slotsOf(shellPaints(pressed).at(-1)!)['github']).toMatchObject({state: 'failed'});
 
     const events = await collect(client, press('retry', ['github'], contextId));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     const [, sent, again] = vendors.github!.requests.map(r => r.message);
-    const actionOf = (message: Message) =>
+    const actionOf = (message: VendorMessage) =>
       message.parts.flatMap(p => (p.kind === 'data' && 'action' in p.data ? [p.data.action] : []));
     expect(actionOf(again!)).toEqual(actionOf(sent!));
     expect(actionOf(again!)).toHaveLength(1);
@@ -2474,7 +2407,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     const contextId = crypto.randomUUID();
     await collect(client, utterance('everything', contextId));
     const events = await collect(client, press('retry', ['gmail'], contextId));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(slotsOf(shellPaints(events)[0]!)['gmail']).toMatchObject({state: 'pending'});
     expect(slotsOf(shellPaints(events).at(-1)!)['gmail']).toMatchObject({
       state: 'failed',
@@ -2503,12 +2436,12 @@ describe('Include, Retry and Try again (task 8.4)', () => {
       'Gmail failed fast',
     );
     const retry = await collect(client, press('retry', ['gmail'], contextId));
-    expect(finalOf(retry).status.state).toBe('completed');
+    expect(stateOf(finalOf(retry))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(synthesisEvents(retry)).toHaveLength(0);
 
     const events = await turn.done;
     expect(arrivedIn(events, 'calendar')).toBe(true);
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(synthesizer.calls).toHaveLength(1);
     expect(synthesizer.calls[0]!.input.sources.map(s => s.source).sort()).toEqual([
       'calendar',
@@ -2535,7 +2468,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     expect(shellSlotOf(plan)).toMatchObject({merged: ['github', 'gmail'], late: ['calendar']});
 
     const events = await collect(client, press('include', ['calendar'], contextId));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(slotsOf(shellPaints(events)[0]!)['shell']).toMatchObject({
       working: {sources: ['calendar']},
     });
@@ -2572,7 +2505,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     const contextId = crypto.randomUUID();
     await collect(client, utterance('compare', contextId));
     const events = await collect(client, press('include', ['calendar'], contextId));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(synthesisEvents(events)).toHaveLength(0);
     const shell = shellSlotOf(events);
     expect(shell.state).toBe('pending');
@@ -2608,7 +2541,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     expect(shellSlotOf(action).state).toBe('pending');
 
     const events = await collect(client, press('tryAgain', [], contextId));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(synthesizer.calls).toHaveLength(4);
     expect(synthesizer.calls[3]!.input.changes).toBeDefined();
     expect(synthesisEvents(events)).toHaveLength(1);
@@ -2717,7 +2650,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     });
 
     const events = await collect(client, press('retry', ['github'], contextId));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(vendors.github!.requests).toHaveLength(2);
     expect(arrivedIn(events, 'github')).toBe(true);
     expect(shellSlotOf(events)).toMatchObject({
@@ -2815,12 +2748,12 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     });
     const contextId = crypto.randomUUID();
     const none = await collect(client, press('retry', ['gmail'], crypto.randomUUID()));
-    expect(finalOf(none).status.state).toBe('failed');
+    expect(stateOf(finalOf(none))).toBe(TaskState.TASK_STATE_FAILED);
     expect(textsIn(none)).toContain('No such context.');
 
     await collect(client, utterance('compare', contextId));
     const notFailed = await collect(client, press('retry', ['gmail'], contextId));
-    expect(finalOf(notFailed).status.state).toBe('failed');
+    expect(stateOf(finalOf(notFailed))).toBe(TaskState.TASK_STATE_FAILED);
     expect(textsIn(notFailed)).toContain('Gmail has not failed.');
     const nothingLate = await collect(client, press('include', ['gmail'], contextId));
     expect(textsIn(nothingLate)).toContain('No source is waiting to be included.');
@@ -2847,7 +2780,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     await wait(100);
     await collect(client, press('close', [], contextId));
     const events = await retry.done;
-    expect(finalOf(events).status.state).toBe('canceled');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_CANCELED);
     await until(() => vendors.gmail!.methods.includes('tasks/cancel'), 'the retry cancelled');
     const lines = await journalLines(3);
     expect(lines.find(l => l.kind === 'operation' && l.closed)).toMatchObject({
@@ -2857,7 +2790,8 @@ describe('Include, Retry and Try again (task 8.4)', () => {
   });
 });
 
-function textsOf(message: Message): string[] {
+/** The words of a message as a vendor received it, on its A2A 0.3 wire. */
+function textsOf(message: VendorMessage): string[] {
   return message.parts.flatMap(p => (p.kind === 'text' ? [p.text] : []));
 }
 
@@ -2906,16 +2840,10 @@ function step(
   contextId: string,
   surfaces: Record<string, unknown>,
 ): Message {
-  return {
-    kind: 'message',
-    messageId: crypto.randomUUID(),
-    role: 'user',
-    contextId,
-    parts: [
-      {kind: 'data', data: operationData({kind: 'step', sources: [source], step: index}, 'v0.9')},
-    ],
-    metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces}},
-  };
+  return clientMessage(
+    [dataPart(operationData({kind: 'step', sources: [source], step: index}, 'v0.9'))],
+    {contextId, metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces}}},
+  );
 }
 
 describe("the fragment's history (tasks 9.4, 10.9)", () => {
@@ -2929,7 +2857,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       scripts: {github: drillScript(camerasA), gmail: shopScript(camerasB)},
     });
     const first = await collect(client, utterance('compare camera prices'));
-    const contextId = first[0]!.contextId!;
+    const contextId = contextOf(first);
     expect(synthesizer.calls).toHaveLength(1);
 
     // The drill-down paints a new surface: the list's refs go absent, the walk calls.
@@ -2945,7 +2873,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       client,
       step('github', 0, contextId, {'github:s1': {items: camerasA}}),
     );
-    expect(finalOf(back).status.state).toBe('completed');
+    expect(stateOf(finalOf(back))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(synthesizer.calls).toHaveLength(2);
     expect(synthesisEvents(back)).toHaveLength(0);
 
@@ -2959,7 +2887,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       client,
       step('github', 0, contextId, {'github:s1': {items: camerasA}}),
     );
-    expect(finalOf(same).status.state).toBe('completed');
+    expect(stateOf(finalOf(same))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(synthesizer.calls).toHaveLength(2);
 
     const lines = await journalLines(5);
@@ -2967,7 +2895,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
     expect(steps).toHaveLength(2);
     expect(steps[0]).toMatchObject({
       kind: 'operation',
-      composition: first[0]!.id,
+      composition: taskIdOf(first[0]!),
       outcome: 'completed',
       step: {combination: {github: 0, gmail: 0}, seen: true, walk: 'silent'},
     });
@@ -2983,7 +2911,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       scripts: {github: drillScript(camerasA), gmail: drillScript(camerasB)},
     });
     const first = await collect(client, utterance('compare camera prices'));
-    const contextId = first[0]!.contextId!;
+    const contextId = contextOf(first);
     await collect(client, actionOn('github:s1', contextId));
     await collect(client, actionOn('gmail:s1', contextId));
     expect(synthesizer.calls).toHaveLength(3);
@@ -2993,7 +2921,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       client,
       step('github', 0, contextId, {'github:s1': {items: camerasA}}),
     );
-    expect(finalOf(unseen).status.state).toBe('completed');
+    expect(stateOf(finalOf(unseen))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(synthesizer.calls).toHaveLength(4);
     const again = synthesizer.calls[3]!;
     expect(again.input.sources.map(s => s.surface).sort()).toEqual(['github:s1', 'gmail:s2']);
@@ -3039,7 +2967,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       },
     });
     const first = await collect(client, utterance('compare camera prices'));
-    const contextId = first[0]!.contextId!;
+    const contextId = contextOf(first);
     // The merge over GitHub's list and Gmail, Calendar failed: remembered at {github 0, gmail 0}.
     expect(synthesizer.calls).toHaveLength(1);
     // GitHub drills down, then Calendar's Retry is folded in over the detail.
@@ -3052,7 +2980,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       client,
       step('github', 0, contextId, {'github:s1': {items: camerasA}}),
     );
-    expect(finalOf(back).status.state).toBe('completed');
+    expect(stateOf(finalOf(back))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(synthesizer.calls).toHaveLength(3);
     expect(synthesisEvents(back)).toHaveLength(0);
     expect(shellSlotOf(back)).toMatchObject({merged: ['github', 'gmail'], late: ['calendar']});
@@ -3095,7 +3023,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       },
     });
     const first = await collect(client, utterance('compare camera prices'));
-    const contextId = first[0]!.contextId!;
+    const contextId = contextOf(first);
     expect(synthesizer.calls).toHaveLength(1);
 
     // A press inside GitHub's list fails: no paint, the merge too few over Gmail alone.
@@ -3110,7 +3038,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       client,
       step('github', 0, contextId, {'github:s1': {items: camerasA}}),
     );
-    expect(finalOf(back).status.state).toBe('completed');
+    expect(stateOf(finalOf(back))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(synthesizer.calls).toHaveLength(2);
     expect(synthesisEvents(back)).toHaveLength(0);
 
@@ -3128,7 +3056,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       scripts: {github: drillScript(camerasA), gmail: shopScript(camerasB)},
     });
     const first = await collect(client, utterance('compare camera prices'));
-    const contextId = first[0]!.contextId!;
+    const contextId = contextOf(first);
     expect(synthesizer.calls).toHaveLength(1);
 
     // The drill-down's walk declines: the merge collapses to the Synthesizer's words.
@@ -3176,7 +3104,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       scripts: {github: drillScript(camerasA), gmail: drillScript(camerasB)},
     });
     const first = await collect(client, utterance('compare camera prices'));
-    const contextId = first[0]!.contextId!;
+    const contextId = contextOf(first);
     await collect(client, actionOn('github:s1', contextId));
     await collect(client, actionOn('gmail:s1', contextId));
     expect(synthesizer.calls).toHaveLength(3);
@@ -3216,7 +3144,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       scripts: {github: drillScript(camerasA), gmail: drillScript(camerasB)},
     });
     const first = await collect(client, utterance('compare camera prices'));
-    const contextId = first[0]!.contextId!;
+    const contextId = contextOf(first);
     await collect(client, actionOn('github:s1', contextId));
     await collect(client, actionOn('gmail:s1', contextId));
     expect(synthesizer.calls).toHaveLength(3);
@@ -3229,7 +3157,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       step('github', 1, contextId, {'github:s2': {items: camerasA}}),
     );
     const abandoned = await unseen;
-    expect(finalOf(abandoned).status.state).toBe('completed');
+    expect(stateOf(finalOf(abandoned))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(synthesisEvents(abandoned)).toHaveLength(0);
     expect(synthesisEvents(forward)).toHaveLength(0);
     expect(synthesizer.calls).toHaveLength(3);
@@ -3253,7 +3181,7 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       scripts: {github: drillScript(camerasA), gmail: shopScript(camerasB), calendar: failing()},
     });
     const first = await collect(client, utterance('compare camera prices'));
-    const contextId = first[0]!.contextId!;
+    const contextId = contextOf(first);
     await collect(client, actionOn('github:s1', contextId));
     await collect(client, actionOn('github:s2', contextId));
     await collect(client, step('github', 0, contextId, {'github:s1': {items: camerasA}}));
@@ -3263,22 +3191,22 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       client,
       step('github', 2, contextId, {'github:s3': {items: camerasA}}),
     );
-    expect(finalOf(kept).status.state).toBe('completed');
+    expect(stateOf(finalOf(kept))).toBe(TaskState.TASK_STATE_COMPLETED);
     const never4 = await collect(
       client,
       step('github', 4, contextId, {'github:s5': {items: camerasA}}),
     );
-    expect(finalOf(never4).status.state).toBe('failed');
+    expect(stateOf(finalOf(never4))).toBe(TaskState.TASK_STATE_FAILED);
     expect(textsIn(never4)).toContain('GitHub has no paint 4.');
 
     const never = await collect(client, step('calendar', 0, contextId, {'calendar:s1': {}}));
-    expect(finalOf(never).status.state).toBe('failed');
+    expect(stateOf(finalOf(never))).toBe(TaskState.TASK_STATE_FAILED);
     expect(textsIn(never)).toContain('Google Calendar has not painted.');
     const bare = await collect(
       client,
       step('github', 0, contextId, {'gmail:s1': {items: camerasB}}),
     );
-    expect(finalOf(bare).status.state).toBe('failed');
+    expect(stateOf(finalOf(bare))).toBe(TaskState.TASK_STATE_FAILED);
     expect(textsIn(bare)).toContain('The step carries no paint.');
 
     const lines = await journalLines(9);
@@ -3375,16 +3303,16 @@ describe('the registry on the running orchestrator (task 11.4)', () => {
       appId: 'github',
       accounts: [],
     });
-    const events = await collect(client, actionOn('github:s1', first.contextId!));
+    const events = await collect(client, actionOn('github:s1', contextIdOf(first)!));
     expect(slotsOf(shellPaints(events).at(-1)!)['github']).toMatchObject({
       state: 'failed',
       failure: {cause: 'uninstalled'},
     });
     expect(vendors.github!.requests).toHaveLength(1);
     // The slot says it; the press's end carries no words of the shell's (task-15.11 decision 31).
-    const final = events.at(-1) as TaskStatusUpdateEvent;
-    expect(final.status.state).toBe('failed');
-    expect(final.status.message).toBeUndefined();
+    const final = events.at(-1)!;
+    expect(stateOf(final)).toBe(TaskState.TASK_STATE_FAILED);
+    expect(statusOf(final)?.message).toBeUndefined();
   });
 });
 
@@ -3448,7 +3376,7 @@ describe('two accounts of one app (task 12.4)', () => {
           r.message.parts.some(p => p.kind === 'text' && p.text.includes(source)),
         )
       ];
-    const events = await collect(client, actionOn('gmail.2:s1', first.contextId!));
+    const events = await collect(client, actionOn('gmail.2:s1', contextIdOf(first)!));
     expect(gmail.requests).toHaveLength(3);
     expect(gmail.requests[2]!.message.contextId).toBe(conversationOf('gmail.2'));
     expect(gmail.requests[2]!.message.contextId).not.toBe(conversationOf('gmail.1'));
@@ -3486,7 +3414,7 @@ describe('two accounts of one app (task 12.4)', () => {
     // With no room on the shortlist, only what the viewed canvas holds is kept on it.
     const {client} = await boot({planner, accounts: twoGmail, shortlistCap: 0});
     const [first] = await collect(client, utterance('my mail'));
-    await collect(client, utterance('and the older ones?', undefined, first.contextId));
+    await collect(client, utterance('and the older ones?', undefined, contextIdOf(first)));
     expect(planner.calls[1]!.shortlist.map(entry => entry.record.id)).toEqual(['gmail']);
   });
 
@@ -3532,7 +3460,7 @@ describe('the account choice (task 12.6)', () => {
     const {client} = await boot({planner: new FakePlanner(asking), accounts: twoGmail});
     const contextId = crypto.randomUUID();
     const turn = await collect(client, utterance('reply to Bob that I will be late', contextId));
-    expect(finalOf(turn).status.state).toBe('completed');
+    expect(stateOf(finalOf(turn))).toBe(TaskState.TASK_STATE_COMPLETED);
     const gmail = vendors.gmail!;
     expect(gmail.requests).toHaveLength(0);
     const [choice] = shellPaints(turn)[0]!.find(d => d.updateComponents)!.updateComponents!
@@ -3549,7 +3477,7 @@ describe('the account choice (task 12.6)', () => {
     });
 
     const pressed = await collect(client, press('useAccount', ['gmail.2'], contextId));
-    expect(finalOf(pressed).status.state).toBe('completed');
+    expect(stateOf(finalOf(pressed))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(gmail.requests).toHaveLength(1);
     expect(gmail.requests[0]!.message.parts).toEqual([
       {kind: 'text', text: withGuidance('Draft a reply to Bob saying I will be late.')},
@@ -3572,7 +3500,7 @@ describe('the account choice (task 12.6)', () => {
     const contextId = crypto.randomUUID();
     await collect(client, utterance('reply to Bob', contextId));
     const offered = await collect(client, press('useAccount', ['gmail.3'], contextId));
-    expect(finalOf(offered).status.state).toBe('failed');
+    expect(stateOf(finalOf(offered))).toBe(TaskState.TASK_STATE_FAILED);
     expect(textsIn(offered)).toContain('No account choice here offers gmail.3.');
     await collect(client, press('useAccount', ['gmail.1'], contextId));
     const again = await collect(client, press('useAccount', ['gmail.2'], contextId));
@@ -3583,13 +3511,10 @@ describe('the account choice (task 12.6)', () => {
 
 describe('the store loop (task 15.4)', () => {
   /** The press that fills a gap's slot with an app it offered, as the client sends it. */
-  const useApp = (appId: string, gap: string, contextId: string): Message => ({
-    kind: 'message',
-    messageId: crypto.randomUUID(),
-    role: 'user',
-    contextId,
-    parts: [{kind: 'data', data: operationData({kind: 'useApp', sources: [appId], gap}, 'v0.9')}],
-  });
+  const useApp = (appId: string, gap: string, contextId: string): Message =>
+    clientMessage([dataPart(operationData({kind: 'useApp', sources: [appId], gap}, 'v0.9'))], {
+      contextId,
+    });
   const REQUEST = 'Show my calendar for today.';
   /** This plan's search, as the Planner's tool call recorded it: Google Calendar found in the Store. */
   const searched = (words: string) => [
@@ -3664,12 +3589,12 @@ describe('the store loop (task 15.4)', () => {
     await collect(client, utterance('what is on my calendar?', contextId));
 
     const early = await collect(client, useApp('calendar', 'calendar', contextId));
-    expect(finalOf(early).status.state).toBe('failed');
+    expect(stateOf(finalOf(early))).toBe(TaskState.TASK_STATE_FAILED);
     expect(textsIn(early)).toContain('calendar is not installed.');
 
     await install(orchestrator);
     const pressed = await collect(client, useApp('calendar', 'calendar', contextId));
-    expect(finalOf(pressed).status.state).toBe('completed');
+    expect(stateOf(finalOf(pressed))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(planner.calls).toHaveLength(1);
     expect(vendors.calendar!.requests).toHaveLength(1);
     expect(vendors.calendar!.requests[0]!.message.parts).toEqual([
@@ -3773,7 +3698,7 @@ describe('the store loop (task 15.4)', () => {
     await collect(client, utterance('install Google Calendar', contextId));
     await install(orchestrator);
     const pressed = await collect(client, useApp('calendar', 'calendar', contextId));
-    expect(finalOf(pressed).status.state).toBe('completed');
+    expect(stateOf(finalOf(pressed))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(vendors.calendar!.requests).toHaveLength(0);
     expect(gapSlot(pressed)).toEqual({
       id: 'gap-0',
@@ -3799,7 +3724,7 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
   const paintedBy = (events: AnyEvent[], source: string) =>
     events.some(e => stampOf(e)?.source === source && a2uiDatas(e).some(d => d.createSurface));
   const isShellPaint = (e: AnyEvent) =>
-    e.kind === 'status-update' && stampOf(e)?.role === 'shell' && a2uiDatas(e).length > 0;
+    isStatusUpdate(e) && stampOf(e)?.role === 'shell' && a2uiDatas(e).length > 0;
   const both = (): LayoutSurface => ({title: 'Both apps', ...layoutFor(['github', 'gmail'])});
   const malformed = (): PlanOutcome => ({
     kind: 'malformed',
@@ -3824,7 +3749,7 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
       }),
     });
     const events = await collect(client, utterance('both'));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(vendors.github!.requests).toHaveLength(1);
     expect(vendors.calendar!.requests).toHaveLength(0);
     expect(paintedBy(events, 'github')).toBe(true);
@@ -3864,7 +3789,7 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
     expect(root(paints[3]!)).toEqual(['attribution-slot-github', 'attribution-slot-gmail']);
     // The title rides the create, ahead of it.
     const create = events.find(e => isShellPaint(e))!;
-    const meta = (create as TaskStatusUpdateEvent).status.message!.parts[0]!;
+    const meta = partsOf(create)[0]!;
     expect(meta).toMatchObject({metadata: {mimeType: PAINT_META_MIME_TYPE}});
   });
 
@@ -3920,7 +3845,7 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
     ).toBe(true);
     expect(paintedBy(events, 'github')).toBe(true);
     expect(paintedBy(events, 'gmail')).toBe(true);
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
   });
 
   test('a retry’s layout replaces the half-drawn one in one step; the sources were asked once (decisions 2, 7)', async () => {
@@ -3959,21 +3884,21 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
     expect(paints[2]![0]).toEqual({version: 'v0.9', deleteSurface: {surfaceId: 'shell:main'}});
     expect(idsOf(paints[2]!)).toEqual(['root', 'attribution-gh', 'gh', 'attribution-gm', 'gm']);
     // The swap carries the retry's title ahead of its create.
-    const swap = events.filter(isShellPaint)[2] as TaskStatusUpdateEvent;
-    const parts = swap.status.message!.parts;
+    const swap = events.filter(isShellPaint)[2]!;
+    const parts = partsOf(swap);
     const meta = parts.findIndex(
       p =>
-        p.kind === 'data' &&
-        (p.data as {paintMeta?: {title?: string}}).paintMeta?.title === 'Your two apps',
+        (dataOf(p) as {paintMeta?: {title?: string}} | undefined)?.paintMeta?.title ===
+        'Your two apps',
     );
-    const createAt = parts.findIndex(p => p.kind === 'data' && 'createSurface' in p.data);
+    const createAt = parts.findIndex(p => 'createSurface' in (dataOf(p) ?? {}));
     expect(meta).toBeGreaterThanOrEqual(0);
     expect(meta).toBeLessThan(createAt);
     expect(paints.slice(3).flatMap(idsOf)).not.toContain('slot-github');
     expect(events.findIndex(isFragment)).toBeGreaterThan(events.indexOf(swap));
     expect(vendors.github!.requests).toHaveLength(1);
     expect(vendors.gmail!.requests).toHaveLength(1);
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
   });
 
   test('a second failure takes the half-drawn layout down and cancels the sources asked; nothing of theirs is shown (decisions 2, 7)', async () => {
@@ -3994,8 +3919,8 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
       }),
     });
     const events = await collect(client, utterance('both'));
-    expect(finalOf(events).status.state).toBe('failed');
-    const said = textsOf(finalOf(events).status.message!)[0];
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_FAILED);
+    const said = wordsIn(finalOf(events))[0];
     expect(said).toBe(
       'A2UIVerse couldn’t work out how to answer that. Ask again, or try other words.',
     );
@@ -4012,8 +3937,8 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
       'cancelled',
     ]);
     // No composition is left behind for the context.
-    const later = await collect(client, press('retry', ['github'], events[0]!.contextId!));
-    expect(finalOf(later).status.state).toBe('failed');
+    const later = await collect(client, press('retry', ['github'], contextOf(events)));
+    expect(stateOf(finalOf(later))).toBe(TaskState.TASK_STATE_FAILED);
   });
 
   test('a model call failing once the list is committed breaks the turn the same way', async () => {
@@ -4031,8 +3956,8 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
       }),
     });
     const events = await collect(client, utterance('both'));
-    expect(finalOf(events).status.state).toBe('failed');
-    expect(textsOf(finalOf(events).status.message!)).toEqual(['quota exceeded']);
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_FAILED);
+    expect(wordsIn(finalOf(events))).toEqual(['quota exceeded']);
     expect(events.filter(isShellPaint).map(a2uiDatas).at(-1)).toEqual([
       {version: 'v0.9', deleteSurface: {surfaceId: 'shell:main'}},
     ]);
@@ -4056,10 +3981,10 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
     const turn = streamOf(client, utterance('both'));
     await until(() => turn.events.some(isShellPaint), 'the first piece painted');
     await until(() => vendors.github!.requests.length === 1, 'GitHub asked');
-    const closed = await collect(client, press('close', [], turn.events[0]!.contextId!));
-    expect(finalOf(closed).status.state).toBe('completed');
+    const closed = await collect(client, press('close', [], contextOf(turn.events)));
+    expect(stateOf(finalOf(closed))).toBe(TaskState.TASK_STATE_COMPLETED);
     const events = await turn.done;
-    expect(finalOf(events).status.state).toBe('canceled');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_CANCELED);
     expect(events.some(isFragment)).toBe(false);
     await until(() => vendors.github!.methods.includes('tasks/cancel'), 'GitHub cancelled');
   });
@@ -4078,11 +4003,11 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
     });
     const turn = streamOf(client, utterance('both'));
     await until(() => turn.events.some(isShellPaint), 'the first piece painted');
-    const retry = streamOf(client, press('retry', ['github'], turn.events[0]!.contextId!));
+    const retry = streamOf(client, press('retry', ['github'], contextOf(turn.events)));
     await wait(200);
-    expect(retry.events.some(e => e.kind === 'status-update' && e.final)).toBe(false);
+    expect(retry.events.some(e => endsTurn(e))).toBe(false);
     written.open();
-    expect(finalOf(await retry.done).status.state).toBe('failed');
+    expect(stateOf(finalOf(await retry.done))).toBe(TaskState.TASK_STATE_FAILED);
     await turn.done;
   });
 
@@ -4126,7 +4051,7 @@ describe('the synthesis fragment streamed (task 17.10)', () => {
     stampOf(e)?.role === 'fragment' &&
     a2uiDatas(e).some(d => d.deleteSurface);
   const isShell = (e: AnyEvent) =>
-    e.kind === 'status-update' && stampOf(e)?.role === 'shell' && a2uiDatas(e).length > 0;
+    isStatusUpdate(e) && stampOf(e)?.role === 'shell' && a2uiDatas(e).length > 0;
   const rowsOf = (event: AnyEvent) => payloadOf(event).dataModel.rows as unknown[];
   /** The best-price view with its second row's operator refused. */
   const badRow = (call: SynthesisCall): Synthesis => {
@@ -4145,7 +4070,7 @@ describe('the synthesis fragment streamed (task 17.10)', () => {
     const synthesizer = new StreamingSynthesizer();
     const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
     const events = await collect(client, utterance('compare camera prices'));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     const paints = synthesisEvents(events);
     expect(paints).toHaveLength(4);
     const [first, row1, row2, landed] = paints as [AnyEvent, AnyEvent, AnyEvent, AnyEvent];
@@ -4157,7 +4082,7 @@ describe('the synthesis fragment streamed (task 17.10)', () => {
     });
     for (const piece of [row1, row2]) {
       expect(opsOf(piece)).toEqual([]);
-      expect((piece as TaskStatusUpdateEvent).status.message).toBeUndefined();
+      expect(statusOf(piece)?.message).toBeUndefined();
       expect(payloadOf(piece).partial).toBe(true);
       expect(stampOf(piece)).toEqual({source: 'shell', role: 'fragment'});
     }
@@ -4184,7 +4109,7 @@ describe('the synthesis fragment streamed (task 17.10)', () => {
     const synthesizer = new StreamingSynthesizer([badRow, otherTree]);
     const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
     const events = await collect(client, utterance('compare camera prices'));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     const paints = synthesisEvents(events);
     expect(paints).toHaveLength(3);
     const [first, row1, landed] = paints as [AnyEvent, AnyEvent, AnyEvent];
@@ -4209,7 +4134,7 @@ describe('the synthesis fragment streamed (task 17.10)', () => {
     const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
     const contextId = crypto.randomUUID();
     const events = await collect(client, utterance('compare camera prices', contextId));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(synthesisEvents(events)).toHaveLength(2);
     const takeDown = events.findIndex(isTakeDown);
     expect(takeDown).toBeGreaterThan(0);
@@ -4224,7 +4149,7 @@ describe('the synthesis fragment streamed (task 17.10)', () => {
     expect((line!.synthesis as SynthesisRecord).firstRowMs).toEqual(expect.any(Number));
 
     const again = await collect(client, press('tryAgain', [], contextId));
-    expect(finalOf(again).status.state).toBe('completed');
+    expect(stateOf(finalOf(again))).toBe(TaskState.TASK_STATE_COMPLETED);
     const paints = synthesisEvents(again);
     expect(paints).toHaveLength(1);
     expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);
@@ -4239,7 +4164,7 @@ describe('the synthesis fragment streamed (task 17.10)', () => {
     });
     const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
     const events = await collect(client, utterance('compare camera prices'));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     const paints = synthesisEvents(events);
     expect(paints).toHaveLength(2);
     expect(rowsOf(paints[1]!)).toHaveLength(1);
@@ -4274,7 +4199,7 @@ describe('the synthesis fragment streamed (task 17.10)', () => {
     const action = await collect(client, actionOn('github:s1', contextId));
     held.open();
     const events = await turn.done;
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(synthesizer.calls).toHaveLength(2);
     expect(synthesizer.calls[0]!.signal?.aborted).toBe(true);
     expect(synthesizer.calls[1]!.onText).toBeUndefined();
@@ -4287,7 +4212,7 @@ describe('the synthesis fragment streamed (task 17.10)', () => {
     expect(payloadOf(paints[2]!)).not.toHaveProperty('partial');
     expect(rowsOf(paints[2]!)).toHaveLength(1);
     const lines = await journalLines(2);
-    const line = lines.find(l => l.turnId === events[0]!.id)!;
+    const line = lines.find(l => l.turnId === taskIdOf(events[0]!))!;
     expect(line.synthesis).toMatchObject({
       outcome: 'synthesized',
       thrownAway: [{changed: ['github:s1']}],
@@ -4314,7 +4239,7 @@ describe('the synthesis fragment streamed (task 17.10)', () => {
     expect(synthesisEvents(plan).length).toBeGreaterThanOrEqual(4);
     expect(shellSlotOf(plan)).toMatchObject({late: ['calendar']});
     const events = await collect(client, press('include', ['calendar'], contextId));
-    expect(finalOf(events).status.state).toBe('completed');
+    expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_COMPLETED);
     const paints = synthesisEvents(events);
     expect(paints).toHaveLength(1);
     expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);

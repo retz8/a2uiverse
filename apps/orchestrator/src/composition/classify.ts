@@ -1,5 +1,6 @@
 import type {Message} from '@a2a-js/sdk';
 import {readCatalogLoadFailure, readOperation, type CompositionOperation} from '@a2uiverse/sdk';
+import {dataOf, textOf} from '../a2a/parts.js';
 
 export type Turn =
   | {kind: 'utterance'; text: string}
@@ -23,21 +24,23 @@ export type Turn =
 export function classifyTurn(message: Message): Turn {
   let text: string | undefined;
   for (const part of message.parts) {
-    if (part.kind === 'text') {
-      text ??= part.text;
+    const words = textOf(part);
+    if (words !== undefined) {
+      text ??= words;
       continue;
     }
-    if (part.kind !== 'data' || typeof part.data.version !== 'string') continue;
-    const action = part.data.action;
+    const data = dataOf(part);
+    if (!data || typeof data.version !== 'string') continue;
+    const action = data.action;
     if (typeof action === 'object' && action !== null) {
       const surfaceId = (action as {surfaceId?: unknown}).surfaceId;
       if (typeof surfaceId === 'string') {
-        return {kind: 'action', part: part.data, surfaceId};
+        return {kind: 'action', part: data, surfaceId};
       }
     }
-    const operation = readOperation(part.data);
+    const operation = readOperation(data);
     if (operation) return {kind: 'operation', operation};
-    const error = part.data.error;
+    const error = data.error;
     if (typeof error === 'object' && error !== null) {
       const {code, surfaceId} = error as {code?: unknown; surfaceId?: unknown};
       if (typeof code === 'string' && typeof surfaceId === 'string') {

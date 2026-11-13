@@ -1,7 +1,24 @@
 import {afterEach, describe, it, expect, vi} from 'vitest';
-import type {MessageSendParams} from '@a2a-js/sdk';
+import {Role, TaskState, type Part, type SendMessageRequest} from '@a2a-js/sdk';
 import {agentCardUrl, FIRST_EVENT_TIMEOUT_MS, sendAndApply, type A2AMessageSender} from './client';
-import type {A2AStreamEventData} from './messages';
+import {dataPart, statusUpdateEvent, textPart, type A2AStreamEventData} from './messages';
+
+/** A user's message with nothing in it, under one id. */
+const emptyUserMessage = (): SendMessageRequest => ({
+  tenant: '',
+  message: {
+    messageId: 'm-1',
+    contextId: '',
+    taskId: '',
+    role: Role.ROLE_USER,
+    parts: [],
+    metadata: undefined,
+    extensions: [],
+    referenceTaskIds: [],
+  },
+  configuration: undefined,
+  metadata: undefined,
+});
 
 describe('agentCardUrl', () => {
   const CARD = '/.well-known/agent-card.json';
@@ -20,20 +37,14 @@ describe('agentCardUrl', () => {
 });
 
 describe('sendAndApply — a request that gets no answer (task-7.9)', () => {
-  const params = {
-    message: {kind: 'message', messageId: 'm-1', role: 'user', parts: []},
-  } as unknown as MessageSendParams;
+  const params = emptyUserMessage();
   const event = (text: string) =>
-    ({
-      kind: 'status-update',
+    statusUpdateEvent({
       taskId: 't',
       contextId: 'c',
-      final: false,
-      status: {
-        state: 'working',
-        message: {kind: 'message', messageId: text, role: 'agent', parts: [{kind: 'text', text}]},
-      },
-    }) as unknown as A2AStreamEventData;
+      state: TaskState.TASK_STATE_WORKING,
+      parts: [textPart(text)],
+    });
 
   /** A stream that never answers: its first `next` settles only when its signal aborts, by throwing. */
   function silent(signal?: AbortSignal): AsyncGenerator<A2AStreamEventData, void, undefined> {
@@ -66,7 +77,7 @@ describe('sendAndApply — a request that gets no answer (task-7.9)', () => {
 
   it('is aborted and sent once more under the same message id; the second answer is applied', async () => {
     vi.useFakeTimers();
-    const sent: MessageSendParams[] = [];
+    const sent: SendMessageRequest[] = [];
     const sender: A2AMessageSender = {
       sendMessageStream(p, options) {
         sent.push(p);
@@ -130,27 +141,24 @@ describe('sendAndApply — a request that gets no answer (task-7.9)', () => {
 });
 
 describe("sendAndApply — an app's reply said once (task 18.5.2)", () => {
-  const params = {
-    message: {kind: 'message', messageId: 'm-1', role: 'user', parts: []},
-  } as unknown as MessageSendParams;
-  const stamped = (source: string, part: unknown) =>
-    ({
-      kind: 'status-update',
+  const params = emptyUserMessage();
+  const stamped = (source: string, part: Part) =>
+    statusUpdateEvent({
       taskId: 't',
       contextId: 'c',
-      final: false,
+      state: TaskState.TASK_STATE_WORKING,
+      parts: [part],
       metadata: {a2uiverse: {source, role: 'fragment'}},
-      status: {
-        state: 'working',
-        message: {kind: 'message', messageId: crypto.randomUUID(), role: 'agent', parts: [part]},
-      },
-    }) as unknown as A2AStreamEventData;
-  const say = (source: string, text: string) => stamped(source, {kind: 'text', text});
-  const paint = (source: string) =>
-    stamped(source, {
-      kind: 'data',
-      data: {version: 'v0.9', createSurface: {surfaceId: `${source}:default`, catalogId: 'basic'}},
     });
+  const say = (source: string, text: string) => stamped(source, textPart(text));
+  const paint = (source: string) =>
+    stamped(
+      source,
+      dataPart({
+        version: 'v0.9',
+        createSurface: {surfaceId: `${source}:default`, catalogId: 'basic'},
+      }),
+    );
 
   /** The words passed on, by source, over one answer per list of events. */
   async function heard(...answers: A2AStreamEventData[][]) {

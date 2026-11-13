@@ -3,7 +3,7 @@
  * projections of orchestrator state — never a partition's contents, never the synthesis document —
  * behind one interface, adapted to the AI SDK's tools.
  */
-import type {AgentCard} from '@a2a-js/sdk';
+import type {InstalledCard} from '../src/registry/installedCard.js';
 import {beforeAll, describe, expect, test} from 'vitest';
 import {Compositions} from '../src/composition/compositions.js';
 import {Sources} from '../src/accounts/accounts.js';
@@ -17,6 +17,7 @@ import {
 import {READER_NAMES, readerTools, type PlatformReaders} from '../src/planner/readers.js';
 import type {Registry} from '../src/registry/registry.js';
 import {cardUrlOf, fixtureArtifact, testRegistry} from './registryFixture.js';
+import {paint} from './wireEvents.js';
 import {FakeEmbedder} from '@a2uiverse/embedder';
 import type {UpdateState} from '@a2uiverse/sdk';
 
@@ -26,7 +27,7 @@ function cardFor(
   description: string,
   skills: [string, string][],
   catalogs?: string[],
-): AgentCard {
+): InstalledCard {
   return {
     name,
     description,
@@ -56,7 +57,7 @@ const platformCard = cardFor('shell', 'A2UIVerse', 'the platform', [
 
 /** A registry with each card installed through the operation; `down` ones unreachable at startup. */
 async function registryWith(
-  cards: Record<string, AgentCard>,
+  cards: Record<string, InstalledCard>,
   options: {down?: string[]; handed?: Record<string, string>} = {},
 ): Promise<Registry> {
   const apps = await Promise.all(
@@ -351,12 +352,6 @@ describe('this composition', () => {
 
   test('never carries a partition’s contents or the synthesis document', () => {
     const state = compositionFrom(layout, new Sources(registry), 'x');
-    const paint = (op: Record<string, unknown>) => ({
-      kind: 'message' as const,
-      messageId: 'm',
-      role: 'agent' as const,
-      parts: [{kind: 'data' as const, data: {version: 'v0.9', ...op}}],
-    });
     state.partitions.apply(paint({createSurface: {surfaceId: 'github:s1', catalogId: 'c'}}));
     state.partitions.apply(
       paint({updateDataModel: {surfaceId: 'github:s1', value: {secret: 'PR #2531 title'}}}),
@@ -511,7 +506,7 @@ describe('the composition’s slots are keyed by source (task-6.3 decision 6)', 
 
 describe('accounts (task-12.6 decision 9)', () => {
   /** Gmail with two accounts held, GitHub asking sign-in with none, Calendar asking none. */
-  const signInCard = (id: string, name: string): AgentCard => ({
+  const signInCard = (id: string, name: string): InstalledCard => ({
     ...named(id, name),
     securitySchemes: {signIn: {type: 'http', scheme: 'bearer'}},
     security: [{signIn: []}],

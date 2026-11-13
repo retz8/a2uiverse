@@ -1,5 +1,6 @@
 import type {Message} from '@a2a-js/sdk';
 import {readOperation, type CompositionOperation} from '@a2uiverse/sdk';
+import {dataOf, textOf} from '../a2a/parts.js';
 
 export type TurnKind = 'utterance' | 'action' | 'error' | 'operation' | 'unknown';
 
@@ -42,15 +43,14 @@ export function describe(message: Message, source?: string): Description {
       payload: operation,
     };
   }
-  const texts = message.parts.flatMap(p => (p.kind === 'text' ? [p.text] : []));
+  const texts = message.parts.flatMap(p => textOf(p) ?? []);
   if (texts.length) return {kind: 'utterance', descriptor: texts.join('\n')};
   return {kind: 'unknown', descriptor: JSON.stringify(message.parts)};
 }
 
 function findError(message: Message): Record<string, unknown> | undefined {
   for (const part of message.parts) {
-    if (part.kind !== 'data') continue;
-    const error = part.data.error;
+    const error = dataOf(part)?.error;
     if (typeof error === 'object' && error !== null) return error as Record<string, unknown>;
   }
   return undefined;
@@ -58,8 +58,8 @@ function findError(message: Message): Record<string, unknown> | undefined {
 
 function findOperation(message: Message): CompositionOperation | undefined {
   for (const part of message.parts) {
-    if (part.kind !== 'data') continue;
-    const operation = readOperation(part.data);
+    const data = dataOf(part);
+    const operation = data && readOperation(data);
     if (operation) return operation;
   }
   return undefined;
@@ -67,8 +67,7 @@ function findOperation(message: Message): CompositionOperation | undefined {
 
 function findAction(message: Message): Record<string, unknown> | undefined {
   for (const part of message.parts) {
-    if (part.kind !== 'data') continue;
-    const action = part.data.action;
+    const action = dataOf(part)?.action;
     if (typeof action === 'object' && action !== null) return action as Record<string, unknown>;
   }
   return undefined;

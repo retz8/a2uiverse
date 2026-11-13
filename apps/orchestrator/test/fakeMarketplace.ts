@@ -10,7 +10,7 @@
  */
 import {createServer, type Server} from 'node:http';
 import express from 'express';
-import type {AgentCard} from '@a2a-js/sdk';
+import type {InstalledCard} from '../src/registry/installedCard.js';
 import {
   ARTIFACT_DESCRIPTOR_FILE,
   artifactIdOf,
@@ -22,7 +22,7 @@ export type ArtifactFiles = Map<string, Uint8Array>;
 
 export interface PublishOptions {
   /** The card as published; the live one is whatever the card URL serves. */
-  card: AgentCard;
+  card: InstalledCard;
   /** What the marketplace fetched the live card from, and what the registry stores. */
   cardUrl: string;
   catalogs?: ArtifactFiles[];

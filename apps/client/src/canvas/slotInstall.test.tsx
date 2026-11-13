@@ -6,10 +6,11 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {cleanup, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type {MessageSendParams, Part, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {TaskState, type SendMessageRequest} from '@a2a-js/sdk';
 import {STAMP_KEY} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2AMessageSender} from '../a2a/client';
+import {dataOf, dataPart, statusUpdateEvent, type A2AStreamEventData} from '../a2a/messages';
 import {snapshotCatalogs} from '../../tests/snapshot';
 import {Providers} from '../providers';
 import {CanvasApp} from './CanvasApp';
@@ -43,7 +44,7 @@ const ENTRY = {
 };
 
 /** The layout surface with one slot, the offer of Shop B for the gap. */
-function offerPaint(): TaskStatusUpdateEvent {
+function offerPaint(): A2AStreamEventData {
   const messages = [
     {version: 'v0.9', createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}},
     {
@@ -57,22 +58,13 @@ function offerPaint(): TaskStatusUpdateEvent {
       },
     },
   ];
-  return {
-    kind: 'status-update',
+  return statusUpdateEvent({
     taskId: 't1',
     contextId: 'ctx-1',
-    final: true,
-    status: {
-      state: 'completed',
-      message: {
-        kind: 'message',
-        role: 'agent',
-        messageId: 'm1',
-        parts: messages.map(data => ({kind: 'data', data}) as Part),
-      },
-    },
+    state: TaskState.TASK_STATE_COMPLETED,
+    parts: messages.map(dataPart),
     metadata: {[STAMP_KEY]: {source: 'shell', role: 'shell'}},
-  };
+  });
 }
 
 let installs: string[];
@@ -112,7 +104,7 @@ afterEach(() => {
 
 /** The page over a scripted orchestrator: the question paints the offer; every press is kept. */
 function renderPage() {
-  const sent: MessageSendParams[] = [];
+  const sent: SendMessageRequest[] = [];
   const sender: A2AMessageSender = {
     async *sendMessageStream(params) {
       sent.push(params);
@@ -136,16 +128,13 @@ async function askForCameras() {
 }
 
 /** The composition operations sent after the question, as the wire carries them. */
-const operations = (sent: MessageSendParams[]) =>
-  sent
-    .slice(1)
-    .flatMap(params =>
-      params.message.parts.flatMap(part =>
-        part.kind === 'data' && 'operation' in (part.data as object)
-          ? [(part.data as {operation: unknown}).operation]
-          : [],
-      ),
-    );
+const operations = (sent: SendMessageRequest[]) =>
+  sent.slice(1).flatMap(params =>
+    params.message!.parts.flatMap(part => {
+      const data = dataOf(part);
+      return data && 'operation' in data ? [data.operation] : [];
+    }),
+  );
 
 describe('Install in the slot (task 15.9)', () => {
   it('asks on the consent card over the slot, installs, and sends useApp for the gap', async () => {

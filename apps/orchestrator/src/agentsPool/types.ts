@@ -29,8 +29,16 @@ export interface DispatchRecord {
   continueUrl?: string;
   /** The vendor's own words on its failed final, when it gave any. */
   vendorMessage?: string;
-  /** Whether the vendor terminated its stream (final status-update or message). */
-  sawFinal: boolean;
+  /**
+   * The state the agent's answer ended on, in A2A 1.0's name (task-20.1 decisions 2, 5):
+   * `TASK_STATE_COMPLETED` for an answer that ended on a message. Absent when the stream broke,
+   * and when the agent was not called.
+   */
+  endState?: string;
+  /** The A2A version of the interface the dispatch used; absent when the agent was not called. */
+  a2aVersion?: string;
+  /** The binding of the interface the dispatch used; absent when the agent was not called. */
+  binding?: string;
   /** The hard cap (SPEC §5.3): from dispatch to the slot failing with `timeout`. */
   deadlineMs: number;
   /** When its first paint arrived. */

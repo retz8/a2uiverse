@@ -3,6 +3,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import type {Message} from '@a2a-js/sdk';
+import {textPart, userMessage} from '../src/a2a/parts.js';
 import {IntentJournal} from '../src/journal/intentJournal.js';
 import type {DispatchRecord} from '../src/agentsPool/types.js';
 import type {PlanRecord} from '../src/journal/types.js';
@@ -15,11 +16,10 @@ beforeEach(async () => {
 afterEach(() => rm(dir, {recursive: true, force: true}));
 
 const utterance: Message = {
-  kind: 'message',
+  ...userMessage([textPart('what needs my review?')], {
+    metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}, unrelatedKey: {paintId: 1}},
+  }),
   messageId: 'u1',
-  role: 'user',
-  parts: [{kind: 'text', text: 'what needs my review?'}],
-  metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}, unrelatedKey: {paintId: 1}},
 };
 
 const record: DispatchRecord = {
@@ -31,7 +31,9 @@ const record: DispatchRecord = {
   startedAt: '2026-08-23T00:00:00.000Z',
   endedAt: '2026-08-23T00:00:01.000Z',
   outcome: 'completed',
-  sawFinal: true,
+  endState: 'TASK_STATE_COMPLETED',
+  a2aVersion: '0.3',
+  binding: 'JSONRPC',
   deadlineMs: 30000,
 };
 

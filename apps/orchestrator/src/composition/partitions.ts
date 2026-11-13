@@ -1,6 +1,6 @@
 import {parseSurfaceId, resolvePointer, type Ref, type Resolution} from '@a2uiverse/sdk';
-import type {VendorEvent} from '../agentsPool/relay.js';
-import {a2uiMessagesIn, partsOf} from '../journal/surfaces.js';
+import type {WireEvent} from '../a2a/wire.js';
+import {a2uiMessagesOf} from '../journal/surfaces.js';
 
 type Model = Record<string, unknown>;
 
@@ -21,14 +21,11 @@ export class Partitions {
   readonly #models = new Map<string, Model>();
 
   /** Applies the A2UI ops in a relayed event; returns the surfaces whose data changed. */
-  apply(event: VendorEvent): string[] {
+  apply(event: WireEvent): string[] {
     const changed: string[] = [];
-    for (const part of partsOf(event)) {
-      if (part.kind !== 'data') continue;
-      for (const message of a2uiMessagesIn(part.data)) {
-        const surface = this.#applyMessage(message);
-        if (surface && !changed.includes(surface)) changed.push(surface);
-      }
+    for (const message of a2uiMessagesOf(event)) {
+      const surface = this.#applyMessage(message);
+      if (surface && !changed.includes(surface)) changed.push(surface);
     }
     return changed;
   }

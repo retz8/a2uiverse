@@ -10,9 +10,20 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
-import type {AgentCard, Message} from '@a2a-js/sdk';
-import type {AgentExecutionEvent} from '@a2a-js/sdk/server';
+import type {Message} from '@a2a-js/sdk';
 import {ClientFactory, type Client} from '@a2a-js/sdk/client';
+import {
+  clientMessage,
+  collect,
+  contextOf,
+  dataPart,
+  datasOf,
+  endsTurn,
+  isStatusUpdate,
+  stampOf,
+  textPart,
+  type WireEvent,
+} from './privateWire.js';
 import type {Express} from 'express';
 import {operationData} from '@a2uiverse/sdk';
 import {FakeEmbedder} from '@a2uiverse/embedder';
@@ -20,7 +31,14 @@ import {buildOrchestrator, type Orchestrator} from '../src/app.js';
 import {startFakeMarketplace, type FakeMarketplace} from './fakeMarketplace.js';
 import {FakePlanner, layoutFor} from './fakePlanner.js';
 import {FakeSynthesizer} from './fakeSynthesizer.js';
-import {FAKE_CATALOG_ID, startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
+import {
+  FAKE_CATALOG_ID,
+  startFakeVendor,
+  type AgentCard,
+  type AgentExecutionEvent,
+  type FakeVendor,
+  type Script,
+} from './fakeVendor.js';
 import {fixtureArtifact} from './registryFixture.js';
 
 const CAT_2 = 'cat2';
@@ -179,64 +197,39 @@ async function boot(options: {
 }
 
 function utterance(text: string): Message {
-  return {
-    kind: 'message',
-    messageId: randomUUID(),
-    role: 'user',
-    parts: [{kind: 'text', text}],
+  return clientMessage([textPart(text)], {
     metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}},
-  };
+  });
 }
 
 function retry(source: string, contextId: string): Message {
-  return {
-    kind: 'message',
-    messageId: randomUUID(),
-    role: 'user',
+  return clientMessage([dataPart(operationData({kind: 'retry', sources: [source]}, 'v0.9'))], {
     contextId,
-    parts: [{kind: 'data', data: operationData({kind: 'retry', sources: [source]}, 'v0.9')}],
-  };
+  });
 }
 
 function action(source: string, contextId: string): Message {
-  return {
-    kind: 'message',
-    messageId: randomUUID(),
-    role: 'user',
-    contextId,
-    parts: [
-      {
-        kind: 'data',
-        data: {
-          version: 'v0.9',
-          action: {name: 'open', surfaceId: `${source}:s1`, sourceComponentId: 'b', context: {}},
-        },
-      },
+  return clientMessage(
+    [
+      dataPart({
+        version: 'v0.9',
+        action: {name: 'open', surfaceId: `${source}:s1`, sourceComponentId: 'b', context: {}},
+      }),
     ],
-    metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}},
-  };
+    {contextId, metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}}},
+  );
 }
 
-async function collect(client: Client, message: Message) {
-  const events = [];
-  for await (const e of client.sendMessageStream({message})) events.push(e);
-  return events;
-}
-type AnyEvent = Awaited<ReturnType<typeof collect>>[number];
-
-const contextOf = (events: AnyEvent[]) => events.find(e => e.contextId)!.contextId!;
+type AnyEvent = WireEvent;
 
 /** Each shell paint's Slot components, by source, in stream order. */
 function slotPaints(events: AnyEvent[]): Array<Record<string, Record<string, unknown>>> {
   return events.flatMap(e => {
-    if (e.kind !== 'status-update' || e.final) return [];
-    const stamp = e.metadata?.a2uiverse as {role?: string} | undefined;
-    if (stamp?.role !== 'shell') return [];
-    return (e.status.message?.parts ?? []).flatMap(p => {
-      const update =
-        p.kind === 'data'
-          ? (p.data.updateComponents as {components?: Array<Record<string, unknown>>} | undefined)
-          : undefined;
+    if (!isStatusUpdate(e) || endsTurn(e)) return [];
+    if (stampOf(e)?.role !== 'shell') return [];
+    return datasOf(e).flatMap(data => {
+      const update = data.updateComponents as
+        {components?: Array<Record<string, unknown>>} | undefined;
       if (!update?.components) return [];
       return [
         Object.fromEntries(

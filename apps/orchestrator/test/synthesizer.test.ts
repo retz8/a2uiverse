@@ -27,6 +27,7 @@ import {
   tagged,
 } from './fakeSynthesizer.js';
 import {liveStream, streaming} from './streamingModel.js';
+import {paint} from './wireEvents.js';
 
 const A = 'shop-a:list';
 const B = 'shop-b:list';
@@ -38,12 +39,6 @@ const tree = createA2uiValidator({catalog: files.catalog});
 
 function partitionsOf(surfaces: Record<string, unknown>): Partitions {
   const p = new Partitions();
-  const paint = (op: Record<string, unknown>) => ({
-    kind: 'message' as const,
-    messageId: 'm',
-    role: 'agent' as const,
-    parts: [{kind: 'data' as const, data: {version: 'v0.9', ...op}}],
-  });
   for (const [surface, value] of Object.entries(surfaces)) {
     p.apply(paint({createSurface: {surfaceId: surface, catalogId: 'c'}}));
     p.apply(paint({updateDataModel: {surfaceId: surface, value}}));

@@ -1,13 +1,13 @@
 /** The platform's card in the Registry (phase-6 decision 1, task-6.4 decision 9). */
-import type {AgentCard} from '@a2a-js/sdk';
+import type {InstalledCard} from '../src/registry/installedCard.js';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {describe, expect, test} from 'vitest';
-import {buildAgentCard} from '../src/agentCard.js';
+import {buildAgentCard, indexedPlatformCard} from '../src/agentCard.js';
 import {Router} from '../src/router/router.js';
 import {FakeEmbedder} from '@a2uiverse/embedder';
 import {cardUrlOf, testRegistry} from './registryFixture.js';
 
-function cardFor(name: string, description: string): AgentCard {
+function cardFor(name: string, description: string): InstalledCard {
   return {
     name,
     description,
@@ -22,7 +22,7 @@ function cardFor(name: string, description: string): AgentCard {
   };
 }
 
-const platformCard = buildAgentCard('https://x-10001.asse.devtunnels.ms');
+const platformCard = indexedPlatformCard(buildAgentCard('https://x-10001.asse.devtunnels.ms'));
 
 /** GitHub installed through the registry, the platform's card handed to it or not. */
 async function withGithub(description: string, options: {platform?: boolean} = {}) {

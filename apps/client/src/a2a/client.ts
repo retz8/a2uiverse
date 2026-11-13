@@ -1,5 +1,5 @@
-import {A2AClient} from '@a2a-js/sdk/client';
-import type {MessageSendParams} from '@a2a-js/sdk';
+import {ClientFactory, JsonRpcTransportFactory} from '@a2a-js/sdk/client';
+import type {SendMessageRequest} from '@a2a-js/sdk';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {CompositionStamp, PaintMeta, SynthesisPayload} from '@a2uiverse/sdk';
 import type {A2AStreamEventData} from './messages';
@@ -20,10 +20,10 @@ export function agentCardUrl(serverUrl: string): string {
   return `${serverUrl.replace(/\/+$/, '')}${AGENT_CARD_PATH}`;
 }
 
-/** The slice of A2AClient the send paths need; lets tests inject a fake. */
+/** The slice of the A2A SDK's client the send paths need; lets tests inject a fake. */
 export interface A2AMessageSender {
   sendMessageStream(
-    params: MessageSendParams,
+    params: SendMessageRequest,
     options?: {signal?: AbortSignal},
   ): AsyncGenerator<A2AStreamEventData, void, undefined>;
 }
@@ -36,6 +36,16 @@ export interface A2ASenderOptions {
 }
 
 export type GetSender = () => Promise<A2AMessageSender>;
+
+/**
+ * A client for the orchestrator from its card at `serverUrl`. The orchestrator's endpoint is a
+ * private wire (phase-20 decision 3): A2A 1.0 over JSON-RPC, the one transport the client holds.
+ */
+function connect(serverUrl: string): Promise<A2AMessageSender> {
+  const factory = new ClientFactory({transports: [new JsonRpcTransportFactory()]});
+  // The card's full address, no path appended to it.
+  return factory.createFromUrl(agentCardUrl(serverUrl), '');
+}
 
 /**
  * Lazily resolve the agent card once and cache the client; clear the cache on failure so a later
@@ -51,7 +61,7 @@ export function createSenderResolver(opts: A2ASenderOptions): GetSender {
       return Promise.reject(new Error('createSenderResolver: serverUrl or client required'));
     }
     if (!senderPromise) {
-      senderPromise = A2AClient.fromCardUrl(agentCardUrl(serverUrl)).catch((err: unknown) => {
+      senderPromise = connect(serverUrl).catch((err: unknown) => {
         senderPromise = undefined;
         throw err;
       });
@@ -104,7 +114,7 @@ export const FIRST_EVENT_TIMEOUT_MS = 10_000;
  */
 export async function sendAndApply(
   sender: A2AMessageSender,
-  params: MessageSendParams,
+  params: SendMessageRequest,
   {apply, session, onAgentText, signal, onPaintMeta, onFirstEvent}: SendAndApplyOptions,
 ): Promise<void> {
   const replies = repliesOnce();

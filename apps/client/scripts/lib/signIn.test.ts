@@ -90,7 +90,12 @@ async function stack(next: number, accounts: HeldAccount[] = []) {
   // Behind a tunnel the orchestrator's public address is not the one the script talks to.
   const publicUrl = 'https://t-10001.asse.devtunnels.ms';
   const orchestrator = await serve((req, res, url) => {
-    if (url.pathname === '/.well-known/agent-card.json') return json(res, {url: publicUrl});
+    // The orchestrator's own card is an A2A 1.0 card: its one interface names its address.
+    if (url.pathname === '/.well-known/agent-card.json') {
+      return json(res, {
+        supportedInterfaces: [{url: publicUrl, protocolBinding: 'JSONRPC', protocolVersion: '1.0'}],
+      });
+    }
     if (url.pathname === '/registry/apps.json') {
       return json(res, [
         {id: 'gmail', cardUrl: `${agent}/.well-known/agent-card.json`},

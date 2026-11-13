@@ -110,6 +110,19 @@ async function cardOf(url: string): Promise<Card> {
   return (await res.json()) as Card;
 }
 
+/**
+ * The origin the orchestrator is reached at from outside, from its own card: an A2A 1.0 card,
+ * whose one interface names its address.
+ */
+async function publicOriginOf(orchestrator: string): Promise<string> {
+  const res = await fetch(`${orchestrator}/.well-known/agent-card.json`);
+  if (!res.ok) throw new Error(`${orchestrator}'s card answered ${res.status}`);
+  const card = (await res.json()) as {supportedInterfaces?: {url?: string}[]};
+  const url = card.supportedInterfaces?.[0]?.url;
+  if (!url) throw new Error(`${orchestrator}'s card lists no interface`);
+  return new URL(url).origin;
+}
+
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 const locationOf = (res: Response, what: string): string => {
@@ -131,7 +144,7 @@ export async function signIn(
   canvas: string,
   named: Accounts = {},
 ): Promise<SignedIn[]> {
-  const origin = new URL((await cardOf(`${orchestrator}/.well-known/agent-card.json`)).url).origin;
+  const origin = await publicOriginOf(orchestrator);
   const signedIn: SignedIn[] = [];
   for (const app of await installedApps(orchestrator)) {
     const card = await cardOf(app.cardUrl);
@@ -201,7 +214,7 @@ export async function signInSource(
   source: string,
   as: string,
 ): Promise<SignedIn> {
-  const origin = new URL((await cardOf(`${orchestrator}/.well-known/agent-card.json`)).url).origin;
+  const origin = await publicOriginOf(orchestrator);
   return signInOne(orchestrator, origin, canvas, source, as);
 }
 

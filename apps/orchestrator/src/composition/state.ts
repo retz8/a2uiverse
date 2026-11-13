@@ -10,7 +10,7 @@ import type {
 } from '@a2uiverse/shell-catalog/schema';
 import type {Seen, Watch} from './integrity.js';
 import type {Synthesis} from '../synthesizer/document.js';
-import type {VendorEvent} from '../agentsPool/relay.js';
+import type {WireEvent} from '../a2a/wire.js';
 import type {DispatchHandle, DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {JournalTurn} from '../journal/intentJournal.js';
 import type {SynthesisRecord} from '../journal/types.js';
@@ -102,7 +102,7 @@ export interface SlotEscalation {
 /** An answer that arrived past the hard cap: held, undrawn, until the reader presses Retry. */
 export interface HeldAnswer {
   /** The dispatch's events after the cap, composed as they would have been relayed. */
-  events: VendorEvent[];
+  events: WireEvent[];
   record: DispatchRecord;
 }
 

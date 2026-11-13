@@ -1,7 +1,7 @@
 import {describe, it, expect, vi} from 'vitest';
-import type {MessageSendParams, Part, Task} from '@a2a-js/sdk';
+import {Role, TaskState, type Part, type SendMessageRequest} from '@a2a-js/sdk';
 import type {A2uiClientAction, A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {A2AStreamEventData} from './messages';
+import {dataPart, type A2AStreamEventData} from './messages';
 import type {A2AMessageSender} from './client';
 import {createA2AActionHandler} from './createA2AActionHandler';
 import {createA2ASession} from './session';
@@ -12,23 +12,40 @@ const CLOCK = vi.hoisted(() => ({now: '2026-10-09T14:20:00+09:00', timeZone: 'As
 vi.mock('./clock', () => ({readClock: () => CLOCK}));
 
 const A2UI_DATA = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'cat'}};
-const DATA_PART: Part = {kind: 'data', data: A2UI_DATA};
+const DATA_PART: Part = dataPart(A2UI_DATA);
 const ACTION = {name: 'click', surfaceId: 's'} as unknown as A2uiClientAction;
 
-function completedTask(parts: Part[], contextId = 'ctx-1'): Task {
+function completedTask(parts: Part[], contextId = 'ctx-1'): A2AStreamEventData {
   return {
-    kind: 'task',
-    id: 't1',
-    contextId,
-    status: {
-      state: 'completed',
-      message: {kind: 'message', role: 'agent', messageId: 'm1', parts},
+    payload: {
+      $case: 'task',
+      value: {
+        id: 't1',
+        contextId,
+        status: {
+          state: TaskState.TASK_STATE_COMPLETED,
+          message: {
+            messageId: 'm1',
+            contextId: '',
+            taskId: '',
+            role: Role.ROLE_AGENT,
+            parts,
+            metadata: undefined,
+            extensions: [],
+            referenceTaskIds: [],
+          },
+          timestamp: undefined,
+        },
+        artifacts: [],
+        history: [],
+        metadata: undefined,
+      },
     },
   };
 }
 
 function fakeSender(events: A2AStreamEventData[]) {
-  const sent: MessageSendParams[] = [];
+  const sent: SendMessageRequest[] = [];
   const sender: A2AMessageSender = {
     async *sendMessageStream(params) {
       sent.push(params);
@@ -47,9 +64,7 @@ describe('createA2AActionHandler', () => {
     await handler(ACTION);
 
     expect(sent).toHaveLength(1);
-    expect(sent[0].message.parts).toEqual([
-      {kind: 'data', data: {version: 'v0.9', action: ACTION}},
-    ]);
+    expect(sent[0].message!.parts).toEqual([dataPart({version: 'v0.9', action: ACTION})]);
     expect(applied).toEqual([[A2UI_DATA]]);
   });
 
@@ -61,8 +76,8 @@ describe('createA2AActionHandler', () => {
     await handler(ACTION);
     await handler(ACTION);
 
-    expect(sent[0].message.contextId).toBeUndefined();
-    expect(sent[1].message.contextId).toBe('ctx-42');
+    expect(sent[0].message!.contextId).toBe('');
+    expect(sent[1].message!.contextId).toBe('ctx-42');
   });
 
   it('sends the current client data model as message metadata when a supplier is given', async () => {
@@ -79,7 +94,7 @@ describe('createA2AActionHandler', () => {
 
     await handler(ACTION);
 
-    expect(sent[0].message.metadata).toEqual({
+    expect(sent[0].message!.metadata).toEqual({
       a2uiClientDataModel: clientDataModel,
       a2uiverse: {session: PAGE_SESSION, ...CLOCK},
     });

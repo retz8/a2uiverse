@@ -1,7 +1,7 @@
-import {randomUUID} from 'node:crypto';
-import type {Part, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import type {Part} from '@a2a-js/sdk';
 import {namespaceSurfaceId, STAMP_KEY, SYNTHESIS_KEY, type SynthesisPayload} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
+import {workingUpdate, type WireContext, type WireStatusUpdate} from '../a2a/wire.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import type {SynthesisTree} from '../synthesizer/document.js';
 import {a2uiPart} from './shellPainter.js';
@@ -38,50 +38,23 @@ export function synthesisTakeDownParts(): Part[] {
  * event carries the payload alone, as a source's settled marker carries its stamp alone.
  */
 export function synthesisEnvelope(
-  ctx: {taskId: string; contextId: string},
+  ctx: WireContext,
   parts: Part[],
   payload: SynthesisPayload,
-): TaskStatusUpdateEvent {
-  return {
-    ...fragmentEnvelope(ctx, parts),
+): WireStatusUpdate {
+  return workingUpdate(ctx, {
+    parts,
     metadata: {
       [STAMP_KEY]: {source: SHELL_SOURCE_ID, role: 'fragment'},
       [SYNTHESIS_KEY]: payload,
     },
-  };
+  });
 }
 
 /** The take-down envelope: the shell's fragment deleting its surface, no payload beside it. */
-export function synthesisTakeDown(ctx: {taskId: string; contextId: string}): TaskStatusUpdateEvent {
-  return {
-    ...fragmentEnvelope(ctx, synthesisTakeDownParts()),
+export function synthesisTakeDown(ctx: WireContext): WireStatusUpdate {
+  return workingUpdate(ctx, {
+    parts: synthesisTakeDownParts(),
     metadata: {[STAMP_KEY]: {source: SHELL_SOURCE_ID, role: 'fragment'}},
-  };
-}
-
-function fragmentEnvelope(
-  ctx: {taskId: string; contextId: string},
-  parts: Part[],
-): Omit<TaskStatusUpdateEvent, 'metadata'> {
-  return {
-    kind: 'status-update',
-    taskId: ctx.taskId,
-    contextId: ctx.contextId,
-    final: false,
-    status: {
-      state: 'working',
-      ...(parts.length > 0
-        ? {
-            message: {
-              kind: 'message',
-              messageId: randomUUID(),
-              role: 'agent',
-              parts,
-              contextId: ctx.contextId,
-              taskId: ctx.taskId,
-            },
-          }
-        : {timestamp: new Date().toISOString()}),
-    },
-  };
+  });
 }

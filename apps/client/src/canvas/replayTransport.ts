@@ -16,10 +16,16 @@
  * its gap — and answers it as a report's answer does, from its own send. A press nothing recorded
  * answers says nothing, as any other send.
  */
-import type {MessageSendParams, Task, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {TaskState, type SendMessageRequest} from '@a2a-js/sdk';
 import {STAMP_KEY, SYNTHESIS_KEY, type CompositionOperation} from '@a2uiverse/sdk';
 import type {A2AMessageSender} from '../a2a/client';
-import type {A2AStreamEventData} from '../a2a/messages';
+import {
+  dataOf,
+  dataPart,
+  statusUpdateEvent,
+  textPart,
+  type A2AStreamEventData,
+} from '../a2a/messages';
 import type {BeatBatch, BeatTurn} from '../beats/beatFixtures';
 
 /** A recorded stream the replay feeds one batch at a time. */
@@ -49,42 +55,37 @@ export interface ReplayTransport {
 
 const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
-/** One recorded batch as the hub's event: a working status-update carrying its parts and stamp. */
-export function eventOfBatch(batch: BeatBatch, taskId: string, contextId: string) {
-  const event: TaskStatusUpdateEvent = {
-    kind: 'status-update',
+/** One recorded batch as the hub's event: a working status update carrying its parts and stamp. */
+export function eventOfBatch(
+  batch: BeatBatch,
+  taskId: string,
+  contextId: string,
+): A2AStreamEventData {
+  return statusUpdateEvent({
     taskId,
     contextId,
-    final: false,
-    status: {
-      state: 'working',
-      message: {
-        kind: 'message',
-        role: 'agent',
-        messageId: crypto.randomUUID(),
-        // Fresh objects, as a real stream delivers them (see `replayBeatOnCanvas`).
-        parts: [
-          ...structuredClone(batch.messages).map(message => ({
-            kind: 'data' as const,
-            data: message as unknown as Record<string, unknown>,
-          })),
-          ...batch.texts.map(text => ({kind: 'text' as const, text})),
-        ],
-      },
-    },
+    state: TaskState.TASK_STATE_WORKING,
+    // Fresh objects, as a real stream delivers them (see `replayBeatOnCanvas`).
+    parts: [...structuredClone(batch.messages).map(dataPart), ...batch.texts.map(textPart)],
     metadata: {
       ...(batch.stamp ? {[STAMP_KEY]: batch.stamp} : {}),
       ...(batch.synthesis ? {[SYNTHESIS_KEY]: structuredClone(batch.synthesis)} : {}),
     },
-  };
-  return event;
+  });
 }
 
-const taskEvent = (taskId: string, contextId: string): Task => ({
-  kind: 'task',
-  id: taskId,
-  contextId,
-  status: {state: 'submitted'},
+const taskEvent = (taskId: string, contextId: string): A2AStreamEventData => ({
+  payload: {
+    $case: 'task',
+    value: {
+      id: taskId,
+      contextId,
+      status: {state: TaskState.TASK_STATE_SUBMITTED, message: undefined, timestamp: undefined},
+      artifacts: [],
+      history: [],
+      metadata: undefined,
+    },
+  },
 });
 
 type Item = {batch: BeatBatch; taken: () => void};
@@ -150,21 +151,21 @@ function createChannel(): ReplayChannel & {
 }
 
 /** The data part a sent message carries: an operation, a client error, or neither. */
-function sentKind(params: MessageSendParams): 'press' | 'report' | 'other' {
-  for (const part of params.message.parts) {
-    if (part.kind !== 'data') continue;
-    if ('operation' in part.data) return 'press';
-    if ('error' in part.data) return 'report';
+function sentKind(params: SendMessageRequest): 'press' | 'report' | 'other' {
+  for (const part of params.message?.parts ?? []) {
+    const data = dataOf(part);
+    if (!data) continue;
+    if ('operation' in data) return 'press';
+    if ('error' in data) return 'report';
   }
   return 'other';
 }
 
 /** The operation a sent press carries. */
-function sentOperation(params: MessageSendParams): CompositionOperation | undefined {
-  for (const part of params.message.parts) {
-    if (part.kind === 'data' && 'operation' in part.data) {
-      return part.data.operation as CompositionOperation;
-    }
+function sentOperation(params: SendMessageRequest): CompositionOperation | undefined {
+  for (const part of params.message?.parts ?? []) {
+    const data = dataOf(part);
+    if (data && 'operation' in data) return data.operation as CompositionOperation;
   }
   return undefined;
 }

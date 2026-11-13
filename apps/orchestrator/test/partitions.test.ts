@@ -2,27 +2,9 @@
  * Partitions: the orchestrator's materialized copy of every vendor surface's data model — the
  * Synthesizer's input and what refs resolve against.
  */
-import type {TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
 import {Partitions} from '../src/composition/partitions.js';
-
-function paint(...ops: Array<Record<string, unknown>>): TaskStatusUpdateEvent {
-  return {
-    kind: 'status-update',
-    taskId: 't',
-    contextId: 'c',
-    final: false,
-    status: {
-      state: 'working',
-      message: {
-        kind: 'message',
-        messageId: 'm',
-        role: 'agent',
-        parts: ops.map(op => ({kind: 'data' as const, data: {version: 'v0.9', ...op}})),
-      },
-    },
-  };
-}
+import {carrying, paint} from './wireEvents.js';
 
 const S = 'shop-a:list';
 
@@ -68,18 +50,12 @@ describe('materialization', () => {
 
   test('a rootless updateDataModel replaces the whole model; the messages[] form is read too', () => {
     const p = new Partitions();
-    const event = paint();
-    event.status.message!.parts = [
-      {
-        kind: 'data',
-        data: {
-          messages: [
-            {version: 'v0.9', createSurface: {surfaceId: S, catalogId: 'cat'}},
-            {version: 'v0.9', updateDataModel: {surfaceId: S, value: {items, note: 'hi'}}},
-          ],
-        },
-      },
-    ];
+    const event = carrying({
+      messages: [
+        {version: 'v0.9', createSurface: {surfaceId: S, catalogId: 'cat'}},
+        {version: 'v0.9', updateDataModel: {surfaceId: S, value: {items, note: 'hi'}}},
+      ],
+    });
     p.apply(event);
     expect(p.get(S)).toEqual({items, note: 'hi'});
   });

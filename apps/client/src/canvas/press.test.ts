@@ -4,60 +4,41 @@
  * standing — so the slot can say so — when it never reached the orchestrator or lost its stream.
  */
 import {describe, expect, it, vi} from 'vitest';
-import type {MessageSendParams, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {TaskState, type SendMessageRequest} from '@a2a-js/sdk';
 import type {A2AMessageSender} from '../a2a/client';
+import {dataPart, statusUpdateEvent, textPart, type A2AStreamEventData} from '../a2a/messages';
 import {CATALOGS} from '../../tests/helpers';
 import {createCanvasWiring} from './createCanvasWiring';
 
-const shellRepaint = (props: Record<string, unknown>): TaskStatusUpdateEvent => ({
-  kind: 'status-update',
+const shellRepaint = (props: Record<string, unknown>): A2AStreamEventData =>
+  statusUpdateEvent({
+    taskId: 'press-1',
+    contextId: 'ctx-1',
+    state: TaskState.TASK_STATE_WORKING,
+    parts: [
+      dataPart({
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: 'shell:main',
+          components: [
+            {id: 'merge', component: 'Slot', source: 'shell', content: 'shell', ...props},
+          ],
+        },
+      }),
+    ],
+    metadata: {a2uiverse: {source: 'shell', role: 'shell'}},
+  });
+
+const refusal: A2AStreamEventData = statusUpdateEvent({
   taskId: 'press-1',
   contextId: 'ctx-1',
-  final: false,
-  status: {
-    state: 'working',
-    message: {
-      kind: 'message',
-      role: 'agent',
-      messageId: 'm1',
-      parts: [
-        {
-          kind: 'data',
-          data: {
-            version: 'v0.9',
-            updateComponents: {
-              surfaceId: 'shell:main',
-              components: [
-                {id: 'merge', component: 'Slot', source: 'shell', content: 'shell', ...props},
-              ],
-            },
-          },
-        },
-      ],
-    },
-  },
+  state: TaskState.TASK_STATE_FAILED,
+  parts: [textPart('No source is waiting to be included.')],
   metadata: {a2uiverse: {source: 'shell', role: 'shell'}},
 });
 
-const refusal: TaskStatusUpdateEvent = {
-  kind: 'status-update',
-  taskId: 'press-1',
-  contextId: 'ctx-1',
-  final: true,
-  status: {
-    state: 'failed',
-    message: {
-      kind: 'message',
-      role: 'agent',
-      messageId: 'm2',
-      parts: [{kind: 'text', text: 'No source is waiting to be included.'}],
-    },
-  },
-  metadata: {a2uiverse: {source: 'shell', role: 'shell'}},
-};
-
-function wiringWith(stream: (params: MessageSendParams) => AsyncGenerator<TaskStatusUpdateEvent>) {
-  const sent: MessageSendParams[] = [];
+function wiringWith(stream: (params: SendMessageRequest) => AsyncGenerator<A2AStreamEventData>) {
+  const sent: SendMessageRequest[] = [];
   const client: A2AMessageSender = {
     sendMessageStream(params) {
       sent.push(params);
@@ -80,7 +61,7 @@ const failing = (error: Error) => {
     throw: (thrown: unknown) => Promise.reject(thrown),
     [Symbol.asyncIterator]: () => stream,
   };
-  return stream as unknown as AsyncGenerator<TaskStatusUpdateEvent>;
+  return stream as unknown as AsyncGenerator<A2AStreamEventData>;
 };
 
 describe('a press', () => {
@@ -97,9 +78,7 @@ describe('a press', () => {
     ]);
     await vi.waitFor(() => expect(canvas.store.getState().presses[0]?.status).toBe('running'));
     expect(canvas.store.getState().merge).toEqual({working: {sources: ['gmail']}});
-    expect(sent[0]!.message.parts).toEqual([
-      {kind: 'data', data: {version: 'v0.9', operation: include}},
-    ]);
+    expect(sent[0]!.message!.parts).toEqual([dataPart({version: 'v0.9', operation: include})]);
     // Not a turn: nothing in flight, nothing on the progress line.
     expect(canvas.store.getState().inFlight).toBeNull();
     release();
@@ -145,9 +124,9 @@ describe('a press', () => {
 
   it('ends when its canvas closes; a new question elsewhere leaves it running (task-9.6 decisions 8, 13)', async () => {
     let seen!: AbortSignal;
-    const sent: MessageSendParams[] = [];
+    const sent: SendMessageRequest[] = [];
     const client: A2AMessageSender = {
-      sendMessageStream: (params: MessageSendParams, options?: {signal?: AbortSignal}) => {
+      sendMessageStream: (params: SendMessageRequest, options?: {signal?: AbortSignal}) => {
         sent.push(params);
         // The press's own stream; the close that follows it answers at once.
         if (sent.length > 1) return (async function* () {})();
@@ -175,9 +154,9 @@ describe('a press', () => {
     expect(live.trail.getState().entries.map(e => e.question)).toEqual(['next']);
     // The orchestrator is told, on the canvas's context (task-9.2 decision 6).
     await vi.waitFor(() => expect(sent).toHaveLength(2));
-    expect(sent[1].message.contextId).toBe('ctx-1');
-    expect(sent[1].message.parts).toEqual([
-      {kind: 'data', data: {version: 'v0.9', operation: {kind: 'close', sources: []}}},
+    expect(sent[1].message!.contextId).toBe('ctx-1');
+    expect(sent[1].message!.parts).toEqual([
+      dataPart({version: 'v0.9', operation: {kind: 'close', sources: []}}),
     ]);
   });
 });
@@ -232,18 +211,14 @@ const githubPaint = (surfaceId: string, title: string, text: string) => [
   msg({updateDataModel: {surfaceId, value: {text}}}),
 ];
 
-const completed: TaskStatusUpdateEvent = {
-  kind: 'status-update',
+const completed: A2AStreamEventData = statusUpdateEvent({
   taskId: 'press-1',
   contextId: 'ctx-1',
-  final: true,
-  status: {state: 'completed'},
-};
+  state: TaskState.TASK_STATE_COMPLETED,
+});
 
 /** A composition over GitHub, its list painted, then an action repainting it as a detail. */
-function withTwoPaints(
-  stream: (params: MessageSendParams) => AsyncGenerator<TaskStatusUpdateEvent>,
-) {
+function withTwoPaints(stream: (params: SendMessageRequest) => AsyncGenerator<A2AStreamEventData>) {
   const built = wiringWith(stream);
   const {canvas} = built;
   const turn = canvas.runner.begin({kind: 'utterance', payload: {text: 'what needs my attention'}});
@@ -286,10 +261,8 @@ describe('a step (task 9.7)', () => {
       expect.objectContaining({operation: stepBack, status: 'sent'}),
     ]);
     await pressing;
-    expect(sent[0]!.message.parts).toEqual([
-      {kind: 'data', data: {version: 'v0.9', operation: stepBack}},
-    ]);
-    const dataModel = sent[0]!.message.metadata?.a2uiClientDataModel as {
+    expect(sent[0]!.message!.parts).toEqual([dataPart({version: 'v0.9', operation: stepBack})]);
+    const dataModel = sent[0]!.message!.metadata?.a2uiClientDataModel as {
       surfaces: Record<string, unknown>;
     };
     expect(dataModel.surfaces['github:pr-list']).toEqual({text: 'four PRs'});
@@ -324,16 +297,13 @@ describe('a step (task 9.7)', () => {
     const back = {kind: 'step' as const, sources: ['github'], step: 2};
     await wiring.press(back);
     expect(rootText(canvas, 'github:pr-list')).toBe('four PRs');
-    expect(sent.at(-1)!.message.parts).toEqual([
-      {kind: 'data', data: {version: 'v0.9', operation: {...back, step: 0}}},
+    expect(sent.at(-1)!.message!.parts).toEqual([
+      dataPart({version: 'v0.9', operation: {...back, step: 0}}),
     ]);
     await wiring.press({kind: 'step', sources: ['github'], step: 1});
     expect(rootText(canvas, 'github:pr-list')).toBe('the detail');
-    expect(sent.at(-1)!.message.parts).toEqual([
-      {
-        kind: 'data',
-        data: {version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 1}},
-      },
+    expect(sent.at(-1)!.message!.parts).toEqual([
+      dataPart({version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 1}}),
     ]);
   });
 
@@ -364,7 +334,7 @@ describe('a step (task 9.7)', () => {
 
 /** The merged view over two storefronts, from the synthesis beat's first turn, on one canvas. */
 async function withMergedView(
-  stream: (params: MessageSendParams) => AsyncGenerator<TaskStatusUpdateEvent>,
+  stream: (params: SendMessageRequest) => AsyncGenerator<A2AStreamEventData>,
 ) {
   const built = wiringWith(stream);
   const {canvas} = built;
@@ -399,25 +369,14 @@ const REWIRED: SynthesisPayload = {...PAYLOAD, sorts: []};
 const stepShopA = (step: number) => ({kind: 'step' as const, sources: ['shop-a'], step});
 
 /** The orchestrator's walk called the Synthesizer: the merged view repainted on the step's stream. */
-const synthesisEvent = (payload: SynthesisPayload): TaskStatusUpdateEvent => ({
-  kind: 'status-update',
-  taskId: 'press-1',
-  contextId: 'ctx-1',
-  final: false,
-  status: {
-    state: 'working',
-    message: {
-      kind: 'message',
-      role: 'agent',
-      messageId: 'm3',
-      parts: synthesisMessages(DOCUMENT, SHELL_CATALOG_ID).map(message => ({
-        kind: 'data' as const,
-        data: message as unknown as Record<string, unknown>,
-      })),
-    },
-  },
-  metadata: {[STAMP_KEY]: fragment('shell'), [SYNTHESIS_KEY]: payload},
-});
+const synthesisEvent = (payload: SynthesisPayload): A2AStreamEventData =>
+  statusUpdateEvent({
+    taskId: 'press-1',
+    contextId: 'ctx-1',
+    state: TaskState.TASK_STATE_WORKING,
+    parts: synthesisMessages(DOCUMENT, SHELL_CATALOG_ID).map(dataPart),
+    metadata: {[STAMP_KEY]: fragment('shell'), [SYNTHESIS_KEY]: payload},
+  });
 
 describe('the merged view on a step back (task 9.7 decisions 3, 4)', () => {
   it('seen: the wiring remembered over that combination is re-accepted at once, with no call', async () => {

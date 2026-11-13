@@ -2,27 +2,9 @@
  * The fragment's history on the composition (tasks 9.4, 10.9): each agent's paints numbered from
  * the stream, never dropped, the accepted wiring remembered per combination of the paints on screen.
  */
-import type {TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
 import {History, type Remembered} from '../src/composition/history.js';
-
-function paint(...ops: Array<Record<string, unknown>>): TaskStatusUpdateEvent {
-  return {
-    kind: 'status-update',
-    taskId: 't',
-    contextId: 'c',
-    final: false,
-    status: {
-      state: 'working',
-      message: {
-        kind: 'message',
-        messageId: 'm',
-        role: 'agent',
-        parts: ops.map(op => ({kind: 'data' as const, data: {version: 'v0.9', ...op}})),
-      },
-    },
-  };
-}
+import {paint} from './wireEvents.js';
 
 const create = (surfaceId: string) => ({createSurface: {surfaceId, catalogId: 'c'}});
 const update = (surfaceId: string) => ({updateDataModel: {surfaceId, value: {n: 1}}});

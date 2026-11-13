@@ -8,8 +8,9 @@
 import {afterEach, describe, expect, it} from 'vitest';
 import {cleanup, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type {MessageSendParams} from '@a2a-js/sdk';
+import type {SendMessageRequest} from '@a2a-js/sdk';
 import type {A2AMessageSender} from '../src/a2a/client';
+import {dataOf} from '../src/a2a/messages';
 import {getBeatFixture} from '../src/beats/beatFixtures';
 import {CanvasApp} from '../src/canvas/CanvasApp';
 import {createHostRelay} from '../src/canvas/hostRelay';
@@ -27,7 +28,7 @@ afterEach(() => {
 /** Replay `beat` instantly on the page, and wait for the replay to finish. */
 async function replay(beat: string) {
   window.history.replaceState(null, '', `?beat=${beat}&instant`);
-  const sent: MessageSendParams[] = [];
+  const sent: SendMessageRequest[] = [];
   const client: A2AMessageSender = {
     sendMessageStream(params) {
       sent.push(params);
@@ -116,8 +117,9 @@ describe('Phase 8’s synthetic beats, played to their ends', () => {
     await userEvent.click(within(view).getByRole('button', {name: 'Retry all'}));
     await waitFor(() => expect(sent).toHaveLength(2));
     const operations = sent.map(params => {
-      const part = params.message.parts[0];
-      return part && part.kind === 'data' ? (part.data as {operation: unknown}).operation : null;
+      const part = params.message!.parts[0];
+      const data = part && dataOf(part);
+      return data ? data.operation : null;
     });
     expect(operations).toEqual([
       {kind: 'retry', sources: ['shop-b']},

@@ -1,13 +1,14 @@
 import type {
   Message,
-  MessageSendParams,
-  Task,
-  TaskArtifactUpdateEvent,
+  Part,
+  SendMessageRequest,
+  StreamResponse,
+  TaskState,
   TaskStatus,
-  TaskStatusUpdateEvent,
 } from '@a2a-js/sdk';
 
-export type VendorEvent = Message | Task | TaskStatusUpdateEvent | TaskArtifactUpdateEvent;
+/** One event of an agent's answer, as the A2A SDK's client yields it for an agent on either A2A version. */
+export type VendorEvent = StreamResponse;
 
 export interface RelayContext {
   /** The orchestrator's task id for this turn. */
@@ -23,41 +24,142 @@ export interface RelayContext {
 /** Metadata key the orchestrator owns on relayed events. */
 export const STAMP_KEY = 'a2uiverse';
 
+type Metadata = Record<string, unknown> | undefined;
+
+/** The parts an event carries: a message's own, a status message's, or an artifact's. */
+export function partsOf(event: VendorEvent): Part[] {
+  const payload = event.payload;
+  switch (payload?.$case) {
+    case 'message':
+      return payload.value.parts;
+    case 'task':
+    case 'statusUpdate':
+      return payload.value.status?.message?.parts ?? [];
+    case 'artifactUpdate':
+      return payload.value.artifact?.parts ?? [];
+    default:
+      return [];
+  }
+}
+
+/** The task state an event names: a task's or a status update's; none for any other event. */
+export function stateOf(event: VendorEvent): TaskState | undefined {
+  return statusOf(event)?.state;
+}
+
+/** The status an event carries: a task's or a status update's. */
+export function statusOf(event: VendorEvent): TaskStatus | undefined {
+  const payload = event.payload;
+  return payload?.$case === 'task' || payload?.$case === 'statusUpdate'
+    ? payload.value.status
+    : undefined;
+}
+
+/** The agent's own task and conversation an event belongs to; an id it does not name left out. */
+export function idsOf(event: VendorEvent): {taskId?: string; contextId?: string} {
+  const payload = event.payload;
+  if (!payload) return {};
+  const taskId = payload.$case === 'task' ? payload.value.id : payload.value.taskId;
+  const {contextId} = payload.value;
+  return {...(taskId ? {taskId} : {}), ...(contextId ? {contextId} : {})};
+}
+
+/** The same event carrying other parts; an event with nothing to carry them back as it is. */
+export function withParts(event: VendorEvent, parts: Part[]): VendorEvent {
+  const payload = event.payload;
+  switch (payload?.$case) {
+    case 'message':
+      return {payload: {$case: 'message', value: {...payload.value, parts}}};
+    case 'task':
+    case 'statusUpdate': {
+      const status = payload.value.status;
+      if (!status?.message) return event;
+      const carried = {...status, message: {...status.message, parts}};
+      return payload.$case === 'task'
+        ? {payload: {$case: 'task', value: {...payload.value, status: carried}}}
+        : {payload: {$case: 'statusUpdate', value: {...payload.value, status: carried}}};
+    }
+    case 'artifactUpdate': {
+      const artifact = payload.value.artifact;
+      if (!artifact) return event;
+      return {
+        payload: {
+          $case: 'artifactUpdate',
+          value: {...payload.value, artifact: {...artifact, parts}},
+        },
+      };
+    }
+    default:
+      return event;
+  }
+}
+
 /**
  * Rewrites a vendor event's envelope ids to the orchestrator's and stamps its
  * source. Parts are never touched — they are carried by reference.
  */
 export function relayEvent(event: VendorEvent, ctx: RelayContext): VendorEvent {
-  switch (event.kind) {
-    case 'task':
+  const payload = event.payload;
+  switch (payload?.$case) {
+    case 'task': {
+      const task = payload.value;
       return {
-        ...event,
-        id: ctx.taskId,
-        contextId: ctx.contextId,
-        status: rewriteStatus(event.status, ctx),
-        ...(event.history ? {history: event.history.map(m => rewriteMessage(m, ctx))} : {}),
-        metadata: stamp(event.metadata, ctx, event.contextId, event.id),
+        payload: {
+          $case: 'task',
+          value: {
+            ...task,
+            id: ctx.taskId,
+            contextId: ctx.contextId,
+            status: rewriteStatus(task.status, ctx),
+            history: task.history.map(m => rewriteMessage(m, ctx)),
+            metadata: stamp(task.metadata, ctx, task.contextId, task.id),
+          },
+        },
       };
-    case 'status-update':
+    }
+    case 'statusUpdate': {
+      const update = payload.value;
       return {
-        ...event,
-        taskId: ctx.taskId,
-        contextId: ctx.contextId,
-        status: rewriteStatus(event.status, ctx),
-        metadata: stamp(event.metadata, ctx, event.contextId, event.taskId),
+        payload: {
+          $case: 'statusUpdate',
+          value: {
+            ...update,
+            taskId: ctx.taskId,
+            contextId: ctx.contextId,
+            status: rewriteStatus(update.status, ctx),
+            metadata: stamp(update.metadata, ctx, update.contextId, update.taskId),
+          },
+        },
       };
-    case 'artifact-update':
+    }
+    case 'artifactUpdate': {
+      const update = payload.value;
       return {
-        ...event,
-        taskId: ctx.taskId,
-        contextId: ctx.contextId,
-        metadata: stamp(event.metadata, ctx, event.contextId, event.taskId),
+        payload: {
+          $case: 'artifactUpdate',
+          value: {
+            ...update,
+            taskId: ctx.taskId,
+            contextId: ctx.contextId,
+            metadata: stamp(update.metadata, ctx, update.contextId, update.taskId),
+          },
+        },
       };
-    case 'message':
+    }
+    case 'message': {
+      const message = payload.value;
       return {
-        ...rewriteMessage(event, ctx),
-        metadata: stamp(event.metadata, ctx, event.contextId, event.taskId),
+        payload: {
+          $case: 'message',
+          value: {
+            ...rewriteMessage(message, ctx),
+            metadata: stamp(message.metadata, ctx, message.contextId, message.taskId),
+          },
+        },
       };
+    }
+    default:
+      return event;
   }
 }
 
@@ -65,36 +167,42 @@ export function relayEvent(event: VendorEvent, ctx: RelayContext): VendorEvent {
 export function prepareOutgoing(
   userMessage: Message,
   vendorContextId: string | undefined,
-): MessageSendParams {
-  const {contextId: _contextId, taskId: _taskId, ...rest} = userMessage;
-  return {message: vendorContextId ? {...rest, contextId: vendorContextId} : rest};
+): SendMessageRequest {
+  return {
+    tenant: '',
+    message: {...userMessage, contextId: vendorContextId ?? '', taskId: ''},
+    configuration: undefined,
+    metadata: undefined,
+  };
 }
 
 function rewriteMessage(message: Message, ctx: RelayContext): Message {
   return {
     ...message,
     contextId: ctx.contextId,
-    ...(message.taskId !== undefined ? {taskId: ctx.taskId} : {}),
+    ...(message.taskId ? {taskId: ctx.taskId} : {}),
   };
 }
 
-function rewriteStatus(status: TaskStatus, ctx: RelayContext): TaskStatus {
-  return status.message ? {...status, message: rewriteMessage(status.message, ctx)} : status;
+function rewriteStatus(status: TaskStatus | undefined, ctx: RelayContext): TaskStatus | undefined {
+  return status?.message ? {...status, message: rewriteMessage(status.message, ctx)} : status;
 }
 
 function stamp(
-  metadata: Message['metadata'],
+  metadata: Metadata,
   ctx: RelayContext,
-  vendorContextId: string | undefined,
-  vendorTaskId: string | undefined,
-): NonNullable<Message['metadata']> {
+  vendorContextId: string,
+  vendorTaskId: string,
+): NonNullable<Metadata> {
   const existing = metadata?.[STAMP_KEY];
   return {
     ...metadata,
     [STAMP_KEY]: {
       ...(typeof existing === 'object' && existing !== null ? existing : {}),
       source: ctx.source,
-      ...(ctx.debugIds ? {vendorContextId, vendorTaskId} : {}),
+      ...(ctx.debugIds
+        ? {vendorContextId: vendorContextId || undefined, vendorTaskId: vendorTaskId || undefined}
+        : {}),
     },
   };
 }

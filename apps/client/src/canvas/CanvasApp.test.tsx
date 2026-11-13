@@ -7,9 +7,16 @@
 import {describe, it, expect, afterEach} from 'vitest';
 import {render, screen, cleanup, fireEvent, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type {MessageSendParams, Part, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {TaskState, type SendMessageRequest} from '@a2a-js/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2AMessageSender} from '../a2a/client';
+import {
+  dataOf,
+  dataPart,
+  statusUpdateEvent,
+  textPart,
+  type A2AStreamEventData,
+} from '../a2a/messages';
 import {CATALOGS} from '../../tests/helpers';
 import {snapshotCatalogId, snapshotCatalogs} from '../../tests/snapshot';
 import {Providers} from '../providers';
@@ -56,21 +63,16 @@ function eventOf(
   messages: Record<string, unknown>[],
   texts: string[] = [],
   contextId = 'ctx-1',
-): TaskStatusUpdateEvent {
-  const parts: Part[] = [
-    ...texts.map(text => ({kind: 'text', text}) as Part),
-    ...messages.map(data => ({kind: 'data', data}) as Part),
-  ];
-  return {
-    kind: 'status-update',
+  state = TaskState.TASK_STATE_COMPLETED,
+  metadata?: Record<string, unknown>,
+): A2AStreamEventData {
+  return statusUpdateEvent({
     taskId: 't1',
     contextId,
-    final: true,
-    status: {
-      state: 'completed',
-      message: {kind: 'message', role: 'agent', messageId: 'm1', parts},
-    },
-  };
+    state,
+    parts: [...texts.map(textPart), ...messages.map(dataPart)],
+    metadata,
+  });
 }
 
 /** One event of a composed stream: its messages under the stamp the orchestrator puts on it. */
@@ -78,14 +80,9 @@ function stamped(
   messages: Record<string, unknown>[],
   stamp: Record<string, unknown>,
   final = false,
-): TaskStatusUpdateEvent {
-  const event = eventOf(messages);
-  return {
-    ...event,
-    final,
-    status: {...event.status, state: final ? 'completed' : 'working'},
-    metadata: {a2uiverse: stamp},
-  };
+): A2AStreamEventData {
+  const state = final ? TaskState.TASK_STATE_COMPLETED : TaskState.TASK_STATE_WORKING;
+  return eventOf(messages, [], 'ctx-1', state, {a2uiverse: stamp});
 }
 
 const SHELL_STAMP = {source: 'shell', role: 'shell'};
@@ -134,8 +131,8 @@ const GMAIL_FRAGMENT = [
 ];
 
 /** Every send yields `script[i]` (gated when `gated`), in call order. */
-function scriptedSender(script: TaskStatusUpdateEvent[], gated = false) {
-  const sent: MessageSendParams[] = [];
+function scriptedSender(script: A2AStreamEventData[], gated = false) {
+  const sent: SendMessageRequest[] = [];
   let release: () => void = () => {};
   const gate = new Promise<void>(resolve => {
     release = resolve;
@@ -228,7 +225,7 @@ describe('CanvasApp', () => {
   it('a new question opens a canvas of its own: on screen at once, the previous one running on in the trail (task-9.6 decisions 1, 13)', async () => {
     // First send resolves immediately; the second stays gated so the new canvas is observably
     // in flight while the first stands behind it.
-    const sent: MessageSendParams[] = [];
+    const sent: SendMessageRequest[] = [];
     let release: () => void = () => {};
     const gate = new Promise<void>(resolve => {
       release = resolve;
@@ -306,9 +303,8 @@ describe('CanvasApp', () => {
     // The answer rode the wire as the raw action event, and the resulting paint landed.
     expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
     expect(sent).toHaveLength(2);
-    const dataPart = sent[1].message.parts.find(p => p.kind === 'data') as
-      Extract<Part, {kind: 'data'}> | undefined;
-    expect(dataPart?.data.action).toMatchObject({name: 'choose-repo', surfaceId: 'which-repo'});
+    const data = sent[1].message!.parts.map(dataOf).find(d => d !== undefined);
+    expect(data?.action).toMatchObject({name: 'choose-repo', surfaceId: 'which-repo'});
     // The answer's paint replaced the question's.
     expect(screen.queryByText('Which repository?')).toBeNull();
   });
@@ -316,7 +312,7 @@ describe('CanvasApp', () => {
   it('holds a press back while the screen is still loading, and says so in plain words (task 18.1)', async () => {
     // First send resolves immediately with the actionable surface; the second stays gated so
     // the click's paint is observably in flight when the third click arrives.
-    const sent: MessageSendParams[] = [];
+    const sent: SendMessageRequest[] = [];
     let release: () => void = () => {};
     const gate = new Promise<void>(resolve => {
       release = resolve;
@@ -350,7 +346,7 @@ describe('CanvasApp', () => {
   });
 
   it('a press held back while its own app is still redrawing borrows the busy line; the screen line once that app is done (task 18.1)', async () => {
-    const sent: MessageSendParams[] = [];
+    const sent: SendMessageRequest[] = [];
     let releaseSettled: () => void = () => {};
     let releaseEnd: () => void = () => {};
     const settledGate = new Promise<void>(resolve => {
@@ -452,7 +448,7 @@ const BOUND_MESSAGES = [
 
 /** A sender that answers each send from `script`, each answer in its own context. */
 function contextualSender(script: Array<Record<string, unknown>[]>) {
-  const sent: MessageSendParams[] = [];
+  const sent: SendMessageRequest[] = [];
   const sender: A2AMessageSender = {
     async *sendMessageStream(params) {
       const index = sent.length;
@@ -492,10 +488,10 @@ const pick = (label: string) =>
       .find(entry => within(entry).getByTestId('canvas-trail-label').textContent === label)!,
   ).getByTestId('canvas-trail-pick');
 
-const metadataOf = (params: MessageSendParams) =>
-  params.message.metadata as Record<string, unknown> | undefined;
+const metadataOf = (params: SendMessageRequest) =>
+  params.message!.metadata as Record<string, unknown> | undefined;
 /** The canvas an utterance was asked from, under the stamp key beside the page's session. */
-const parentOf = (params: MessageSendParams) =>
+const parentOf = (params: SendMessageRequest) =>
   (metadataOf(params)?.a2uiverse as {parent?: string} | undefined)?.parent;
 
 describe('CanvasApp trail (task 9.6)', () => {
@@ -580,7 +576,7 @@ describe('CanvasApp trail (task 9.6)', () => {
 
     // On the wire: no contextId, the viewed canvas's context as the parent.
     expect(sent).toHaveLength(3);
-    expect(sent[2].message.contextId).toBeUndefined();
+    expect(sent[2].message!.contextId).toBe('');
     expect(parentOf(sent[2])).toBe('ctx-1');
     // The second question, asked from live, named live as its parent — a child, not a branch.
     expect(parentOf(sent[1])).toBe('ctx-1');
@@ -610,9 +606,8 @@ describe('CanvasApp trail (task 9.6)', () => {
     expect(await screen.findByRole('button', {name: 'Open issue'})).toBeInTheDocument();
     expect(screen.queryByTestId('canvas-band')).toBeNull();
     expect(screen.getByTestId('canvas-question')).toHaveTextContent('show my filters');
-    const textPart = sent[2].message.parts.find(p => p.kind === 'text') as
-      Extract<Part, {kind: 'text'}> | undefined;
-    expect(textPart?.text).toBe('show my filters');
+    const text = sent[2].message!.parts.find(p => p.content?.$case === 'text');
+    expect(text?.content?.value).toBe('show my filters');
     expect(parentOf(sent[2])).toBe('ctx-1');
     expect(metadataOf(sent[2])?.a2uiClientDataModel).toBeUndefined();
   });
@@ -626,7 +621,7 @@ describe('CanvasApp trail (task 9.6)', () => {
     expect(await screen.findByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
     expect(screen.getByTestId('canvas-band')).toBeInTheDocument();
     expect(sent).toHaveLength(3);
-    expect(sent[2].message.contextId).toBe('ctx-1');
+    expect(sent[2].message!.contextId).toBe('ctx-1');
     expect(parentOf(sent[2])).toBeUndefined();
 
     await userEvent.click(screen.getByRole('button', {name: /Return to live/}));
@@ -663,9 +658,9 @@ describe('CanvasApp trail (task 9.6)', () => {
     expect(screen.queryByTestId('canvas-band')).toBeNull();
     expect(screen.getAllByTestId('canvas-trail-entry')).toHaveLength(1);
     await waitFor(() => expect(sent).toHaveLength(3));
-    expect(sent[2].message.contextId).toBe('ctx-1');
-    const part = sent[2].message.parts[0];
-    expect(part.kind === 'data' ? part.data : {}).toEqual({
+    expect(sent[2].message!.contextId).toBe('ctx-1');
+    const part = sent[2].message!.parts[0];
+    expect(dataOf(part) ?? {}).toEqual({
       version: 'v0.9',
       operation: {kind: 'close', sources: []},
     });
@@ -749,13 +744,11 @@ const HOST_RELAY = createHostRelay();
 const BOUND_CATALOGS = await snapshotCatalogs(HOST_RELAY.host);
 
 /** The hub's answer to a shell-action report: a completed final carrying nothing. */
-const EMPTY_FINAL: TaskStatusUpdateEvent = {
-  kind: 'status-update',
+const EMPTY_FINAL: A2AStreamEventData = statusUpdateEvent({
   taskId: 't2',
   contextId: 'ctx-1',
-  final: true,
-  status: {state: 'completed'},
-};
+  state: TaskState.TASK_STATE_COMPLETED,
+});
 
 function renderShellCanvas(beat: string) {
   window.history.replaceState(null, '', `?beat=${beat}&instant`);
@@ -781,7 +774,7 @@ describe('CanvasApp shell surface', () => {
   it('the account choice sends the pressed account as useAccount and gives the choice way at once (task-12.6 decision 6)', async () => {
     window.history.replaceState(null, '', '?beat=account-choice&instant');
     // The press's stream stays open: the orchestrator has not answered yet.
-    const sent: MessageSendParams[] = [];
+    const sent: SendMessageRequest[] = [];
     const silent = {
       next: () => new Promise<never>(() => {}),
       return: () => Promise.resolve({done: true as const, value: undefined}),
@@ -804,8 +797,8 @@ describe('CanvasApp shell surface', () => {
     expect(screen.queryByRole('button', {name: 'alice@example.com'})).toBeNull();
     expect(screen.getByText('Loading…')).toBeInTheDocument();
     await waitFor(() => expect(sent).toHaveLength(1));
-    const part = sent[0].message.parts[0];
-    expect(part.kind === 'data' ? part.data : {}).toEqual({
+    const part = sent[0].message!.parts[0];
+    expect(dataOf(part) ?? {}).toEqual({
       version: 'v0.9',
       operation: {kind: 'useAccount', sources: ['gmail.2']},
     });
@@ -825,8 +818,8 @@ describe('CanvasApp shell surface', () => {
 
     // The report: one standard A2UI action on the shell surface, the query in its context.
     await waitFor(() => expect(sent).toHaveLength(1));
-    const part = sent[0].message.parts[0];
-    expect(part.kind === 'data' ? part.data : {}).toMatchObject({
+    const part = sent[0].message!.parts[0];
+    expect(dataOf(part) ?? {}).toMatchObject({
       version: 'v0.9',
       action: {
         name: 'openStore',
@@ -915,7 +908,7 @@ describe('CanvasApp, the trusted page (task 14.6)', () => {
   it('Retry on a failed slot sends the retry beside the turn and gives the tile way at once (task 8.5)', async () => {
     window.history.replaceState(null, '', '?beat=composed&instant');
     // The press's stream stays open: the orchestrator has not answered yet.
-    const sent: MessageSendParams[] = [];
+    const sent: SendMessageRequest[] = [];
     const silent = {
       next: () => new Promise<never>(() => {}),
       return: () => Promise.resolve({done: true as const, value: undefined}),
@@ -940,8 +933,8 @@ describe('CanvasApp, the trusted page (task 14.6)', () => {
     const pending = screen.getByText('Loading…');
     expect(document.activeElement).toBe(pending);
     await waitFor(() => expect(sent).toHaveLength(1));
-    const part = sent[0].message.parts[0];
-    expect(part.kind === 'data' ? part.data : {}).toEqual({
+    const part = sent[0].message!.parts[0];
+    expect(dataOf(part) ?? {}).toEqual({
       version: 'v0.9',
       operation: {kind: 'retry', sources: ['gmail']},
     });
@@ -959,8 +952,8 @@ describe('CanvasApp, the trusted page (task 14.6)', () => {
     // The page is open; the same button behind it, raised again, is a second intent.
     await userEvent.click(button);
     await waitFor(() => expect(sent).toHaveLength(2));
-    const part = sent[1].message.parts[0];
-    expect(part.kind === 'data' ? part.data : {}).toMatchObject({
+    const part = sent[1].message!.parts[0];
+    expect(dataOf(part) ?? {}).toMatchObject({
       action: {name: 'openAppLibrary', surfaceId: 'shell:main', context: {}},
     });
   });

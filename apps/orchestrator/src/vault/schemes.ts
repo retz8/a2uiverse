@@ -6,10 +6,10 @@
  * here. A card's `security` is an OR of ANDs; one alternative naming only supported schemes makes
  * it usable, and the first such, in the card's order, is followed.
  */
-import type {AgentCard} from '@a2a-js/sdk';
+import type {InstalledCard} from '../registry/installedCard.js';
 import type {CredentialKind} from './store.js';
 
-type Scheme = NonNullable<AgentCard['securitySchemes']>[string];
+type Scheme = NonNullable<InstalledCard['securitySchemes']>[string];
 
 /** A scheme the vault can sign in with, read off the card. */
 export type SupportedScheme =
@@ -81,7 +81,7 @@ export function supportedScheme(
  * alternative is usable when it names exactly one scheme the vault supports; one naming two at
  * once — a credential of each on one request — is beyond the vault.
  */
-export function cardNeed(card: AgentCard | null | undefined): CardNeed {
+export function cardNeed(card: InstalledCard | null | undefined): CardNeed {
   const security = card?.security;
   if (!security || security.length === 0) return {kind: 'none'};
   if (security.some(requirement => Object.keys(requirement).length === 0)) return {kind: 'none'};
@@ -98,7 +98,7 @@ export function cardNeed(card: AgentCard | null | undefined): CardNeed {
 
 /** The scheme the card declares under `key`, when the vault supports it. */
 export function schemeOf(
-  card: AgentCard | null | undefined,
+  card: InstalledCard | null | undefined,
   key: string,
 ): SupportedScheme | undefined {
   return supportedScheme(key, card?.securitySchemes?.[key]);

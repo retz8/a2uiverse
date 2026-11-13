@@ -1,5 +1,5 @@
 import {randomUUID} from 'node:crypto';
-import type {Message, Part, Task, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {TaskState, type Message, type Part, type Task} from '@a2a-js/sdk';
 import type {AgentExecutor, ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
 import {
   clipPaintMetaTitle,
@@ -12,10 +12,18 @@ import {
   type SynthesisPayload,
 } from '@a2uiverse/sdk';
 import {SHELL_ACTIONS, type SlotCollapse} from '@a2uiverse/shell-catalog/schema';
+import {dataOf, textPart, userMessage, withData} from './a2a/parts.js';
+import {
+  statusUpdate,
+  workingUpdate,
+  type WireContext,
+  type WireEvent,
+  type WireStatusUpdate,
+} from './a2a/wire.js';
 import type {Sources} from './accounts/accounts.js';
 import type {AgentsPool} from './agentsPool/agentsPool.js';
 import {requestWords} from './agentsPool/requestWords.js';
-import {STAMP_KEY, type VendorEvent} from './agentsPool/relay.js';
+import {STAMP_KEY} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome, DispatchRecord} from './agentsPool/types.js';
 import type {Compositions} from './composition/compositions.js';
 import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify.js';
@@ -210,11 +218,11 @@ export class OrchestratorExecutor implements AgentExecutor {
   async execute(ctx: RequestContext, bus: ExecutionEventBus): Promise<void> {
     // Always first: the task store needs a Task before any update, and a
     // cancel arriving before the first paint must find the task.
-    bus.publish(syntheticTask(ctx));
+    bus.publish({kind: 'task', data: syntheticTask(ctx)});
     const {messageId} = ctx.userMessage;
     if (this.#received.has(messageId)) {
       logLine(`← duplicate message=${messageId} task=${ctx.taskId} — refused`);
-      bus.publish(finalStatus(ctx, 'failed', 'This request was already received.'));
+      bus.publish(finalStatus(ctx, FAILED, 'This request was already received.'));
       return;
     }
     this.#received.add(messageId);
@@ -269,7 +277,7 @@ export class OrchestratorExecutor implements AgentExecutor {
           });
           if (owner === SHELL_SOURCE_ID) {
             this.#shellActionTurn(turnKind);
-            bus.publish(finalStatus(ctx, 'completed'));
+            bus.publish(finalStatus(ctx, COMPLETED));
             await turn.close('completed');
             break;
           }
@@ -292,7 +300,7 @@ export class OrchestratorExecutor implements AgentExecutor {
             message: ctx.userMessage,
           });
           this.#clientErrorTurn({ctx, bus, turn}, turnKind);
-          bus.publish(finalStatus(ctx, 'completed'));
+          bus.publish(finalStatus(ctx, COMPLETED));
           await turn.close('completed');
           break;
         }
@@ -307,7 +315,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       outcome = `failed (${message})`;
-      bus.publish(finalStatus(ctx, 'failed', message));
+      bus.publish(finalStatus(ctx, FAILED, message));
       await turn?.close('failed');
     } finally {
       stopHeartbeat();
@@ -337,13 +345,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       () => {
         if (Date.now() - last < every) return;
         last = Date.now();
-        publish({
-          kind: 'status-update',
-          taskId: ctx.taskId,
-          contextId: ctx.contextId,
-          final: false,
-          status: {state: 'working', timestamp: new Date().toISOString()},
-        });
+        publish(workingUpdate(ctx));
       },
       Math.max(50, Math.floor(every / 4)),
     );
@@ -450,7 +452,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     const closed = async () => {
       painted(false);
       done();
-      bus.publish(finalStatus(ctx, 'canceled'));
+      bus.publish(finalStatus(ctx, CANCELED));
       await turn.close('cancelled');
     };
     turn.deadlines(this.#deps.deadlines);
@@ -584,7 +586,6 @@ export class OrchestratorExecutor implements AgentExecutor {
           outcome: 'failed',
           error: 'the app needs sign-in',
           authority: standing.need,
-          sawFinal: false,
           deadlineMs: this.#deps.deadlines.capMs,
         });
       }
@@ -620,13 +621,10 @@ export class OrchestratorExecutor implements AgentExecutor {
       runs = sources
         .filter(({plan}) => state.slots.get(plan.source)?.state !== 'authority')
         .map(({plan: slot}) => {
-          const request: Message = {
-            kind: 'message',
-            messageId: randomUUID(),
-            role: 'user',
-            parts: [{kind: 'text', text: requestWords(slot.request, ctx.userMessage.metadata)}],
-            metadata: vendorMetadata(ctx.userMessage.metadata, slot.source),
-          };
+          const request = textRequest(
+            requestWords(slot.request, ctx.userMessage.metadata),
+            vendorMetadata(ctx.userMessage.metadata, slot.source),
+          );
           const handle = this.#deps.pool.dispatch(slot.source, {
             clientContextId: ctx.contextId,
             clientTaskId: ctx.taskId,
@@ -841,7 +839,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     const cancelled =
       signal.aborted || (outcomes.length > 0 && outcomes.every(o => o === 'cancelled'));
     state.answeredAt = Date.now();
-    bus.publish(finalStatus(ctx, cancelled ? 'canceled' : 'completed'));
+    bus.publish(finalStatus(ctx, cancelled ? CANCELED : COMPLETED));
     if (!cancelled) turn.answered(state.answeredAt);
     // The journal line closes when the last dispatch ends: an answer held past the cap is on it.
     void Promise.all(runs.map(run => run.drained)).then(async () => {
@@ -907,8 +905,8 @@ export class OrchestratorExecutor implements AgentExecutor {
     const message: Message = {
       ...ctx.userMessage,
       parts: ctx.userMessage.parts.map(part =>
-        part.kind === 'data' && part.data === action.part
-          ? {...part, data: unnamespaceAction(part.data, parsed.surfaceId)}
+        dataOf(part) === action.part
+          ? withData(part, unnamespaceAction(action.part, parsed.surfaceId))
           : part,
       ),
       metadata: vendorMetadata(ctx.userMessage.metadata, owner),
@@ -939,10 +937,10 @@ export class OrchestratorExecutor implements AgentExecutor {
     if (composition) await this.#owe(composition, {}, 'walk', sink);
     const state: TaskState =
       outcome === 'cancelled'
-        ? 'canceled'
+        ? CANCELED
         : outcome === 'completed' || escalated
-          ? 'completed'
-          : 'failed';
+          ? COMPLETED
+          : FAILED;
     // A press that failed says so on its slot; the shell adds no words of its own (task-15.11
     // decision 31).
     bus.publish(finalStatus(ctx, state));
@@ -973,7 +971,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       const planned = this.#compositions.get(ctx.contextId);
       if (planned) turn.composition(planned.turnId);
       if (!this.#closeComposition(ctx.contextId)) return refuse('No such context.');
-      bus.publish(finalStatus(ctx, 'completed'));
+      bus.publish(finalStatus(ctx, COMPLETED));
       await turn.close('completed');
       return;
     }
@@ -1126,7 +1124,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       state.operations.delete(running);
     }
     const superseded = running.controller.signal.aborted;
-    bus.publish(finalStatus(ctx, superseded ? 'canceled' : 'completed'));
+    bus.publish(finalStatus(ctx, superseded ? CANCELED : COMPLETED));
     // The journal line closes when its dispatches end: an answer held past the cap is on it.
     void Promise.all(sink.drains ?? []).then(() =>
       turn.close(superseded ? 'cancelled' : 'completed'),
@@ -1303,18 +1301,10 @@ export class OrchestratorExecutor implements AgentExecutor {
     }
     const message: Message = slot.failedPress
       ? {...slot.failedPress, messageId: randomUUID()}
-      : {
-          kind: 'message',
-          messageId: randomUUID(),
-          role: 'user',
-          parts: [
-            {
-              kind: 'text',
-              text: requestWords(slot.plan.request, sink.pressed, state.requestMetadata),
-            },
-          ],
-          metadata: vendorMetadata(state.requestMetadata, source),
-        };
+      : textRequest(
+          requestWords(slot.plan.request, sink.pressed, state.requestMetadata),
+          vendorMetadata(state.requestMetadata, source),
+        );
     const handle = this.#deps.pool.dispatch(source, {
       clientContextId: sink.ctx.contextId,
       clientTaskId: sink.ctx.taskId,
@@ -2111,18 +2101,10 @@ export class OrchestratorExecutor implements AgentExecutor {
     const handle = this.#deps.pool.dispatch(source, {
       clientContextId: sink.ctx.contextId,
       clientTaskId: sink.ctx.taskId,
-      message: {
-        kind: 'message',
-        messageId: randomUUID(),
-        role: 'user',
-        parts: [
-          {
-            kind: 'text',
-            text: requestWords(slot.plan.request, sink.pressed, state.requestMetadata),
-          },
-        ],
-        metadata: vendorMetadata(state.requestMetadata, source),
-      },
+      message: textRequest(
+        requestWords(slot.plan.request, sink.pressed, state.requestMetadata),
+        vendorMetadata(state.requestMetadata, source),
+      ),
       fromPlan: true,
     });
     const abort = () => handle.cancel();
@@ -2166,18 +2148,10 @@ export class OrchestratorExecutor implements AgentExecutor {
     const slot = state.slots.get(source)!;
     const message: Message = slot.keptPress
       ? {...slot.keptPress, messageId: randomUUID()}
-      : {
-          kind: 'message',
-          messageId: randomUUID(),
-          role: 'user',
-          parts: [
-            {
-              kind: 'text',
-              text: requestWords(slot.plan.request, sink.pressed, state.requestMetadata),
-            },
-          ],
-          metadata: vendorMetadata(state.requestMetadata, source),
-        };
+      : textRequest(
+          requestWords(slot.plan.request, sink.pressed, state.requestMetadata),
+          vendorMetadata(state.requestMetadata, source),
+        );
     delete slot.escalation;
     delete slot.keptPress;
     this.#repaint([sink], state);
@@ -2284,9 +2258,9 @@ export class OrchestratorExecutor implements AgentExecutor {
     });
     const drained = (async () => {
       let touches: SurfaceTouches = emptyTouches();
-      const held: VendorEvent[] = [];
-      const buffered: VendorEvent[] = [];
-      const relay = (composed: VendorEvent) => {
+      const held: WireEvent[] = [];
+      const buffered: WireEvent[] = [];
+      const relay = (composed: WireEvent) => {
         const touched = touchesOf(composed);
         if (!record.firstPaintAt && touchedAny(touched)) {
           record.firstPaintAt = new Date().toISOString();
@@ -2297,8 +2271,8 @@ export class OrchestratorExecutor implements AgentExecutor {
         sink.bus.publish(composed);
       };
       /** What arrived before the layout was painted, relayed once it is (task-17.9 decision 5). */
-      let early: VendorEvent[] | undefined = options.layout ? [] : undefined;
-      const route = (composed: VendorEvent) => {
+      let early: WireEvent[] | undefined = options.layout ? [] : undefined;
+      const route = (composed: WireEvent) => {
         if (early) early.push(composed);
         else if (capped) held.push(composed);
         else if (options.buffer) buffered.push(composed);
@@ -2314,6 +2288,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         route(
           composeFragment(withoutFailureWords(event), {
             source,
+            taskId: sink.ctx.taskId,
             ...(builds ? {builds} : {}),
           }),
         );
@@ -2391,19 +2366,32 @@ function clientSurfaces(metadata: Message['metadata']): Record<string, unknown> 
 /** The vendor's surface a kept press was made on, from its action; none for any other message. */
 function pressedSurface(message: Message): string | undefined {
   for (const part of message.parts) {
-    if (part.kind !== 'data') continue;
-    const action = (part.data as {action?: {surfaceId?: unknown}}).action;
+    const action = (dataOf(part) as {action?: {surfaceId?: unknown}} | undefined)?.action;
     if (typeof action?.surfaceId === 'string') return action.surfaceId;
   }
   return undefined;
 }
 
+/** A request to an agent in the orchestrator's words: one text part, the vendor-bound metadata. */
+function textRequest(words: string, metadata: Message['metadata']): Message {
+  return userMessage([textPart(words)], {metadata});
+}
+
+const {
+  TASK_STATE_WORKING: WORKING,
+  TASK_STATE_COMPLETED: COMPLETED,
+  TASK_STATE_FAILED: FAILED,
+  TASK_STATE_CANCELED: CANCELED,
+} = TaskState;
+
+/** The orchestrator's one task for a turn, working: the first event of its stream. */
 function syntheticTask(ctx: RequestContext): Task {
   return {
-    kind: 'task',
     id: ctx.taskId,
     contextId: ctx.contextId,
-    status: {state: 'working', timestamp: new Date().toISOString()},
+    status: {state: WORKING, message: undefined, timestamp: new Date().toISOString()},
+    artifacts: [],
+    history: [],
     metadata: {[STAMP_KEY]: {source: SHELL_SOURCE_ID, role: 'shell'}},
   };
 }
@@ -2412,18 +2400,10 @@ function syntheticTask(ctx: RequestContext): Task {
 const RECEIVED_IDS_KEPT = 256;
 
 /** A fragment source's stream has ended (task-8.7 decision 25): the stamp says so, nothing else rides it. */
-function settledMarker(
-  ctx: Pick<RequestContext, 'taskId' | 'contextId'>,
-  source: string,
-): TaskStatusUpdateEvent {
-  return {
-    kind: 'status-update',
-    taskId: ctx.taskId,
-    contextId: ctx.contextId,
-    final: false,
-    status: {state: 'working', timestamp: new Date().toISOString()},
+function settledMarker(ctx: WireContext, source: string): WireStatusUpdate {
+  return workingUpdate(ctx, {
     metadata: {[STAMP_KEY]: {source: source, role: 'fragment', settled: true}},
-  };
+  });
 }
 
 /** The plan's measurement as its record carries it (task-17.5 decisions 1–3). */
@@ -2443,28 +2423,10 @@ function synthesisMeasure(measure: SynthesisMeasure): Partial<SynthesisRecord> {
   };
 }
 
-function finalStatus(ctx: RequestContext, state: TaskState, error?: string): TaskStatusUpdateEvent {
-  return {
-    kind: 'status-update',
-    taskId: ctx.taskId,
-    contextId: ctx.contextId,
-    final: true,
-    status: {
-      state,
-      timestamp: new Date().toISOString(),
-      ...(error
-        ? {
-            message: {
-              kind: 'message',
-              messageId: randomUUID(),
-              role: 'agent',
-              parts: [{kind: 'text', text: error}],
-              contextId: ctx.contextId,
-              taskId: ctx.taskId,
-            },
-          }
-        : {}),
-    },
+/** The turn's one terminal update (task-20.1 decision 6): its state, and the words of a failure. */
+function finalStatus(ctx: WireContext, state: TaskState, error?: string): WireStatusUpdate {
+  return statusUpdate(ctx, state, {
+    ...(error ? {parts: [textPart(error)]} : {}),
     metadata: {[STAMP_KEY]: {source: SHELL_SOURCE_ID, role: 'shell'}},
-  };
+  });
 }

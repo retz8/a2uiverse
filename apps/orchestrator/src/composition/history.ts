@@ -1,6 +1,6 @@
 import {parseSurfaceId} from '@a2uiverse/sdk';
-import type {VendorEvent} from '../agentsPool/relay.js';
-import {a2uiMessagesIn, partsOf} from '../journal/surfaces.js';
+import type {WireEvent} from '../a2a/wire.js';
+import {a2uiMessagesOf} from '../journal/surfaces.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import type {LiveSynthesis} from './state.js';
 
@@ -42,18 +42,15 @@ export class History {
   readonly #remembered = new Map<string, Remembered>();
 
   /** Counts every create in a relayed event as a paint of its source, the newest on screen. */
-  observe(event: VendorEvent): void {
-    for (const part of partsOf(event)) {
-      if (part.kind !== 'data') continue;
-      for (const message of a2uiMessagesIn(part.data)) {
-        const create = message.createSurface;
-        if (typeof create !== 'object' || create === null) continue;
-        const surfaceId = (create as {surfaceId?: unknown}).surfaceId;
-        if (typeof surfaceId !== 'string') continue;
-        const source = parseSurfaceId(surfaceId)?.source;
-        if (source === undefined || source === SHELL_SOURCE_ID) continue;
-        this.#paint(source);
-      }
+  observe(event: WireEvent): void {
+    for (const message of a2uiMessagesOf(event)) {
+      const create = message.createSurface;
+      if (typeof create !== 'object' || create === null) continue;
+      const surfaceId = (create as {surfaceId?: unknown}).surfaceId;
+      if (typeof surfaceId !== 'string') continue;
+      const source = parseSurfaceId(surfaceId)?.source;
+      if (source === undefined || source === SHELL_SOURCE_ID) continue;
+      this.#paint(source);
     }
   }
 

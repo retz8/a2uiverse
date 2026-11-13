@@ -1,6 +1,6 @@
-import type {Part} from '@a2a-js/sdk';
 import {a2uiMessagesIn, type A2uiMessage} from '@a2uiverse/sdk';
-import type {VendorEvent} from '../agentsPool/relay.js';
+import {dataOf} from '../a2a/parts.js';
+import {partsOf, type WireEvent} from '../a2a/wire.js';
 
 export interface SurfaceTouches {
   created: string[];
@@ -25,29 +25,19 @@ export function mergeTouches(a: SurfaceTouches, b: SurfaceTouches): SurfaceTouch
  * Read-only scan of an event's A2UI parts for the surfaces it touches. Parts
  * are inspected, never modified.
  */
-export function touchesOf(event: VendorEvent): SurfaceTouches {
+export function touchesOf(event: WireEvent): SurfaceTouches {
   const touches = emptyTouches();
-  for (const part of partsOf(event)) {
-    if (part.kind !== 'data') continue;
-    for (const message of a2uiMessagesIn(part.data)) collect(message, touches);
-  }
+  for (const message of a2uiMessagesOf(event)) collect(message, touches);
   return touches;
 }
 
-export function partsOf(event: VendorEvent): Part[] {
-  switch (event.kind) {
-    case 'message':
-      return event.parts;
-    case 'task':
-    case 'status-update':
-      return event.status.message?.parts ?? [];
-    case 'artifact-update':
-      return event.artifact.parts;
-  }
+/**
+ * Every A2UI message an event's parts carry, in order: one message object per data part (a2ui-github
+ * agents) or the spec's array form under `messages`, through the sdk's reader.
+ */
+export function a2uiMessagesOf(event: WireEvent): A2uiMessage[] {
+  return partsOf(event).flatMap(part => a2uiMessagesIn(dataOf(part)));
 }
-
-/** One message object per DataPart (a2ui-github agents) or the spec's array form under `messages`: the sdk's reader. */
-export {a2uiMessagesIn, type A2uiMessage} from '@a2uiverse/sdk';
 
 const OPS: ReadonlyArray<[key: string, bucket: keyof SurfaceTouches]> = [
   ['createSurface', 'created'],

@@ -5,17 +5,19 @@
  * and the dev fault that paints a credential input.
  */
 import {randomUUID} from 'node:crypto';
-import type {AgentCard, Message, Part} from '@a2a-js/sdk';
+import {TaskState, type Message, type Part} from '@a2a-js/sdk';
 import {
   BASIC_CATALOG_ID,
-  a2uiMessagesOf as a2uiMessagesIn,
+  a2uiMessagesIn,
   credentialInputIn,
   describeCredentialFinding,
   type CatalogOptions,
   type CredentialFinding,
 } from '@a2uiverse/sdk';
+import {agentMessage, dataOf, dataPart, textPart} from '../a2a/parts.js';
+import type {InstalledCard} from '../registry/installedCard.js';
 import {isSecureOrLocal} from '../vault/oauth.js';
-import {STAMP_KEY, type VendorEvent} from './relay.js';
+import {partsOf, STAMP_KEY, withParts, type VendorEvent} from './relay.js';
 
 /** The way out, said in the guidance sentence and again at the end of the repair. */
 const WAY_OUT = 'for anything like that, offer a link to your own website instead.';
@@ -38,10 +40,9 @@ export function repairOf(sent: Message, found: CredentialFinding): Message {
     ...sent,
     messageId: randomUUID(),
     parts: [
-      {
-        kind: 'text',
-        text: `Your last answer included a field that asks for a password, a one-time code, a PIN or a card number: ${describeCredentialFinding(found)}. Answer the same request again without it; ${WAY_OUT}`,
-      },
+      textPart(
+        `Your last answer included a field that asks for a password, a one-time code, a PIN or a card number: ${describeCredentialFinding(found)}. Answer the same request again without it; ${WAY_OUT}`,
+      ),
     ],
   };
 }
@@ -103,25 +104,22 @@ export function takeDown(shown: readonly CreatedSurface[]): VendorEvent {
   const taskId = randomUUID();
   const contextId = randomUUID();
   return {
-    kind: 'status-update',
-    taskId,
-    contextId,
-    final: false,
-    status: {
-      state: 'working',
-      message: {
-        kind: 'message',
-        messageId: randomUUID(),
-        role: 'agent',
+    payload: {
+      $case: 'statusUpdate',
+      value: {
         taskId,
         contextId,
-        parts: shown.map(({surfaceId, version}): Part => ({
-          kind: 'data',
-          data: {version, deleteSurface: {surfaceId}},
-        })),
+        status: {
+          state: TaskState.TASK_STATE_WORKING,
+          message: agentMessage(
+            shown.map(({surfaceId, version}) => dataPart({version, deleteSurface: {surfaceId}})),
+            {taskId, contextId},
+          ),
+          timestamp: undefined,
+        },
+        metadata: {[STAMP_KEY]: {refused: true}},
       },
     },
-    metadata: {[STAMP_KEY]: {refused: true}},
   };
 }
 
@@ -129,7 +127,7 @@ export function takeDown(shown: readonly CreatedSurface[]): VendorEvent {
  * The fallback's way out (task-12.2 decision 7): the card's `provider.url`, otherwise its
  * `documentationUrl` — https, or a local address.
  */
-export function continueUrlOf(card: AgentCard | null | undefined): string | undefined {
+export function continueUrlOf(card: InstalledCard | null | undefined): string | undefined {
   const candidates = [card?.provider?.url, card?.documentationUrl];
   return candidates.find(
     (url): url is string => typeof url === 'string' && url !== '' && isSecureOrLocal(url),
@@ -149,46 +147,24 @@ export function withCredentialField(event: VendorEvent): VendorEvent {
   if (!existing) return event;
   const version = existing.version as string;
   const added: Part[] = [
-    {
-      kind: 'data',
-      data: {
-        version,
-        createSurface: {surfaceId: CREDENTIAL_FAULT_SURFACE, catalogId: BASIC_CATALOG_ID},
+    dataPart({
+      version,
+      createSurface: {surfaceId: CREDENTIAL_FAULT_SURFACE, catalogId: BASIC_CATALOG_ID},
+    }),
+    dataPart({
+      version,
+      updateComponents: {
+        surfaceId: CREDENTIAL_FAULT_SURFACE,
+        components: [{id: 'root', component: 'TextField', label: 'Password', variant: 'obscured'}],
       },
-    },
-    {
-      kind: 'data',
-      data: {
-        version,
-        updateComponents: {
-          surfaceId: CREDENTIAL_FAULT_SURFACE,
-          components: [
-            {id: 'root', component: 'TextField', label: 'Password', variant: 'obscured'},
-          ],
-        },
-      },
-    },
+    }),
   ];
-  if (event.kind === 'message') return {...event, parts: [...event.parts, ...added]};
-  if (event.kind === 'artifact-update') {
-    return {...event, artifact: {...event.artifact, parts: [...event.artifact.parts, ...added]}};
-  }
-  const message = event.status.message!;
-  return {
-    ...event,
-    status: {...event.status, message: {...message, parts: [...message.parts, ...added]}},
-  };
+  return withParts(event, [...partsOf(event), ...added]);
 }
 
 /** Every A2UI message an event carries, through the sdk's one reader of both wire forms. */
 function a2uiMessagesOf(event: VendorEvent): Record<string, unknown>[] {
-  const parts =
-    event.kind === 'message'
-      ? event.parts
-      : event.kind === 'artifact-update'
-        ? event.artifact.parts
-        : (event.status.message?.parts ?? []);
-  return a2uiMessagesIn(parts);
+  return partsOf(event).flatMap(part => a2uiMessagesIn(dataOf(part)));
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

@@ -6,9 +6,9 @@
  * does not speak passed over, nothing reported, its slot left as the answer leaves it.
  */
 import {describe, expect, it} from 'vitest';
-import type {MessageSendParams, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {TaskState, type SendMessageRequest} from '@a2a-js/sdk';
 import type {A2AMessageSender} from '../a2a/client';
-import type {A2AStreamEventData} from '../a2a/messages';
+import {dataOf, statusUpdateEvent, type A2AStreamEventData} from '../a2a/messages';
 import {getBeatFixture, type BeatFixture} from '../beats/beatFixtures';
 import {GITHUB_CATALOG_ID} from '../beats/catalogIds';
 import {V091_PAINT_BEAT} from '../beats/syntheticBeats';
@@ -20,14 +20,12 @@ const TASK = 'task-v091';
 const CONTEXT = 'ctx-v091';
 
 /** The hub's last event: the turn's single final. */
-const final: TaskStatusUpdateEvent = {
-  kind: 'status-update',
+const final: A2AStreamEventData = statusUpdateEvent({
   taskId: TASK,
   contextId: CONTEXT,
-  final: true,
-  status: {state: 'completed'},
+  state: TaskState.TASK_STATE_COMPLETED,
   metadata: {a2uiverse: {source: 'shell', role: 'shell'}},
-};
+});
 
 /** The beat with every message of its fragment re-written in `version`. */
 function fragmentIn(version: string): BeatFixture {
@@ -52,7 +50,7 @@ function fragmentIn(version: string): BeatFixture {
  * hub relayed it as, and every later send with a stream that says nothing.
  */
 function canvasAnswering(beat: BeatFixture) {
-  const sent: MessageSendParams[] = [];
+  const sent: SendMessageRequest[] = [];
   const client: A2AMessageSender = {
     sendMessageStream(params) {
       sent.push(params);
@@ -97,15 +95,15 @@ describe('a fragment whose messages are in v0.9.1', () => {
       'open',
     );
     await expect.poll(() => sent.length).toBe(2);
-    const [part] = sent[1]!.message.parts as Array<{kind: string; data: Record<string, unknown>}>;
-    expect(part!.data.version).toBe('v0.9');
-    expect(part!.data.action).toMatchObject({
+    const data = dataOf(sent[1]!.message!.parts[0]!);
+    expect(data?.version).toBe('v0.9');
+    expect(data?.action).toMatchObject({
       name: 'open-pull-request',
       surfaceId: 'github:pr-list',
       context: {number: 42},
     });
     // The fragment's data model rides beside it, in v0.9 too.
-    expect(sent[1]!.message.metadata?.a2uiClientDataModel).toMatchObject({
+    expect(sent[1]!.message!.metadata?.a2uiClientDataModel).toMatchObject({
       version: 'v0.9',
       surfaces: {'github:pr-list': {}},
     });

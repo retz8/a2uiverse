@@ -73,7 +73,8 @@ test('a name claimed on the page publishes Shop B, is refused a breaking schema,
   // It lands on the listings, its outcome atop them (task-14.11 decision 34).
   const published = overlay.getByTestId('publish-act');
   await expect(published).toBeVisible({timeout: 120_000});
-  await expect(published).toContainText('Shop B 0.1.0 is in the Store.');
+  // Whatever version Shop B's card carries in the apps checkout today.
+  await expect(published).toContainText(/Shop B \d+\.\d+\.\d+ is in the Store\./);
   const listing = overlay.getByTestId('publish-listing');
   await expect(listing).toHaveCount(1);
   await expect(listing).toContainText('Shop B');

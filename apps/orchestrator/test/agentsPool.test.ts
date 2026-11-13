@@ -1,5 +1,6 @@
 import {afterEach, describe, expect, test, vi} from 'vitest';
-import type {Message, Task, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {TaskState} from '@a2a-js/sdk';
+import {dataPart, textPart, userMessage} from '../src/a2a/parts.js';
 import {
   AgentsPool,
   type AgentsPoolOptions,
@@ -15,10 +16,17 @@ import {
   A2UI_PART,
   FAKE_CATALOG_ID,
   startFakeVendor,
+  type AgentExecutionEvent,
   type FakeVendor,
+  type Message as VendorMessage,
   type Script,
+  type Task as VendorTask,
 } from './fakeVendor.js';
+import {contextIdOf, datasOf, partsOf, stampOf, stateOf, taskIdOf} from './privateWire.js';
 import {cardFor, fixtureArtifact, testRegistry} from './registryFixture.js';
+
+/** A status update as the fake vendor's script writes it, in A2A 0.3's shape. */
+type VendorStatusUpdate = Extract<AgentExecutionEvent, {kind: 'status-update'}>;
 
 const vendors: FakeVendor[] = [];
 afterEach(async () => {
@@ -107,15 +115,11 @@ const paintScript =
   ];
 
 function turn(overrides: Partial<DispatchTurn> = {}): DispatchTurn {
-  const message: Message = {
-    kind: 'message',
-    messageId: crypto.randomUUID(),
-    role: 'user',
-    parts: [{kind: 'text', text: 'hello'}],
+  const message = userMessage([textPart('hello')], {
     contextId: 'o-ctx',
     taskId: 'o-task',
     metadata: {a2uiClientDataModel: {v: 1}},
-  };
+  });
   return {clientContextId: 'o-ctx', clientTaskId: 'o-task', message, ...overrides};
 }
 
@@ -143,17 +147,18 @@ describe('AgentsPool.dispatch', () => {
     const {pool} = await poolFor();
     const {events, record} = await drain(pool.dispatch('github', turn()));
 
-    expect(events.map(e => e.kind)).toEqual(['task', 'status-update']);
-    const task = events[0] as Task;
-    expect(task.id).toBe('o-task');
-    expect(task.contextId).toBe('o-ctx');
-    expect(task.metadata?.a2uiverse).toEqual({source: 'github'});
-    const final = events[1] as TaskStatusUpdateEvent;
-    expect(final.taskId).toBe('o-task');
-    expect(final.final).toBe(true);
-    expect(final.status.message?.parts[0]).toEqual(A2UI_PART);
+    expect(events.map(e => e.payload?.$case)).toEqual(['task', 'statusUpdate']);
+    const [task, last] = events;
+    expect(taskIdOf(task)).toBe('o-task');
+    expect(contextIdOf(task)).toBe('o-ctx');
+    expect(stampOf(task)).toEqual({source: 'github'});
+    expect(taskIdOf(last)).toBe('o-task');
+    expect(stateOf(last)).toBe(TaskState.TASK_STATE_COMPLETED);
+    expect(partsOf(last)[0]).toEqual(dataPart(A2UI_PART.data));
     expect(record.outcome).toBe('completed');
-    expect(record.sawFinal).toBe(true);
+    expect(record.endState).toBe('TASK_STATE_COMPLETED');
+    expect(record.a2aVersion).toBe('0.3');
+    expect(record.binding).toBe('JSONRPC');
     expect(record.vendorContextId).toBeDefined();
     expect(record.vendorContextId).not.toBe('o-ctx');
   });
@@ -164,7 +169,7 @@ describe('AgentsPool.dispatch', () => {
     await drain(pool.dispatch('github', t));
 
     const [received] = vendor.requests;
-    expect(received.message.parts).toEqual(t.message.parts);
+    expect(received.message.parts).toEqual([{kind: 'text', text: 'hello'}]);
     expect(received.message.metadata).toMatchObject(t.message.metadata!);
     expect(received.message.taskId).toBeUndefined();
     expect(received.message.contextId).toBeUndefined();
@@ -179,8 +184,8 @@ describe('AgentsPool.dispatch', () => {
 
     expect(vendor.requests[1].message.contextId).toBe(first.record.vendorContextId);
     expect(vendor.contextIds).toHaveLength(1);
-    expect(second.events.map(e => e.kind)).toEqual(['status-update']);
-    expect(second.events[0].contextId).toBe('o-ctx');
+    expect(second.events.map(e => e.payload?.$case)).toEqual(['statusUpdate']);
+    expect(contextIdOf(second.events[0])).toBe('o-ctx');
   });
 
   test('a different client context starts a separate vendor conversation', async () => {
@@ -190,7 +195,7 @@ describe('AgentsPool.dispatch', () => {
     expect(vendor.contextIds).toHaveLength(2);
   });
 
-  test('a vendor final status of failed is relayed verbatim and recorded as failed', async () => {
+  test('a vendor answer ending on failed is relayed verbatim and recorded as failed', async () => {
     const script: Script = ({ctx, vendorContextId}) => [
       {
         kind: 'status-update',
@@ -202,12 +207,12 @@ describe('AgentsPool.dispatch', () => {
     ];
     const {pool} = await poolFor({script});
     const {events, record} = await drain(pool.dispatch('github', turn()));
-    expect((events[0] as TaskStatusUpdateEvent).status.state).toBe('failed');
+    expect(stateOf(events[0])).toBe(TaskState.TASK_STATE_FAILED);
     expect(record.outcome).toBe('failed');
-    expect(record.sawFinal).toBe(true);
+    expect(record.endState).toBe('TASK_STATE_FAILED');
   });
 
-  test('a stream that ends without a final event is recorded as failed with sawFinal=false', async () => {
+  test('a stream that ends before the answer did is recorded as failed with no endState', async () => {
     const script: Script = ({ctx, vendorContextId}) => [
       {
         kind: 'status-update',
@@ -221,8 +226,8 @@ describe('AgentsPool.dispatch', () => {
     const {events, record} = await drain(pool.dispatch('github', turn()));
     expect(events).toHaveLength(1);
     expect(record.outcome).toBe('failed');
-    expect(record.sawFinal).toBe(false);
-    expect(record.error).toMatch(/final/);
+    expect(record.endState).toBeUndefined();
+    expect(record.error).toMatch(/the stream ended before the answer did/);
   });
 
   test('an unreachable vendor is recorded as failed, and done never rejects', async () => {
@@ -288,9 +293,9 @@ describe('AgentsPool.dispatch', () => {
     const {pool} = await poolFor({streaming: false});
     const {events, record} = await drain(pool.dispatch('github', turn()));
     expect(events).toHaveLength(1);
-    expect(events[0].kind).toBe('task');
+    expect(events[0].payload?.$case).toBe('task');
     expect(record.outcome).toBe('completed');
-    expect(record.sawFinal).toBe(false);
+    expect(record.endState).toBe('TASK_STATE_COMPLETED');
   });
 
   test('the hard cap is recorded; a dispatch ending before it is never capped', async () => {
@@ -348,10 +353,10 @@ describe('AgentsPool — the hard cap, the cause of a failure, cancel (task 8.3)
     expect(cappedAt).toBeGreaterThan(0);
     expect(record.cappedAt).toBeDefined();
     expect(record.outcome).toBe('completed');
-    expect(events.at(-1)?.kind).toBe('status-update');
+    expect(events.at(-1)?.payload?.$case).toBe('statusUpdate');
   });
 
-  test('a vendor final of failed carries the vendor cause and its words', async () => {
+  test('a vendor answer ending as a failure carries the vendor cause and its words', async () => {
     const script: Script = ({ctx, vendorContextId}) => [
       {
         kind: 'status-update',
@@ -378,7 +383,7 @@ describe('AgentsPool — the hard cap, the cause of a failure, cancel (task 8.3)
     });
   });
 
-  test('a broken connection and a stream with no final are unreachable, with no words', async () => {
+  test('a broken connection and a stream that ended before the answer did are unreachable, with no words', async () => {
     const {pool, vendor} = await poolFor();
     await vendor.close();
     vendors.length = 0;
@@ -405,7 +410,7 @@ describe('AgentsPool — the hard cap, the cause of a failure, cancel (task 8.3)
  * A vendor that paints, then moves through `states` with no update marked final, and closes its
  * stream: upstream's restaurant finder ends its answers on `input-required` this way.
  */
-function unmarkedScript(states: TaskStatusUpdateEvent['status']['state'][]): Script {
+function unmarkedScript(states: VendorTask['status']['state'][]): Script {
   return ({ctx, vendorContextId}) => [
     {kind: 'task', id: ctx.taskId, contextId: vendorContextId, status: {state: 'submitted'}},
     {
@@ -474,7 +479,7 @@ describe('AgentsPool — the fault map (task 8.3 decision 14)', () => {
     const started = Date.now();
     const {events, record} = await drain(pool.dispatch('github', turn({fromPlan: true})));
     expect(Date.now() - started).toBeGreaterThanOrEqual(140);
-    expect(events.map(e => e.kind)).toEqual(['task', 'status-update']);
+    expect(events.map(e => e.payload?.$case)).toEqual(['task', 'statusUpdate']);
     expect(record).toMatchObject({outcome: 'completed', fault: 'delay'});
   });
 
@@ -497,13 +502,13 @@ describe('AgentsPool — the fault map (task 8.3 decision 14)', () => {
     expect(vendor.requests).toHaveLength(0);
   });
 
-  test('fail ends with a vendor failed final carrying the message', async () => {
+  test('fail ends with a vendor status update of failed carrying the message', async () => {
     const {pool, vendor} = await poolFor({}, faulted({fault: 'fail', message: 'Rate limited'}));
     const {events, record} = await drain(pool.dispatch('github', turn({fromPlan: true})));
-    const final = events[0] as TaskStatusUpdateEvent;
-    expect(final.final).toBe(true);
-    expect(final.status.state).toBe('failed');
-    expect(final.taskId).toBe('o-task');
+    const [last] = events;
+    expect(last.payload?.$case).toBe('statusUpdate');
+    expect(stateOf(last)).toBe(TaskState.TASK_STATE_FAILED);
+    expect(taskIdOf(last)).toBe('o-task');
     expect(record).toMatchObject({
       outcome: 'failed',
       cause: 'vendor',
@@ -512,7 +517,7 @@ describe('AgentsPool — the fault map (task 8.3 decision 14)', () => {
     expect(vendor.requests).toHaveLength(0);
   });
 
-  test('break forwards the first paint, then ends with no final', async () => {
+  test('break forwards the first paint, then ends before the answer did', async () => {
     const script: Script = async function* ({ctx, vendorContextId}) {
       yield {
         kind: 'status-update' as const,
@@ -534,10 +539,11 @@ describe('AgentsPool — the fault map (task 8.3 decision 14)', () => {
     const {pool} = await poolFor({script}, faulted({fault: 'break'}));
     const {events, record} = await drain(pool.dispatch('github', turn({fromPlan: true})));
     expect(events).toHaveLength(1);
-    expect(record).toMatchObject({outcome: 'failed', cause: 'unreachable', sawFinal: false});
+    expect(record).toMatchObject({outcome: 'failed', cause: 'unreachable'});
+    expect(record.endState).toBeUndefined();
   });
 
-  test('break ends with no final after a paint that rode the vendor’s final', async () => {
+  test('break ends before the answer did after a paint that rode the state the vendor’s answer ended on', async () => {
     const script: Script = ({ctx, vendorContextId}) => [
       {
         kind: 'status-update',
@@ -553,7 +559,8 @@ describe('AgentsPool — the fault map (task 8.3 decision 14)', () => {
     const {pool} = await poolFor({script}, faulted({fault: 'break'}));
     const {events, record} = await drain(pool.dispatch('github', turn({fromPlan: true})));
     expect(events).toHaveLength(1);
-    expect(record).toMatchObject({outcome: 'failed', cause: 'unreachable', sawFinal: false});
+    expect(record).toMatchObject({outcome: 'failed', cause: 'unreachable'});
+    expect(record.endState).toBeUndefined();
   });
 
   test('invalid gives a component of the paint a prop its catalog rejects', async () => {
@@ -590,10 +597,10 @@ describe('AgentsPool — the fault map (task 8.3 decision 14)', () => {
     ];
     const {pool} = await poolFor({script}, faulted({fault: 'invalid'}));
     const {events, record} = await drain(pool.dispatch('github', turn({fromPlan: true})));
-    const data = (events[0] as TaskStatusUpdateEvent).status.message!.parts[0] as {
-      data: {updateComponents: {components: Array<Record<string, unknown>>}};
+    const data = datasOf(events[0])[0] as {
+      updateComponents: {components: Array<Record<string, unknown>>};
     };
-    expect(data.data.updateComponents.components).toEqual([
+    expect(data.updateComponents.components).toEqual([
       {id: 'root', component: 'Column', children: REJECTED_VALUE},
       {id: 't', component: 'Text', text: 'hi'},
     ]);
@@ -844,6 +851,8 @@ describe('AgentsPool — the update check (task-15.5 decisions 1 to 4)', () => {
     expect(vendor.requests).toEqual([]);
     expect(record).toMatchObject({outcome: 'failed', update: finding('catalogs')});
     expect(record.authority).toBeUndefined();
+    expect(record.a2aVersion).toBeUndefined();
+    expect(record.binding).toBeUndefined();
     expect(calls).toEqual(['catalogs github', 'finding github catalogs']);
   });
 
@@ -976,7 +985,7 @@ describe('AgentsPool — the update check (task-15.5 decisions 1 to 4)', () => {
 describe('AgentsPool — the credential bar at the paint (task 12.7)', () => {
   const SECRET = {id: 'pw', component: 'TextField', label: 'Password', variant: 'obscured'};
   const CLEAN = {id: 'root', component: 'Text', text: 'Open your settings on the website.'};
-  const isRepair = (message: Message) =>
+  const isRepair = (message: VendorMessage) =>
     message.parts.some(p => p.kind === 'text' && p.text.startsWith('Your last answer included'));
 
   /** One paint per send: the secret field until the repair arrives, then a clean one. */
@@ -992,7 +1001,7 @@ describe('AgentsPool — the credential bar at the paint (task 12.7)', () => {
         version: 'v0.9',
         createSurface: {surfaceId: 's1', catalogId: BASIC_CATALOG_ID},
       };
-      const event = (parts: object[], final: boolean): TaskStatusUpdateEvent => ({
+      const event = (parts: object[], final: boolean): VendorStatusUpdate => ({
         kind: 'status-update',
         taskId: ctx.taskId,
         contextId: vendorContextId,
@@ -1042,13 +1051,14 @@ describe('AgentsPool — the credential bar at the paint (task 12.7)', () => {
   test('what a streamed answer already showed is taken down, stamped refused, before the repair', async () => {
     const {pool, vendor} = await poolFor({script: paints({stream: true})});
     const {events, record} = await drain(pool.dispatch('github', turn()));
-    const stamps = events.map(e => (e.metadata as Record<string, {refused?: boolean}>).a2uiverse);
+    const stamps = events.map(stampOf);
     const down = stamps.findIndex(stamp => stamp?.refused === true);
     expect(down).toBeGreaterThan(0);
-    const takenDown = events[down] as TaskStatusUpdateEvent;
-    expect(takenDown.final).toBe(false);
-    expect(takenDown.status.message!.parts).toEqual([
-      {kind: 'data', data: {version: 'v0.9', deleteSurface: {surfaceId: 's1'}}},
+    const takenDown = events[down];
+    expect(takenDown.payload?.$case).toBe('statusUpdate');
+    expect(stateOf(takenDown)).toBe(TaskState.TASK_STATE_WORKING);
+    expect(partsOf(takenDown)).toEqual([
+      dataPart({version: 'v0.9', deleteSurface: {surfaceId: 's1'}}),
     ]);
     expect(JSON.stringify(events)).not.toContain('obscured');
     expect(record.outcome).toBe('completed');
@@ -1122,7 +1132,7 @@ describe('AgentsPool — the credential bar at the paint (task 12.7)', () => {
 
   const faulted = (fault: Fault) => ({faults: new Map([['github', fault]])});
   /** The vendor answers every send clean: the fault alone paints the secret field. */
-  const repairShaped = (s: Parameters<Script>[0]): Message => ({
+  const repairShaped = (s: Parameters<Script>[0]): VendorMessage => ({
     ...s.ctx.userMessage,
     parts: [{kind: 'text', text: 'Your last answer included'}],
   });

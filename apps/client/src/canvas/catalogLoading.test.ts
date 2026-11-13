@@ -8,13 +8,14 @@
  * restored in its own (task 15.6).
  */
 import {describe, expect, it, vi} from 'vitest';
-import type {MessageSendParams, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import {TaskState, type SendMessageRequest} from '@a2a-js/sdk';
 import {Catalog, type A2uiMessage} from '@a2ui/web_core/v0_9';
 import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
 import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {BASIC_CATALOG_ID, CATALOG_LOAD_FAILED} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2AMessageSender} from '../a2a/client';
+import {dataOf, dataPart, statusUpdateEvent, type A2AStreamEventData} from '../a2a/messages';
 import {COMPOSED_BEAT} from '../beats/syntheticBeats';
 import {clientCatalogs, resolveCatalog, type ResolvedCatalog} from '../catalogs/clientCatalogs';
 import type {BuildSource} from '../catalogs/loader';
@@ -31,25 +32,14 @@ const event = (
   messages: A2uiMessage[],
   stamp: Record<string, unknown>,
   final = false,
-): TaskStatusUpdateEvent => ({
-  kind: 'status-update',
-  taskId: 't1',
-  contextId: 'ctx-1',
-  final,
-  status: {
-    state: final ? 'completed' : 'working',
-    message: {
-      kind: 'message',
-      role: 'agent',
-      messageId: crypto.randomUUID(),
-      parts: messages.map(data => ({
-        kind: 'data' as const,
-        data: data as unknown as Record<string, unknown>,
-      })),
-    },
-  },
-  metadata: {a2uiverse: stamp},
-});
+): A2AStreamEventData =>
+  statusUpdateEvent({
+    taskId: 't1',
+    contextId: 'ctx-1',
+    state: final ? TaskState.TASK_STATE_COMPLETED : TaskState.TASK_STATE_WORKING,
+    parts: messages.map(dataPart),
+    metadata: {a2uiverse: stamp},
+  });
 
 const GMAIL_FRAGMENT = [
   msg({createSurface: {surfaceId: 'gmail:inbox', catalogId: LATE}}),
@@ -75,7 +65,7 @@ const lateBuild = (artifact: string) =>
   );
 
 /** A stream the hub answers in events, each a batch of messages under its stamp. */
-type Events = () => AsyncGenerator<TaskStatusUpdateEvent>;
+type Events = () => AsyncGenerator<A2AStreamEventData>;
 
 /** A canvas over the client's own catalogs and builds the test loads by hand. */
 function canvasWith(
@@ -84,7 +74,7 @@ function canvasWith(
 ) {
   const own = clientCatalogs();
   const catalogs = own.map(c => c.catalog);
-  const sent: MessageSendParams[] = [];
+  const sent: SendMessageRequest[] = [];
   const client: A2AMessageSender = {
     sendMessageStream(params) {
       sent.push(params);
@@ -149,8 +139,8 @@ describe('a fragment in a catalog the canvas does not hold yet', () => {
     await wiring.sendUtterance('what needs my attention');
     await settle();
     expect(wiring.viewed()!.store.getState().placement.has('gmail')).toBe(false);
-    const report = sent[1]!.message.parts[0] as unknown as {data: {error: Record<string, unknown>}};
-    expect(report.data.error).toEqual({
+    const report = dataOf(sent[1]!.message!.parts[0]!);
+    expect(report?.error).toEqual({
       code: CATALOG_LOAD_FAILED,
       surfaceId: 'gmail:inbox',
       message: 'the entry threw',
@@ -162,7 +152,7 @@ describe('a fragment in a catalog the canvas does not hold yet', () => {
     const {wiring, sent} = canvasWith(() => Promise.resolve(lateBuild('sha256-late')));
     await wiring.sendUtterance('what needs my attention');
     // Under each version's key (task-19.3 decision 3).
-    expect(sent[0]!.message.metadata?.a2uiClientCapabilities).toEqual({
+    expect(sent[0]!.message!.metadata?.a2uiClientCapabilities).toEqual({
       'v0.9': {supportedCatalogIds: [BASIC_CATALOG_ID, SHELL_CATALOG_ID]},
       'v0.9.1': {supportedCatalogIds: [BASIC_CATALOG_ID, SHELL_CATALOG_ID]},
     });
