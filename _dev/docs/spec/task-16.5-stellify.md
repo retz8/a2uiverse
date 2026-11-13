@@ -16,6 +16,8 @@ Stellify brought onto the upstream releases Phase 16 pins, packing against the h
 
 Stellify's committed build carries its own code and the sdk's projection and contracts, as task-11.3 decision 2 has it, so a git install needs no build and no workspace sibling. The sdk's npm dependencies — `@a2ui/web_core` 0.14.0, zod and ajv — are Stellify's runtime dependencies, external like esbuild and `@a2a-js/sdk`, at the versions the sdk declares; a test holds the two equal. The library entry and the CLI share one copy of the code.
 
+*Amended by task 20.2 decision 3.* The build inlines a second workspace package beside the sdk: the smoke transport's (the smoke request's transport and the fetch of the live card). `@a2a-js/sdk` stays external, and the test holds Stellify's dependencies equal to that package's too.
+
 ### 2. Stellify 0.3.0
 
 Stellify's version moves to 0.3.0, the version each artifact it packs names in `packedBy`.

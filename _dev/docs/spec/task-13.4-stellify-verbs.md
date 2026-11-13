@@ -30,6 +30,8 @@ The file is `publisher.json` in a `stellify` directory under the XDG configurati
 
 Stellify gains `@a2a-js/sdk` pinned at 0.3.14 as a runtime dependency beside esbuild, external in the committed build, resolved from npm at a vendor's git install as esbuild is. `preview`'s transport is the marketplace's smoke transport with a credential header added: a client built from the fetched card, one streaming message carrying the A2UI extension and the app's entitlement as its client capabilities, every data part collected across the stream, the same end-state rule, the 401 wrapper.
 
+*Amended by task 20.2 decisions 1, 2 and 3.* `@a2a-js/sdk` is pinned at exactly `1.3.0`, external in the committed build until a patch to it first alters how an agent is reached, when it moves into the build in the same change. `preview`'s transport is the one smoke transport: a runner that takes an optional credential header, in a workspace package of its own, which the marketplace depends on and Stellify's committed build inlines. An answer ends by state, `final` unread.
+
 ### 5. The credential
 
 The publisher supplies the secret alone in the environment variable `STELLIFY_CREDENTIAL`; no flag, no file. The header it rides in is chosen from the card exactly as the orchestrator's vault chooses it: the first usable alternative of the card's `security` in the card's order names the scheme; `http` bearer, `oauth2` and `openIdConnect` ride as a bearer `Authorization` header, `apiKey` in a header rides as that named header. A card whose alternatives name none of those is refused with a finding saying the scheme is not supported here, the vault's rule. The publisher never names the header.
