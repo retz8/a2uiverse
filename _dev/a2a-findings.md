@@ -1,8 +1,8 @@
 # A2A upstream findings
 
 Issues found in the A2A specification and its reference implementations, recorded for
-upstream contribution (`a2aproject/A2A`, `a2aproject/a2a-python`). Each finding is
-self-contained and reproducible against upstream artifacts only.
+upstream contribution (`a2aproject/A2A`, `a2aproject/a2a-python`, `a2aproject/a2a-js`). Each
+finding is self-contained and reproducible against upstream artifacts only.
 
 ---
 
@@ -363,3 +363,245 @@ Issue [#710](https://github.com/a2aproject/a2a-js/issues/710) on `a2a-js` ("JSON
 `a2a-tck`'s checks on this header (`tests/compatibility/core_operations/test_transport_behavior.py` at `d4d6fae788`) send it and look only for the request being rejected.
 
 No issue or PR across `a2aproject` names the disagreement, searched 2026-11-05.
+
+---
+
+## 3. Inside one binding the client takes an A2A 1.0 interface over a 0.3 one, whatever the card's order (a2a-js 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0, `src/client/factory.ts`, `ClientFactory.createFromNormalizedAgentCard`: for each binding it keeps the first interface the card lists, and replaces it with any later interface on that binding whose `protocolVersion` is `"1.0"`.
+
+**Severity:** spec conformance. The A2A 1.0 specification's `AgentCard.supported_interfaces` is an "Ordered list of supported interfaces. The first entry is preferred." (`specification/a2a.proto` at A2A `v1.0.0`). An agent that lists its A2A 0.3 interface first is dialed on 1.0.
+
+### Issue
+
+An agent that answers both A2A versions over JSON-RPC states its preference by the order of its interfaces. The client ignores that order inside one binding: with `JSONRPC` at 0.3 listed before `JSONRPC` at 1.0, it dials the 1.0 interface. Of several 1.0 interfaces on one binding it takes the last.
+
+### Reproduction
+
+```js
+import {AgentCard, Role} from '@a2a-js/sdk';
+import {ClientFactory, JsonRpcTransportFactory} from '@a2a-js/sdk/client';
+
+const calls = [];
+const fetchImpl = async (input, init) => {
+  calls.push([String(input), new Headers(init?.headers).get('a2a-version')]);
+  return new Response('{}', {status: 500});
+};
+const card = AgentCard.fromJSON({
+  name: 'Agent',
+  version: '1.0.0',
+  supportedInterfaces: [
+    {url: 'http://agent.example/v0_3', protocolBinding: 'JSONRPC', protocolVersion: '0.3'},
+    {url: 'http://agent.example/v1', protocolBinding: 'JSONRPC', protocolVersion: '1.0'},
+  ],
+});
+const legacyCompat = {enabled: true};
+const client = await new ClientFactory({
+  transports: [new JsonRpcTransportFactory({fetchImpl, legacyCompat})],
+}).createFromAgentCard(card);
+const message = {
+  messageId: 'm', contextId: '', taskId: '', role: Role.ROLE_USER, parts: [],
+  metadata: {}, extensions: [], referenceTaskIds: [],
+};
+await client
+  .sendMessage({tenant: '', message, configuration: undefined, metadata: undefined})
+  .catch(() => {});
+console.log(calls);
+```
+
+```text
+[ [ 'http://agent.example/v1', '1.0' ] ]
+```
+
+Run on 2026-11-13: `@a2a-js/sdk` 1.3.0 on Node 22.15.0.
+
+### Fix
+
+Keep the first interface the card lists for each binding that the client can speak, whatever its A2A version.
+
+A2UIVerse reads around it (task-20.3 decision 11): it chooses the interface itself, the first in the card's order that it speaks, and hands the client the card listing that one interface, which the client then dials. `_dev/TODO.md` carries the Backlog line to drop this at the release that follows the card's order.
+
+### Prior art
+
+Issue [#734](https://github.com/a2aproject/a2a-js/issues/734) reports that of several 1.0 interfaces on one binding the last is chosen. Pull request [#764](https://github.com/a2aproject/a2a-js/pull/764), merged on 2026-10-08 and not in 1.3.0, makes the first 1.0 interface win, and keeps a 1.0 interface replacing a 0.3 one. No issue reports the 0.3 case, searched in `a2aproject/a2a-js` on 2026-11-13.
+
+---
+
+## 4. The server's card handler serves the in-memory card, whose sign-in schemes the SDK's own reader drops (a2a-js 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0, `src/server/express/agent_card_handler.ts`, `agentCardHandler`: the body is `JSON.stringify(agentCard)` of the in-memory `AgentCard`. Read back by `AgentCard.fromJSON` (`src/types/protojson.ts`).
+
+**Severity:** interoperability. A server built on the SDK whose card declares a sign-in scheme serves a card no A2A 1.0 client reads the scheme from, the SDK's own client among them.
+
+### Issue
+
+The in-memory `SecurityScheme` holds its kind under `scheme.$case` with the scheme under `scheme.value`. A2A 1.0's JSON names the kind by a member, `apiKeySecurityScheme`, `oauth2SecurityScheme` and the rest. `agentCardHandler` writes the in-memory form to the wire, and `AgentCard.fromJSON` reads neither `scheme` nor `$case`, so each scheme comes back empty. The security requirements survive, since their in-memory keys are the wire's, so the card reads as requiring a scheme that says nothing.
+
+### Reproduction
+
+```js
+import {createServer} from 'node:http';
+import express from 'express';
+import {AgentCard} from '@a2a-js/sdk';
+import {DefaultRequestHandler, InMemoryTaskStore} from '@a2a-js/sdk/server';
+import {agentCardHandler} from '@a2a-js/sdk/server/express';
+
+const card = AgentCard.fromJSON({
+  name: 'Agent',
+  version: '1.0.0',
+  supportedInterfaces: [
+    {url: 'http://127.0.0.1:18731/', protocolBinding: 'JSONRPC', protocolVersion: '1.0'},
+  ],
+  securitySchemes: {key: {apiKeySecurityScheme: {location: 'header', name: 'X-Key'}}},
+  securityRequirements: [{schemes: {key: {list: []}}}],
+});
+const executor = {execute: async () => {}, cancelTask: async () => {}};
+const handler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
+const app = express();
+app.use('/.well-known/agent-card.json', agentCardHandler({agentCardProvider: handler}));
+const server = createServer(app).listen(18731, '127.0.0.1', async () => {
+  const served = await (
+    await fetch('http://127.0.0.1:18731/.well-known/agent-card.json', {
+      headers: {'A2A-Version': '1.0'},
+    })
+  ).json();
+  console.log('served', JSON.stringify(served.securitySchemes));
+  console.log('read  ', JSON.stringify(AgentCard.fromJSON(served).securitySchemes));
+  server.close();
+});
+```
+
+```text
+served {"key":{"scheme":{"$case":"apiKeySecurityScheme","value":{"description":"","location":"header","name":"X-Key"}}}}
+read   {"key":{}}
+```
+
+Run on 2026-11-13: `@a2a-js/sdk` 1.3.0 and Express 5.2.1 on Node 22.15.0. Python's `a2a-sdk` 1.3.0 serves the same card as `{"key":{"apiKeySecurityScheme":{"location":"header","name":"X-Key"}}}`, which `AgentCard.fromJSON` reads whole. Both captures are tracked under `packages/card/test/fixtures/`: `javascript-1.0-sign-in.json` and `python-1.0.json`.
+
+### Fix
+
+Serve `AgentCard.toJSON(agentCard)`, the codec the package already exports.
+
+A2UIVerse carries nothing for it (task-20.3 decisions 1, 8): what the SDK's reader drops, the card's one reading drops, so an app on such a server reads as asking a sign-in the platform does not support. No agent in the roster is built on the SDK's server.
+
+### Prior art
+
+Issue [#663](https://github.com/a2aproject/a2a-js/issues/663) reports that canonicalizing a card for signing drops `securitySchemes` when given an in-memory card, the same two forms meeting in another place. No issue reports the served form, searched in `a2aproject/a2a-js` on 2026-11-13.
+
+---
+
+## 5. A card served to a caller naming no A2A version reads, by the SDK's own reader, as asking no sign-in (a2a-js 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0. The server: `src/compat/v0_3/server/express/agent_card_handler.ts`, `legacyAgentCardRouter`, which answers a request whose `A2A-Version` is absent or in 0.3's range with `toCompatAgentCard(card, {embedV1Interfaces: true})`. The client: `src/compat/v0_3/client/card-resolver.ts`, `isLegacyAgentCard`, and `AgentCard.fromJSON`.
+
+**Severity:** interoperability. A client that fetches a card without naming an A2A version and reads it with the SDK's functions sees an agent that requires sign-in as requiring none.
+
+### Issue
+
+With its A2A 0.3 layer on, the card handler serves a caller that names no A2A version a card in 0.3's shape with 1.0's `supportedInterfaces` embedded beside it: `url`, `preferredTransport`, 0.3's `security` and `securitySchemes`, and `supportedInterfaces`. `isLegacyAgentCard` returns false for any card with a non-empty `supportedInterfaces`, so such a card goes to `AgentCard.fromJSON`, which reads `securityRequirements` and not `security`, and reads 0.3's schemes as empty. The read card has no requirement.
+
+### Reproduction
+
+The server of finding 4, its handler given `legacyCompat: {enabled: true}` and its card a second interface at `protocolVersion: '0.3'`, fetched with no `A2A-Version` header:
+
+```text
+served security            [{"key":[]}]
+served securitySchemes     {"key":{"type":"apiKey","name":"X-Key","in":"header"}}
+served supportedInterfaces [{"url":"http://127.0.0.1:18731/","protocolBinding":"JSONRPC","protocolVersion":"1.0"},{"url":"http://127.0.0.1:18731/","protocolBinding":"JSONRPC","protocolVersion":"0.3"}]
+isLegacyAgentCard          false
+read securityRequirements  []
+read securitySchemes       {"key":{}}
+```
+
+Run on 2026-11-13: `@a2a-js/sdk` 1.3.0 on Node 22.15.0. The capture is tracked as `packages/card/test/fixtures/javascript-no-version-named.json`.
+
+### Fix
+
+Either read 0.3's `security` and `securitySchemes` when a card carries both shapes, or leave 1.0's interfaces out of the card served to a 0.3 caller.
+
+A2UIVerse's card fetch names A2A 1.0 (task-20.3 decision 4), as the SDK's own resolver does, and is served the 1.0 form.
+
+### Prior art
+
+Pull request [#504](https://github.com/a2aproject/a2a-js/pull/504) ("feat: add v0.3 compatibility layer for client and server agent-card handling", merged) added both halves. No issue reports the two together, searched in `a2aproject/a2a-js` on 2026-11-13.
+
+---
+
+## 6. The client takes any A2A version outside 0.3's range as 1.0 (a2a-js 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0, `src/client/transports/json_rpc_transport.ts`, `JsonRpcTransportFactory.create`, with `src/version_utils.ts`, `isLegacyVersion`: an interface whose `protocolVersion` is from 0.3 up to but not including 1.0, or empty, gets the 0.3 transport, and every other interface the 1.0 transport.
+
+**Severity:** robustness. An interface at a version the client does not speak is dialed as A2A 1.0.
+
+### Issue
+
+The A2A 1.0 specification's `AgentInterface.protocol_version` names "The version of the A2A protocol this interface exposes." The client does not compare it with the versions it implements: an interface at `2.0`, or at `0.2`, is sent A2A 1.0's `SendMessage` with `A2A-Version: 1.0`.
+
+### Reproduction
+
+The script of finding 3 with one interface, `{url: 'http://agent.example/v2', protocolBinding: 'JSONRPC', protocolVersion: '2.0'}`:
+
+```text
+[ [ 'http://agent.example/v2', '1.0' ] ]
+```
+
+Run on 2026-11-13: `@a2a-js/sdk` 1.3.0 on Node 22.15.0.
+
+### Fix
+
+Refuse an interface whose major version the client does not implement, as it refuses a binding it has no transport for ("No compatible transport found").
+
+A2UIVerse speaks an interface only at a version from 0.3 up to 1.x (task-20.3 decision 10), and turns an agent listing nothing else away before the client is built.
+
+### Prior art
+
+None found, searched in `a2aproject/a2a-js` on 2026-11-13.
+
+---
+
+## 7. The client reads an in-memory card over again as JSON and drops its sign-in schemes (a2a-js 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0, `src/client/card-resolver.ts`, `DefaultAgentCardResolver.normalizeAgentCard` and its `isProtoAgentCard`; reached from `ClientFactory.createFromAgentCard` in `src/client/factory.ts`.
+
+**Severity:** correctness. A caller that hands `createFromAgentCard` a card it already holds in memory gets a client whose card has empty sign-in schemes.
+
+### Issue
+
+`normalizeAgentCard` passes a card to `AgentCard.fromJSON` when it looks like A2A 1.0's JSON, which `isProtoAgentCard` decides from the first sign-in scheme having no `type` key. An in-memory `SecurityScheme` has no `type` key either: its kind is under `scheme.$case`. So an in-memory card is parsed as JSON, and `fromJSON` reads no scheme from the in-memory form.
+
+### Reproduction
+
+```js
+import {AgentCard} from '@a2a-js/sdk';
+import {DefaultAgentCardResolver} from '@a2a-js/sdk/client';
+
+const card = AgentCard.fromJSON({
+  name: 'Agent',
+  version: '1.0.0',
+  supportedInterfaces: [
+    {url: 'http://127.0.0.1:1/a2a', protocolBinding: 'JSONRPC', protocolVersion: '1.0'},
+  ],
+  securitySchemes: {key: {apiKeySecurityScheme: {location: 'header', name: 'X-Key'}}},
+  securityRequirements: [{schemes: {key: {list: []}}}],
+});
+console.log('before', JSON.stringify(card.securitySchemes));
+const normalized = new DefaultAgentCardResolver().normalizeAgentCard(card);
+console.log('after ', JSON.stringify(normalized.securitySchemes));
+```
+
+```text
+before {"key":{"scheme":{"$case":"apiKeySecurityScheme","value":{"description":"","location":"header","name":"X-Key"}}}}
+after  {"key":{}}
+```
+
+Run on 2026-11-13: `@a2a-js/sdk` 1.3.0 on Node 22.15.0.
+
+### Fix
+
+Tell the in-memory form from A2A 1.0's JSON before parsing, by the `scheme` key an in-memory scheme carries.
+
+A2UIVerse's dispatch and its smoke runner give the client factory a card resolver with no `normalizeAgentCard`, so the card they hand over is the card the client holds.
+
+### Prior art
+
+Pull request [#344](https://github.com/a2aproject/a2a-js/pull/344) ("fix: support proto-based AgentCard in AgentCardResolver", merged) added the detection. No issue reports the in-memory case, searched in `a2aproject/a2a-js` on 2026-11-13.

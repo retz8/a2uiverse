@@ -40,6 +40,8 @@ The transport of the smoke request lives once, in a small workspace package of i
 
 The same package holds the fetch of the live card: the card fetched under its timeout and kept as its agent served it. The marketplace uses it at publish, at its refresh at boot and on a report. Stellify uses it for `preview`. Where the card's one reading lives stays with 20.3.
 
+*Amended by task 20.3 decision 3.* The fetch of the live card is in the card package, the workspace package 20.3 adds for the card's one reading, and the smoke-transport package holds the smoke request's transport alone. The orchestrator uses the same fetch, beside the marketplace and Stellify.
+
 ### 5. Until 20.3 a card is the platform sdk's `PublishedCard`
 
 The marketplace and Stellify hold a card as the platform sdk's [`PublishedCard`](../../../packages/sdk/js/src/marketplace.ts), the structural type the index entry stores it as, from the fetch through to the index entry. No new card type is written. The runner hands the card to the A2A SDK, whose 0.3 layer translates it, as the orchestrator's dispatch does.

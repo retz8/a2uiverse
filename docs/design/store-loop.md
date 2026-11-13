@@ -208,7 +208,8 @@ An app ahead of the Store whose live card asks a new permission takes the waitin
 
 - **No Store answer.** The tile's line with the Store unreached is "Shop B has changed, and the Store couldn't be reached." with Retry, which judges the app again; an app no longer in the Store, or installed from your computer, reads "Shop B has changed, and the Store has no update for it.", with nothing to press.
 - **Uninstalled.** A slot whose app was uninstalled keeps "This app isn't installed anymore." with Retry, and offers no reinstall.
-- **An install refused** says why on its own row, in the Store's words, with that cause's press: the Store behind the app, the app or the Store unreached, the checks failed, the app no longer in the Store ("Google Calendar isn't in the Store anymore, so nothing was installed.", nothing to press), or a request that got no answer ("That didn't go through, so nothing was installed.", Try again). The refusal stays on its slot until the next press there, or until the app is installed elsewhere. Try again goes with no second consent card only after a press that passed the card.
+- **No interface the platform speaks.** A slot whose app's card lists none reads "This app now connects in a way A2UIVerse can't use." with Retry, which fetches the app's live card again first; the update tile is not judged for it.
+- **An install refused** says why on its own row, in the Store's words, with that cause's press: the Store behind the app, the app or the Store unreached, the checks failed, the app's card listing no interface the platform speaks ("Shop B can't be installed. It connects in a way A2UIVerse can't use, so nothing was installed.", nothing to press), the app no longer in the Store ("Google Calendar isn't in the Store anymore, so nothing was installed.", nothing to press), or a request that got no answer ("That didn't go through, so nothing was installed.", Try again). The refusal stays on its slot until the next press there, or until the app is installed elsewhere. Try again goes with no second consent card only after a press that passed the card.
 
 ### A past canvas, and the way back, after a new build
 
@@ -226,7 +227,7 @@ interface StoreApp {appId: string; name: string; publisher: string; description:
   skills: {name: string; description: string; examples: string[]}[]}
 ```
 
-Installed apps are left out of the answer. An attempt takes at most five steps (`MAX_STEPS`): the three readers, the search, and the answer. Each call goes on the plan's record as `{name: "search_store", args: {words}, result}`, and `searchesOf` reads that record back as `{words, reached, apps}`, the one record behind the plan check, the line with nothing to offer and the journal.
+Installed apps are left out of the answer, and so is an entry whose card doesn't read. An attempt takes at most five steps (`MAX_STEPS`): the three readers, the search, and the answer. Each call goes on the plan's record as `{name: "search_store", args: {words}, result}`, and `searchesOf` reads that record back as `{words, reached, apps}`, the one record behind the plan check, the line with nothing to offer and the journal.
 
 The gap in the plan is `{gap: "<words>", offers: [{app, request?}]}` beside the dispatch entries, and a `Slot` holding `gap: "<words>"` in the tree. The validator's `offerErrors` refuses a gap whose words aren't one of this plan's searches, an app offered twice or under two gaps, an installed app ("dispatch to it, never offer it"), an app no search of this plan returned, and a blank request. A refused plan goes back to the model once with the findings, in the same conversation; a second refusal is a broken turn. A gap with an offer counts toward a merged view's two sources.
 
@@ -262,7 +263,7 @@ Until the app's first answer, the slot keeps the offer it came from (`keeps: {ga
 
 ### The update check, and its finding
 
-The pool runs two checks before every dispatch (`agentsPool/agentsPool.ts`): `catalogsChanged`, before the sign-in, true when the live card the run holds names catalog ids and none of them is in the app's entitlement; and `permissionChanged`, after it, the vault's judgement that the account meets the installed card but falls short of the live one. Either stops the dispatch, the agent not called, with an **update finding** on its record (`registry/updateTile.ts`):
+Before either check the pool judges that the app can be reached: a card listing no interface the platform speaks fails the dispatch with the `interface` cause and the failure tile, the agent not called and the update not judged ([`card.md`](card.md)). Then the pool runs two checks before every dispatch (`agentsPool/agentsPool.ts`): `catalogsChanged`, before the sign-in, true when the live card the run holds names catalog ids and none of them is in the app's entitlement; and `permissionChanged`, after it, the vault's judgement that the account meets the installed card but falls short of the live one. Either stops the dispatch, the agent not called, with an **update finding** on its record (`registry/updateTile.ts`):
 
 ```ts
 interface UpdateFinding {case: 'catalogs' | 'permission'; state: UpdateState; publisher?: string; line: UpdateLine}
@@ -302,6 +303,7 @@ The loop adds no entry kind. The search is a tool call on the plan's record; the
 | "Couldn't reach the Store." where an offer would be | The plan's search didn't reach the marketplace | Start the marketplace; ask again — nothing resumes on its own |
 | "Nothing in the Store can do this yet." for an app you know is published | The search's cut didn't reach it, or the Planner judged it didn't fit | Search the Store on the words; a later question offers it if it fits |
 | A row's "Shop B can't be installed yet." | Shop B's live card is ahead of the Store | The publisher publishes; Try again later |
+| A row's "Shop B can't be installed. It connects in a way A2UIVerse can't use, so nothing was installed." | Shop B's live card lists no interface the platform speaks | Nothing to press: the publisher's agent has to serve one the platform speaks |
 | "…and the Store is waiting on its publisher" that doesn't move | The app changed and the Store hasn't the version yet | Check again once it's published, or once the app is back on what the Store holds |
 | "Shop A is updated." with Show it here on the slot you pressed Update in | The update landed, and its resend got no answer | Show it here sends it again |
 | A slot on "Loading…" after Install | The app's first answer, or its sign-in, hasn't landed | It changes once, when one does |
@@ -324,7 +326,7 @@ The loop adds no entry kind. The search is a tool call on the plan's record; the
 
 - **A plan that searches is slow.** About 30 seconds for the example, up to 66 when the Planner searches several times.
 - **The search can't tell a search nothing fits from a match.** "flight booking" scores Google Calendar above the weakest right match in the labelled searches, so the Planner judges fit itself ([`marketplace.md`](marketplace.md#index-embedding-and-search)).
-- **A change made while the orchestrator runs** shows only once the live card is fetched again: by the App Library's check, a Retry from the update tile, a refused paint, or a call that ends with no surface.
+- **A change made while the orchestrator runs** shows only once the live card is fetched again: by the App Library's check, a Retry from the update tile or from the failure tile of an app the platform couldn't reach, a refused paint, or a call that ends with no surface.
 - **A question changes no canvas but its own.** Every question opens a canvas of its own, so an install asked for answers on the new canvas, not the one you were looking at.
 
 ## Trying it

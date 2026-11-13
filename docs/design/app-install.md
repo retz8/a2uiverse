@@ -66,11 +66,13 @@ Everything the platform needs is in it:
 | --- | --- |
 | `name` | the app's name above its slot, and in the Planner's view of the platform |
 | `description`, `skills` | routing: the Router ranks a question against them |
-| `url` | where a question to the app is sent |
+| `url`, or `supportedInterfaces` on a card written for A2A 1.0 | where a question to the app is sent: the first interface in the card's order that the platform speaks |
 | `supportedCatalogIds`, under the A2UI extension | the catalogs the app paints in |
 | `provider` | the vendor the app fronts, at its own site: where "Continue on <App>" goes when a paint was refused |
 | `documentationUrl` | the app's help page: the link on the page where a key is pasted, and where "Continue on <App>" goes when there's no `provider` |
-| `securitySchemes`, `security` | the sign-in the app needs, checked before every dispatch ([`authority.md`](authority.md)) |
+| `securitySchemes`, `security` (`securityRequirements` on a card written for A2A 1.0) | the sign-in the app needs, checked before every dispatch ([`authority.md`](authority.md)) |
+
+GitHub's card is written for A2A 0.3. A card written for A2A 1.0 says the same things in 1.0's fields, and every process reads either one through the card's one reading, into one shape ([`card.md`](card.md)).
 
 The one thing the platform adds is the **app id**, `github` here: the namespace on every surface the app paints (`github:notifications-1`), and the app's name in every ref the merged view makes into its data. It's given at install: a lowercase slug, with `shell` reserved for A2UIVerse itself.
 
@@ -208,7 +210,7 @@ pnpm --filter @a2uiverse/orchestrator registry install github \
 The command reads the artifact folder, base64-encodes every file, and posts `{appId, cardUrl, catalogs: [{files}]}` to `POST /registry/install` with the write token. The files travel in the request: the orchestrator never reads a path it's handed. It fetches the card, then checks the app, collecting every finding before it answers and refusing the whole app on any:
 
 - the app id is a slug, and not `shell`;
-- the card fetches, with a `url` and a `name`, and its catalog declaration is valid A2UI;
+- the card fetches, within ten seconds, and reads; it lists an interface the platform speaks; and its catalog declaration is valid A2UI;
 - **coverage, both ways**: every catalog the card declares is handed or is the basic catalog, and every artifact handed is one the card declares;
 - each artifact passes the **static gate**, everything its files alone can prove;
 - no artifact is handed for the basic or the shell catalog;
@@ -330,6 +332,8 @@ It's a **hash tree** one level deep, like a Merkle tree: the id is a hash over t
 
 `apps/orchestrator/src/registry/registry.ts` (`Registry.install`) and the sdk's `gateArtifact` (`packages/sdk/js/src/gate.ts`). Every check is a function of the sdk's, and the marketplace runs the same gate at publish, so both refuse the same things for the same reasons. Install runs every check and collects every finding before it answers. One finding refuses the whole app, and the publisher sees everything there is to fix at once.
 
+**Reading the card.** The registry fetches the card through the card package's fetch (`fetchLiveCard` in `packages/card`, naming A2A 1.0 in its request, ten seconds unless `A2UIVERSE_CARD_TIMEOUT_SECONDS` says otherwise) and reads it through the card's one reading (`readCard`). A card that can't be fetched, or that was fetched and doesn't read (`the card at … could not be read: …`, the A2A SDK's own message), refuses the install as an app that couldn't be reached. A card that lists no interface the platform speaks refuses it under a cause of its own, `no-interface`, with one finding saying what the card lists and what the platform speaks, and nothing else is checked.
+
 **Reading the card's catalogs.** `readCatalogIdsByVersion` reads the card per A2UI version: the extension entries whose URI is v0.9's or v0.9.1's count, and an entry for a version the platform does not speak — upstream's ADK restaurant finder lists v0.8 beside v0.9 — is passed over. Inside a counted entry the params are read flat, as the extension guide writes them and Gmail's card has them, or keyed by version (`{"v0.9.1": {"supportedCatalogIds": […]}}`), the shape of the schema's whole object and of GitHub's card; the entry's URI decides which version the ids land under, and each object is validated against the one version part of the pinned schema, never the root's required key. The map comes out filled: a version whose entries name no ids takes the other's set, so only a card whose two entries name different sets keeps a version axis, which the hub alone reads. `readSupportedCatalogIds` is the union over the versions, and it is what install, coverage and the update check read. A malformed entry is a finding for the whole card, naming its version, never read as "declares none".
 
 **Coverage, both ways.** With `declared` the card's catalog ids and `handed` the id of each artifact handed:
@@ -369,17 +373,17 @@ Install doesn't look for credential inputs in a catalog. The orchestrator checks
 
 - **Every write is a rename.** `registry.json` is written to a temporary file and renamed over the old one; an artifact is written into a temporary folder and renamed to its id. A crash leaves the old state or the new one, never half of each. An artifact whose folder already exists isn't written again, so apps sharing one share a folder.
 - **Artifacts are collected after every write.** Install, install-over and uninstall all end the same way: the artifacts some record still names are kept, and every other folder under `artifacts/` is removed. An artifact lives exactly as long as an installed app names it, and an install-over to a new hash drops the old one. The basic and the shell catalog have no folder: their rows are built from code at every boot.
-- **The boot checks everything again.** At startup the orchestrator reads `registry.json`, checks each record's shape, and hashes every file of every artifact a record names. A file that won't parse, or an artifact missing or changed, stops the boot with the path and the problem.
+- **The boot checks everything again.** At startup the orchestrator reads `registry.json`, checks each record's shape, reads each record's stored card, and hashes every file of every artifact a record names. A file that won't parse, a stored card that doesn't read, or an artifact missing or changed, stops the boot with the path and the problem.
 
 ### Two cards per app
 
-The record keeps the card as it was fetched at install. At every startup the orchestrator fetches each card again from its stored URL, all in parallel, and that's the card the run uses: where questions are sent, the skills the Router ranks, the name the Planner reads. Each update check fetches them all again, and a Retry from an app's update tile fetches that app's again first, given five seconds ([`store-loop.md`](store-loop.md#update-and-what-it-sends-again)), so the run never judges on a card older than its last check. An agent that's down at startup stays installed, can't be routed to for the run, and is named in the boot log.
+The record keeps the card as it was fetched at install, as its agent served it, in the shape of the A2A version it was written in. At every startup the orchestrator fetches each card again from its stored URL, all in parallel, each given ten seconds, and reads it, and that's the card the run uses: where questions are sent, the skills the Router ranks, the name the Planner reads. Each update check fetches them all again, and a Retry from an app's update tile fetches that app's again first, given five seconds ([`store-loop.md`](store-loop.md#update-and-what-it-sends-again)), so the run never judges on a card older than its last check. An agent that's down at startup, or whose card doesn't read, stays installed, can't be routed to until a check reaches a card that reads, and is named in the boot log.
 
 The card on disk changes only by install-over, and a refreshed card never grows the entitlement. An agent that starts declaring a new catalog paints in it only once it's installed over with that catalog's artifact.
 
 ### Install summary
 
-`installSummary(previous, next)` in `registry.ts` writes the line the command and the launcher print:
+`installSummary` in `registry.ts` writes the line the command and the launcher print:
 
 ```
 installed github · card 0.1.0 · catalog sha256-o0lcA0wt…
@@ -389,9 +393,9 @@ updated github · card 0.1.0 · catalog …/catalogs/v0.9.1/catalog.json sha256-
 updated linear · card 0.1.0 · catalog sha256-JvcQSoor… → sha256-zJbZyJNl… · linear-admin followed
 ```
 
-It's a small diff of the two records, written in parts joined by `·`:
+It's a small diff of the two records, each with its stored card read, written in parts joined by `·`:
 
-1. The verb: `installed` when there was no record; `updated` when the card or the set of catalogs and their artifacts differs; otherwise `reinstalled`, followed by `nothing changed`.
+1. The verb: `installed` when there was no record; `updated` when the card is not the same card or the set of catalogs and their artifacts differs; otherwise `reinstalled`, followed by `nothing changed`. Two cards are the same card when they are equal as read, how the agent is reached set aside: its interfaces and its signatures (`sameCard` in the card package).
 2. The card's version, `old → new` when it moved.
 3. Each catalog the old record had and the new one doesn't, named in full, `gone`.
 4. Each catalog of the new record: its artifact; `old → new` when the artifact moved, then the other installed apps that followed the moved row; the id named in full and `new` when the catalog is new.
@@ -402,7 +406,7 @@ An artifact id is shortened to `sha256-` and its next eight characters. (The cat
 
 Both came with the marketplace, and [`marketplace.md`](marketplace.md) is their record. The trusted page's Install and Update are this same install by id, sent from the browser ([`trusted-page.md`](trusted-page.md#install-and-update-one-press)). What they add to the registry:
 
-**Install by id** (`Registry.installFromMarketplace`) is `POST /registry/install` with `{appId}` and nothing else. The registry reads the app's entry from the marketplace (`MARKETPLACE_URL`, `http://localhost:10002` by default), fetches the live card from the URL the entry names, and refuses in words that say the Store is behind the app when the card declares a catalog or a version the entry lacks. Then it resolves each artifact the entry names: one already held is read from disk; otherwise its descriptor is fetched and, file by file, a file whose hash some held artifact lists is copied from disk and the rest fetched. From there `#install` runs exactly as for a pack from disk, with `source: 'marketplace'`. An install by id of an app already installed is the install-over.
+**Install by id** (`Registry.installFromMarketplace`) is `POST /registry/install` with `{appId}` and nothing else. The registry reads the app's entry from the marketplace (`MARKETPLACE_URL`, `http://localhost:10002` by default), fetches the live card from the URL the entry names, refuses under the `no-interface` cause a card that lists no interface the platform speaks, and refuses in words that say the Store is behind the app when the card declares a catalog or a version the entry lacks. Then it resolves each artifact the entry names: one already held is read from disk; otherwise its descriptor is fetched and, file by file, a file whose hash some held artifact lists is copied from disk and the rest fetched. From there `#install` runs exactly as for a pack from disk, with `source: 'marketplace'`. An install by id of an app already installed is the install-over.
 
 **The update check** (`registry/updates.ts`, behind `GET /registry/updates.json` and the boot) fetches, for each installed app, its marketplace entry and its live card, and computes one of eight states: up to date, newer build, card update, major update, update required, ahead of the Store, not published, unknown. A newer build of an app installed from the marketplace, the card unchanged, is installed over on the spot through the install by id and journaled as `automatic` — unless the row's move would carry an app installed from a local pack, which is left for the person. The states and what each means are in [`marketplace.md`](marketplace.md#6-update-state-computed-by-the-orchestrator-from-three-things), the algorithm in [`orchestrator.md`](orchestrator.md#registry-whats-installed).
 
@@ -414,7 +418,7 @@ The journal's `registry` line carries three fields from this: `source`, `followe
 
 | Route | What it serves |
 | --- | --- |
-| `GET apps.json` | the installed records, `Cache-Control: no-cache` |
+| `GET apps.json` | the installed records, each with `reachable`, whether this run holds its card, and `noInterface`, whether that live card lists no interface the platform speaks; `Cache-Control: no-cache` |
 | `GET catalogs.json` | the catalog table, `Cache-Control: no-cache` |
 | `GET artifacts/<id>/<path>` | an artifact's files, `Cache-Control: public, max-age=31536000, immutable` |
 | `GET updates.json` | each installed app's update state, the check run first; `Cache-Control: no-cache` |
@@ -432,6 +436,7 @@ The read routes are shaped like files on purpose: a folder with the same layout,
 - It sends the message's `a2uiClientCapabilities` as the app's entitlement per version, each version's set under its own key, in place of what the client sent, so an app is told only what it may paint in.
 - `catalogOutside` checks the `catalogId` of every `createSurface` in every event the app sends against the set of the message's `version` — the union of the two sets when the stamp is missing or unspoken — through the sdk's `paintOutside`, the rule the marketplace's smoke test shares. A miss is never relayed: the app is sent A2A's `tasks/cancel`, and the dispatch fails with the `catalog` cause, carrying the id; the error names the stamp when the catalog is in the app's union but declared for the other version. The slot's failure tile says "This app sent something that can't be shown here." with no Retry, since the same paint would be refused the same way.
 - An app that isn't installed when the dispatch starts isn't asked at all: its slot fails with the `uninstalled` cause.
+- An app whose card lists no interface the platform speaks isn't asked either: its slot fails with the `interface` cause.
 
 The snapshot is what keeps uninstall and install-over safe in the middle of a question: a dispatch already running finishes under the entitlement it was sent with, and the next one reads the registry as it stands.
 
@@ -529,12 +534,15 @@ Two browser behaviours shape the third column:
 | Stellify finds a problem | `file: reason`, one line each, then "N findings; nothing written"; exit 1 |
 | Install fails any check | Nothing changes. Every finding is answered at once, `422`; the command prints `refused github:` and each finding, and exits 1 |
 | The card can't be fetched at install | Refused: `the card at … could not be fetched: …` |
+| The card was fetched and doesn't read | Refused: `the card at … could not be read: …`, the A2A SDK's own message |
+| The card lists no interface the platform speaks | Refused under the `no-interface` cause, with one finding: `the card lists no interface A2UIVerse speaks: it lists …; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x` |
 | No write token, or the wrong one | `401`; the command names the state directory it read the token from |
 | A browser write from an origin outside the list, or not JSON | `403` or `415`; nothing changes |
 | The registry on disk is damaged | The orchestrator doesn't start; the error names the file and the problem |
 | An agent is down at startup | It stays installed and unroutable for the run; the boot log names it |
 | An app paints outside its entitlement | The paint is dropped; the slot fails with the `catalog` cause, no Retry |
 | A question or a click reaches an app uninstalled since | The slot fails with the `uninstalled` cause, with Retry |
+| A question or a click reaches an app whose card lists no interface the platform speaks | The slot fails with the `interface` cause, "This app now connects in a way A2UIVerse can't use.", with Retry |
 | The client can't load a catalog: the table or the artifact unanswered twice, an interface it doesn't lend, missing exports, another catalog id, an entry that throws | The slot fails with the `load` cause, "Something went wrong loading this.", with Retry |
 
 ## Design decisions
@@ -586,6 +594,7 @@ Installing needs no model. Questions do, since the Planner is a model call, but 
 | Packing | `packages/stellify/src/` (`pack.ts`, `bundle.ts`, `layout.ts`, `stylesheets.ts`, `config.ts`, `manifest.ts`, `write.ts`, `cli.ts`) |
 | Install, uninstall, the summary | `apps/orchestrator/src/registry/registry.ts` |
 | Install by id, the marketplace client, the update check | `apps/orchestrator/src/registry/registry.ts` (`installFromMarketplace`), `marketplace.ts`, `updates.ts` |
+| The card: its reading, the fetch of the live card, the interface taken, when two cards are the same | `packages/card/src/` (see [`card.md`](card.md)) |
 | The static gate over one artifact, shared with the marketplace | `packages/sdk/js/src/gate.ts` |
 | What a build may change, and the rows let go | `packages/sdk/js/src/evolution.ts`, `retirement.ts` |
 | Storage, routes, token, command | `apps/orchestrator/src/registry/store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `types.ts`; who may write, `apps/orchestrator/src/writeGuard.ts` |

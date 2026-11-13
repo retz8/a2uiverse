@@ -21,6 +21,8 @@ The update check runs every time the App Library is entered — from a closed pa
 
 The installed list says whether each app was reached — at startup, or by an update check since, which fetches every app's card again. On the list, an app that was not reads "Couldn't be reached" in place of its update state. Its view keeps the update state and adds a notice saying it can't answer right now and Check again tries it once more, with Check again. Its accounts and Uninstall work as for any app.
 
+*Amended by task 20.3 decision 14.* The installed list carries a further condition beside whether each app was reached: whether the live card this run holds lists no interface the platform speaks. On the list, such an app reads "Connects in a way A2UIVerse can't use" in place of its update state, and its view carries the notice "Shop B now connects in a way A2UIVerse can't use.", with Check again. An app that was not reached says that alone.
+
 ### 3. The check runs again after an update
 
 After an update, the page runs the check again, so the updated app and each app that followed it read their state as checked.

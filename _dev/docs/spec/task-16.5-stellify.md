@@ -18,6 +18,8 @@ Stellify's committed build carries its own code and the sdk's projection and con
 
 *Amended by task 20.2 decision 3.* The build inlines a second workspace package beside the sdk: the smoke transport's (the smoke request's transport and the fetch of the live card). `@a2a-js/sdk` stays external, and the test holds Stellify's dependencies equal to that package's too.
 
+*Amended by task 20.3 decision 2.* The build inlines a third workspace package: the card package (the card's one reading, the fetch of the live card, the interface taken). The smoke-transport package holds the smoke request's transport alone. `@a2a-js/sdk` stays external, and the test holds Stellify's dependencies equal to the card package's too.
+
 ### 2. Stellify 0.3.0
 
 Stellify's version moves to 0.3.0, the version each artifact it packs names in `packedBy`.

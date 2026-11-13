@@ -61,6 +61,8 @@ An app says what sign-in it needs in its A2A agent card, in two fields A2A alrea
 
 `security` is a list of alternatives, each a set of schemes that must all hold at once: an **OR of ANDs**. Here there's one alternative, the `signIn` scheme with the `inbox` scope. An empty list, or an empty alternative, means no sign-in is needed. The `scopes` map gives each scope's **words**, written for the person who will read them. Those words are what the shell shows; nothing else on the canvas describes what an app may do.
 
+Gmail's card is written for A2A 0.3. A card written for A2A 1.0 says the same in 1.0's fields, `securitySchemes` and `securityRequirements`, and the platform reads either one through the card's one reading, into one shape ([`card.md`](card.md)).
+
 ### 2. A source is an app and its account
 
 Once an app has accounts, everything the orchestrator keeps is keyed by **source**: the app and one of its accounts, written `<app>.<n>`. Gmail with two accounts is `gmail.1` and `gmail.2`, two slots, two conversations with the agent, two copies of the data. An app whose card asks no sign-in keeps its bare id. An app that asks sign-in but holds no account yet is planned as the account its next sign-in will create, `gmail.1`. [`orchestrator.md`](orchestrator.md#sources-an-app-and-its-account) has the keying.
@@ -215,9 +217,9 @@ The Planner now sees Gmail's two sources, each by its label. A question about wh
 
 ### Reading a card
 
-`cardNeed` (`vault/schemes.ts`) turns a card into one of three answers.
+`cardNeed` (`vault/schemes.ts`) turns a card, as read, into one of three answers. It reads the card's sign-in requirements (`security` on a card written for A2A 0.3, `securityRequirements` on one written for 1.0) and its schemes in the one shape the reading gives them.
 
-- **None:** `security` is absent or empty, or one of its alternatives is empty.
+- **None:** the card has no requirement, or one of its alternatives is empty.
 - **Sign in:** at least one alternative is usable. That means it names exactly one scheme, and the vault supports that scheme. Usable alternatives are kept in the card's order, and the first one is followed.
 - **Unsupported:** no alternative is usable.
 
@@ -227,7 +229,7 @@ The Planner now sees Gmail's two sources, each by its label. A question about wh
 | `openIdConnect` | Signs in with OAuth, discovering from `openIdConnectUrl` |
 | `http` with `scheme: bearer` | Opens the orchestrator's **token page** for a token to paste |
 | `apiKey` in a header | Opens the token page for a key, sent in that header |
-| Anything else (`http` basic, mutual TLS, a key in a query string), or two schemes required at once | Not supported here |
+| Anything else (`http` basic, mutual TLS, a key in a query string, `oauth2` with any other flow, the device-code flow among them), or two schemes required at once | Not supported here |
 
 ### Standing: whether a dispatch may go
 
@@ -244,6 +246,8 @@ Before each dispatch, `standing(source)` answers with no network call:
 | need `unsupported` | No alternative the vault can do | "Signing in to Acme Wiki isn't supported here.", **Manage apps** |
 
 Standing is judged against the card **as installed**. The live card is read only to see that the app has changed: once the account meets the installed card, the update check judges the same account against the live card, and an account short of a permission only the live card asks takes the update tile rather than this tile — the new permission asked only through the update's consent card, once the Store has that card. After such an update, a slot whose account still lacks it takes the `more` tile, a second step, as an app installed from a slot that needs sign-in takes its tile once installed: the install's consent and the sign-in stay two consents ([`store-loop.md`](store-loop.md)).
+
+An app the platform can't reach is asked no sign-in. Reachability is judged first, on the card a dispatch would dial from: a card that lists no interface the platform speaks leaves the slot pending at first paint, and its dispatch fails with the failure tile, "This app now connects in a way A2UIVerse can't use." ([`card.md`](card.md)).
 
 The painter turns the need into the `Slot`'s `authority` prop: the cause (`signIn`, `connect`, `more`, `again` or `unsupported`), the scopes in the card's words, and `quiet` when the full tile was already shown. `prepare(source)` is the same check made just before sending, which also refreshes a token that expires within a minute.
 
@@ -475,7 +479,7 @@ No recorded beat shows a sign-in: the recorder signs every app in through the re
 | **Authority** | Whatever lets A2UIVerse act for you at an app: a sign-in, a pasted key or token |
 | **Scheme** | One way to sign in, declared on the card under a key: `oauth2`, `openIdConnect`, `http` bearer, `apiKey` |
 | **Scope** | One thing an app may do once signed in, keyed on the card, with words for the person |
-| **`security`** | The card's list of alternatives, each the schemes and scopes a request needs: an OR of ANDs |
+| **`security`** | The card's list of alternatives, each the schemes and scopes a request needs: an OR of ANDs; `securityRequirements` on a card written for A2A 1.0 |
 | **AuthVault** | The orchestrator's store of credentials, one entry per (app, account), and its OAuth client |
 | **Source** | An app and one of its accounts, `gmail.2`; the bare app id for an app with no sign-in |
 | **Label** | An account's name in words, from the ID token |
