@@ -63,6 +63,8 @@ A new operation, `dismiss`, names one source. The orchestrator drops the kept pr
 
 An agent asking for authority mid-task moves the task to `auth-required` with a data part in its status message: `{security: [{"<scheme key>": ["<scope key>", …]}]}` — the card's own `security` requirement shape, checked by the same evaluator as the card before dispatch. An empty scope list means sign in with that scheme. It is recognized by the task state and the `security` key; no A2UIVerse-specific marker. It lives in the contract as a shape directed agent → orchestrator, described as `paintMeta` is: the contract describes it, the agent kit owns its emission.
 
+*Amended by task 20.4 decision 9.* The data part is a request when it holds `securityRequirements` in A2A 1.0's requirement shape or `security` in A2A 0.3's, from an agent on either A2A version. A part holding both is read by `securityRequirements`. Once read, a request has A2A 1.0's shape, and its keys are checked against the installed card through the card's one reading.
+
 ### 13. Relations join two different sources
 
 A match claim's relation runs over two refs in two different sources, so two accounts of one app can be joined; a source is never joined to itself.

@@ -22,6 +22,8 @@ The orchestrator's card readers keep reading A2A 0.3's fields from a card as its
 
 One rule holds for an agent on either A2A version. An answer has ended when the stream's body ends after a message event, or with the task's last state terminal (completed, failed, canceled, rejected) or interrupted (input-required, auth-required). `final` is not read. A stream whose body ends any other way broke.
 
+*Amended by task 20.4 decision 10.* An answer that reaches auth-required has ended when the state arrives, whether or not the agent closes its stream. Input-required is not touched.
+
 ### 3. A 0.3 agent in the orchestrator's tests is the 0.3.14 SDK's server
 
 `@a2a-js/sdk` 0.3.14 stays as a dev dependency under an alias, for the [fake vendor](../../../apps/orchestrator/test/fakeVendor.ts) alone. The fake vendor and the scripts its tests give it stay as written. The assertions on what the dispatch relays move to the 1.x shapes.
@@ -61,6 +63,8 @@ Nothing in the dispatch refuses an agent on A2A 1.0. Its fake and its proof arri
 ### 10. No part changes its marking on the private wire
 
 A2UI parts and `paintMeta` (the kit's per-paint shell object) carry the marks they carry today, and the client keeps recognising them by content. The spellings on A2A 1.0 are 20.4's.
+
+*Amended by task 20.4 decisions 5, 6 and 8.* Between the client and the orchestrator the platform's own A2UI parts are one message per part, marked `application/a2ui+json` in `metadata.mimeType` and in `mediaType`, and `paintMeta` and the `operation` part are marked `application/a2ui-shell+json` the same way. An agent's part is relayed with the marks its agent gave it. Every reader still reads by content.
 
 ### 11. Decisions 2, 3, 4 and 8 are the platform's
 

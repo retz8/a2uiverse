@@ -605,3 +605,46 @@ A2UIVerse's dispatch and its smoke runner give the client factory a card resolve
 ### Prior art
 
 Pull request [#344](https://github.com/a2aproject/a2a-js/pull/344) ("fix: support proto-based AgentCard in AgentCardResolver", merged) added the detection. No issue reports the in-memory case, searched in `a2aproject/a2a-js` on 2026-11-13.
+
+---
+
+## 8. The specification says a stream closes at an interrupted state and asks an agent to keep it open at auth-required (A2A 1.0)
+
+**Component:** `a2aproject/A2A` at tag `v1.0.0` (commit `17369575`), `docs/specification.md`: section 3.1.2 (line 212), section 7.6.1 (line 1907) and section 11.7 (line 2949).
+
+**Severity:** specification conflict. A client that waits for a stream to close before it treats an answer as ended waits as long as the agent keeps the stream, which section 7.6.1 asks the agent to do.
+
+### Issue
+
+Three sentences describe when a stream closes:
+
+1. Section 3.1.2: "The stream MUST close when the task reaches a terminal state (e.g. completed, failed, canceled, rejected)."
+2. Section 11.7: "… then zero or more status or artifact update events until the task reaches a terminal or interrupted state, at which point the stream closes."
+3. Section 7.6.1: "If the credential is received out-of-band, the agent SHOULD maintain any active response streams with the client after setting the TaskState to `TASK_STATE_AUTH_REQUIRED`."
+
+Auth-required is an interrupted state. Section 11.7 closes the stream there, section 7.6.1 keeps it open, and section 3.1.2 says nothing of interrupted states. A2A 1.0 has no `final` on a status update, so nothing on the wire tells a client which of the two the agent chose.
+
+### Reproduction
+
+Both A2A SDKs' servers do either, by what the executor does. Run on 2026-11-13, each asked over JSON-RPC by the client of `@a2a-js/sdk` 1.3.0:
+
+| Server | The executor returns after setting auth-required | The executor waits |
+| --- | --- | --- |
+| Python `a2a-sdk` 1.3.0, on A2A 1.0 and through its 0.3 layer | the stream closes | the stream stays open |
+| `@a2a-js/sdk` 1.3.0, on A2A 1.0 and through its 0.3 layer | the stream closes, the executor having called `finished()` | the stream stays open |
+
+Through the 0.3 layer both servers write the auth-required status update with `final: false`, whether or not they then close the stream.
+
+The Python wires are in `retz8/a2uiverse` under `packages/smoke-transport/test/fixtures/`: `python-1.0-auth-1.0.json` and `python-0.3-auth-1.0.json` (closed), `python-1.0-auth-held.json` and `python-0.3-auth-held.json` (held, left by the capture after three seconds of silence). The agent is `packages/smoke-transport/scripts/serve_a2ui.py`. The JavaScript server is the fake agent in `packages/smoke-transport/src/testing/fakeAgentV1.ts`, whose `authRequiredScriptV1` waits.
+
+A client that leaves a held stream: the generator of `@a2a-js/sdk` 1.3.0's client cancels the response body's reader when its consumer stops reading. On Node 22.15.0 the agent saw the connection close about four seconds later.
+
+### Fix
+
+Make the three sentences say one thing: a stream closes at a terminal state or at input-required, and at auth-required it closes or stays open by the agent's choice, with a client told to treat the answer as ended when the state arrives.
+
+A2UIVerse's dispatch and its smoke request end an answer at auth-required when the state arrives and leave the stream.
+
+### Prior art
+
+No issue or pull request on `a2aproject/A2A` reports the three sentences disagreeing, searched on 2026-11-13.

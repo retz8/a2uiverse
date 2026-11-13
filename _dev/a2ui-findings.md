@@ -1053,3 +1053,268 @@ and v0.8") asked for the samples. Open PR [#2033](https://github.com/a2ui-projec
 a2a extension activation entirely in v1.0") would take activation out of v1.0, the helper's input with it.
 No issue or pull request on `a2ui-project/a2ui` asks what a card with several entries means, searched on
 2026-11-06.
+
+---
+
+## 28. The A2A extension specifications describe an A2A 0.3 part and name no A2A version (spec)
+
+**Component:** at `upstream/main` `8bf644a37`: `specification/v0_9/docs/a2ui_extension_specification.md`
+and `specification/v0_9_1/docs/a2ui_extension_specification.md`, lines 172 to 250 ("Data Encoding");
+`specification/v1_0/extensions/a2a/docs/a2ui_extension_specification.md`, lines 177 to 255;
+`docs/public/concepts/actions.md`, line 413.
+
+**Severity:** specification gap. An agent or a client on A2A 1.0 cannot tell from the text where the
+MIME type goes or what a 0.3 caller receives.
+
+**Reported:** not filed.
+
+### Issue
+
+The three extension specifications name the part "an A2A `DataPart`" and mark it in
+`DataPart.metadata["mimeType"]`. Their example parts carry `"kind": "data"`. `DataPart`, `kind` and a
+part with no MIME field of its own are A2A 0.3's: A2A 1.0 has one `Part` with no `kind`, and gives every
+part a `mediaType` ("The `media_type` (MIME type) of the part content … This field is available for all
+part types.", `specification/a2a.proto` at A2A `v1.0.0`, lines 239 to 241). None of the three files
+names an A2A version.
+
+Two things follow that the text does not settle:
+
+1. Whether an A2UI part on A2A 1.0 sets `mediaType`, `metadata.mimeType`, or both. A reader on A2A 1.0
+   that looks at `mediaType` alone finds nothing on a part written as the specification says.
+2. What a caller on A2A 0.3 receives from an agent on A2A 1.0. The 0.3 layers of both A2A SDKs drop
+   `mediaType` from a data part, so `metadata.mimeType` is the one mark that survives both wires.
+
+`docs/public/concepts/actions.md` is the one upstream text that ties the encoding to an A2A version:
+"The use of a **list** in the `data` field was introduced in **A2A v1.0**. Earlier versions of the A2A
+protocol expect the `data` field to contain a single JSON object." The extension specifications do not
+carry that sentence, and their example pairs a list with `"kind": "data"`.
+
+A2UIVerse reads a part by what its `data` holds and reads no mark. It writes its own parts marked
+`application/a2ui+json` in `metadata.mimeType` and in `mediaType`.
+
+### Reproduction
+
+A scratch agent on Python's `a2a-sdk` 1.3.0 sets `media_type` on an A2UI part and nothing in its
+metadata. Asked on A2A 1.0 and through the SDK's 0.3 layer by the client of `@a2a-js/sdk` 1.3.0, the
+part on each wire, from `packages/smoke-transport/test/fixtures/python-1.0-media-type.json` and
+`python-0.3-media-type.json` in `retz8/a2uiverse`:
+
+```text
+A2A 1.0  {"data": {"createSurface": {…}, "version": "v0.9"}, "mediaType": "application/a2ui+json"}
+A2A 0.3  {"data": {"version": "v0.9", "createSurface": {…}}, "kind": "data"}
+```
+
+The other way, a press marked in both fields reaches the same agent with both on A2A 1.0 and with
+`metadata.mimeType` alone on A2A 0.3 (`python-1.0-echo.json`, `python-0.3-echo.json`):
+
+```text
+A2A 1.0  {"data": {…}, "metadata": {"mimeType": "application/a2ui+json"}, "mediaType": "application/a2ui+json"}
+A2A 0.3  {"data": {…}, "metadata": {"mimeType": "application/a2ui+json"}}
+```
+
+Captured on 2026-11-13 by `packages/smoke-transport/scripts/capture-fixtures.mjs`.
+
+### Fix
+
+Say in each extension specification which A2A versions it covers, and for A2A 1.0 where the MIME type
+goes. Keeping `metadata.mimeType` as the required mark on both versions costs nothing and survives a
+0.3 layer; `mediaType` could be named as an optional second mark on A2A 1.0.
+
+### Prior art
+
+Pull request [#3603](https://github.com/a2ui-project/a2ui/pull/3603) ("docs(spec): put the A2UI MIME
+type in DataPart.metadata in the extension specs", merged 2026-11-03) settled the mark on
+`DataPart.metadata`. Issue [#3601](https://github.com/a2ui-project/a2ui/issues/3601) and pull request
+[#3602](https://github.com/a2ui-project/a2ui/pull/3602), both open, move the Lit and React sample
+clients to it. Pull requests [#3162](https://github.com/a2ui-project/a2ui/pull/3162) and
+[#2337](https://github.com/a2ui-project/a2ui/pull/2337), both open, let the Python helpers build parts
+on `a2a-sdk` 1.x; neither changes the specification's text. No issue or pull request on
+`a2ui-project/a2ui` asks which A2A version the extension specifications describe, searched on
+2026-11-13.
+
+---
+
+## 29. The list the specification requires in `data` is written by no upstream helper and read by no upstream agent (spec, a2ui-a2a, samples)
+
+**Component:** at `upstream/main` `8bf644a37`: `specification/v0_9_1/docs/a2ui_extension_specification.md`,
+lines 178 to 186, with the same text in the v0.9 and v1.0 files;
+`python/a2ui_a2a/src/a2ui/a2a/parts.py`, `create_a2ui_part` (line 62) and `get_a2ui_messages`;
+`samples/agent/node/restaurant_finder/src/a2a.ts`, lines 75 to 84;
+`samples/agent/adk/restaurant_finder/agent_executor.py`, lines 78 to 95;
+`samples/client/lit/shell/client.ts`, lines 60 to 89.
+
+**Severity:** specification and implementations disagree. A client that follows the specification
+loses every press on upstream's own agents.
+
+**Reported:** not filed.
+
+### Issue
+
+The specification: "The `data` field of the `DataPart` contains a list of A2UI JSON messages (e.g.,
+`createSurface`, `updateComponents`, `action`). It MUST be an array of messages." Its processing rules
+build on the list, and its client-to-server example wraps one `action` in an array.
+
+The code at the same commit carries one message per part:
+
+1. `create_a2ui_part(a2ui_data: dict[str, Any], …)` puts one message in `DataPart.data`, and
+   `get_a2ui_messages` documents it: "Each A2UI `DataPart` carries one A2UI message".
+2. The Node restaurant finder takes a press with `data.version === version && data.action`. Given a
+   list, no action is found and the press is dropped with nothing said.
+3. The ADK restaurant finder takes one with `part.root.data.get("version")` and
+   `"action" in part.root.data`. Given a list, `.get` raises.
+4. The Lit sample client sends a press as one object in `data`.
+
+A list also cannot ride A2A 0.3 as written: 0.3 types a data part's `data` as an object
+(`types/src/types.ts` at A2A `v0.3.0`, lines 799 to 809), and the 0.3 layer of an A2A 1.x SDK wraps a
+list as `{"value": [...]}` with `data_part_compat` set in the part's metadata.
+
+A2UIVerse reads one message or a bare list, each entry judged on its own, and writes one message per
+part, since that is what every agent read here takes.
+
+### Reproduction
+
+From the same scratch agent, one data part holding a list of two messages, on each wire
+(`python-1.0-list.json`, `python-0.3-list.json`):
+
+```text
+A2A 1.0  {"data": [{"createSurface": {…}, "version": "v0.9"}, {"updateComponents": {…}, "version": "v0.9"}],
+          "metadata": {"mimeType": "application/a2ui+json"}}
+A2A 0.3  {"data": {"value": [{"version": "v0.9", "createSurface": {…}}, {"version": "v0.9", "updateComponents": {…}}]},
+          "kind": "data", "metadata": {"mimeType": "application/a2ui+json", "data_part_compat": true}}
+```
+
+The client of `@a2a-js/sdk` 1.3.0 unwraps the 0.3 form, so a reader on that SDK sees a bare list from
+both. A reader on an A2A 0.3 SDK sees the object holding `value`.
+
+For the readers, the two lines of each sample quoted above are the reproduction: neither branch runs
+when `part.data` is a list.
+
+### Fix
+
+Choose one and say it in the specification: one message per part on every A2A version, as the helper
+and the samples already do; or a list on A2A 1.0 with the readers changed to take one, and one message
+per part on A2A 0.3. Either way the helper, the samples and the text would agree.
+
+### Prior art
+
+Issue [#645](https://github.com/a2ui-project/a2ui/issues/645) ("A2UI spec requires DataParts to contain
+an array, which they can't do", closed 2026-05-14) raised the conflict with A2A's data part and was
+closed once "the underlying libraries now all support lists in a data part". Issues
+[#234](https://github.com/a2ui-project/a2ui/issues/234) and
+[#549](https://github.com/a2ui-project/a2ui/issues/549), both closed, asked for a list of messages as
+one unit. `docs/public/concepts/actions.md`, line 413, says the list came with A2A v1.0. No issue or
+pull request reports that the helper and the samples still carry one message per part, searched on
+2026-11-13.
+
+---
+
+## 30. No source says whether an A2UI part rides a message or an artifact, and ADK's stock executor sends the last message's parts in both (spec, a2ui-adk)
+
+**Component:** at `upstream/main` `8bf644a37`: the three extension specifications' "Data Encoding"
+sections; `python/a2ui_adk/tests/a2a/test_rpc_callback.py`, lines 626 to 643;
+`samples/agent/node/restaurant_finder/src/a2a.ts`, lines 130 to 144;
+`samples/agent/adk/restaurant_finder/agent_executor.py`, lines 155 to 183;
+`samples/client/angular/projects/restaurant/src/server.ts`, lines 162 to 166. In `google/adk-python` at
+`v2.3.0`: `src/google/adk/a2a/executor/a2a_agent_executor.py`, lines 292 to 323.
+
+**Severity:** specification gap. A client that reads both carriers paints an answer twice; one that
+reads a single carrier misses agents that use the other.
+
+**Reported:** not filed.
+
+### Issue
+
+The specification says how a part is encoded and not what holds it: "Agents and clients encode A2UI
+messages as an A2A `DataPart`." A2A 1.0 says results belong in artifacts ("Messages SHOULD NOT be used
+to deliver task outputs. Results SHOULD BE returned using Artifacts associated with a Task.",
+`docs/specification.md` at A2A `v1.0.0`, section 3.7).
+
+Upstream's agents do three different things:
+
+1. Both restaurant finders put A2UI in the message of a status update and never in an artifact.
+2. Agents on ADK's stock `A2aAgentExecutor` send each ADK event as a `working` status update carrying
+   a message, then one artifact holding the parts of the last status message. Upstream's own test
+   states it: "The reply goes out in the working status update, from the agent, and again as the
+   task's artifact."
+3. `samples/community/agent/adk/gemini_enterprise/v0_8/agent_engine` uses an artifact alone.
+
+The sample clients differ in the same way: the Lit and React shells read messages only, and the
+Angular restaurant sample reads an artifact update too.
+
+A2UIVerse reads A2UI from a bare message and from a status message, never from an artifact, in its
+client and in its orchestrator, so an answer from the stock executor is painted once.
+
+### Reproduction
+
+`python/a2ui_adk/tests/a2a/test_rpc_callback.py`,
+`test_a2a_agent_executor_sends_the_reply_as_an_a2ui_part`, asserts both carriers hold the same reply:
+
+```python
+assert get_a2ui_messages(status_parts) == [_reply()]
+assert get_a2ui_messages(artifact_parts) == [_reply()]
+```
+
+### Fix
+
+Name the carrier in the extension specification: the status message while a task streams, with a rule
+for a client that also finds the same parts in an artifact, or the artifact alone. The agents and the
+sample clients can then follow one text.
+
+### Prior art
+
+Pull request [#3795](https://github.com/a2ui-project/a2ui/pull/3795) ("feat(python-a2a,adk): answer
+agent function calls in A2A and ADK", merged 2026-11-06) brought the test that states the double send.
+No issue or pull request on `a2ui-project/a2ui` asks which carrier an A2UI part rides, searched on
+2026-11-13.
+
+---
+
+## 31. `create_a2ui_part` marks a v0.9 message with the deprecated MIME type the v0.9 specification no longer names (a2ui-a2a)
+
+**Component:** at `upstream/main` `8bf644a37`: `python/a2ui_a2a/src/a2ui/a2a/parts.py`, lines 44 to 46
+and `create_a2ui_part`, lines 62 to 91; `specification/v0_9/docs/a2ui_extension_specification.md`,
+line 176.
+
+**Severity:** specification conformance. A reader that follows the v0.9 text and looks for
+`application/a2ui+json` passes over every part the helper writes for v0.9.
+
+**Reported:** not filed.
+
+### Issue
+
+The v0.9 extension specification requires `DataPart.metadata["mimeType"] = "application/a2ui+json"`.
+The helper writes the older string for that version:
+
+```python
+mime_type = A2UI_MIME_TYPE
+if version is None or to_version_number(version) in ("0.8", "0.9"):
+    mime_type = DEPRECATED_A2UI_MIME_TYPE
+```
+
+with `DEPRECATED_A2UI_MIME_TYPE = "application/json+a2ui"`. Its docstring says the same: "Without
+either, or for v0.8 and v0.9, the part uses the deprecated MIME type." `is_a2ui_part` accepts both
+strings, so upstream's own readers are unaffected.
+
+### Reproduction
+
+```python
+from a2ui.a2a.parts import create_a2ui_part
+
+part = create_a2ui_part({"version": "v0.9", "createSurface": {"surfaceId": "s", "catalogId": "c"}})
+print(part.root.metadata)  # {'mimeType': 'application/json+a2ui'}
+```
+
+Not run for this finding: the three lines of `create_a2ui_part` quoted above are the evidence, read at
+`8bf644a37`.
+
+### Fix
+
+Write `application/a2ui+json` for v0.9, as its specification says, or say in the v0.9 specification
+that a v0.9 part may carry either string and a reader must take both.
+
+### Prior art
+
+Commit `c712e0fee` ("POTENTIALLY BREAKING CHANGE refactor: IANA convention requires mime type
+application/a2ui+json", pull request [#1493](https://github.com/a2ui-project/a2ui/pull/1493), merged
+2026-05-29) renamed the string. No issue or pull request reports the v0.9 text and the helper
+disagreeing, searched on 2026-11-13.

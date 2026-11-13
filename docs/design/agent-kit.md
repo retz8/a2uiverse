@@ -144,7 +144,7 @@ A2UI messages are sealed: the protocol's schema allows no extra fields, so an ag
 <a2ui-json>[{"version": "v0.9", "createSurface": {"surfaceId": "assigned-issues", …}}, …]</a2ui-json>
 ```
 
-The kit strips the tag out of the prose and sends it as its own A2A data part, **`paintMeta`**, marked with the MIME type `application/json+a2ui-shell`, just ahead of the `createSurface` it names:
+The kit strips the tag out of the prose and sends it as its own A2A data part, **`paintMeta`**, marked with the MIME type `application/json+a2ui-shell`, just ahead of the `createSurface` it names. A2UIVerse reads the part by its `paintMeta` key, whatever it is marked with, and marks its own `application/a2ui-shell+json`, a string the kit has yet to take up ([`a2ui-on-a2a.md`](a2ui-on-a2a.md)):
 
 ```json
 {"paintMeta": {"surfaceId": "assigned-issues", "title": "Assigned Issues"}}
@@ -374,7 +374,7 @@ Sign-in is explained end to end in [`authority.md`](authority.md). The kit's par
 - the card declares one `oauth2` scheme, `signIn`, with its `scopes` map, and `security` asks for the first sign-in's scopes;
 - `sign_in_server.py` serves an OAuth authorization server beside A2A, on Authlib: metadata, `/oauth/authorize` with S256 PKCE, a token endpoint whose refresh tokens rotate, registration by a client ID metadata document or dynamically, revocation, and an ID token signed ES256 with the account's `sub` and display claims;
 - an A2A request without a live token the agent issued is answered 401, and inside a request `current_account()` is the signed-in account;
-- an action or tool needing a scope the token lacks raises `AuthRequired`, which ends the run in A2A's `auth-required` naming the missing scope keys, in the card's own `security` shape.
+- an action or tool needing a scope the token lacks raises `AuthRequired`, which ends the run in A2A's `auth-required` naming the missing scope keys, in A2A 0.3's requirement shape, `{"security": [{"signIn": [...]}]}`. A2UIVerse reads that shape and A2A 1.0's.
 
 The account comes from the upstream. In deterministic and stub mode that's a chooser over the made-up accounts, and `fake_account=<id>` on the sign-in address skips it, for recordings and tests. In live mode it's `VendorOAuth`, the vendor's OAuth: the agent keeps the vendor's token, refreshes it, and hands each MCP connection its account's token; the client only ever holds the token the agent issued. An app signed in with a key uses `ApiKeySignIn` instead. Each agent keeps its accounts, tokens and signing key in an owner-only store, `<app>/agent/.state/sign-in.json`, or under `--state-dir`.
 
@@ -410,9 +410,9 @@ flowchart LR
 ```
 
 1. **The choice.** Both executors call a2ui-a2a's `try_activate_a2ui_extension` once per request with the card the app serves. It returns the newest version the request names in its A2A extensions that the card advertises, and registers its URI as activated, which A2A names back in the response's `X-A2A-Extensions` header. A request naming none of the app's versions takes the app's newest. The header goes back on a `message/send`; on a `message/stream`, A2A's SDK writes the response's headers before the agent runs, so a streamed answer carries its version in the stamp alone. It's finding 1 in the [A2A findings file](../../_dev/a2a-findings.md).
-2. **The actions.** One extractor takes an action whose stamp the chosen version's client-to-server schema admits: v0.9's requires `v0.9`, and v0.9.1's admits `v0.9` and `v0.9.1`. A data part stamped otherwise isn't an action, and the message falls through as one carrying nothing: the "Unhandled event" paint in deterministic mode, the apology with no model call in the model modes.
+2. **The actions.** One extractor takes an action whose stamp the chosen version's client-to-server schema admits: v0.9's requires `v0.9`, and v0.9.1's admits `v0.9` and `v0.9.1`. The extractor reads one message per part, which is how A2UIVerse writes a press. A data part stamped otherwise isn't an action, and the message falls through as one carrying nothing: the "Unhandled event" paint in deterministic mode, the apology with no model call in the model modes.
 3. **The entitlement.** The catalog ids the client renders are read from its `a2uiClientCapabilities` under the chosen version's key first, then under the other version's, then flat. The catalog line a turn is painted in is chosen from them ([below](#an-old-catalog-line-beside-the-new-one)).
-4. **The stamp.** `stamped_part` is the one place a message becomes an A2A part. It writes the chosen version over whatever the message carried: a fixture's `v0.9`, the model's own writing, and the kit's own deletes and unhandled-event paint, which carry none. It hands the version to upstream's part helper, so the part's MIME type follows upstream's mapping: `application/json+a2ui` for v0.9, `application/a2ui+json` for v0.9.1. `paintMeta` parts are left as they are.
+4. **The stamp.** `stamped_part` is the one place a message becomes an A2A part. It writes the chosen version over whatever the message carried: a fixture's `v0.9`, the model's own writing, and the kit's own deletes and unhandled-event paint, which carry none. It hands the version to upstream's part helper, so the part's MIME type follows upstream's mapping: `application/json+a2ui` for v0.9, `application/a2ui+json` for v0.9.1. A2UIVerse reads no mark, so either is read. `paintMeta` parts are left as they are.
 
 Fixtures and recordings stay written in `v0.9`, the kit's `FIXTURE_VERSION`, and the recorder keeps a part in either version the kit speaks as it went out. The version a catalog is read at, and the protocol schemas the prompt shows the model, stay v0.9's.
 

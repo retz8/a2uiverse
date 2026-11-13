@@ -33,7 +33,7 @@ Every question you ask gets a new **answer**: its own screen, its own state, its
 
 On the wire, an answer is an **A2A context**. Its first message is sent with no context id; the orchestrator mints one, and every later message in that answer carries it, so the orchestrator knows which answer a click belongs to. What the orchestrator holds for an answer, it calls a **composition**.
 
-The wire is A2A 1.0 over JSON-RPC, spoken through the A2A SDK (`@a2a-js/sdk`), and the client is its only caller. A stream opens with the orchestrator's task. After it, everything arrives as a `working` status update of that task, the layout's paints and the apps' alike, until one last status update ends the stream with the turn's outcome. The client never sees an app's own task or the state its answer ended on.
+The wire is A2A 1.0 over JSON-RPC, spoken through the A2A SDK (`@a2a-js/sdk`), and the client is its only caller. A stream opens with the orchestrator's task. After it, everything arrives as a `working` status update of that task, the layout's paints and the apps' alike, until one last status update ends the stream with the turn's outcome. The client never sees an app's own task or the state its answer ended on. It reads A2UI from each event's status message, and from a bare message, never from an artifact update. A part is A2UI by what its `data` holds, one message or a bare list of them, whatever MIME type the part is marked with; [`a2ui-on-a2a.md`](a2ui-on-a2a.md) is the guide to that part.
 
 ### 2. Surfaces, slots and the stamp
 
@@ -56,7 +56,7 @@ The last one comes from the orchestrator's credential bar: when an app paints a 
 
 Placement is by `source`. The stamp names no slot, and no component tree points at another surface: the `Slot` whose `source` is `"linear"` is where Linear's surface belongs. A source is the app and the account it painted under: `linear` for an app that needs no sign-in, `gmail.1` and `gmail.2` for two Gmail accounts side by side, each its own slot. The client never parses one; it keys everything by the whole string. Surface ids are namespaced by the orchestrator as `<source>:<surfaceId>` (Linear's `linear-1` arrives as `linear:linear-1`), so two sources can never collide on a name.
 
-Inside the event, each A2UI message names its own version, the message's version: the client draws a message whose version is `v0.9` or `v0.9.1`, the two versions the sdk lists, and writes `v0.9` on everything of its own (`CLIENT_A2UI_VERSION` in `a2a/messages.ts`).
+Inside the event, each A2UI message names its own version, the message's version: the client draws a message whose version is `v0.9` or `v0.9.1`, the two versions the sdk lists, an entry of a list judged like a message alone, and writes `v0.9` on everything of its own (`CLIENT_A2UI_VERSION` in `a2a/messages.ts`).
 
 ### 3. Shell owns the container, the app owns the interior
 
@@ -71,7 +71,7 @@ A **turn** is one request and the stream that answers it. There are two kinds:
 - An **utterance turn**: you ask a question. It opens a new answer.
 - An **action turn**: you click something inside an app's slot, like opening an issue. It goes to that app alone.
 
-Everything else the canvas sends travels on a **stream beside the turn**: not a turn, so it never cancels one and never adds to the trail. That covers the reader's **presses** on the merged view and slots (Retry, Include, Try again), a **step** back or forward in an app's slot, a report that an app's paint couldn't be drawn, and a report of a shell action like opening the Store. Several can be open at once.
+Everything else the canvas sends travels on a **stream beside the turn**: not a turn, so it never cancels one and never adds to the trail. That covers the reader's **presses** on the merged view and slots (Retry, Include, Try again), a **step** back or forward in an app's slot, a report that an app's paint couldn't be drawn, and a report of a shell action like opening the Store. Several can be open at once. Each is one data part the platform sdk builds: a press inside a fragment and a report are A2UI parts, one message marked `application/a2ui+json`, and a press on the merged view or a slot is the A2UIVerse extension's `operation` part, marked `application/a2ui-shell+json`. Each mark is in the part's metadata and in its `mediaType`.
 
 ### 5. Trail: every question, kept
 
@@ -106,7 +106,7 @@ flowchart TD
 
 **2. The question goes out.** The runtime's `open` sends the question as an A2A message with **no context id**. If the answer has a parent, the parent's context id rides along under the stamp key, so the orchestrator's Planner can read the answer the question was asked from.
 
-**3. The first event names the answer.** The orchestrator answers at once with the context it minted. The runtime records it, the trail entry takes it, and every later message in this answer carries it. With the layout, a `paintMeta` part names `shell:main` with the Planner's short title for the answer ("Status of current work" here, the live entry in the trail above), which replaces the truncated question as the trail entry's label. The question itself stays the answer's heading.
+**3. The first event names the answer.** The orchestrator answers at once with the context it minted. The runtime records it, the trail entry takes it, and every later message in this answer carries it. With the layout, a `paintMeta` part, read by its `paintMeta` key whatever it is marked with, names `shell:main` with the Planner's short title for the answer ("Status of current work" here, the live entry in the trail above), which replaces the truncated question as the trail entry's label. The question itself stays the answer's heading.
 
 **4. The layout lands.** An event stamped `role: "shell"` creates `shell:main`: a `Column` with a `Slot` for the merged view and, under a `Row`, an `Attribution` around each app's `Slot`. The slots are all `pending`, so the screen shows three waiting regions and, for the merged view, the planned column headers over skeleton rows. The progress line shows a spinner beside each app's name, then "Joining Linear issues to GitHub PRs and CircleCI runs".
 

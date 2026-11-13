@@ -23,6 +23,8 @@ The registry derives, beside the flat entitlement, a map from version to the cat
 
 The paint check reads the stamp of each created surface and tests its catalog against that version's set. A surface whose stamp is missing or names a version the platform does not speak is tested against the union of the two sets. The hub refuses only what no version admits; the stamp itself is the client's to judge.
 
+*Amended by task 20.4 decisions 1 and 2.* A created surface whose message carries no `version` is no A2UI message to any reader: the hub does not test it and relays its part as written, and the client draws nothing from it. A stamp naming a version the platform does not speak is still tested against the union.
+
 ### 3. A refusal the axis made names the stamp
 
 When a refused catalog is in the app's union but not in the set of the paint's stamp, the dispatch's error names the stamp and the version the card declares the catalog for. A paint outside the union keeps today's line. The record carries nothing new; the journal keeps the fuller line.

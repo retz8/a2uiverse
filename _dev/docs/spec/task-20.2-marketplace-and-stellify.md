@@ -69,6 +69,8 @@ Ending by state changes two cases at publish and at `preview`:
 
 An agent that holds its stream open after its last event runs into the smoke request's timeout, as today. That includes the third case decision 9 of the phase spec names: a server built on the 1.x A2A SDK leaves a stream open when a task asks for sign-in. No agent in the roster does it, and it is handled on evidence.
 
+*Amended by task 20.4 decision 10.* The smoke runner stops reading once the task's state is auth-required and leaves the stream. An agent that holds its stream open after any other last event still runs into the timeout.
+
 ### 8. Versions
 
 1. Stellify is 0.5.0.

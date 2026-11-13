@@ -45,7 +45,7 @@ A2UIVerse's processes talk **A2A** (the Agent-to-Agent protocol). The orchestrat
 - Every exchange is a **task** with an id. The stream ends with one status update whose state says how it ended: `completed`, `failed`, `canceled`. This document calls that event the turn's final. A2A 0.3 also marked it `final: true`; A2A 1.0 has no such mark, and the orchestrator reads none.
 - Tasks belong to a **context**, a conversation id. Messages in one context share history.
 
-A2UI rides inside A2A: an agent's UI arrives as JSON data parts like `{"version": "v0.9", "createSurface": {…}}`.
+A2UI rides inside A2A: an agent's UI arrives as JSON data parts like `{"version": "v0.9", "createSurface": {…}}`. A part is A2UI by what it holds, one message or a bare list of them, whatever MIME type it is marked with, and it is read from an agent's messages, never from an artifact. [`a2ui-on-a2a.md`](a2ui-on-a2a.md) is the guide to that part on A2A 0.3 and 1.0.
 
 ### 2. Hub speaks A2A on both sides
 
@@ -166,8 +166,8 @@ The client draws the frame as it arrives: the merged view's column headers over 
 
 1. rewrites the envelope's task and context ids to the client's,
 2. stamps it `{source: "linear", role: "fragment"}`,
-3. **namespaces** every surface id, so Linear's `linear-1` becomes `linear:linear-1`, the one its `paintMeta` titles included,
-4. **reshapes** it into a `working` status update of the client's one task, because the hub owns the turn's single final: an app's task becomes a status update carrying its status message, a bare message a status update carrying that message, and every state the app names becomes `working`; an artifact update is relayed as it is,
+3. **namespaces** every surface id, so Linear's `linear-1` becomes `linear:linear-1`, the one its `paintMeta` titles included, each part otherwise passed in the form and with the marks its app gave it,
+4. **reshapes** it into a `working` status update of the client's one task, because the hub owns the turn's single final: an app's task becomes a status update carrying its status message, a bare message a status update carrying that message, and every state the app names becomes `working`; an artifact update is relayed as it is, and its parts are never read,
 5. applies the app's data model changes to **its own copy of the partition** (needed later by the merge),
 6. counts every `createSurface` as a paint in that app's history, the newest on screen (for its back arrow),
 7. publishes the event to the client.
@@ -306,7 +306,7 @@ Sign-in is explained end to end in [`authority.md`](authority.md). The orchestra
 
 - **Before every dispatch** the executor asks the vault for the source's **standing**, from the card and the vault alone: open, ready, or what the slot needs. A slot that needs sign-in takes its authority at first paint, the full tile once per app per page load and the quiet line after, and its agent is never called. An app the platform can't reach is asked no sign-in: its slot takes the failure tile ([AgentsPool](#agentspool-one-handle-per-dispatch)).
 - **The pool attaches the header** the card's scheme names, from the vault's `prepare`, which refreshes a token about to expire. A 401 is answered with one refresh, shared by every dispatch to that account, and one resend; a second refusal asks the slot to sign in again.
-- **An in-task `auth-required`** is never relayed: the vault reads its scheme and scope keys against the installed card, and a valid one becomes a request for more access on the fragment's attribution row, the press that asked kept for Allow.
+- **An in-task `auth-required`** is never relayed, and the dispatch ends when the state arrives, whether or not the app closes its stream: the request is read in A2A 1.0's requirement shape or A2A 0.3's, the vault reads its scheme and scope keys against the installed card, and a valid one becomes a request for more access on the fragment's attribution row, the press that asked kept for Allow.
 - **The sign-in routes** sit on `orchestratorApi` under `/auth`, reachable from the browser with no write token: the start route the window opens, the callback, the token page for a pasted key or token, the client document, and the attempt the client polls. Beside them sit the App Library's: the accounts read, and rename and sign-out, which are writes.
 
 ### Trusted page's hands
@@ -448,7 +448,7 @@ flowchart LR
 - **Every app's `Slot` is wrapped in an `Attribution`.** A first pass builds a `Map` from each app slot's id to its wrapper's id, `attribution-<slotId>`. A second pass copies every component, **rewiring** any `child` or `children` reference to a wrapped slot so it points at the wrapper instead. The parent now holds the Attribution, which holds the Slot.
 - **The painter's props go on each slot:** `state` and `label`, plus, depending on the slot, the merged view's `columns` and `join`, a failed slot's `failure`, a collapsed merge's reason, the facts the Retry, Include and Try again lines are drawn from, a gap's `offer` drawn from the marketplace's entries, and an update tile's `update`. The Planner may not write any of these; the validator refuses them.
 
-A **repaint** sends the whole `updateComponents` again from the current state. Slots are found by their `source` and every id stays put, so the client updates in place. The first paint has two more parts, ahead of the tree: the Planner's title as the shell's own `paintMeta`, and the plan's data model when it isn't empty.
+A **repaint** sends the whole `updateComponents` again from the current state. Slots are found by their `source` and every id stays put, so the client updates in place. The first paint has two more parts, ahead of the tree: the Planner's title as the shell's own `paintMeta`, and the plan's data model when it isn't empty. Every A2UI part the shell paints is one message marked `application/a2ui+json`, in the part's metadata and in its `mediaType`, and its `paintMeta` is marked `application/a2ui-shell+json` the same way.
 
 While the Planner writes, the state's tree is the components told so far, so the first paint is the create with the first component, and each component after it is a repaint of the tree so far: the client takes the slots in order from every paint. A data model written after the first component goes as an `updateDataModel` of its own, a title written after it as a `paintMeta` beside the last paint. When a retry replaced the half-drawn layout, the last paint is a `deleteSurface` of `shell:main` followed by the whole create, in one event; when the plan breaks, the `deleteSurface` alone.
 
@@ -459,13 +459,13 @@ A2UIVerse promises that **an unmodified A2UI agent composes**. So the relay chan
 | Change | What | Why |
 | --- | --- | --- |
 | **Stamp** | `metadata.a2uiverse = {source, role: "fragment", builds}`, `builds` the build of each of the app's catalogs the registry holds now (`Registry.builds`), on every event carrying A2UI | the client places the surface by `source`, and draws it in the build `builds` names |
-| **Namespace** | `surfaceId` becomes `<source>:<surfaceId>` on the four A2UI operations and on the app's `paintMeta` | two apps can't collide on one screen, and a paint's title and question mark land on the surface the client sees |
+| **Namespace** | `surfaceId` becomes `<source>:<surfaceId>` on the four A2UI operations, in a part carrying one message or a list, and on the app's `paintMeta` | two apps can't collide on one screen, and a paint's title and question mark land on the surface the client sees |
 | **Partition filter** | outbound: each app gets only its own surfaces' data, keys un-namespaced | an app never sees another app's data |
 
 Those are the only changes to content. Two more touch only the **envelope**:
 
 - **Ids.** The app's task and context ids are replaced with the client's on the way in; the client's are stripped and the app's own conversation id set on the way out.
-- **One task's `working` updates.** Under fan-out, three apps end their tasks on one client task. Relaying an app's final would end the client's turn at the first app to answer, and A2A lets one stream carry one task. So everything an app sends reaches the client as a `working` status update of the client's task: the app's own task as a status update carrying its status message, a bare message as a status update carrying that message, every state the app names as `working`. An artifact update is relayed as it is. The executor sends the turn's one real final itself, and how an app's answer ended stays on the orchestrator, in the slot's state and in the journal.
+- **One task's `working` updates.** Under fan-out, three apps end their tasks on one client task. Relaying an app's final would end the client's turn at the first app to answer, and A2A lets one stream carry one task. So everything an app sends reaches the client as a `working` status update of the client's task: the app's own task as a status update carrying its status message, a bare message as a status update carrying that message, every state the app names as `working`. An artifact update is relayed as it is, and A2UI inside one is read by neither end, so the client and the orchestrator count the same paints. The executor sends the turn's one real final itself, and how an app's answer ended stays on the orchestrator, in the slot's state and in the journal.
 
 One small extra: when an app fails with words ("rate limit exceeded"), those words are taken off the relayed event and put on the app's `Slot` as its `failure`, so the shell's failure tile is the one place they're shown.
 
@@ -503,7 +503,7 @@ The structures behind it:
 
 **How a dispatch ends.** `completed`; `cancelled` (aborted); or `failed` with a cause:
 - `vendor` when the app ended its task as failed, its words kept.
-- `unreachable` when the connection failed or the stream ended before the answer did. An answer has ended when the stream's body ends after a message, or with the task's last state terminal (completed, failed, canceled, rejected) or interrupted (input-required, auth-required). `final` is not read, so one rule holds for an app on either A2A version: A2A's Python SDK leaves an `input-required` update unmarked by default, as upstream's restaurant finder does, and that answer has ended all the same.
+- `unreachable` when the connection failed or the stream ended before the answer did. An answer has ended when the stream's body ends after a message, or with the task's last state terminal (completed, failed, canceled, rejected) or interrupted (input-required, auth-required). `final` is not read, so one rule holds for an app on either A2A version: A2A's Python SDK leaves an `input-required` update unmarked by default, as upstream's restaurant finder does, and that answer has ended all the same. An answer that reaches auth-required has ended when the state arrives: A2A 1.0 asks an app that waits for a credential to keep its stream open, so the dispatch stops reading there and leaves it.
 - `catalog` when the app painted outside its entitlement.
 - `credential` when the app painted a credential field and painted one again when asked not to, carrying its own page as `continueUrl`.
 - `interface` when the app's card lists no interface the platform speaks, the agent not called.

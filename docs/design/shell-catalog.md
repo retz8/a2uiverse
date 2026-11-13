@@ -299,7 +299,7 @@ The table passes the column states down to its rows through a small React contex
 `Attribution` draws the back and forward arrows for its app. It asks `FragmentHistoryContext` where the app stands, by the painted `source`, and gets `{back?, forward?, busy?}`, each neighbour a `{step, title?}`:
 
 - An arrow is drawn **only when there's somewhere to go**, and only when the host passed `onPress`.
-- Each arrow is **named for where it goes**: "Back to" and the paint's title when the app gave that paint one (the `paintMeta` title, see [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps#connecting-to-a2uiverse)), just "Back" when it didn't. The name is its tooltip and its accessible name.
+- Each arrow is **named for where it goes**: "Back to" and the paint's title when the app gave that paint one (the `paintMeta` title, see [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps#connecting-to-a2uiverse); the part is read by its `paintMeta` key, whatever it is marked with, see [`a2ui-on-a2a.md`](a2ui-on-a2a.md)), just "Back" when it didn't. The name is its tooltip and its accessible name.
 - Pressing one raises `{kind: "step", sources: [source], step}` through the host's press handler.
 - The arrows draw **disabled** while `busy` (that app's repaint is on its way) and wherever `PressStateContext` says no press can be made. A scope request waiting on Allow doesn't make them busy.
 - When a pressed arrow disappears, because there's no more history that way, **focus moves to the other arrow, or back to the app's name**.

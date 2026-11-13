@@ -24,6 +24,8 @@ The opening utterance of a child canvas carries `a2uiverse: {parent: <contextId>
 
 The contract declares `paintMeta`: direction orchestrator → client, a data part marked `application/json+a2ui-shell`, `surfaceId` required, `title` and `kind` optional, `kind` one of `question`. The orchestrator emits one for `shell:main` carrying the Planner's title; a vendor's is the agent kit's, in the same shape, relayed untouched — the contract describes the part, it does not own the kit's emission. The client's `PaintMeta` type and its reader move into `@a2uiverse/sdk` beside `readStamp`; the client imports them.
 
+*Amended by task 20.4 decisions 2, 6 and 8.* `paintMeta` is read by its `paintMeta` key, whatever its mark, or with none. The orchestrator marks its own `application/a2ui-shell+json`, in `metadata.mimeType` and in `mediaType`; the string replaces `application/json+a2ui-shell`. A vendor's part is relayed with the marks its agent gave it.
+
 ### 4. The title is bounded and clipped
 
 `paintMeta.title` carries a `maxLength` of 48. A longer title from the Planner is clipped at the cap with an ellipsis and journaled, never a plan finding; an empty or missing title is absent, and the client falls back to the question.
