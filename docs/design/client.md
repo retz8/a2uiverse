@@ -33,6 +33,8 @@ Every question you ask gets a new **answer**: its own screen, its own state, its
 
 On the wire, an answer is an **A2A context**. Its first message is sent with no context id; the orchestrator mints one, and every later message in that answer carries it, so the orchestrator knows which answer a click belongs to. What the orchestrator holds for an answer, it calls a **composition**.
 
+The wire is A2A 1.0 over JSON-RPC, spoken through the A2A SDK (`@a2a-js/sdk`), and the client is its only caller. A stream opens with the orchestrator's task. After it, everything arrives as a `working` status update of that task, the layout's paints and the apps' alike, until one last status update ends the stream with the turn's outcome. The client never sees an app's own task or the state its answer ended on.
+
 ### 2. Surfaces, slots and the stamp
 
 In A2UI, an agent answers by painting a **surface**: a tree of components from its catalog, plus a JSON **data model** those components bind to. An answer holds several surfaces at once:

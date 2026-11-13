@@ -38,11 +38,11 @@ flowchart LR
 
 ### 1. A2A in two minutes
 
-A2UIVerse's processes talk **A2A** (the Agent-to-Agent protocol, version 0.3 here). If you've used a streaming HTTP API, you know most of it already:
+A2UIVerse's processes talk **A2A** (the Agent-to-Agent protocol). The orchestrator speaks version 1.0 with the client, and with each app the version its card is written for: every app today is on 0.3, reached through the 0.3 layer of the A2A SDK (`@a2a-js/sdk`). If you've used a streaming HTTP API, you know most of it already:
 
 - An agent publishes an **agent card** at `/.well-known/agent-card.json`: its name, description, and **skills**, each with example questions.
 - A client sends a **message** (JSON-RPC over HTTP) and gets back a **stream of events**: status updates, each carrying a message whose **parts** are text or JSON data.
-- Every exchange is a **task** with an id. The stream ends with one event marked `final: true`, whose state says how it ended: `completed`, `failed`, `canceled`.
+- Every exchange is a **task** with an id. The stream ends with one status update whose state says how it ended: `completed`, `failed`, `canceled`. This document calls that event the turn's final. A2A 0.3 also marked it `final: true`; A2A 1.0 has no such mark, and the orchestrator reads none.
 - Tasks belong to a **context**, a conversation id. Messages in one context share history.
 
 A2UI rides inside A2A: an agent's UI arrives as JSON data parts like `{"version": "v0.9", "createSurface": {…}}`.
@@ -167,7 +167,7 @@ The client draws the frame as it arrives: the merged view's column headers over 
 1. rewrites the envelope's task and context ids to the client's,
 2. stamps it `{source: "linear", role: "fragment"}`,
 3. **namespaces** every surface id, so Linear's `linear-1` becomes `linear:linear-1`, the one its `paintMeta` titles included,
-4. **demotes** the app's final event to a plain `working` one, because the hub owns the turn's single final,
+4. **reshapes** it into a `working` status update of the client's one task, because the hub owns the turn's single final: an app's task becomes a status update carrying its status message, a bare message a status update carrying that message, and every state the app names becomes `working`; an artifact update is relayed as it is,
 5. applies the app's data model changes to **its own copy of the partition** (needed later by the merge),
 6. counts every `createSurface` as a paint in that app's history, the newest on screen (for its back arrow),
 7. publishes the event to the client.
@@ -178,7 +178,7 @@ In the recording, GitHub's answer reached the client at 6.07 s, Linear's at 6.08
 
 **8. The merge.** The Synthesizer, the second model call, writes the merged view as formulas over the apps' data, and the orchestrator checks it before painting it into the reserved slot. In the recorded run its first attempt was accepted, and the view landed 11.4 seconds after the merge was released. Since then the question's first merge is drawn as the model writes it: the tree painted once it and the sorts pass, each row on an event of its own as it passes its own check, the document as accepted landing whole over them; every later merge lands whole. How the merged view is written, checked, drawn as it's written and kept live is the whole of [`synthesis.md`](synthesis.md).
 
-**9. One final, then the journal line.** Once every app has arrived, failed or hit the hard cap, and the merge released during the turn is done, the orchestrator sends the turn's one `final: true` event, `completed`. The client saw it 17.5 seconds after asking. The turn's line in the **intent journal** is written when the last app's stream has fully drained, so an answer arriving late still makes it onto the line. Here is the recorded line, trimmed:
+**9. One final, then the journal line.** Once every app has arrived, failed or hit the hard cap, and the merge released during the turn is done, the orchestrator sends the turn's one final, a `completed` status update. The client saw it 17.5 seconds after asking. The turn's line in the **intent journal** is written when the last app's stream has fully drained, so an answer arriving late still makes it onto the line. Here is the recorded line, trimmed:
 
 ```jsonc
 {
@@ -205,6 +205,7 @@ The line also says what the turn's model calls cost. This recording predates tha
 - **On the plan:** `planMs`, the layout complete and checked; `firstPieceMs`, when its first piece left for the client, the whole layout's moment for a plan that arrives whole; `shortlistMs`, the Router's share of `planMs`; `effort`, the tier the Planner ran at; and `requests`, one record per model request. Each tool call on the plan carries its `ms` beside its words and its answer. `cache`, with the plan cache on and no tool called, holds the request's key, and `hit: true` when the plan cache served the plan, no request made.
 - **On the synthesis:** its own `effort` and `requests`, and `firstRowMs`, when the first row of a first merge drawn as it's written left for the client, on the clock `deadAirMs` runs on.
 - **`finalAt`:** when the final `completed` left, the moment the screen settled.
+- **On each dispatch:** `endState`, the state the app's answer ended on, in A2A 1.0's name (`TASK_STATE_COMPLETED`, `TASK_STATE_INPUT_REQUIRED`), absent when the app's stream broke and when the app was not called; and `a2aVersion` and `binding`, the interface of the app's card the dispatch used (`0.3` and `JSONRPC` for every app today).
 
 A request record:
 
@@ -464,7 +465,7 @@ A2UIVerse promises that **an unmodified A2UI agent composes**. So the relay chan
 Those are the only changes to content. Two more touch only the **envelope**:
 
 - **Ids.** The app's task and context ids are replaced with the client's on the way in; the client's are stripped and the app's own conversation id set on the way out.
-- **Demoted finals.** Under fan-out, three apps end their tasks on one client task. Relaying an app's final would end the client's turn at the first app to answer, so every app's final becomes a plain `working` event, and the executor sends the turn's one real final itself.
+- **One task's `working` updates.** Under fan-out, three apps end their tasks on one client task. Relaying an app's final would end the client's turn at the first app to answer, and A2A lets one stream carry one task. So everything an app sends reaches the client as a `working` status update of the client's task: the app's own task as a status update carrying its status message, a bare message as a status update carrying that message, every state the app names as `working`. An artifact update is relayed as it is. The executor sends the turn's one real final itself, and how an app's answer ended stays on the orchestrator, in the slot's state and in the journal.
 
 One small extra: when an app fails with words ("rate limit exceeded"), those words are taken off the relayed event and put on the app's `Slot` as its `failure`, so the shell's failure tile is the one place they're shown.
 
@@ -487,7 +488,7 @@ The structures behind it:
 - **An async generator.** `events` is an `async function*` that connects, sends, and `yield`s each event as the A2A client streams it. Nothing happens until someone iterates it.
 - **An `AbortController` per dispatch**, linked to the turn's signal, so aborting the turn aborts every dispatch at once. `cancel()` aborts it and also sends the app A2A's `tasks/cancel` (fire and forget: a refusal is logged, never fatal), since closing the stream alone would leave the app working.
 - **`#inflight: Map<clientTaskId, Set<handle>>`.** One question fans out to several apps under one client task id, so cancelling that task cancels every handle in its set.
-- **`#clients: Map<url, Promise<Client>>`**, a cache of connections, each built from the app's card as the registry holds it, so a dispatch fetches no card of its own. It stores the **promise**, not the client, so two dispatches to the same app at once share one connection attempt; a failed attempt is removed so the next one tries again.
+- **`#clients: Map<url, Promise<Client>>`**, a cache of connections, each built from the app's card as the registry holds it, so a dispatch fetches no card of its own. The card is handed to the A2A SDK as the agent served it: the SDK's 0.3 layer reads a card written for A2A 0.3 and speaks 0.3 to its agent, over JSON-RPC, the one binding spoken today. It stores the **promise**, not the client, so two dispatches to the same app at once share one connection attempt; a failed attempt is removed so the next one tries again.
 - **A vendor context map**, `clientContextId → source → vendorContextId` (two nested `Map`s). Each answer gets its own conversation with each source, so two accounts of one app are two conversations with its agent, and closing the answer drops them.
 
 **Catalog entitlement** ([`app-install.md`](app-install.md#entitlement-at-the-hub) has it end to end). A dispatch reads the app from the registry once, as it starts, and keeps that snapshot to its end. The app's **entitlement** is the catalogs handed at its install plus the basic catalog, and the registry also holds it **per A2UI version**: for each of `v0.9` and `v0.9.1`, the basic catalog plus the ids the card as installed declares for that version. A card with one entry, or two naming one set, has the same set under both; only a card whose two entries name different sets keeps a version axis. It goes out as the message's `a2uiClientCapabilities`, each version's set under its own key, in place of whatever the client sent, so each app is told only what it may paint in. Every event coming back is checked: a `createSurface` is read with its stamp, the message's `version`, and its catalog is checked against the set of that stamp — against the union of the two sets when the stamp is missing or names a version the platform does not speak, the stamp itself left to the client. A paint outside is never relayed, the app is sent `tasks/cancel`, and the dispatch fails with the `catalog` cause, carrying the id; when the catalog is in the app's union but not in the set of its stamp, the error says so — `painted in catalog "…" stamped v0.9, which its card declares for v0.9.1 only`. The rule itself is the sdk's `paintOutside`, which the marketplace's smoke test shares. Everything else the hub reads of an app's catalogs — the update check, the catch after the call, the dropped-catalog check for a Retry — reads the union.
@@ -500,7 +501,7 @@ The structures behind it:
 
 **How a dispatch ends.** `completed`; `cancelled` (aborted); or `failed` with a cause:
 - `vendor` when the app ended its task as failed, its words kept.
-- `unreachable` when the connection failed or the stream ended with no final. A stream that closes on `input-required` has ended, marked final or not: A2A 0.3.0 has a stream complete once its task is interrupted, and A2A's Python SDK leaves that update unmarked by default, as upstream's restaurant finder does.
+- `unreachable` when the connection failed or the stream ended before the answer did. An answer has ended when the stream's body ends after a message, or with the task's last state terminal (completed, failed, canceled, rejected) or interrupted (input-required, auth-required). `final` is not read, so one rule holds for an app on either A2A version: A2A's Python SDK leaves an `input-required` update unmarked by default, as upstream's restaurant finder does, and that answer has ended all the same.
 - `catalog` when the app painted outside its entitlement.
 - `credential` when the app painted a credential field and painted one again when asked not to, carrying its own page as `continueUrl`.
 - `uninstalled` when the app isn't installed at dispatch time, so it isn't asked at all.
@@ -648,7 +649,7 @@ For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay
 | **The apps asked as soon as the dispatch list is written; the layout painted piece by piece, no app's answer shown before it's whole** | The apps start while the Planner still writes the layout, and the frame appears as it's written, never waiting on the slowest app; no answer lands without its frame | The layout is designed without seeing the answers; a layout that fails its checks is retried against a list it can no longer change, and a broken plan cancels apps already working |
 | **Routing by ranking, with no threshold** | No list of intents to maintain; a new app is routable by its card alone | The Planner reads up to five cards every question |
 | **The relay changes three things, nothing else** | An unmodified A2UI agent composes; apps are written for their own product, never for A2UIVerse | The shell can't fix an app's paint; it can only trim or fail it |
-| **Apps' finals demoted; the hub sends the one final** | Under fan-out, the turn ends once, after everyone | The client learns an app is done from the `settled` marker instead |
+| **Everything an app sends relayed as a `working` status update; the hub sends the one final** | Under fan-out, the turn ends once, after everyone, on one task | The client learns an app is done from the `settled` marker instead, and never sees the state an app's answer ended on |
 | **Model output in the orchestrator's own tag, validated, one retry** | The Planner and the Synthesizer share one shape; bad output never reaches the screen; cost is bounded | A second failure is a broken turn |
 | **The marketplace reached through a Planner tool, not folded into the Router** | The Router stays over the installed apps; a plan that never searches never waits on the marketplace; the model sees the Store only through the tool's answer | A plan that searches makes one more model request before its own: on 2026-10-31 the camera comparison's search request took 2.07 s and its plan 5.36 s. A published app's card text reaches the Planner whenever it searches |
 | **The update check before every dispatch, on the live card the run holds** | An app that can't paint in what it's installed with says so before it's asked; the line is chosen from the Store as it stands | A change made while the orchestrator runs shows only once the card is fetched again: by the App Library's check, a refused paint, a call that ends with no UI, or a Retry from the update tile |
@@ -693,9 +694,10 @@ All paths are under `apps/orchestrator/src/`.
 | Concern | Where |
 | --- | --- |
 | Boot and wiring | `index.ts`, `app.ts`, `config.ts`, `agentCard.ts` (A2UIVerse's own card) |
+| Parts and messages in the A2A SDK's shape, built and read; the events the client is sent | `a2a/parts.ts`, `a2a/wire.ts` |
 | The turn: every message, the pump, the merge in the making | `executor.ts` |
 | Classifying a message | `composition/classify.ts` |
-| Installed apps, the catalog table, install and uninstall (see [`app-install.md`](app-install.md)) | `registry/` (`registry.ts`, `store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `types.ts`); who may write, `writeGuard.ts`; the static gate is the sdk's `gate.ts` |
+| Installed apps, the catalog table, install and uninstall (see [`app-install.md`](app-install.md)) | `registry/` (`registry.ts`, `store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `types.ts`; `installedCard.ts`, an installed card as its agent served it, in A2A 0.3's fields); who may write, `writeGuard.ts`; the static gate is the sdk's `gate.ts` |
 | The marketplace client, install by id, the update check and the automatic build update | `registry/marketplace.ts`, `registry/registry.ts` (`installFromMarketplace`), `registry/updates.ts` |
 | The update tile's finding, the check before a dispatch and the catch after the call | `registry/updateTile.ts`, `agentsPool/agentsPool.ts`; the tile's Retry fetching the live card again, `executor.ts` |
 | The shell catalog's schema face: its names, keep-sets, relation functions and update lines | `@a2uiverse/shell-catalog/schema`, which loads `@a2ui/web_core`; the orchestrator depends on web_core at `0.14.0` exactly, the version the shell catalog names as its peer |
@@ -747,7 +749,7 @@ All paths are under `apps/orchestrator/src/`.
 | **Committed list** | The Planner's dispatch list once written and passing its own checks: its apps are asked at once, and it stands for the rest of the plan |
 | **Reader** | One of the Planner's three tools over the platform's own state |
 | **Dispatch** | Asking one source, through the AgentsPool |
-| **Relay** | Passing an app's events to the client: stamped, namespaced, final demoted |
+| **Relay** | Passing an app's events to the client: stamped, namespaced, each a `working` status update of the client's task |
 | **Partition** | One source's surface data model; the orchestrator keeps a copy of each |
 | **Settled** | An app's answer ended: arrived, failed, cancelled, or at the hard cap |
 | **Hard cap** | 300 seconds: after it an app's slot fails, and a later answer is held for Retry |
