@@ -1,94 +1,61 @@
 /**
- * An in-process A2A agent for Stellify's tests, a copy of the marketplace's: built on the same
- * SDK server pieces the roster's agents use, scripted per turn, recording what it received so the
- * tests assert on the wire — the words, the capabilities, the extension header, the credential.
+ * Stellify's in-process A2A 0.3 agent for tests: the shared package's fake agent, with the cards
+ * and the paints Stellify's suite previews — the star fixture catalog, and each sign-in a card
+ * can declare.
  */
-import {randomUUID} from 'node:crypto';
-import {createServer, type Server} from 'node:http';
-import express, {type NextFunction, type Request, type Response} from 'express';
-import {HTTP_EXTENSION_HEADER, type AgentCard, type Message, type Task} from '@a2a-js/sdk';
 import {
-  DefaultRequestHandler,
-  InMemoryTaskStore,
-  type AgentExecutionEvent,
-  type AgentExecutor,
-  type ExecutionEventBus,
-  type RequestContext,
-} from '@a2a-js/sdk/server';
-import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
-import {A2UI_EXTENSION_URIS, authRequiredData} from '@a2uiverse/sdk';
+  authRequiredScript as sharedAuthRequiredScript,
+  cardFor as sharedCardFor,
+  completingScript,
+  finalUpdate,
+  firstTurnTask,
+  paintParts,
+  startFakeAgent as startSharedFakeAgent,
+  statusUpdate,
+  unmarkedScript as sharedUnmarkedScript,
+  type AgentCard,
+  type CardOptions,
+  type FakeAgent,
+  type FakeAgentOptions as SharedFakeAgentOptions,
+  type Script,
+  type TaskState,
+} from '@a2uiverse/smoke-transport/testing';
+
+export {
+  cardUrlOf,
+  failedScript,
+  hangingScript,
+  submittedOnlyScript,
+} from '@a2uiverse/smoke-transport/testing';
+export type {FakeAgent, Script};
 
 /** The fixture catalog's id, what the default script paints in. */
 export const STAR_CATALOG_ID = 'https://example.com/star/catalog.json';
 
-export interface ScriptContext {
-  ctx: RequestContext;
-  firstTurn: boolean;
-}
-
-export type Script = (
-  s: ScriptContext,
-) => AgentExecutionEvent[] | AsyncIterable<AgentExecutionEvent>;
-
-export interface ReceivedRequest {
-  extensionsHeader: string | undefined;
-  message: Message;
-  /** Every request header, lower-cased, so a test sees the credential as it rode. */
-  headers: Record<string, string>;
-}
-
-export interface FakeAgent {
-  url: string;
-  cardUrl: string;
-  card: AgentCard;
-  requests: ReceivedRequest[];
-  close(): Promise<void>;
-}
-
 /** Which sign-in the card declares, required on every request. */
 export type SignIn = 'oauth' | 'bearer' | 'apiKey' | 'unsupported';
 
-export interface FakeAgentOptions {
-  name?: string;
-  version?: string;
-  /** The catalog ids the card declares under the A2UI extension; none declares nothing. */
-  catalogs?: string[];
-  /** The card's extension entries written out, in place of the one v0.9.1 entry `catalogs` makes. */
-  extensions?: NonNullable<AgentCard['capabilities']['extensions']>;
-  skills?: AgentCard['skills'];
+export interface FakeAgentOptions extends Pick<
+  CardOptions,
+  'name' | 'version' | 'catalogs' | 'extensions' | 'skills'
+> {
   script?: Script;
   signIn?: SignIn;
   /** Whether a JSON-RPC request is let in; refused, it is answered 401. */
-  admit?: (request: Request) => boolean;
+  admit?: SharedFakeAgentOptions['admit'];
   /** Serve no card: the well-known path answers 404. */
   noCard?: boolean;
 }
 
-export const cardUrlOf = (agentUrl: string) => `${agentUrl}/.well-known/agent-card.json`;
-
 export function cardFor(agentUrl: string, options: FakeAgentOptions = {}): AgentCard {
-  const {catalogs} = options;
-  const base: AgentCard = {
+  return sharedCardFor(agentUrl, {
     name: options.name ?? 'Star Agent',
-    description: 'an agent for tests',
-    version: options.version ?? '0.1.0',
-    protocolVersion: '0.3.0',
-    url: agentUrl,
-    preferredTransport: 'JSONRPC',
-    capabilities: {
-      streaming: true,
-      extensions: options.extensions ?? [
-        {
-          uri: A2UI_EXTENSION_URIS['v0.9.1'],
-          ...(catalogs ? {params: {supportedCatalogIds: catalogs}} : {}),
-        },
-      ],
-    },
-    defaultInputModes: ['text'],
-    defaultOutputModes: ['text'],
     skills: options.skills ?? [{id: 'star', name: 'star', description: 'star', tags: []}],
-  };
-  return {...base, ...securityFor(agentUrl, options.signIn)};
+    ...(options.version === undefined ? {} : {version: options.version}),
+    ...(options.catalogs === undefined ? {} : {catalogs: options.catalogs}),
+    ...(options.extensions === undefined ? {} : {extensions: options.extensions}),
+    card: securityFor(agentUrl, options.signIn),
+  });
 }
 
 function securityFor(agentUrl: string, signIn: SignIn | undefined): Partial<AgentCard> {
@@ -129,64 +96,12 @@ function securityFor(agentUrl: string, signIn: SignIn | undefined): Partial<Agen
   }
 }
 
-export const paintParts = (catalogId: string, text = 'hi') => [
-  {kind: 'data' as const, data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId}}},
-  {
-    kind: 'data' as const,
-    data: {
-      version: 'v0.9',
-      updateComponents: {
-        surfaceId: 's1',
-        components: [{id: 'root', component: 'StarText', text}],
-      },
-    },
-  },
-];
-
-const firstTurnTask = (ctx: RequestContext): Task => ({
-  kind: 'task',
-  id: ctx.taskId,
-  contextId: ctx.contextId,
-  status: {state: 'submitted'},
-  history: [{...ctx.userMessage, contextId: ctx.contextId, taskId: ctx.taskId}],
-});
-
-const statusUpdate = (
-  ctx: RequestContext,
-  state: Task['status']['state'],
-  parts: Message['parts'],
-  final: boolean,
-): AgentExecutionEvent => ({
-  kind: 'status-update',
-  taskId: ctx.taskId,
-  contextId: ctx.contextId,
-  final,
-  status: {
-    state,
-    message: {
-      kind: 'message',
-      messageId: randomUUID(),
-      role: 'agent',
-      parts,
-      contextId: ctx.contextId,
-      taskId: ctx.taskId,
-    },
-  },
-});
-
-const finalUpdate = (
-  ctx: RequestContext,
-  state: Task['status']['state'],
-  parts: Message['parts'],
-): AgentExecutionEvent => statusUpdate(ctx, state, parts, true);
+const starParts = (catalogId: string, text = 'hi') =>
+  paintParts(catalogId, {component: 'StarText', text});
 
 /** Paints one surface in `catalogId` and completes, as the deterministic roster does. */
-export const paintingScript =
-  (catalogId = STAR_CATALOG_ID, text = 'hi'): Script =>
-  ({ctx, firstTurn}) => [
-    ...(firstTurn ? [firstTurnTask(ctx)] : []),
-    finalUpdate(ctx, 'completed', paintParts(catalogId, text)),
-  ];
+export const paintingScript = (catalogId = STAR_CATALOG_ID, text = 'hi'): Script =>
+  completingScript(starParts(catalogId, text));
 
 /**
  * Streams its tree as it writes it, a model-mode agent's way: the root half-written in one update,
@@ -222,118 +137,26 @@ export const streamedScript =
   };
 
 /** Paints a component the catalog does not have. */
-export const invalidPaintScript =
-  (catalogId = STAR_CATALOG_ID): Script =>
-  ({ctx}) => [
-    finalUpdate(ctx, 'completed', [
-      {kind: 'data', data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId}}},
-      {
-        kind: 'data',
-        data: {
-          version: 'v0.9',
-          updateComponents: {
-            surfaceId: 's1',
-            components: [{id: 'root', component: 'Nope', text: 'x'}],
-          },
-        },
-      },
-    ]),
-  ];
+export const invalidPaintScript = (catalogId = STAR_CATALOG_ID): Script =>
+  completingScript(paintParts(catalogId, {component: 'Nope', text: 'x'}));
 
 /** Ends the task as `auth-required`, naming `scheme`. */
-export const authRequiredScript =
-  (scheme = 'signIn', scopes = ['write']): Script =>
-  ({ctx}) => [
-    finalUpdate(ctx, 'auth-required', [
-      {kind: 'text', text: 'Please sign in.'},
-      {kind: 'data', data: {...authRequiredData({security: [{[scheme]: scopes}]})}},
-    ]),
-  ];
-
-/** Ends the task as failed, in its own words. */
-export const failedScript: Script = ({ctx}) => [
-  finalUpdate(ctx, 'failed', [{kind: 'text', text: 'boom'}]),
-];
+export const authRequiredScript = (scheme = 'signIn', scopes = ['write']): Script =>
+  sharedAuthRequiredScript(scheme, scopes);
 
 /**
  * Paints in `catalogId`, then moves through `states` with no update marked final and closes the
  * stream: upstream's restaurant finder ends its answers on `input-required` this way.
  */
-export const unmarkedScript =
-  (states: Task['status']['state'][], catalogId = STAR_CATALOG_ID): Script =>
-  ({ctx, firstTurn}) => [
-    ...(firstTurn ? [firstTurnTask(ctx)] : []),
-    statusUpdate(ctx, 'working', paintParts(catalogId), false),
-    ...states.map(state => statusUpdate(ctx, state, [], false)),
-  ];
+export const unmarkedScript = (states: TaskState[], catalogId = STAR_CATALOG_ID): Script =>
+  sharedUnmarkedScript(states, starParts(catalogId));
 
-/** Emits a task and nothing final. */
-export const noFinalScript: Script = ({ctx}) => [firstTurnTask(ctx)];
-
-/** Never answers. */
-export const hangingScript: Script = () => ({
-  [Symbol.asyncIterator]: () => ({next: () => new Promise(() => {})}),
-});
-
-export async function startFakeAgent(options: FakeAgentOptions = {}): Promise<FakeAgent> {
-  const {script = paintingScript(), catalogs = [STAR_CATALOG_ID]} = options;
-  const requests: ReceivedRequest[] = [];
-  const seen = new Set<string>();
-
-  const executor: AgentExecutor = {
-    async execute(ctx: RequestContext, bus: ExecutionEventBus) {
-      const firstTurn = !seen.has(ctx.contextId);
-      seen.add(ctx.contextId);
-      try {
-        for await (const event of script({ctx, firstTurn})) bus.publish(event);
-      } finally {
-        bus.finished();
-      }
-    },
-    async cancelTask() {},
-  };
-
-  const server: Server = createServer();
-  const app = express();
-  app.use(express.json());
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    const body = req.body as {method?: string; params?: {message?: Message}} | undefined;
-    if (typeof body?.method === 'string' && options.admit && !options.admit(req)) {
-      res.status(401).set('WWW-Authenticate', 'Bearer error="invalid_token"').json({});
-      return;
-    }
-    const message = body?.params?.message;
-    if (message) {
-      const headers: Record<string, string> = {};
-      for (const [key, value] of Object.entries(req.headers)) {
-        if (typeof value === 'string') headers[key] = value;
-      }
-      requests.push({extensionsHeader: req.header(HTTP_EXTENSION_HEADER), message, headers});
-    }
-    next();
+export function startFakeAgent(options: FakeAgentOptions = {}): Promise<FakeAgent> {
+  const {script = paintingScript(), catalogs = [STAR_CATALOG_ID], admit, noCard} = options;
+  return startSharedFakeAgent({
+    script,
+    card: url => cardFor(url, {...options, catalogs}),
+    ...(admit ? {admit} : {}),
+    ...(noCard ? {noCard} : {}),
   });
-  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
-  const address = server.address();
-  if (!address || typeof address === 'string') throw new Error('fake agent: no port');
-  const url = `http://127.0.0.1:${address.port}`;
-  const card = cardFor(url, {...options, catalogs});
-
-  const requestHandler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
-  if (!options.noCard) {
-    app.use('/.well-known/agent-card.json', agentCardHandler({agentCardProvider: requestHandler}));
-  }
-  app.use('/', jsonRpcHandler({requestHandler, userBuilder: UserBuilder.noAuthentication}));
-  server.on('request', app);
-
-  return {
-    url,
-    cardUrl: cardUrlOf(url),
-    card,
-    requests,
-    close: () =>
-      new Promise<void>((resolve, reject) => {
-        server.closeAllConnections();
-        server.close(err => (err ? reject(err) : resolve()));
-      }),
-  };
 }

@@ -4,14 +4,7 @@ import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
 import {BASIC_CATALOG_SCHEMA} from './a2ui/spec.generated';
 import type {A2uiCatalogSchema} from './a2ui/types';
 import {BASIC_CATALOG_ID} from './catalog';
-import {
-  SMOKE_GREETING,
-  a2uiMessagesIn,
-  a2uiMessagesOf,
-  checkPaint,
-  checkSignInAnswer,
-  smokeWords,
-} from './smoke';
+import {SMOKE_GREETING, a2uiMessagesIn, checkPaint, checkSignInAnswer, smokeWords} from './smoke';
 
 const VENDOR = 'cat/v1';
 const vendor = {...(BASIC_CATALOG_SCHEMA as A2uiCatalogSchema), catalogId: VENDOR};
@@ -43,22 +36,15 @@ describe('smokeWords', () => {
   });
 });
 
-describe('a2uiMessagesIn / a2uiMessagesOf', () => {
-  test('one message per data part, or the messages list form; other parts skipped', () => {
+describe('a2uiMessagesIn', () => {
+  test('one message, or the messages list form; any other body carries none', () => {
     const one = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'c'}};
     const two = {version: 'v0.9', deleteSurface: {surfaceId: 's'}};
     expect(a2uiMessagesIn(one)).toEqual([one]);
     expect(a2uiMessagesIn({messages: [one, two, {noVersion: true}]})).toEqual([one, two]);
     expect(a2uiMessagesIn({paintMeta: {surfaceId: 's'}})).toEqual([]);
     expect(a2uiMessagesIn('text')).toEqual([]);
-    expect(
-      a2uiMessagesOf([
-        {kind: 'text', text: 'hello'},
-        {kind: 'data', data: one},
-        {kind: 'data', data: {messages: [two]}},
-        {kind: 'file'},
-      ]),
-    ).toEqual([one, two]);
+    expect(a2uiMessagesIn(undefined)).toEqual([]);
   });
 });
 

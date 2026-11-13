@@ -3,24 +3,31 @@ import {
   A2UI_EXTENSION_URIS,
   ARTIFACT_DESCRIPTOR_FILE,
   artifactIdOf,
+  authRequiredData,
   BASIC_CATALOG_ID,
   SMOKE_GREETING,
 } from '@a2uiverse/sdk';
+import {a2aSmokeRunner, type SmokeRunner} from '@a2uiverse/smoke-transport';
+import {
+  finalUpdate,
+  firstTurnTask,
+  paintParts,
+  statusUpdate,
+} from '@a2uiverse/smoke-transport/testing';
 import {afterEach, beforeAll, describe, expect, test} from 'vitest';
 import {UNSUPPORTED_SCHEME} from '../src/credential.js';
 import {artifactFiles, preview, stellify} from '../src/index.js';
 import {previewWith} from '../src/preview.js';
-import {a2aSmokeRunner, type SmokeRunner} from '../src/transport.js';
 import {
   authRequiredScript,
   failedScript,
   hangingScript,
   invalidPaintScript,
-  noFinalScript,
   paintingScript,
   STAR_CATALOG_ID,
   startFakeAgent,
   streamedScript,
+  submittedOnlyScript,
   unmarkedScript,
   type FakeAgent,
 } from './fakeAgent.js';
@@ -189,6 +196,45 @@ describe('preview of an app whose card requires sign-in', () => {
       'the agent asked to sign in although a credential was sent: signIn (write)',
     ]);
   });
+
+  test('a stream closing on auth-required, set by an update not marked final, has ended asking to sign in (task-20.2 decision 6)', async () => {
+    agent = await startFakeAgent({
+      signIn: 'oauth',
+      script: ({ctx}) => [
+        firstTurnTask(ctx),
+        statusUpdate(
+          ctx,
+          'auth-required',
+          [{kind: 'data', data: {...authRequiredData({security: [{signIn: ['write']}]})}}],
+          false,
+        ),
+      ],
+    });
+    const result = await preview({
+      appId: 'star',
+      cardUrl: agent.cardUrl,
+      catalogs: [star],
+      credential: 'tok',
+    });
+    expect(result.findings).toEqual([
+      'the agent asked to sign in although a credential was sent: signIn (write)',
+    ]);
+  });
+
+  test("a 0.3 card the A2A SDK's translators refuse fails the smoke request, in the A2A SDK's own words (task-20.2 decision 5)", async () => {
+    agent = await startFakeAgent();
+    const {skills: _skills, ...noSkills} = agent.card;
+    const fetchImpl: typeof fetch = async (input, init) =>
+      String(input) === agent!.cardUrl ? Response.json(noSkills) : fetch(input, init);
+    const result = await previewWith(
+      {appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]},
+      {fetchImpl},
+    );
+    expect(result.document).toBeNull();
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toMatch(/^the smoke request failed: .*skills/);
+    expect(agent.requests).toEqual([]);
+  });
 });
 
 describe('what refuses a preview', () => {
@@ -267,11 +313,36 @@ describe('what refuses a preview', () => {
     expect(result.findings).toEqual(['the agent ended the task as failed: boom']);
   });
 
-  test('the stream ends with no final event', async () => {
-    agent = await startFakeAgent({script: noFinalScript});
+  test('the stream closes on a task that has not ended: never finished, the finding naming the last state', async () => {
+    agent = await startFakeAgent({script: submittedOnlyScript});
     const result = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
     expect(result.findings).toEqual([
-      'the agent never finished: the stream ended without a final event',
+      'the agent never finished: the stream ended with its task still submitted',
+    ]);
+  });
+
+  test('a status update marked final while its task is still working does not end the answer (task-20.2 decision 6)', async () => {
+    agent = await startFakeAgent({
+      script: ({ctx}) => [
+        firstTurnTask(ctx),
+        finalUpdate(ctx, 'working', paintParts(STAR_CATALOG_ID, {component: 'StarText'})),
+      ],
+    });
+    const result = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
+    expect(result.document).toBeNull();
+    expect(result.findings).toEqual([
+      'the agent never finished: the stream ended with its task still working',
+    ]);
+  });
+
+  test('a stream that carried nothing never finished, before any answer', async () => {
+    agent = await startFakeAgent();
+    const result = await previewWith(
+      {appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]},
+      {smoke: async () => ({kind: 'unfinished', messages: []})},
+    );
+    expect(result.findings).toEqual([
+      'the agent never finished: the stream ended before any answer',
     ]);
   });
 

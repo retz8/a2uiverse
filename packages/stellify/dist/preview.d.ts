@@ -1,4 +1,4 @@
-import { type SmokeRunner } from './transport.js';
+import { type SmokeRunner } from '@a2uiverse/smoke-transport';
 import type { PreviewOptions, PreviewResult } from './types.js';
 export declare const DEFAULT_CARD_TIMEOUT_MS = 10000;
 export declare const DEFAULT_SMOKE_TIMEOUT_MS = 60000;
@@ -9,6 +9,6 @@ export interface PreviewDeps {
     smoke?: SmokeRunner;
     fetchImpl?: typeof fetch;
 }
-/** The public verb: no transport in its signature, so nothing of the A2A client reaches the API's types. */
+/** The public verb: no transport in its signature, so nothing of the A2A SDK's client reaches the API's types. */
 export declare function preview(options: PreviewOptions): Promise<PreviewResult>;
 export declare function previewWith(options: PreviewOptions, deps: PreviewDeps): Promise<PreviewResult>;

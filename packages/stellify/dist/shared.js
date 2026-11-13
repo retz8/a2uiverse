@@ -67,7 +67,6 @@ function checkConfig(value) {
 var messageOf = (error) => error instanceof Error ? error.message : String(error);
 
 // ../sdk/js/dist/a2uiverse.js
-var AUTH_REQUIRED_STATE = "auth-required";
 function readAuthRequired(data) {
   if (typeof data !== "object" || data === null || Array.isArray(data))
     return void 0;
@@ -1109,13 +1108,6 @@ function a2uiMessagesIn(data) {
   }
   return [];
 }
-function a2uiMessagesOf(parts) {
-  const messages = [];
-  for (const part of parts)
-    if (part.kind === "data")
-      messages.push(...a2uiMessagesIn(part.data));
-  return messages;
-}
 var OPERATIONS = ["createSurface", "updateComponents", "updateDataModel", "deleteSurface"];
 var ROOT_ID = "root";
 function settled(own, refs) {
@@ -1669,29 +1661,180 @@ async function writeArtifact(result, outDir = result.outDir) {
   return outDir;
 }
 
-// src/card.ts
-async function fetchCard(cardUrl, timeoutMs, fetchImpl = fetch) {
+// ../smoke-transport/dist/liveCard.js
+async function fetchLiveCard(cardUrl, { timeoutMs, fetchImpl = fetch }) {
   const signal = AbortSignal.timeout(timeoutMs);
   let response;
   try {
     response = await fetchImpl(cardUrl, { signal, headers: { accept: "application/json" } });
   } catch (err) {
-    if (signal.aborted) throw new Error(`did not answer within ${timeoutMs / 1e3} s`);
+    if (signal.aborted)
+      throw new Error(`did not answer within ${timeoutMs / 1e3} s`);
     throw new Error(err.message);
   }
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  if (!response.ok)
+    throw new Error(`HTTP ${response.status}`);
   let card;
   try {
     card = await response.json();
   } catch (err) {
     throw new Error(`not JSON (${err.message})`);
   }
-  if (typeof card !== "object" || card === null) throw new Error("not an agent card");
+  if (typeof card !== "object" || card === null)
+    throw new Error("not an agent card");
   const c = card;
   if (typeof c.url !== "string" || typeof c.name !== "string") {
     throw new Error("not an agent card: no url or name");
   }
   return card;
+}
+
+// ../smoke-transport/dist/smokeRunner.js
+import { randomUUID } from "node:crypto";
+import { Role, TaskState as TaskState2 } from "@a2a-js/sdk";
+import { ClientFactory, DefaultAgentCardResolver, JsonRpcTransportFactory, ServiceParameters, withA2AExtensions } from "@a2a-js/sdk/client";
+
+// ../smoke-transport/dist/taskStateWord.js
+import { TaskState } from "@a2a-js/sdk";
+var WORDS = {
+  [TaskState.TASK_STATE_UNSPECIFIED]: "unknown",
+  [TaskState.TASK_STATE_SUBMITTED]: "submitted",
+  [TaskState.TASK_STATE_WORKING]: "working",
+  [TaskState.TASK_STATE_COMPLETED]: "completed",
+  [TaskState.TASK_STATE_FAILED]: "failed",
+  [TaskState.TASK_STATE_CANCELED]: "canceled",
+  [TaskState.TASK_STATE_INPUT_REQUIRED]: "input-required",
+  [TaskState.TASK_STATE_REJECTED]: "rejected",
+  [TaskState.TASK_STATE_AUTH_REQUIRED]: "auth-required",
+  [TaskState.UNRECOGNIZED]: "unknown"
+};
+function taskStateWord(state) {
+  return WORDS[state] ?? "unknown";
+}
+
+// ../smoke-transport/dist/smokeRunner.js
+var FAILED_STATES = /* @__PURE__ */ new Set(["failed", "canceled", "rejected"]);
+var ENDED_STATES = /* @__PURE__ */ new Set([
+  TaskState2.TASK_STATE_COMPLETED,
+  TaskState2.TASK_STATE_FAILED,
+  TaskState2.TASK_STATE_CANCELED,
+  TaskState2.TASK_STATE_REJECTED,
+  TaskState2.TASK_STATE_INPUT_REQUIRED,
+  TaskState2.TASK_STATE_AUTH_REQUIRED
+]);
+var UnauthorizedError = class extends Error {
+  constructor() {
+    super("the agent refused the request: 401");
+  }
+};
+function a2aSmokeRunner(options = {}) {
+  const base = options.fetchImpl ?? fetch;
+  return async ({ card, entitlement, words, timeoutMs, headers }) => {
+    const signal = AbortSignal.timeout(timeoutMs);
+    const fetchImpl = async (input, init) => {
+      const response = await base(input, { ...init, signal });
+      if (response.status === 401) {
+        await response.body?.cancel().catch(() => {
+        });
+        throw new UnauthorizedError();
+      }
+      return response;
+    };
+    const legacyCompat = { enabled: true };
+    const cardResolver = new DefaultAgentCardResolver({ fetchImpl, legacyCompat });
+    const factory = new ClientFactory({
+      transports: [new JsonRpcTransportFactory({ fetchImpl, legacyCompat })],
+      cardResolver
+    });
+    const message = {
+      messageId: randomUUID(),
+      contextId: "",
+      taskId: "",
+      role: Role.ROLE_USER,
+      parts: [
+        { content: { $case: "text", value: words }, metadata: void 0, filename: "", mediaType: "" }
+      ],
+      metadata: { [A2UI_CLIENT_CAPABILITIES_KEY]: clientCapabilities(entitlement) },
+      extensions: [],
+      referenceTaskIds: []
+    };
+    const messages = [];
+    let last;
+    let answered;
+    try {
+      const client = await factory.createFromAgentCard(cardResolver.normalizeAgentCard(card));
+      const stream = client.sendMessageStream({ tenant: "", message, configuration: void 0, metadata: void 0 }, {
+        signal,
+        serviceParameters: {
+          ...ServiceParameters.create(withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS))),
+          ...headers
+        }
+      });
+      for await (const event of stream) {
+        const parts = partsOf(event);
+        for (const part of parts)
+          messages.push(...a2uiMessagesIn(dataOf(part)));
+        const status = statusOf(event);
+        if (status)
+          last = status;
+        if (event.payload?.$case === "message")
+          answered = parts;
+      }
+    } catch (err) {
+      if (err instanceof UnauthorizedError)
+        return { kind: "unauthorized" };
+      if (signal.aborted) {
+        return { kind: "error", message: `the agent did not answer within ${timeoutMs / 1e3} s` };
+      }
+      return { kind: "error", message: err.message };
+    }
+    if (last && ENDED_STATES.has(last.state)) {
+      return {
+        kind: "ended",
+        messages,
+        state: taskStateWord(last.state),
+        ...wordsOf2(last.message?.parts)
+      };
+    }
+    if (answered) {
+      return {
+        kind: "ended",
+        messages,
+        state: taskStateWord(TaskState2.TASK_STATE_COMPLETED),
+        ...wordsOf2(answered)
+      };
+    }
+    return { kind: "unfinished", messages, ...last ? { state: taskStateWord(last.state) } : {} };
+  };
+}
+function partsOf(event) {
+  const payload = event.payload;
+  switch (payload?.$case) {
+    case "message":
+      return payload.value.parts;
+    case "task":
+    case "statusUpdate":
+      return payload.value.status?.message?.parts ?? [];
+    case "artifactUpdate":
+      return payload.value.artifact?.parts ?? [];
+    default:
+      return [];
+  }
+}
+function statusOf(event) {
+  const payload = event.payload;
+  return payload?.$case === "task" || payload?.$case === "statusUpdate" ? payload.value.status : void 0;
+}
+function dataOf(part) {
+  return part.content?.$case === "data" ? part.content.value : void 0;
+}
+function wordsOf2(parts) {
+  const data = (parts ?? []).map(dataOf).find((value) => readAuthRequired(value) !== void 0);
+  const text = (parts ?? []).flatMap((part) => part.content?.$case === "text" ? [part.content.value.trim()] : []).filter(Boolean).join("\n");
+  return {
+    ...data === void 0 ? {} : { data },
+    ...text === "" ? {} : { text }
+  };
 }
 
 // src/credential.ts
@@ -1828,117 +1971,12 @@ function describeNotice(notice) {
   return `notice: ${notice.appId} is ahead of the Store: its card declares ${describeLacks(notice)}; publish it`;
 }
 
-// src/transport.ts
-import { randomUUID } from "node:crypto";
-import {
-  ClientFactory,
-  DefaultAgentCardResolver,
-  JsonRpcTransportFactory,
-  ServiceParameters,
-  withA2AExtensions
-} from "@a2a-js/sdk/client";
-var FAILED_STATES = /* @__PURE__ */ new Set(["failed", "canceled", "rejected"]);
-var TERMINAL_STATES = /* @__PURE__ */ new Set([
-  "failed",
-  "canceled",
-  "rejected",
-  "completed"
-]);
-var UnauthorizedError = class extends Error {
-  constructor() {
-    super("the agent refused the request: 401");
-  }
-};
-function a2aSmokeRunner(options = {}) {
-  const base = options.fetchImpl ?? fetch;
-  return async ({ card, entitlement, words, timeoutMs, headers }) => {
-    const signal = AbortSignal.timeout(timeoutMs);
-    const fetchImpl = async (input, init) => {
-      const merged = new Headers(init?.headers);
-      for (const [name, value] of Object.entries(headers ?? {})) merged.set(name, value);
-      const response = await base(input, { ...init, headers: merged, signal });
-      if (response.status === 401) {
-        await response.body?.cancel().catch(() => {
-        });
-        throw new UnauthorizedError();
-      }
-      return response;
-    };
-    const factory = new ClientFactory({
-      transports: [new JsonRpcTransportFactory({ fetchImpl })],
-      cardResolver: new DefaultAgentCardResolver({ fetchImpl })
-    });
-    const message = {
-      kind: "message",
-      messageId: randomUUID(),
-      role: "user",
-      parts: [{ kind: "text", text: words }],
-      metadata: { [A2UI_CLIENT_CAPABILITIES_KEY]: clientCapabilities(entitlement) }
-    };
-    const messages = [];
-    let ended;
-    let last;
-    try {
-      const client = await factory.createFromAgentCard(card);
-      const stream = client.sendMessageStream(
-        { message },
-        {
-          signal,
-          serviceParameters: ServiceParameters.create(
-            withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS))
-          )
-        }
-      );
-      for await (const event of stream) {
-        const parts = partsOf(event);
-        messages.push(...a2uiMessagesOf(parts));
-        if (event.kind === "status-update" || event.kind === "task") {
-          last = { state: event.status.state, parts: event.status.message?.parts };
-        }
-        if (event.kind === "message") {
-          ended = { state: "completed", ...wordsOf2(parts) };
-        } else if (event.kind === "status-update" && event.final) {
-          ended = { state: event.status.state, ...wordsOf2(event.status.message?.parts) };
-        } else if (event.kind === "task" && (TERMINAL_STATES.has(event.status.state) || event.status.state === AUTH_REQUIRED_STATE)) {
-          ended = { state: event.status.state, ...wordsOf2(event.status.message?.parts) };
-        }
-      }
-    } catch (err) {
-      if (err instanceof UnauthorizedError) return { kind: "unauthorized" };
-      if (signal.aborted) {
-        return { kind: "error", message: `the agent did not answer within ${timeoutMs / 1e3} s` };
-      }
-      return { kind: "error", message: err.message };
-    }
-    if (!ended && last?.state === "input-required") {
-      ended = { state: last.state, ...wordsOf2(last.parts) };
-    }
-    if (!ended) return { kind: "unfinished", messages };
-    return { kind: "ended", messages, ...ended };
-  };
-}
-function partsOf(event) {
-  if (event.kind === "message") return event.parts ?? [];
-  if (event.kind === "artifact-update") return event.artifact?.parts ?? [];
-  return event.status?.message?.parts ?? [];
-}
-function wordsOf2(parts) {
-  const data = (parts ?? []).find(
-    (part) => part.kind === "data" && readAuthRequired(part.data) !== void 0
-  );
-  const text = (parts ?? []).flatMap((part) => part.kind === "text" ? [part.text.trim()] : []).filter(Boolean).join("\n");
-  return {
-    ...data && data.kind === "data" ? { data: data.data } : {},
-    ...text === "" ? {} : { text }
-  };
-}
-
 // src/preview.ts
 var DEFAULT_CARD_TIMEOUT_MS = 1e4;
 var DEFAULT_SMOKE_TIMEOUT_MS = 6e4;
 var CREDENTIAL_NEEDED = "the card requires sign-in: set STELLIFY_CREDENTIAL to a credential of your own for this agent";
 var CREDENTIAL_NOT_SENT = "the card requires no sign-in: the credential is not sent, and the marketplace captures this app’s preview itself at publish";
-var NEVER_FINISHED = "the agent never finished: the stream ended without a final event";
+var neverFinished = (state) => state === void 0 ? "the agent never finished: the stream ended before any answer" : `the agent never finished: the stream ended with its task still ${state}`;
 function preview(options) {
   return previewWith(options, {});
 }
@@ -1957,11 +1995,10 @@ async function previewWith(options, deps) {
   });
   let card;
   try {
-    card = await fetchCard(
-      options.cardUrl,
-      options.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS,
+    card = await fetchLiveCard(options.cardUrl, {
+      timeoutMs: options.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS,
       fetchImpl
-    );
+    });
   } catch (err) {
     findings.push(`the card at ${options.cardUrl} could not be fetched: ${err.message}`);
     return result(null);
@@ -2081,7 +2118,7 @@ function judge(seen, credentialSent) {
     case "error":
       return { findings: [`the smoke request failed: ${seen.message}`] };
     case "unfinished":
-      return { findings: [NEVER_FINISHED] };
+      return { findings: [neverFinished(seen.state)] };
     case "ended":
       if (seen.state === "auth-required") {
         return {

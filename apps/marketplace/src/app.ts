@@ -2,11 +2,10 @@ import {join} from 'node:path';
 import cors from 'cors';
 import express, {type Express} from 'express';
 import {TransformersEmbedder, type Embedder} from '@a2uiverse/embedder';
+import {a2aSmokeRunner, fetchLiveCard, type SmokeRunner} from '@a2uiverse/smoke-transport';
 import {marketplaceRoutes} from './api.js';
-import {cardFetcher, type FetchCard} from './cardFetch.js';
 import type {Config} from './config.js';
-import {Marketplace, type FlagChange} from './marketplace.js';
-import {a2aSmokeRunner, type SmokeRunner} from './smoke.js';
+import {Marketplace, type FetchCard, type FlagChange} from './marketplace.js';
 
 /** localhost, 127.0.0.1 on any port, and VS Code dev tunnels (tunnel-environment.md). */
 export const ORIGIN_RE =
@@ -44,7 +43,10 @@ export function buildMarketplace({
   const marketplace = new Marketplace({
     stateDir: config.stateDir,
     embedder,
-    fetchCard: overrides?.fetchCard ?? cardFetcher({timeoutMs: config.cardTimeoutMs}),
+    fetchCard:
+      overrides?.fetchCard ??
+      (cardUrl => fetchLiveCard(cardUrl, {timeoutMs: config.cardTimeoutMs})),
+    // The marketplace passes the runner no credential: none reaches it (SPEC §9.3).
     smoke: overrides?.smoke ?? a2aSmokeRunner(),
     smokeTimeoutMs: config.smokeTimeoutMs,
   });

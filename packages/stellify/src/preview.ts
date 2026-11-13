@@ -8,7 +8,6 @@
  * paint checked through the sdk and kept as it judged it, settled. Every failure is a finding, never
  * a throw.
  */
-import type {AgentCard} from '@a2a-js/sdk';
 import {
   ARTIFACT_DESCRIPTOR_FILE,
   BASIC_CATALOG_ID,
@@ -25,17 +24,18 @@ import {
   type A2uiCatalogSchema,
   type A2uiMessage,
   type GatedArtifact,
+  type PublishedCard,
 } from '@a2uiverse/sdk';
-import {fetchCard} from './card.js';
-import {credentialHeaders, requiresSignIn} from './credential.js';
-import {fetchArtifactFile, fetchIndex} from './marketplace.js';
-import {noticesOf} from './notices.js';
 import {
   a2aSmokeRunner,
   FAILED_STATES,
+  fetchLiveCard,
   type SmokeObservation,
   type SmokeRunner,
-} from './transport.js';
+} from '@a2uiverse/smoke-transport';
+import {credentialHeaders, requiresSignIn} from './credential.js';
+import {fetchArtifactFile, fetchIndex} from './marketplace.js';
+import {noticesOf} from './notices.js';
 import type {Notice, PreviewDocument, PreviewOptions, PreviewResult} from './types.js';
 
 export const DEFAULT_CARD_TIMEOUT_MS = 10_000;
@@ -45,7 +45,15 @@ export const CREDENTIAL_NEEDED =
   'the card requires sign-in: set STELLIFY_CREDENTIAL to a credential of your own for this agent';
 export const CREDENTIAL_NOT_SENT =
   'the card requires no sign-in: the credential is not sent, and the marketplace captures this app’s preview itself at publish';
-const NEVER_FINISHED = 'the agent never finished: the stream ended without a final event';
+
+/**
+ * The finding for a stream that closed on a task that had not ended (task-20.2 decision 6): the
+ * last state the stream carried, or that it carried none.
+ */
+const neverFinished = (state: string | undefined) =>
+  state === undefined
+    ? 'the agent never finished: the stream ended before any answer'
+    : `the agent never finished: the stream ended with its task still ${state}`;
 
 /** Test seams: the transport and the fetch under the card and the marketplace reads. */
 export interface PreviewDeps {
@@ -53,7 +61,7 @@ export interface PreviewDeps {
   fetchImpl?: typeof fetch;
 }
 
-/** The public verb: no transport in its signature, so nothing of the A2A client reaches the API's types. */
+/** The public verb: no transport in its signature, so nothing of the A2A SDK's client reaches the API's types. */
 export function preview(options: PreviewOptions): Promise<PreviewResult> {
   return previewWith(options, {});
 }
@@ -75,14 +83,14 @@ export async function previewWith(
     notes,
   });
 
-  // The live card, as the marketplace will fetch it.
-  let card: AgentCard;
+  // The live card, as the marketplace will fetch it, held as its agent served it (task-20.2
+  // decision 5).
+  let card: PublishedCard;
   try {
-    card = await fetchCard(
-      options.cardUrl,
-      options.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS,
+    card = await fetchLiveCard(options.cardUrl, {
+      timeoutMs: options.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS,
       fetchImpl,
-    );
+    });
   } catch (err) {
     findings.push(`the card at ${options.cardUrl} could not be fetched: ${(err as Error).message}`);
     return result(null);
@@ -220,7 +228,7 @@ function judge(
     case 'error':
       return {findings: [`the smoke request failed: ${seen.message}`]};
     case 'unfinished':
-      return {findings: [NEVER_FINISHED]};
+      return {findings: [neverFinished(seen.state)]};
     case 'ended':
       if (seen.state === 'auth-required') {
         return {

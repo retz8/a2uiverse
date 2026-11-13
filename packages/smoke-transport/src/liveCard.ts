@@ -1,14 +1,21 @@
 /**
- * The live card (SPEC §9.3): what `preview` fetches from the card URL under the card timeout
- * (task-13.4 decision 12), as the marketplace fetches it at publish.
+ * The live card (SPEC §9.3; task-20.2 decisions 4, 5): what the marketplace fetches from the card
+ * URL at publish, at its refresh at boot and on a report, and what Stellify's `preview` fetches —
+ * under a timeout, since the A2A SDK's own resolver has none, and kept as its agent served it,
+ * where the A2A SDK's resolver hands back its translation.
  */
-import type {AgentCard} from '@a2a-js/sdk';
+import type {PublishedCard} from '@a2uiverse/sdk';
 
-export async function fetchCard(
+export interface FetchLiveCardOptions {
+  timeoutMs: number;
+  fetchImpl?: typeof fetch;
+}
+
+/** The card at `cardUrl`, as served. Throws, in the words of a finding, when there is none. */
+export async function fetchLiveCard(
   cardUrl: string,
-  timeoutMs: number,
-  fetchImpl: typeof fetch = fetch,
-): Promise<AgentCard> {
+  {timeoutMs, fetchImpl = fetch}: FetchLiveCardOptions,
+): Promise<PublishedCard> {
   const signal = AbortSignal.timeout(timeoutMs);
   let response: Response;
   try {
@@ -29,5 +36,5 @@ export async function fetchCard(
   if (typeof c.url !== 'string' || typeof c.name !== 'string') {
     throw new Error('not an agent card: no url or name');
   }
-  return card as AgentCard;
+  return card as PublishedCard;
 }

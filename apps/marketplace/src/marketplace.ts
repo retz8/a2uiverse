@@ -5,7 +5,6 @@
  * the sdk's contracts, the served subtree on disk the truth, the vectors in memory.
  */
 import {timingSafeEqual} from 'node:crypto';
-import type {AgentCard} from '@a2a-js/sdk';
 import {corpusDoc, rank, type Embedder} from '@a2uiverse/embedder';
 import {
   aheadOfStore,
@@ -41,9 +40,14 @@ import {
   type SearchResponse,
 } from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
-import type {FetchCard} from './cardFetch.js';
-import {FAILED_STATES, type SmokeObservation, type SmokeRunner} from './smoke.js';
+import {FAILED_STATES, type SmokeObservation, type SmokeRunner} from '@a2uiverse/smoke-transport';
 import {MarketplaceStore, type PublisherRecord} from './store.js';
+
+/**
+ * The live card at a card URL, as its agent served it: held as the sdk's `PublishedCard` from the
+ * fetch through to the index entry (task-20.2 decision 5).
+ */
+export type FetchCard = (cardUrl: string) => Promise<PublishedCard>;
 
 export interface MarketplaceDeps {
   stateDir: string;
@@ -70,7 +74,14 @@ export type UnpublishAnswer =
 /** Catalog ids no artifact may be handed for: the client provides them. */
 const CLIENT_CATALOG_IDS: readonly string[] = [...PUBLIC_CATALOG_IDS, SHELL_CATALOG_ID];
 
-const NEVER_FINISHED = 'the agent never finished: the stream ended without a final event';
+/**
+ * The finding for a stream that closed on a task that had not ended (task-20.2 decision 6): the
+ * last state the stream carried, or that it carried none.
+ */
+const neverFinished = (state: string | undefined) =>
+  state === undefined
+    ? 'the agent never finished: the stream ended before any answer'
+    : `the agent never finished: the stream ended with its task still ${state}`;
 
 /**
  * The Store's search cut (task-14.11 decision 27): a match scores at least `SEARCH_FLOOR` and within
@@ -295,7 +306,7 @@ export class Marketplace {
   async #verify(appId: string): Promise<FlagChange> {
     const entry = this.#entries.get(appId);
     if (!entry) return 'unchanged';
-    let card: AgentCard;
+    let card: PublishedCard;
     try {
       card = await this.#deps.fetchCard(entry.cardUrl);
     } catch {
@@ -353,7 +364,7 @@ export class Marketplace {
       );
     }
 
-    let card: AgentCard | undefined;
+    let card: PublishedCard | undefined;
     try {
       card = await this.#deps.fetchCard(cardUrl);
     } catch (err) {
@@ -598,7 +609,7 @@ export class Marketplace {
       appId,
       publisher: name,
       cardUrl,
-      card: card as unknown as PublishedCard,
+      card,
       catalogs: rows,
       versions: history
         ? card.version === history.card.version
@@ -719,14 +730,14 @@ export function requiresSignIn(card: {security?: unknown}): boolean {
 }
 
 /** The judgement over a sign-in agent's answer to the request sent with no credential. */
-function judgeSignIn(seen: SmokeObservation, card: AgentCard): string[] {
+function judgeSignIn(seen: SmokeObservation, card: PublishedCard): string[] {
   switch (seen.kind) {
     case 'unauthorized':
       return checkSignInAnswer({httpStatus: 401}, card);
     case 'ended':
       return checkSignInAnswer({taskState: seen.state, data: seen.data}, card);
     case 'unfinished':
-      return [NEVER_FINISHED];
+      return [neverFinished(seen.state)];
     case 'error':
       return [`the smoke request failed: ${seen.message}`];
   }
@@ -740,7 +751,7 @@ function judgePaint(seen: SmokeObservation): {findings: string[]} | {messages: A
     case 'error':
       return {findings: [`the smoke request failed: ${seen.message}`]};
     case 'unfinished':
-      return {findings: [NEVER_FINISHED]};
+      return {findings: [neverFinished(seen.state)]};
     case 'ended':
       if (FAILED_STATES.has(seen.state)) {
         return {

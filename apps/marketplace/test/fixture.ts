@@ -2,9 +2,7 @@
  * Fixtures for the marketplace's tests: cards as agents serve them, catalog artifacts as Stellify
  * writes them with real hashes, index entries and previews as the marketplace stores them.
  */
-import type {AgentCard} from '@a2a-js/sdk';
 import {
-  A2UI_EXTENSION_URIS,
   ARTIFACT_DESCRIPTOR_FILE,
   HOST_INTERFACE_VERSION,
   artifactIdOf,
@@ -12,50 +10,18 @@ import {
   type IndexEntry,
   type PreviewDocument,
 } from '@a2uiverse/sdk';
+import {
+  cardFor,
+  cardUrlOf,
+  type AgentCard,
+  type CardOptions,
+} from '@a2uiverse/smoke-transport/testing';
+
+export {cardFor, cardUrlOf, type AgentCard, type CardOptions};
 
 export type ArtifactFiles = Map<string, Uint8Array>;
 
 export const encode = (text: string) => new TextEncoder().encode(text);
-
-/** The URL a test card is served at: its agent's URL plus the well-known path. */
-export const cardUrlOf = (agentUrl: string) => `${agentUrl}/.well-known/agent-card.json`;
-
-export interface CardOptions {
-  name?: string;
-  description?: string;
-  version?: string;
-  /** The catalog ids the card declares under the A2UI extension; none declares nothing. */
-  catalogs?: string[];
-  skills?: AgentCard['skills'];
-  streaming?: boolean;
-  /** Card fields beyond the defaults — `securitySchemes`, `security`. */
-  card?: Partial<AgentCard>;
-}
-
-export function cardFor(agentUrl: string, options: CardOptions = {}): AgentCard {
-  const {catalogs} = options;
-  return {
-    name: options.name ?? 'Fake Agent',
-    description: options.description ?? 'an agent for tests',
-    version: options.version ?? '0.1.0',
-    protocolVersion: '0.3.0',
-    url: agentUrl,
-    preferredTransport: 'JSONRPC',
-    capabilities: {
-      streaming: options.streaming ?? true,
-      extensions: [
-        {
-          uri: A2UI_EXTENSION_URIS['v0.9.1'],
-          ...(catalogs ? {params: {supportedCatalogIds: catalogs}} : {}),
-        },
-      ],
-    },
-    defaultInputModes: ['text'],
-    defaultOutputModes: ['text'],
-    skills: options.skills ?? [{id: 'fake', name: 'fake', description: 'fake', tags: []}],
-    ...options.card,
-  };
-}
 
 /** A card whose sign-in is an OAuth scheme, required on every request. */
 export function signInCardFor(agentUrl: string, options: CardOptions = {}): AgentCard {

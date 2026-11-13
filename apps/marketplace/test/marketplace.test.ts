@@ -6,16 +6,24 @@ import {mkdtemp, readFile, rm, stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, describe, expect, test} from 'vitest';
-import type {AgentCard} from '@a2a-js/sdk';
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
   A2UI_EXTENSION_URIS,
+  authRequiredData,
   BASIC_CATALOG_ID,
   clientCapabilities,
   SMOKE_GREETING,
   type PublishBody,
+  type PublishedCard,
 } from '@a2uiverse/sdk';
 import {FakeEmbedder} from '@a2uiverse/embedder';
+import {a2aSmokeRunner, type SmokeRunner} from '@a2uiverse/smoke-transport';
+import {
+  finalUpdate,
+  firstTurnTask,
+  paintParts,
+  statusUpdate,
+} from '@a2uiverse/smoke-transport/testing';
 import {
   Marketplace,
   matches,
@@ -24,7 +32,6 @@ import {
   SEARCH_MARGIN,
   type PublishAnswer,
 } from '../src/marketplace.js';
-import {a2aSmokeRunner, type SmokeRunner} from '../src/smoke.js';
 import {
   APPS_DIR,
   ARTIFACTS_DIR,
@@ -38,12 +45,12 @@ import {
   credentialScript,
   failedScript,
   FAKE_CATALOG_ID,
-  noFinalScript,
   paintingScript,
   startFakeAgent,
   STREAMED_SETTLED,
   STREAMED_SURFACE,
   streamedScript,
+  submittedOnlyScript,
   unmarkedScript,
   type FakeAgent,
   type FakeAgentOptions,
@@ -54,6 +61,7 @@ import {
   idOf,
   previewFor,
   schemaFor,
+  type AgentCard,
   type ArtifactFiles,
 } from './fixture.js';
 
@@ -69,11 +77,12 @@ class CardServer {
     this.cards.set(url, card);
     return url;
   }
-  resolve = async (url: string): Promise<AgentCard> => {
+  /** The card as the marketplace holds it: as its agent served it. */
+  resolve = async (url: string): Promise<PublishedCard> => {
     this.fetched.push(url);
     const card = this.cards.get(url);
     if (!card) throw new Error(`fetch failed: ${url}`);
-    return card;
+    return card as unknown as PublishedCard;
   };
 }
 
@@ -237,7 +246,7 @@ describe('publish, the first time', () => {
     expect(request.message.metadata?.[A2UI_CLIENT_CAPABILITIES_KEY]).toEqual(
       clientCapabilities([BASIC_CATALOG_ID, CAT]),
     );
-    expect(request.authorization).toBeUndefined();
+    expect(request.headers.authorization).toBeUndefined();
     expect(marketplace.entries().map(e => e.appId)).toEqual(['shop']);
   });
 
@@ -499,10 +508,10 @@ describe('publish, the smoke test', () => {
     expect(answer.findings).toEqual(['the agent ended the task as failed: boom']);
   });
 
-  test('an agent that never finishes', async () => {
+  test('an agent whose stream closes on a task that has not ended never finished, the finding naming the last state', async () => {
     const {marketplace, cards} = await made();
     await claimed(marketplace);
-    const agent = await agentOf({script: noFinalScript});
+    const agent = await agentOf({script: submittedOnlyScript});
     const answer = refused(
       await marketplace.publish(
         'acme',
@@ -510,7 +519,42 @@ describe('publish, the smoke test', () => {
       ),
     );
     expect(answer.findings).toEqual([
-      'the agent never finished: the stream ended without a final event',
+      'the agent never finished: the stream ended with its task still submitted',
+    ]);
+  });
+
+  test('a status update marked final while its task is still working does not end the answer (task-20.2 decision 6)', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentOf({
+      script: ({ctx}) => [firstTurnTask(ctx), finalUpdate(ctx, 'working', paintParts(CAT))],
+    });
+    const answer = refused(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serve(agent.card), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    expect(answer.findings).toEqual([
+      'the agent never finished: the stream ended with its task still working',
+    ]);
+  });
+
+  test('a stream that carried nothing never finished, before any answer', async () => {
+    const {marketplace, cards} = await made(undefined, async () => ({
+      kind: 'unfinished',
+      messages: [],
+    }));
+    await claimed(marketplace);
+    const agent = await agentOf();
+    const answer = refused(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serve(agent.card), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    expect(answer.findings).toEqual([
+      'the agent never finished: the stream ended before any answer',
     ]);
   });
 
@@ -609,6 +653,51 @@ describe('publish, the smoke test', () => {
       await marketplace.publish('acme', body('shop', url, [await fixtureArtifact(CAT)])),
     );
     expect(answer.findings).toEqual([expect.stringMatching(/^the smoke request failed: /)]);
+  });
+
+  test('a sign-in agent whose stream closes on auth-required, set by an update not marked final, has asked to sign in (task-20.2 decision 6)', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentOf({
+      signIn: true,
+      script: ({ctx}) => [
+        firstTurnTask(ctx),
+        statusUpdate(
+          ctx,
+          'auth-required',
+          [{kind: 'data', data: {...authRequiredData({security: [{signIn: ['read']}]})}}],
+          false,
+        ),
+      ],
+    });
+    const answer = ok(
+      await marketplace.publish(
+        'acme',
+        body(
+          'locked',
+          cards.serve(agent.card),
+          [await fixtureArtifact(CAT)],
+          previewFor('locked', '0.1.0', CAT, 'publisher'),
+        ),
+      ),
+    );
+    expect(answer.summary).toContain('published locked');
+  });
+
+  test("a 0.3 card the A2A SDK's translators refuse fails the smoke request, in the A2A SDK's own words (task-20.2 decision 5)", async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentOf();
+    const {skills: _skills, ...noSkills} = agent.card;
+    const answer = refused(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serve(noSkills as AgentCard), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    expect(answer.findings).toHaveLength(1);
+    expect(answer.findings[0]).toMatch(/^the smoke request failed: .*skills/);
+    expect(agent.requests).toHaveLength(0);
   });
 
   test('a sign-in agent passes by 401, by auth-required naming its scheme, and not by painting', async () => {

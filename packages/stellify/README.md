@@ -154,39 +154,43 @@ In `index.js`, `import {useState} from 'react'` has become a read from `__a2uive
 ## Developing Stellify
 
 ```bash
-pnpm --filter @a2uiverse/stellify build       # dist/: index.js and cli.js with the sdk inlined, sharing shared.js; declarations
+pnpm --filter @a2uiverse/stellify build       # dist/: index.js and cli.js with the sdk and the smoke transport inlined, sharing shared.js; declarations
 pnpm --filter @a2uiverse/stellify test        # vitest over the fixture catalog, a scripted agent and a scripted marketplace
 ```
 
-`dist/` is committed, because a git install sees no workspace siblings: the build ships with the sdk inlined and needs no build step of its own, and its runtime dependencies come from npm: esbuild, the A2A client `@a2a-js/sdk`, and the sdk's own, `@a2ui/web_core`, zod and ajv, at the sdk's versions, which a test holds equal. `pnpm verify` at the root rebuilds `dist/` and fails on any difference — after editing `src/` or the sdk, run `build` and commit the result.
+`dist/` is committed, because a git install sees no workspace siblings. The build ships with two workspace packages inlined and needs no build step of its own: the sdk, and the smoke transport ([`packages/smoke-transport`](../smoke-transport/README.md), the smoke request's transport and the fetch of the live card, which the marketplace uses too). Its runtime dependencies come from npm: esbuild; the A2A SDK, `@a2a-js/sdk`, pinned at exactly `1.3.0`; and the sdk's own, `@a2ui/web_core`, zod and ajv, at the sdk's versions. A test holds each equal to the version the inlined package declares.
 
-The tests pack the fixture catalog in `test/fixtures` and drive the marketplace verbs against two fakes of their own, an in-process A2A agent scripted per turn and a marketplace scripted per route, each recording what it received so the tests assert on the wire. The round trip against the real marketplace is run by hand, and by the launcher under `--publish`.
+The A2A SDK stays outside the build until a patch to it first alters how an agent is reached. A pnpm patch reaches installs of this workspace alone, so the change that carries such a patch also moves the A2A SDK into `dist/`, and the build a vendor installs carries the patch.
+
+`pnpm verify` at the root rebuilds `dist/` and fails on any difference. After editing `src/`, the sdk or the smoke transport, run `build` and commit the result.
+
+The tests pack the fixture catalog in `test/fixtures` and drive the marketplace verbs against two fakes, each recording what it received so the tests assert on the wire: an in-process agent on A2A 0.3 scripted per turn, the smoke transport's fake agent with Stellify's own cards and paints, and a marketplace scripted per route. The round trip against the real marketplace is run by hand, and by the launcher under `--publish`.
 
 <details>
 <summary>Where things are</summary>
 
-| Concern                             | File                                           |
-| ----------------------------------- | ---------------------------------------------- |
-| Pipeline and checks                 | `src/pack.ts`                                  |
-| Bundler and the two rewrites        | `src/bundle.ts`                                |
-| Artifact paths                      | `src/layout.ts`                                |
-| Stylesheet assets                   | `src/stylesheets.ts`                           |
-| Config file                         | `src/config.ts`                                |
-| The package's entry and name        | `src/manifest.ts`                              |
-| Writer                              | `src/write.ts`                                 |
-| The publisher file                  | `src/publisher.ts`                             |
-| The marketplace's routes over fetch | `src/marketplace.ts`                           |
-| claim, publish, unpublish, list     | `src/verbs.ts`                                 |
-| preview                             | `src/preview.ts`                               |
-| The smoke request's transport       | `src/transport.ts`, `src/card.ts`              |
-| The credential's header             | `src/credential.ts`                            |
-| The notices                         | `src/notices.ts`                               |
-| A packed folder read                | `src/tree.ts`                                  |
-| Command line                        | `src/cli.ts`, `src/main.ts`                    |
-| The API and its types               | `src/index.ts`, `src/types.ts`                 |
-| The committed build                 | `scripts/build.mjs`                            |
-| Fixture catalog and dependency      | `test/fixtures/`                               |
-| The scripted agent and marketplace  | `test/fakeAgent.ts`, `test/fakeMarketplace.ts` |
+| Concern                                                      | File                                                   |
+| ------------------------------------------------------------ | ------------------------------------------------------ |
+| Pipeline and checks                                          | `src/pack.ts`                                          |
+| Bundler and the two rewrites                                 | `src/bundle.ts`                                        |
+| Artifact paths                                               | `src/layout.ts`                                        |
+| Stylesheet assets                                            | `src/stylesheets.ts`                                   |
+| Config file                                                  | `src/config.ts`                                        |
+| The package's entry and name                                 | `src/manifest.ts`                                      |
+| Writer                                                       | `src/write.ts`                                         |
+| The publisher file                                           | `src/publisher.ts`                                     |
+| The marketplace's routes over fetch                          | `src/marketplace.ts`                                   |
+| claim, publish, unpublish, list                              | `src/verbs.ts`                                         |
+| preview                                                      | `src/preview.ts`                                       |
+| The smoke request's transport and the fetch of the live card | `../smoke-transport/src/smokeRunner.ts`, `liveCard.ts` |
+| The credential's header                                      | `src/credential.ts`                                    |
+| The notices                                                  | `src/notices.ts`                                       |
+| A packed folder read                                         | `src/tree.ts`                                          |
+| Command line                                                 | `src/cli.ts`, `src/main.ts`                            |
+| The API and its types                                        | `src/index.ts`, `src/types.ts`                         |
+| The committed build                                          | `scripts/build.mjs`                                    |
+| Fixture catalog and dependency                               | `test/fixtures/`                                       |
+| The scripted agent and marketplace                           | `test/fakeAgent.ts`, `test/fakeMarketplace.ts`         |
 
 </details>
 
