@@ -4,7 +4,7 @@
  * words of sign-out, uninstall and adding an account. Every word is the person's — never a scheme,
  * a scope key or a catalog.
  */
-import {NOT_CHECKED_WORDS, updateWords, type UpdateState} from '@a2uiverse/sdk';
+import {NO_INTERFACE_WORDS, NOT_CHECKED_WORDS, updateWords, type UpdateState} from '@a2uiverse/sdk';
 import type {InstalledApp, Revocation} from '../../../orchestratorApi';
 import {listed, updateAct} from '../appCard';
 
@@ -28,7 +28,8 @@ export type AppStateView =
 
 /**
  * An installed app's state as the App Library shows it: checking while the check runs; not
- * reached, in place of the update state; otherwise its state as just checked, in the App
+ * reached, or connecting in a way A2UIVerse can't use (task-20.3 decision 14), in place of the
+ * update state; otherwise its state as just checked, in the App
  * Library's words, an app from a local copy the Store does not list installed from your computer.
  */
 export function appStateView(
@@ -39,6 +40,8 @@ export function appStateView(
   if (checking) return {kind: 'checking'};
   if (app.reachable === false)
     return {kind: 'state', words: UNREACHED_WORDS, tone: 'bad', press: {kind: 'none'}};
+  if (app.noInterface === true)
+    return {kind: 'state', words: NO_INTERFACE_WORDS, tone: 'bad', press: {kind: 'none'}};
   const source = app.source ?? 'local';
   if (!update)
     return {kind: 'state', words: NOT_CHECKED_WORDS, tone: 'quiet', press: {kind: 'none'}};
@@ -76,7 +79,7 @@ export function stateNote(
   app: InstalledApp,
   update: UpdateState | undefined,
 ): {tone: 'warn' | 'quiet'; text: string} | undefined {
-  if (app.reachable === false || !update) return undefined;
+  if (app.reachable === false || app.noInterface === true || !update) return undefined;
   switch (update.state) {
     case 'update-required':
       return {

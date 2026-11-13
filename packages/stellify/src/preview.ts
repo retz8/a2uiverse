@@ -2,12 +2,21 @@
  * `preview` (SPEC §9.3; phase-13 decision 13; task-13.4 decisions 5–8, 12): the smoke test on the
  * publisher's machine, against their running agent, with their own credential — the paint
  * captured as the document `publish` sends for an app whose card requires sign-in, and the
- * developer's look at what the Store will show for any app. The card is fetched, the credential's
- * header chosen from it, each handed artifact gated, the schema of a catalog the marketplace holds
+ * developer's look at what the Store will show for any app. The card is fetched and read, the
+ * credential's header chosen from it, each handed artifact gated, the schema of a catalog the marketplace holds
  * fetched from it, one request sent, the answer judged as the marketplace judges a live paint, the
  * paint checked through the sdk and kept as it judged it, settled. Every failure is a finding, never
  * a throw.
  */
+import type {AgentCard} from '@a2a-js/sdk';
+import {
+  asksSignIn,
+  fetchLiveCard,
+  noInterfaceFinding,
+  readCard,
+  spokenInterfaces,
+  type ServedCard,
+} from '@a2uiverse/card';
 import {
   ARTIFACT_DESCRIPTOR_FILE,
   BASIC_CATALOG_ID,
@@ -24,16 +33,14 @@ import {
   type A2uiCatalogSchema,
   type A2uiMessage,
   type GatedArtifact,
-  type PublishedCard,
 } from '@a2uiverse/sdk';
 import {
   a2aSmokeRunner,
   FAILED_STATES,
-  fetchLiveCard,
   type SmokeObservation,
   type SmokeRunner,
 } from '@a2uiverse/smoke-transport';
-import {credentialHeaders, requiresSignIn} from './credential.js';
+import {credentialHeaders} from './credential.js';
 import {fetchArtifactFile, fetchIndex} from './marketplace.js';
 import {noticesOf} from './notices.js';
 import type {Notice, PreviewDocument, PreviewOptions, PreviewResult} from './types.js';
@@ -83,11 +90,11 @@ export async function previewWith(
     notes,
   });
 
-  // The live card, as the marketplace will fetch it, held as its agent served it (task-20.2
-  // decision 5).
-  let card: PublishedCard;
+  // The live card, as the marketplace will fetch it, then read as the marketplace will read it
+  // (task-20.3 decisions 3, 8). Nothing runs after a card that does not read.
+  let served: ServedCard;
   try {
-    card = await fetchLiveCard(options.cardUrl, {
+    served = await fetchLiveCard(options.cardUrl, {
       timeoutMs: options.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS,
       fetchImpl,
     });
@@ -95,9 +102,18 @@ export async function previewWith(
     findings.push(`the card at ${options.cardUrl} could not be fetched: ${(err as Error).message}`);
     return result(null);
   }
-  if (typeof card.version !== 'string' || card.version === '') {
+  let card: AgentCard;
+  try {
+    card = readCard(served);
+  } catch (err) {
+    findings.push(`the card at ${options.cardUrl} could not be read: ${(err as Error).message}`);
+    return result(null);
+  }
+  if (!card.version) {
     findings.push("the card has no version: the card's `version` is the app's version");
   }
+  // An agent the platform cannot reach is sent nothing (task-20.3 decision 15).
+  if (spokenInterfaces(card).length === 0) findings.push(noInterfaceFinding(card));
   // The card's declaration per A2UI version, what the request advertises and the paint is judged
   // by (task-19.2 decision 6); `declared` is its union, what the gate and the schemas read.
   let declared: string[] = [];
@@ -110,7 +126,7 @@ export async function previewWith(
   } else findings.push(...read.errors.map(e => `the card's ${e}`));
 
   // The credential: required for a card that requires sign-in, not sent for one that does not.
-  const signIn = requiresSignIn(card);
+  const signIn = asksSignIn(card);
   const given = options.credential !== undefined && options.credential !== '';
   let headers: Record<string, string> | undefined;
   if (signIn) {

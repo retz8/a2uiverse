@@ -1,8 +1,7 @@
 /**
- * How the marketplace and Stellify reach an agent (task-20.2 decisions 3, 4): the fetch of its
- * live card and the transport of the smoke request.
+ * How the marketplace and Stellify reach an agent (task-20.2 decision 3): the transport of the
+ * smoke request. The fetch of the live card is the card package's (task-20.3 decision 3).
  */
-export {fetchLiveCard, type FetchLiveCardOptions} from './liveCard.js';
 export {
   a2aSmokeRunner,
   FAILED_STATES,

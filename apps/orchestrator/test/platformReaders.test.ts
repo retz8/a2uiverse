@@ -3,7 +3,8 @@
  * projections of orchestrator state — never a partition's contents, never the synthesis document —
  * behind one interface, adapted to the AI SDK's tools.
  */
-import type {InstalledCard} from '../src/registry/installedCard.js';
+import type {AgentCard as LegacyCard} from '@a2a-js/sdk-v0_3';
+import {readCard} from '@a2uiverse/card';
 import {beforeAll, describe, expect, test} from 'vitest';
 import {Compositions} from '../src/composition/compositions.js';
 import {Sources} from '../src/accounts/accounts.js';
@@ -27,7 +28,7 @@ function cardFor(
   description: string,
   skills: [string, string][],
   catalogs?: string[],
-): InstalledCard {
+): LegacyCard {
   return {
     name,
     description,
@@ -51,14 +52,17 @@ function cardFor(
   };
 }
 
-const platformCard = cardFor('shell', 'A2UIVerse', 'the platform', [
-  ['Palette', 'routes utterances'],
-]);
+const platformCard = readCard(
+  cardFor('shell', 'A2UIVerse', 'the platform', [['Palette', 'routes utterances']]),
+);
 
-/** A registry with each card installed through the operation; `down` ones unreachable at startup. */
+/**
+ * A registry with each card installed through the operation; `down` ones unreachable at startup,
+ * `grpcOnly` ones serving a live card that lists gRPC alone.
+ */
 async function registryWith(
-  cards: Record<string, InstalledCard>,
-  options: {down?: string[]; handed?: Record<string, string>} = {},
+  cards: Record<string, LegacyCard>,
+  options: {down?: string[]; grpcOnly?: string[]; handed?: Record<string, string>} = {},
 ): Promise<Registry> {
   const apps = await Promise.all(
     Object.entries(cards).map(async ([id, card]) => ({
@@ -69,6 +73,9 @@ async function registryWith(
   );
   const made = await testRegistry(apps, {platformCard, embedder: new FakeEmbedder()});
   for (const id of options.down ?? []) made.cards.cards.delete(cardUrlOf(cards[id].url));
+  for (const id of options.grpcOnly ?? []) {
+    made.cards.serveAt(cardUrlOf(cards[id].url), {...cards[id], preferredTransport: 'GRPC'});
+  }
   await made.registry.refreshCards();
   return made.registry;
 }
@@ -203,6 +210,45 @@ describe('installed apps', () => {
     });
     expect(byId.get('gmail')?.update).toBe('Not checked yet');
     expect(byId.get('gmail')).not.toHaveProperty('checked');
+  });
+
+  test('an app whose live card lists no interface the platform speaks reads so, in place of its update state (task-20.3 decision 14)', async () => {
+    const registry = await registryWith(
+      {github: named('github', 'GitHub'), gmail: named('gmail', 'Gmail')},
+      {grpcOnly: ['github']},
+    );
+    const checkedAt = Date.parse('2026-10-11T09:00:00Z');
+    const state = (appId: string): UpdateState => ({
+      appId,
+      installedVersion: '0.0.0',
+      state: 'up-to-date',
+      publishedVersion: '0.0.0',
+    });
+    const readers = platformReaders({
+      registry,
+      updates: {
+        held: () => ({
+          checkedAt,
+          states: new Map([
+            ['github', state('github')],
+            ['gmail', state('gmail')],
+          ]),
+        }),
+      },
+      now: () => checkedAt + 60_000,
+      composition: () => undefined,
+      ancestry: () => [],
+    });
+    const byId = new Map(readers.installedApps().map(app => [app.id, app]));
+    expect(byId.get('github')).toMatchObject({
+      reachable: true,
+      update: 'Connects in a way A2UIVerse can’t use',
+    });
+    expect(byId.get('github')).not.toHaveProperty('checked');
+    expect(byId.get('gmail')).toMatchObject({
+      update: 'Up to date',
+      checked: 'checked 1 minute ago',
+    });
   });
 
   test('how long ago, in words', () => {
@@ -506,7 +552,7 @@ describe('the composition’s slots are keyed by source (task-6.3 decision 6)', 
 
 describe('accounts (task-12.6 decision 9)', () => {
   /** Gmail with two accounts held, GitHub asking sign-in with none, Calendar asking none. */
-  const signInCard = (id: string, name: string): InstalledCard => ({
+  const signInCard = (id: string, name: string): LegacyCard => ({
     ...named(id, name),
     securitySchemes: {signIn: {type: 'http', scheme: 'bearer'}},
     security: [{signIn: []}],

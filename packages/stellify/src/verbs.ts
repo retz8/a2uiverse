@@ -5,7 +5,12 @@
  * marketplace's answer or its findings, never throwing on a refusal. The words are the
  * marketplace's own, passed through unchanged.
  */
-import {MARKETPLACE_ROUTES, validatePreview, type PublishRequest} from '@a2uiverse/sdk';
+import {
+  MARKETPLACE_ROUTES,
+  publishedVersionOf,
+  validatePreview,
+  type PublishRequest,
+} from '@a2uiverse/sdk';
 import {
   fetchIndex,
   findingsOf,
@@ -153,7 +158,7 @@ export async function listPublished(
       .filter(entry => entry.publisher === publisher)
       .map(entry => ({
         appId: entry.appId,
-        version: entry.card.version,
+        version: publishedVersionOf(entry),
         cardUrl: entry.cardUrl,
         catalogs: {...entry.catalogs},
         retired: [...entry.retired],

@@ -5,7 +5,8 @@
  */
 import {rm} from 'node:fs/promises';
 import {afterEach, describe, expect, test} from 'vitest';
-import type {InstalledCard} from '../src/registry/installedCard.js';
+import type {AgentCard as LegacyCard} from '@a2a-js/sdk-v0_3';
+import {readCard} from '@a2uiverse/card';
 import {BASIC_CATALOG_ID, readUpdateState, type IndexEntry} from '@a2uiverse/sdk';
 import type {EntryLookup} from '../src/registry/marketplace.js';
 import {MarketplaceClient} from '../src/registry/marketplace.js';
@@ -20,7 +21,7 @@ const CALENDAR = 'https://example.com/calendar/catalog.json';
 const AGENT = 'http://127.0.0.1:11002';
 
 const record = (
-  card: InstalledCard,
+  card: LegacyCard,
   catalogs: Record<string, string>,
   source: InstalledRecord['source'] = 'marketplace',
 ): InstalledRecord => ({
@@ -34,7 +35,7 @@ const record = (
 });
 
 const entryOf = (
-  card: InstalledCard,
+  card: LegacyCard,
   catalogs: Record<string, string>,
   extra: Partial<IndexEntry> = {},
 ): EntryLookup => ({
@@ -52,23 +53,46 @@ const entryOf = (
   },
 });
 
-const v = (card: InstalledCard, version: string): InstalledCard => ({...card, version});
+const v = (card: LegacyCard, version: string): LegacyCard => ({...card, version});
+
+/** The one flow an OAuth test card declares: the A2A SDK refuses an OAuth scheme with none. */
+const OAUTH_FLOWS = {
+  authorizationCode: {
+    authorizationUrl: `${AGENT}/authorize`,
+    tokenUrl: `${AGENT}/token`,
+    scopes: {'mail.read': 'Read your mail', 'mail.send': 'Send mail'},
+  },
+};
+
+/** The state of an installed record against an entry and a live card, each read as the check reads it. */
+const stateOf = (
+  installed: InstalledRecord,
+  lookup: EntryLookup,
+  live: LegacyCard | null | undefined,
+) =>
+  updateStateOf(
+    {record: installed, card: readCard(installed.card)},
+    lookup,
+    live ? readCard(live) : live,
+  );
 
 describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-13.5 decision 7)', () => {
   const installedCard = cardFor(AGENT, {catalogs: [GMAIL]});
   const installed = record(installedCard, {[GMAIL]: 'sha256-old'});
 
   test('unknown when the marketplace was not reached, or the entry is malformed', () => {
-    expect(
-      updateStateOf(installed, {kind: 'unreached', reason: 'ECONNREFUSED'}, installedCard),
-    ).toEqual({appId: 'gmail', installedVersion: '0.0.0', state: 'unknown'});
-    expect(updateStateOf(installed, {kind: 'malformed', errors: ['x']}, installedCard).state).toBe(
+    expect(stateOf(installed, {kind: 'unreached', reason: 'ECONNREFUSED'}, installedCard)).toEqual({
+      appId: 'gmail',
+      installedVersion: '0.0.0',
+      state: 'unknown',
+    });
+    expect(stateOf(installed, {kind: 'malformed', errors: ['x']}, installedCard).state).toBe(
       'unknown',
     );
   });
 
   test('not published when the marketplace has no entry', () => {
-    expect(updateStateOf(installed, {kind: 'not-published'}, installedCard)).toEqual({
+    expect(stateOf(installed, {kind: 'not-published'}, installedCard)).toEqual({
       appId: 'gmail',
       installedVersion: '0.0.0',
       state: 'not-published',
@@ -78,7 +102,7 @@ describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-1
   test('ahead of the Store from the live card, before anything else', () => {
     const live = v(cardFor(AGENT, {catalogs: [GMAIL, CALENDAR]}), '0.5.0');
     const published = v(cardFor(AGENT, {catalogs: [GMAIL_2]}), '1.0.0');
-    const state = updateStateOf(installed, entryOf(published, {[GMAIL_2]: 'sha256-two'}), live);
+    const state = stateOf(installed, entryOf(published, {[GMAIL_2]: 'sha256-two'}), live);
     expect(state).toEqual({
       appId: 'gmail',
       installedVersion: '0.0.0',
@@ -91,14 +115,14 @@ describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-1
 
   test('no live card this run: no drift computed, the other states judged', () => {
     const published = v(cardFor(AGENT, {catalogs: [GMAIL]}), '0.0.0');
-    expect(updateStateOf(installed, entryOf(published, {[GMAIL]: 'sha256-old'}), null).state).toBe(
+    expect(stateOf(installed, entryOf(published, {[GMAIL]: 'sha256-old'}), null).state).toBe(
       'up-to-date',
     );
   });
 
   test('update required when an installed line is retired by the published card', () => {
     const published = v(cardFor(AGENT, {catalogs: [GMAIL_2]}), '1.0.0');
-    const state = updateStateOf(
+    const state = stateOf(
       installed,
       entryOf(published, {[GMAIL_2]: 'sha256-two'}, {retired: [GMAIL]}),
       published,
@@ -114,29 +138,27 @@ describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-1
   });
 
   test('a forced or a major update names the new scopes its published card asks (task-15.5 decision 7)', () => {
-    const asking = (card: InstalledCard): InstalledCard => ({
+    const asking = (card: LegacyCard): LegacyCard => ({
       ...card,
-      securitySchemes: {google: {type: 'oauth2', flows: {}}},
+      securitySchemes: {google: {type: 'oauth2', flows: OAUTH_FLOWS}},
       security: [{google: ['mail.read', 'mail.send']}],
     });
     const was = record(
       {
         ...installedCard,
-        securitySchemes: {google: {type: 'oauth2', flows: {}}},
+        securitySchemes: {google: {type: 'oauth2', flows: OAUTH_FLOWS}},
         security: [{google: ['mail.read']}],
       },
       {[GMAIL]: 'sha256-old'},
     );
     const retiring = asking(v(cardFor(AGENT, {catalogs: [GMAIL_2]}), '1.0.0'));
-    expect(
-      updateStateOf(was, entryOf(retiring, {[GMAIL_2]: 'sha256-two'}), retiring),
-    ).toMatchObject({
+    expect(stateOf(was, entryOf(retiring, {[GMAIL_2]: 'sha256-two'}), retiring)).toMatchObject({
       state: 'update-required',
       newScopes: [{scheme: 'google', scopes: ['mail.send']}],
     });
     const adding = asking(v(cardFor(AGENT, {catalogs: [GMAIL, GMAIL_2]}), '1.0.0'));
     expect(
-      updateStateOf(was, entryOf(adding, {[GMAIL]: 'sha256-old', [GMAIL_2]: 'sha256-two'}), adding),
+      stateOf(was, entryOf(adding, {[GMAIL]: 'sha256-old', [GMAIL_2]: 'sha256-two'}), adding),
     ).toMatchObject({
       state: 'major-update',
       newScopes: [{scheme: 'google', scopes: ['mail.send']}],
@@ -145,7 +167,7 @@ describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-1
 
   test('a major update when the published card adds an id and keeps the installed ones, the moved build named', () => {
     const published = v(cardFor(AGENT, {catalogs: [GMAIL, GMAIL_2]}), '1.0.0');
-    const state = updateStateOf(
+    const state = stateOf(
       installed,
       entryOf(published, {[GMAIL]: 'sha256-new', [GMAIL_2]: 'sha256-two'}),
       published,
@@ -162,20 +184,20 @@ describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-1
   });
 
   test('a card update when the version moved with no id added or dropped: the new scopes from `security`, a build riding with it named', () => {
-    const was: InstalledCard = {
+    const was: LegacyCard = {
       ...installedCard,
-      securitySchemes: {google: {type: 'oauth2', flows: {}}},
+      securitySchemes: {google: {type: 'oauth2', flows: OAUTH_FLOWS}},
       security: [{google: ['mail.read']}],
     };
-    const published: InstalledCard = {
+    const published: LegacyCard = {
       ...v(installedCard, '0.1.0'),
       securitySchemes: {
-        google: {type: 'oauth2', flows: {}},
+        google: {type: 'oauth2', flows: OAUTH_FLOWS},
         key: {type: 'apiKey', in: 'header', name: 'X'},
       },
       security: [{google: ['mail.read', 'mail.send']}, {key: []}],
     };
-    const state = updateStateOf(
+    const state = stateOf(
       record(was, {[GMAIL]: 'sha256-old'}),
       entryOf(published, {[GMAIL]: 'sha256-new'}),
       published,
@@ -195,12 +217,12 @@ describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-1
 
   test('a card update with nothing new to ask carries no scopes', () => {
     const published = v(installedCard, '0.1.0');
-    const state = updateStateOf(installed, entryOf(published, {[GMAIL]: 'sha256-old'}), published);
+    const state = stateOf(installed, entryOf(published, {[GMAIL]: 'sha256-old'}), published);
     expect(state).toMatchObject({state: 'card-update', newScopes: [], builds: []});
   });
 
   test('a newer build when only a build moved', () => {
-    const state = updateStateOf(
+    const state = stateOf(
       installed,
       entryOf(installedCard, {[GMAIL]: 'sha256-new'}),
       installedCard,
@@ -216,7 +238,7 @@ describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-1
 
   test('up to date otherwise', () => {
     expect(
-      updateStateOf(installed, entryOf(installedCard, {[GMAIL]: 'sha256-old'}), installedCard),
+      stateOf(installed, entryOf(installedCard, {[GMAIL]: 'sha256-old'}), installedCard),
     ).toEqual({
       appId: 'gmail',
       installedVersion: '0.0.0',
@@ -228,13 +250,13 @@ describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-1
   test('every state is one the sdk reads back', () => {
     const published = v(cardFor(AGENT, {catalogs: [GMAIL, GMAIL_2]}), '1.0.0');
     for (const state of [
-      updateStateOf(installed, {kind: 'not-published'}, installedCard),
-      updateStateOf(
+      stateOf(installed, {kind: 'not-published'}, installedCard),
+      stateOf(
         installed,
         entryOf(published, {[GMAIL]: 'sha256-new', [GMAIL_2]: 'x'}),
         installedCard,
       ),
-      updateStateOf(installed, entryOf(installedCard, {[GMAIL]: 'sha256-new'}), installedCard),
+      stateOf(installed, entryOf(installedCard, {[GMAIL]: 'sha256-new'}), installedCard),
     ]) {
       expect(readUpdateState(JSON.parse(JSON.stringify(state)))).toEqual(state);
     }
@@ -432,11 +454,11 @@ describe('the check (task-13.5 decisions 8, 9, 10)', () => {
       state: 'ahead-of-store',
       catalogIds: [CALENDAR],
     });
-    expect(registry.card('gmail')).toEqual(moved);
+    expect(registry.card('gmail')).toEqual(readCard(moved));
 
     cards.cards.delete(cardUrl);
     expect((await check.check()).states[0]).toMatchObject({state: 'ahead-of-store'});
-    expect(registry.card('gmail')).toEqual(moved);
+    expect(registry.card('gmail')).toEqual(readCard(moved));
   });
 
   test('a Store flag the live card no longer bears out is reported again, apart from the drift reports (task-13.8 decision 30)', async () => {

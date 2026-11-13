@@ -28,6 +28,7 @@
     "shop-b-catalog": "github:retz8/a2uiverse-apps#7a6d88dbbdc9372c4a8472b53907c278ab805f0c&path:mocks/shop-b/shop-b-catalog"
   },
   "devDependencies": {
+    "@a2uiverse/card": "workspace:*",
     "@a2uiverse/sdk": "workspace:*",
     "@a2uiverse/shell-catalog": "workspace:*",
     "@a2uiverse/stellify": "workspace:*"

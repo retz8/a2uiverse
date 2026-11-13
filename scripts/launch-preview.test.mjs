@@ -1,24 +1,46 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
+import {asksSignIn, readCard} from '@a2uiverse/card';
 import {ROSTER} from './dev-roster.mjs';
-import {previewCredential, previewsFromInstance, requiresSignIn} from './launch-preview.mjs';
+import {previewCredential, previewsFromInstance} from './launch-preview.mjs';
 
-const OAUTH_CARD = {
+/** A card as a kit agent serves it for A2A 0.3, carrying `signIn`, read as the launcher reads one. */
+const cardWith = (signIn = {}) =>
+  readCard({
+    name: 'Fake Agent',
+    description: 'an agent for tests',
+    version: '0.1.0',
+    protocolVersion: '0.3.0',
+    url: 'http://localhost:11001',
+    capabilities: {},
+    defaultInputModes: ['text'],
+    defaultOutputModes: ['text'],
+    skills: [],
+    ...signIn,
+  });
+
+const OAUTH_CARD = cardWith({
   securitySchemes: {
     signIn: {
       type: 'oauth2',
       oauth2MetadataUrl: 'http://localhost:11001/.well-known/oauth-authorization-server',
-      flows: {authorizationCode: {}},
+      flows: {
+        authorizationCode: {
+          authorizationUrl: 'http://localhost:11001/oauth/authorize',
+          tokenUrl: 'http://localhost:11001/oauth/token',
+          scopes: {'issues.read': 'Read your issues', 'repo.read': 'Read your repositories'},
+        },
+      },
     },
   },
   security: [{signIn: ['issues.read', 'repo.read']}],
-};
+});
 
-const KEY_CARD = {
+const KEY_CARD = cardWith({
   securitySchemes: {key: {type: 'apiKey', in: 'header', name: 'X-Shop-Key'}},
   security: [{key: []}],
-};
+});
 
 /**
  * A kit agent's sign-in front door as a scripted fetch: the metadata, the registration, the
@@ -58,11 +80,11 @@ function kitAgent({accounts = ['retz8']} = {}) {
 }
 
 test('a card requires sign-in when every alternative names a scheme; an empty one means none', () => {
-  assert.equal(requiresSignIn(OAUTH_CARD), true);
-  assert.equal(requiresSignIn(KEY_CARD), true);
-  assert.equal(requiresSignIn({}), false);
-  assert.equal(requiresSignIn({security: []}), false);
-  assert.equal(requiresSignIn({security: [{signIn: []}, {}]}), false);
+  assert.equal(asksSignIn(OAUTH_CARD), true);
+  assert.equal(asksSignIn(KEY_CARD), true);
+  assert.equal(asksSignIn(cardWith()), false);
+  assert.equal(asksSignIn(cardWith({security: []})), false);
+  assert.equal(asksSignIn(cardWith({security: [{signIn: []}, {}]})), false);
 });
 
 test("a kit app's preview signs in through the non-interactive entry as its roster account, for the card's first alternative's scopes (task-13.6 decision 8)", async () => {
@@ -104,15 +126,15 @@ test("an app on an API key previews with its roster entry's demo key", async () 
 test('a roster entry naming no preview credential, or a scheme the launcher cannot drive, is a reason', async () => {
   assert.match((await previewCredential(OAUTH_CARD, {id: 'github'})).reason, /no previewAs/);
   assert.match((await previewCredential(KEY_CARD, {id: 'shop-b'})).reason, /no previewKey/);
-  const basic = {
+  const basic = cardWith({
     securitySchemes: {basic: {type: 'http', scheme: 'basic'}},
     security: [{basic: []}],
-  };
+  });
   assert.match((await previewCredential(basic, {id: 'x'})).reason, /cannot sign a preview in/);
 });
 
 test('under live mode every sign-in app previews from a deterministic instance, a key app among them; otherwise none does (task-13.7 decisions 8 and 9)', () => {
-  const open = {securitySchemes: {}, security: []};
+  const open = cardWith({securitySchemes: {}, security: []});
   assert.equal(previewsFromInstance('live', OAUTH_CARD), true);
   assert.equal(previewsFromInstance('live', KEY_CARD), true);
   assert.equal(previewsFromInstance('live', open), false);

@@ -63,7 +63,7 @@ test('the world is legal: entries, samples and states as the sdk reads them, the
     const {entry, update} = index.find(l => l.entry.appId === state.appId)!;
     expect(update).toEqual(state);
     expect(state.installedVersion).toBe(installed.find(a => a.id === state.appId)!.card.version);
-    if ('publishedVersion' in state) expect(state.publishedVersion).toBe(entry.card.version);
+    if ('publishedVersion' in state) expect(state.publishedVersion).toBe(entry.versions.at(-1));
     if ('builds' in state) {
       for (const move of state.builds) expect(move.published).toBe(entry.catalogs[move.catalogId]);
     }

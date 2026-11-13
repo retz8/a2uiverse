@@ -1,26 +1,24 @@
 import {fireEvent, screen} from '@testing-library/react';
 import {describe, expect, it, vi} from 'vitest';
-import type {IndexEntry} from '@a2uiverse/sdk';
 import {renderWithShell} from '../../../tests/helpers';
+import type {StoreEntry} from '../../orchestratorApi';
+import {readCardFixture} from './cardFixture';
 import {ConsentCard, SlotConsentCard} from './ConsentCard';
 
 const SHOP_B = {
   appId: 'shop-b',
   publisher: 'northlight',
-  card: {
-    name: 'Shop B',
+  card: readCardFixture('Shop B', {
     description: 'Northlight Cameras, a high-volume online retailer.',
-    version: '1.0.0',
     securitySchemes: {key: {type: 'apiKey', in: 'header', name: 'X-Key'}},
     security: [{key: []}],
-  },
-} as unknown as IndexEntry;
+  }),
+} as unknown as StoreEntry;
 
 const CIRCLECI = {
   appId: 'circleci',
   publisher: 'a2uiverse-apps',
-  card: {
-    name: 'CircleCI',
+  card: readCardFixture('CircleCI', {
     description: 'Your pipelines.',
     version: '2.0.0',
     securitySchemes: {
@@ -36,8 +34,8 @@ const CIRCLECI = {
       },
     },
     security: [{oauth: ['write:workflows']}],
-  },
-} as unknown as IndexEntry;
+  }),
+} as unknown as StoreEntry;
 
 function anchor(): HTMLElement {
   const button = document.createElement('button');

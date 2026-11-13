@@ -17,9 +17,18 @@ const entry = (appId: string, name: string): IndexEntry => ({
     description: `${name}, a camera shop.`,
     url: `http://localhost/${appId}`,
     version: '0.1.0',
+    capabilities: {},
+    defaultInputModes: ['text'],
+    defaultOutputModes: ['text'],
     skills: [
-      {id: 'stock', name: 'Stock', description: 'Cameras in stock.', examples: ['Any Z6?']},
-      {id: 'quiet', name: 'Quiet', description: 'Says nothing.'},
+      {
+        id: 'stock',
+        name: 'Stock',
+        description: 'Cameras in stock.',
+        tags: [],
+        examples: ['Any Z6?'],
+      },
+      {id: 'quiet', name: 'Quiet', description: 'Says nothing.', tags: []},
     ],
   },
   catalogs: {},
@@ -64,6 +73,19 @@ describe('storeSearch', () => {
       ],
     });
     expect(asked).toEqual(['camera shop']);
+  });
+
+  test('an entry whose card does not read is left out of the answer (task-20.3 decision 8)', async () => {
+    const unread: IndexEntry = {
+      ...entry('shop-x', 'Shop X'),
+      card: {name: 'Shop X', url: 'http://x'},
+    };
+    const search = storeSearch({
+      search: async () => answered(unread, entry('shop-b', 'Shop B')),
+      installed: () => [],
+    });
+    const found = await search.search('camera shop');
+    expect('apps' in found && found.apps.map(app => app.appId)).toEqual(['shop-b']);
   });
 
   test('a marketplace not reached, or answering what is not a search, is unreached with its cause', async () => {

@@ -55,7 +55,7 @@ async function serve({marketplaceUrl}: {marketplaceUrl?: string} = {}) {
       updates,
       artifacts: new ArtifactRelay(client),
       publisher,
-      resolveCard: made.cards.resolve,
+      fetchCard: made.cards.fetch,
       guard: writeGuard({token: () => WRITE_TOKEN, allowed: originAllowed(PAGE)}),
     }),
   );

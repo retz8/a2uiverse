@@ -1,12 +1,18 @@
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import type {InstalledCard} from './installedCard.js';
+import type {AgentCard, AgentInterface} from '@a2a-js/sdk';
+import {
+  noInterfaceFinding,
+  readCard,
+  sameCard,
+  spokenInterfaces,
+  type ServedCard,
+} from '@a2uiverse/card';
 import {
   aheadOfStore,
   ARTIFACT_DESCRIPTOR_FILE,
   BASIC_CATALOG_ID,
   basicCatalogOptions,
-  type CardWithExtensions,
   type Drift,
   validateArtifactDescriptor,
   catalogOptions,
@@ -30,7 +36,6 @@ import {
 } from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {corpusDoc, type Embedder} from '@a2uiverse/embedder';
-import {withTimeout} from '../timeout.js';
 import type {WriteCaller} from '../writeGuard.js';
 import type {MarketplaceClient} from './marketplace.js';
 import {readTree, RegistryStore, type ArtifactFiles} from './store.js';
@@ -42,13 +47,31 @@ import {
   type InstallSource,
 } from './types.js';
 
-/** How the registry fetches a card from its full URL; injected so tests need no network. */
-export type ResolveCard = (cardUrl: string) => Promise<InstalledCard>;
+/**
+ * How the registry fetches a card from its full URL, as its agent serves it, under a time limit;
+ * injected so tests need no network.
+ */
+export type FetchCard = (cardUrl: string, timeoutMs: number) => Promise<ServedCard>;
+
+/**
+ * How long a card fetch may take at boot, at the update check and at install (task-20.3 decision
+ * 5): the limit the marketplace and Stellify give the same fetch.
+ */
+export const DEFAULT_CARD_TIMEOUT_MS = 10_000;
+
+/** A card as its agent served it, and as read. */
+interface FetchedCard {
+  served: ServedCard;
+  card: AgentCard;
+}
+
+/** A card that was fetched and does not read: an install refused for it says so. */
+class UnreadCard extends Error {}
 
 /** An agent the Router can rank: record + this run's card + corpus vector. */
 export interface RoutableApp {
   record: AppRecord;
-  card: InstalledCard;
+  card: AgentCard;
   vector: number[];
 }
 
@@ -111,7 +134,7 @@ export interface InstallRequest {
   /** Where the install came by (task-13.5 decision 3); a local pack unless said otherwise. */
   source?: InstallSource;
   /** The card already fetched from `cardUrl` by the marketplace path, so it is fetched once. */
-  card?: InstalledCard;
+  card?: FetchedCard;
   /** An install the update check runs by itself (task-13.5 decision 9), journaled as such. */
   automatic?: boolean;
   /** Who made the write, journaled (task-14.3 decision 13). */
@@ -145,11 +168,13 @@ export type UninstallResult =
 
 export interface RegistryDeps {
   stateDir: string;
-  resolveCard: ResolveCard;
+  fetchCard: FetchCard;
+  /** The time limit of a card fetch at boot, at the update check and at install; 10 s when omitted. */
+  cardTimeoutMs?: number;
   embedder: Embedder;
   journal?: RegistryJournal;
   /** The orchestrator's own card, indexed under `shell` beside the installed apps. */
-  platformCard?: InstalledCard;
+  platformCard?: AgentCard;
   /** The marketplace an install by id resolves through (task-13.5 decision 2). */
   marketplace?: MarketplaceClient;
 }
@@ -160,10 +185,12 @@ export interface RegistryDeps {
  * once. Booted from alone; a fresh state directory is an empty registry, the platform's card the
  * only routable one.
  *
- * Two cards per app: the one stored at install, verbatim, which changes only through install-over,
- * and this run's, fetched at startup — the dispatch URL, the skills the Router indexes, the name the
- * Planner reads. An app whose card could not be fetched at startup stays installed and unroutable
- * for the run, named by its stored card.
+ * Two cards per app: the one stored at install, as its agent served it, which changes only through
+ * install-over, and this run's, fetched at startup — the dispatch address, the skills the Router
+ * indexes, the name the Planner reads. Each is read once, where it enters, through the card's one
+ * reading (task-20.3 decisions 1, 9), and every reader takes the read card. An app whose card
+ * could not be fetched at startup, or does not read, stays installed and unroutable for the run,
+ * named by its stored card.
  *
  * The platform's card is indexed under the reserved `shell` id with the same corpus document and
  * vector a vendor gets, so the Router ranks the platform like any app; the platform is not an
@@ -176,10 +203,12 @@ export class Registry {
   readonly #descriptors = new Map<string, ArtifactDescriptor>();
   /** The options each artifact's schema declares, by artifact id: what the credential bar reads. */
   readonly #options = new Map<string, CatalogOptions>();
+  /** Each record's stored card, read: at load, and when an install writes the record. */
+  readonly #stored = new Map<string, AgentCard>();
   /** This run's cards: null when the startup fetch failed; absent before it ran. */
-  readonly #cards = new Map<string, InstalledCard | null>();
+  readonly #cards = new Map<string, FetchedCard | null>();
   readonly #vectors = new Map<string, number[]>();
-  readonly #platform: {record: AppRecord; card: InstalledCard} | undefined;
+  readonly #platform: {record: AppRecord; card: AgentCard} | undefined;
   #queue: Promise<unknown> = Promise.resolve();
   readonly #uninstalled: ((
     appId: string,
@@ -195,7 +224,7 @@ export class Registry {
           record: {
             id: SHELL_SOURCE_ID,
             displayName: PLATFORM_DISPLAY_NAME,
-            agentUrl: platformCard.url,
+            agentUrl: platformCard.supportedInterfaces[0]?.url ?? '',
             catalogs: [],
             entitlement: [SHELL_CATALOG_ID],
             entitlementByVersion: underEachVersion([SHELL_CATALOG_ID]),
@@ -245,10 +274,26 @@ export class Registry {
     return this.#descriptors.has(artifactId);
   }
 
-  /** Reads the persisted registry, every artifact hashed again; throws on damage (task-11.4 decision 9). */
+  /**
+   * Reads the persisted registry, every artifact hashed again and every stored card read once;
+   * throws on damage (task-11.4 decision 9), a stored card that does not read among it (task-20.3
+   * decision 9).
+   */
   async load(): Promise<void> {
     const {records, descriptors} = await this.#store.load();
+    const stored = new Map<string, AgentCard>();
+    for (const record of records) {
+      try {
+        stored.set(record.id, readCard(record.card));
+      } catch (err) {
+        throw new Error(
+          `${this.#store.recordPath}: the stored card of app ${JSON.stringify(record.id)} could not be read: ${(err as Error).message}`,
+        );
+      }
+    }
     this.#records = new Map(records.map(record => [record.id, record]));
+    this.#stored.clear();
+    for (const [id, card] of stored) this.#stored.set(id, card);
     this.#descriptors.clear();
     this.#options.clear();
     for (const [id, descriptor] of descriptors) {
@@ -275,8 +320,8 @@ export class Registry {
 
   /**
    * The startup fetch (task-11.4 decision 8): every installed app's card from its stored URL, and
-   * the corpus vectors of those fetched and of the platform. A failed fetch leaves the app
-   * unroutable this run; it never throws.
+   * the corpus vectors of those fetched and of the platform. A fetch that fails, or a card that
+   * does not read, leaves the app unroutable this run; it never throws.
    */
   async refreshCards(): Promise<void> {
     const records = [...this.#records.values()];
@@ -285,15 +330,13 @@ export class Registry {
     );
     this.#cards.clear();
     this.#vectors.clear();
-    const carded: {id: string; card: InstalledCard}[] = [];
+    const carded: {id: string; card: AgentCard}[] = [];
     records.forEach((record, i) => {
-      this.#cards.set(record.id, cards[i]);
-      if (cards[i]) carded.push({id: record.id, card: cards[i]});
+      const fetched = cards[i]!;
+      this.#cards.set(record.id, fetched);
+      if (fetched) carded.push({id: record.id, card: fetched.card});
     });
-    if (this.#platform) {
-      this.#cards.set(SHELL_SOURCE_ID, this.#platform.card);
-      carded.push({id: SHELL_SOURCE_ID, card: this.#platform.card});
-    }
+    if (this.#platform) carded.push({id: SHELL_SOURCE_ID, card: this.#platform.card});
     if (carded.length === 0) return;
     const vectors = await this.#deps.embedder.embed(carded.map(({card}) => corpusDoc(card)));
     carded.forEach(({id}, i) => this.#vectors.set(id, vectors[i]));
@@ -301,22 +344,21 @@ export class Registry {
 
   /**
    * The update check's fetch (task-13.8 decision 29): every installed app's live card again, so a
-   * check never judges on a card fetched at boot. A card that answers replaces the one held, its
-   * corpus vector recomputed when it changed; one that does not answer leaves the one held.
+   * check never judges on a card fetched at boot. A card that answers and reads replaces the one
+   * held, its corpus vector recomputed when it changed; one that does not leaves the one held.
    */
   async refetchLiveCards(): Promise<void> {
     const records = [...this.#records.values()];
     const fetched = await Promise.all(
       records.map(record => this.#fetchCard(record.cardUrl).catch(() => null)),
     );
-    const changed: {id: string; card: InstalledCard}[] = [];
+    const changed: {id: string; card: AgentCard}[] = [];
     records.forEach((record, i) => {
-      const card = fetched[i];
-      if (!card || !this.#records.has(record.id)) return;
-      const held = this.#cards.get(record.id);
-      if (held && JSON.stringify(held) === JSON.stringify(card)) return;
-      this.#cards.set(record.id, card);
-      changed.push({id: record.id, card});
+      const live = fetched[i];
+      if (!live || !this.#records.has(record.id)) return;
+      if (this.#holds(record.id, live)) return;
+      this.#cards.set(record.id, live);
+      changed.push({id: record.id, card: live.card});
     });
     if (changed.length === 0) return;
     try {
@@ -329,29 +371,35 @@ export class Registry {
 
   /**
    * One app's live card fetched again, given `timeoutMs` (task-15.5 decision 4): a card that answers
-   * replaces the one held, its corpus vector recomputed when it changed, and is returned; one that
-   * does not answer in time, or at all, leaves the one held and returns none.
+   * and reads replaces the one held, its corpus vector recomputed when it changed, and is returned;
+   * one that does not answer in time, or at all, or does not read, leaves the one held and returns
+   * none.
    */
-  async refetchLiveCard(appId: string, timeoutMs: number): Promise<InstalledCard | undefined> {
+  async refetchLiveCard(appId: string, timeoutMs: number): Promise<AgentCard | undefined> {
     const record = this.#records.get(appId);
     if (!record) return undefined;
-    let card: InstalledCard;
+    let live: FetchedCard;
     try {
-      card = await withTimeout(this.#fetchCard(record.cardUrl), timeoutMs);
+      live = await this.#fetchCard(record.cardUrl, timeoutMs);
     } catch {
       return undefined;
     }
     if (!this.#records.has(appId)) return undefined;
-    const held = this.#cards.get(appId);
-    if (held && JSON.stringify(held) === JSON.stringify(card)) return card;
-    this.#cards.set(appId, card);
+    if (this.#holds(appId, live)) return live.card;
+    this.#cards.set(appId, live);
     try {
-      const [vector] = await this.#deps.embedder.embed([corpusDoc(card)]);
+      const [vector] = await this.#deps.embedder.embed([corpusDoc(live.card)]);
       this.#vectors.set(appId, vector);
     } catch (err) {
       console.error('registry: embedding the refetched card failed:', (err as Error).message);
     }
-    return card;
+    return live.card;
+  }
+
+  /** Whether the run already holds this card for the app, as served. */
+  #holds(appId: string, live: FetchedCard): boolean {
+    const held = this.#cards.get(appId);
+    return held != null && JSON.stringify(held.served) === JSON.stringify(live.served);
   }
 
   get(appId: string): AppRecord {
@@ -382,14 +430,45 @@ export class Registry {
     return [...this.#records.values()];
   }
 
-  /** This run's card: null when unreachable at startup, undefined before the fetch or unknown. */
-  card(appId: string): InstalledCard | null | undefined {
-    return this.#cards.get(appId);
+  /**
+   * This run's card, read: null when it could not be fetched or read at startup, undefined before
+   * the fetch or unknown. The platform's own under `shell`.
+   */
+  card(appId: string): AgentCard | null | undefined {
+    if (appId === SHELL_SOURCE_ID) return this.#platform?.card;
+    const live = this.#cards.get(appId);
+    return live ? live.card : live;
   }
 
-  /** The card stored at install. */
-  storedCard(appId: string): InstalledCard | undefined {
-    return this.#records.get(appId)?.card;
+  /** The card stored at install, read. */
+  storedCard(appId: string): AgentCard | undefined {
+    return this.#stored.get(appId);
+  }
+
+  /**
+   * The card a dispatch dials from (task-20.3 decision 13): the live card this run holds, or the
+   * stored one when the agent was down at startup; none when the app is not installed.
+   */
+  dialCard(appId: string): AgentCard | undefined {
+    return this.card(appId) ?? this.storedCard(appId);
+  }
+
+  /**
+   * The interface the platform takes to reach the app, from the card it would dial from: the
+   * first the card lists that the platform speaks; none for an app the platform cannot reach.
+   */
+  takenInterface(appId: string): AgentInterface | undefined {
+    const card = this.dialCard(appId);
+    return card ? spokenInterfaces(card)[0] : undefined;
+  }
+
+  /**
+   * Whether the app's live card lists no interface the platform speaks (task-20.3 decision 14):
+   * judged from the live card this run holds, never the stored one.
+   */
+  liveUnreachable(appId: string): boolean {
+    const live = this.card(appId);
+    return live != null && spokenInterfaces(live).length === 0;
   }
 
   /** Apps the Router may rank — those with this run's card and a corpus vector — and the platform among them. */
@@ -397,7 +476,7 @@ export class Registry {
     const apps: RoutableApp[] = [];
     const records = [...this.list(), ...(this.#platform ? [this.#platform.record] : [])];
     for (const record of records) {
-      const card = this.#cards.get(record.id);
+      const card = this.card(record.id);
       const vector = this.#vectors.get(record.id);
       if (card && vector) apps.push({record, card, vector});
     }
@@ -497,17 +576,18 @@ export class Registry {
       ]);
     }
     const {entry} = looked;
-    let card: InstalledCard;
+    let card: FetchedCard;
     try {
       card = await this.#fetchCard(entry.cardUrl);
     } catch (err) {
-      return refuse(
-        'app-unreached',
-        [`the card at ${entry.cardUrl} could not be fetched: ${(err as Error).message}`],
-        entry.cardUrl,
-      );
+      return refuse('app-unreached', [cardFinding(entry.cardUrl, err)], entry.cardUrl);
     }
-    const drift = aheadOfStore(entry, card as CardWithExtensions & {version: string});
+    // An agent the platform cannot reach is turned away before its drift is judged (task-20.3
+    // decision 16).
+    if (spokenInterfaces(card.card).length === 0) {
+      return refuse('no-interface', [noInterfaceFinding(card.card)], entry.cardUrl);
+    }
+    const drift = aheadOfStore(entry, card.card);
     if (!drift.ok)
       return refuse(
         'checks',
@@ -626,15 +706,32 @@ export class Registry {
     const findings = [...checkAppId(appId)];
     const journalExtra = {...(automatic ? {automatic: true as const} : {}), ...(by ? {by} : {})};
 
-    let card: InstalledCard | undefined = fetched;
-    if (!card) {
+    let live: FetchedCard | undefined = fetched;
+    if (!live) {
       try {
-        card = await this.#fetchCard(cardUrl);
+        live = await this.#fetchCard(cardUrl);
       } catch (err) {
-        findings.push(`the card at ${cardUrl} could not be fetched: ${(err as Error).message}`);
+        findings.push(cardFinding(cardUrl, err));
       }
     }
-    // A card that could not be fetched is the app unreached, whatever else the gate found.
+    const card = live?.card;
+    // An agent the platform cannot reach is refused under a cause of its own, with its one
+    // finding (task-20.3 decision 16).
+    if (card && spokenInterfaces(card).length === 0) {
+      const refusal = [noInterfaceFinding(card)];
+      await this.#journal({
+        operation,
+        appId,
+        cardUrl,
+        catalogs: [],
+        outcome: 'refused',
+        findings: refusal,
+        source,
+        ...journalExtra,
+      });
+      return {ok: false, findings: refusal, cause: 'no-interface'};
+    }
+    // A card that could not be fetched, or read, is the app unreached, whatever else the gate found.
     const cause: InstallRefusal = card ? 'checks' : 'app-unreached';
 
     const gated: GatedArtifact[] = [];
@@ -695,7 +792,7 @@ export class Registry {
     const followed = [...new Set(moves.flatMap(move => move.followed))].sort();
 
     const journaled = gated.map(a => ({catalogId: a.descriptor.catalogId, artifact: a.id}));
-    if (findings.length > 0 || !card) {
+    if (findings.length > 0 || !live || !card) {
       await this.#journal({
         operation,
         appId,
@@ -714,7 +811,7 @@ export class Registry {
     const record: InstalledRecord = {
       id: appId,
       cardUrl,
-      card,
+      card: live.served,
       catalogs: Object.fromEntries(journaled.map(({catalogId, artifact}) => [catalogId, artifact])),
       entitlement: entitlementOf([...counted.keys()]),
       installedAt: new Date().toISOString(),
@@ -733,8 +830,10 @@ export class Registry {
       const schema = artifact.files.get(artifact.descriptor.schema);
       if (schema) this.#options.set(artifact.id, optionsOf(schema));
     }
+    const cardBefore = this.#stored.get(appId);
     await this.#commit(next);
-    this.#cards.set(appId, card);
+    this.#stored.set(appId, card);
+    this.#cards.set(appId, live);
     this.#vectors.set(appId, vector);
     this.#notifyChanged({appIds: [appId, ...followed], automatic});
     await this.#journal({
@@ -751,7 +850,11 @@ export class Registry {
       ok: true,
       appId,
       replaced: operation === 'install-over',
-      summary: installSummary(previous, record, moves),
+      summary: installSummary(
+        previous && cardBefore ? {record: previous, card: cardBefore} : undefined,
+        {record, card},
+        moves,
+      ),
       notes: declared.length === 0 ? [BASIC_ONLY_NOTE] : [],
       followed,
     };
@@ -775,6 +878,7 @@ export class Registry {
     const next = new Map(this.#records);
     next.delete(appId);
     await this.#commit(next);
+    this.#stored.delete(appId);
     this.#cards.delete(appId);
     this.#vectors.delete(appId);
     this.#notifyChanged({appIds: [appId], automatic: false});
@@ -839,13 +943,21 @@ export class Registry {
     }
   }
 
-  async #fetchCard(cardUrl: string): Promise<InstalledCard> {
-    const card = await this.#deps.resolveCard(cardUrl);
-    if (typeof card !== 'object' || card === null) throw new Error('not an agent card');
-    if (typeof card.url !== 'string' || typeof card.name !== 'string') {
-      throw new Error('not an agent card: no url or name');
+  /**
+   * The card at `cardUrl`, as served and as read, under the fetch's time limit — 10 s unless the
+   * caller gives its own. Throws when it cannot be fetched, and an `UnreadCard` when it does not
+   * read.
+   */
+  async #fetchCard(
+    cardUrl: string,
+    timeoutMs = this.#deps.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS,
+  ): Promise<FetchedCard> {
+    const served = await this.#deps.fetchCard(cardUrl, timeoutMs);
+    try {
+      return {served, card: readCard(served)};
+    } catch (err) {
+      throw new UnreadCard((err as Error).message);
     }
-    return card;
   }
 
   async #journal(entry: RegistryJournalEntry): Promise<void> {
@@ -853,14 +965,16 @@ export class Registry {
   }
 
   #view(record: InstalledRecord): AppRecord {
-    const card = this.#cards.get(record.id) ?? record.card;
+    const stored = this.#stored.get(record.id)!;
+    const card = this.card(record.id) ?? stored;
     // The entitlement per version from the card as installed, fixed at install like the flat one
-    // (task-19.2 decision 1); the flat entitlement under both keys when the stored card does not read.
-    const declared = readCatalogIdsByVersion(record.card);
+    // (task-19.2 decision 1); the flat entitlement under both keys when the stored card's
+    // declaration does not read.
+    const declared = readCatalogIdsByVersion(stored);
     return {
       id: record.id,
       displayName: card.name || record.id,
-      agentUrl: card.url,
+      agentUrl: spokenInterfaces(card)[0]?.url ?? '',
       catalogs: Object.keys(record.catalogs),
       entitlement: [...record.entitlement],
       entitlementByVersion: declared.ok
@@ -872,6 +986,12 @@ export class Registry {
 
 /** A marketplace artifact whose descriptor does not read: an install refused as failing the checks. */
 class UnreadableArtifact extends Error {}
+
+/** The finding for a card an install could not take: not fetched, or fetched and not read. */
+function cardFinding(cardUrl: string, err: unknown): string {
+  const what = err instanceof UnreadCard ? 'read' : 'fetched';
+  return `the card at ${cardUrl} could not be ${what}: ${(err as Error).message}`;
+}
 
 /**
  * The refusal of an install by id when the live card is ahead of the Store (phase-13 decision 14,
@@ -890,6 +1010,12 @@ export function storeBehind(appId: string, drift: Drift): string {
 /** An artifact id as a line names it: its digest's first characters. */
 const shortId = (id: string) => `${id.slice(0, 'sha256-'.length + 8)}…`;
 
+/** An installed record with its stored card read: what an install's summary compares. */
+export interface InstalledApp {
+  record: InstalledRecord;
+  card: AgentCard;
+}
+
 /**
  * What an install did, in one line for whoever reads the command's or the launcher's output
  * (task-11.8 decision 22): installed, updated or reinstalled; the card's version, old → new when it
@@ -897,17 +1023,19 @@ const shortId = (id: string) => `${id.slice(0, 'sha256-'.length + 8)}…`;
  * moved under other installed apps names them as having followed (task-13.5 decision 6).
  */
 export function installSummary(
-  previous: InstalledRecord | undefined,
-  next: InstalledRecord,
+  was: InstalledApp | undefined,
+  now: InstalledApp,
   moves: readonly RowMove[] = [],
 ): string {
-  const version = (record: InstalledRecord) => record.card.version ?? '?';
+  const previous = was?.record;
+  const next = now.record;
+  const version = (app: InstalledApp) => app.card.version || '?';
   const before = previous?.catalogs ?? {};
   const parts: string[] = [];
   parts.push(
-    previous && version(previous) !== version(next)
-      ? `card ${version(previous)} → ${version(next)}`
-      : `card ${version(next)}`,
+    was && version(was) !== version(now)
+      ? `card ${version(was)} → ${version(now)}`
+      : `card ${version(now)}`,
   );
   if (previous) {
     for (const [catalogId, artifact] of Object.entries(before)) {
@@ -926,9 +1054,11 @@ export function installSummary(
     else if (old === undefined) parts.push(`catalog ${catalogId} ${shortId(artifact)} new`);
     else parts.push(`catalog ${shortId(old)} → ${shortId(artifact)}`);
   }
+  // Nothing changed when the card is the same card as read, how the agent is reached set aside
+  // (task-20.3 decision 12), and every catalog is at the build it was.
   const changed =
-    previous !== undefined &&
-    (JSON.stringify(previous.card) !== JSON.stringify(next.card) ||
+    was !== undefined &&
+    (!sameCard(was.card, now.card) ||
       JSON.stringify(Object.entries(before).sort()) !==
         JSON.stringify(Object.entries(next.catalogs).sort()));
   const verb = !previous ? 'installed' : changed ? 'updated' : 'reinstalled';

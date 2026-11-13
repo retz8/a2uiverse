@@ -1,16 +1,17 @@
 /**
  * The smoke request's transport against an A2A 0.3 agent, the server of `@a2a-js/sdk` 0.3.14
- * (task-20.2 decisions 1, 6, 11): one A2A message, what came back.
+ * (task-20.2 decisions 1, 6, 11), and against an A2A 1.0 agent, the server of `@a2a-js/sdk` 1.x
+ * (task-20.3 decisions 11, 20): one A2A message to the interface taken, what came back.
  */
 import {randomUUID} from 'node:crypto';
 import {createServer, type Server} from 'node:http';
 import {afterEach, describe, expect, test} from 'vitest';
+import {noInterfaceFinding, readCard} from '@a2uiverse/card';
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
   authRequiredData,
   clientCapabilities,
   readAuthRequired,
-  type PublishedCard,
 } from '@a2uiverse/sdk';
 import {a2aSmokeRunner} from './smokeRunner.js';
 import {
@@ -30,6 +31,14 @@ import {
   type FakeAgent,
   type Script,
 } from './testing/fakeAgent.js';
+import {
+  cardForV1,
+  completingScriptV1,
+  paintPartsV1,
+  startFakeAgentV1,
+  type FakeA2aVersion,
+  type FakeAgentV1,
+} from './testing/fakeAgentV1.js';
 
 const CATALOG_ID = 'https://example.com/fake/catalog.json';
 const ENTITLEMENT = ['https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json', CATALOG_ID];
@@ -37,10 +46,13 @@ const PAINT = paintParts(CATALOG_ID);
 const OPERATIONS = ['createSurface', 'updateComponents'];
 
 let agent: FakeAgent | undefined;
+let agentV1: FakeAgentV1 | undefined;
 let server: Server | undefined;
 afterEach(async () => {
   await agent?.close();
   agent = undefined;
+  await agentV1?.close();
+  agentV1 = undefined;
   await new Promise<void>(resolve => (server ? server.close(() => resolve()) : resolve()));
   server = undefined;
 });
@@ -54,8 +66,8 @@ async function start(script: Script = completingScript(PAINT), card: Partial<Age
   return agent;
 }
 
-/** The card as the marketplace and Stellify hold it: as its agent served it. */
-const served = (card: AgentCard) => card as unknown as PublishedCard;
+/** The card as the marketplace and Stellify hand it to the runner: served by its agent, then read. */
+const served = (card: AgentCard) => readCard(card);
 
 const run = a2aSmokeRunner();
 const smoke = (
@@ -245,18 +257,84 @@ describe('a2aSmokeRunner, a request that could not be made', () => {
     expect(seen.kind).toBe('error');
   });
 
-  test("a 0.3 card the A2A SDK's translators refuse: an error in the A2A SDK's own words (task-20.2 decision 5)", async () => {
+  test('a card listing no interface the platform speaks: an error saying so, nothing sent', async () => {
     const {card, requests} = await start();
-    const {skills: _skills, ...noSkills} = card;
-    const seen = await run({
-      card: noSkills as unknown as PublishedCard,
+    const read = {
+      ...served(card),
+      supportedInterfaces: [
+        {url: card.url, protocolBinding: 'GRPC', protocolVersion: '1.0', tenant: ''},
+      ],
+    };
+    const seen = await run({card: read, entitlement: ENTITLEMENT, words: 'x', timeoutMs: 5000});
+    expect(seen).toEqual({kind: 'error', message: noInterfaceFinding(read)});
+    expect(requests).toHaveLength(0);
+  });
+});
+
+describe('a2aSmokeRunner, an agent on A2A 1.0', () => {
+  /** A fake A2A 1.0 agent listing JSON-RPC at the A2A versions of `order`, painting in `CATALOG_ID`. */
+  async function startV1(order: FakeA2aVersion[]) {
+    agentV1 = await startFakeAgentV1({
+      script: completingScriptV1(paintPartsV1(CATALOG_ID)),
+      card: interfaces => cardForV1(interfaces, {catalogs: [CATALOG_ID], order}),
+    });
+    return agentV1;
+  }
+  const smokeV1 = (fake: FakeAgentV1) =>
+    run({
+      card: readCard(fake.served),
+      entitlement: ENTITLEMENT,
+      words: 'Hello!',
+      timeoutMs: 5000,
+    });
+
+  test('the request reaches the A2A 1.0 interface and brings its paint back', async () => {
+    const fake = await startV1(['1.0']);
+    const seen = await smokeV1(fake);
+    expect(seen.kind).toBe('ended');
+    if (seen.kind !== 'ended') return;
+    expect(seen.state).toBe('completed');
+    expect(operationsOf(seen.messages)).toEqual(OPERATIONS);
+    expect(fake.requests.map(r => [r.reached, r.a2aVersion, r.method])).toEqual([
+      ['1.0', '1.0', 'SendStreamingMessage'],
+    ]);
+    expect(fake.requests[0]!.message).toMatchObject({
+      role: 'ROLE_USER',
+      parts: [{text: 'Hello!'}],
+      metadata: {[A2UI_CLIENT_CAPABILITIES_KEY]: clientCapabilities(ENTITLEMENT)},
+    });
+    expect(fake.requests[0]!.headers['a2a-extensions']).toContain('a2ui');
+  });
+
+  test('A2A 1.0 listed first is the interface reached', async () => {
+    const fake = await startV1(['1.0', '0.3']);
+    const seen = await smokeV1(fake);
+    expect(seen.kind).toBe('ended');
+    expect(fake.requests.map(r => [r.reached, r.a2aVersion, r.method])).toEqual([
+      ['1.0', '1.0', 'SendStreamingMessage'],
+    ]);
+  });
+
+  test('A2A 0.3 listed first is the interface reached, where the A2A SDK alone takes 1.0', async () => {
+    const fake = await startV1(['0.3', '1.0']);
+    const seen = await smokeV1(fake);
+    expect(seen.kind).toBe('ended');
+    if (seen.kind !== 'ended') return;
+    expect(operationsOf(seen.messages)).toEqual(OPERATIONS);
+    expect(fake.requests.map(r => [r.reached, r.a2aVersion, r.method])).toEqual([
+      ['0.3', '0.3', 'message/stream'],
+    ]);
+  });
+
+  test('the credential rides as the headers given', async () => {
+    const fake = await startV1(['1.0']);
+    await run({
+      card: readCard(fake.served),
       entitlement: ENTITLEMENT,
       words: 'x',
       timeoutMs: 5000,
+      headers: {'X-Api-Key': 'k-1'},
     });
-    expect(seen.kind).toBe('error');
-    if (seen.kind !== 'error') return;
-    expect(seen.message).toMatch(/skills/);
-    expect(requests).toHaveLength(0);
+    expect(fake.requests[0]!.headers['x-api-key']).toBe('k-1');
   });
 });

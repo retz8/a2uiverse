@@ -7,7 +7,7 @@
  * shell's. No credential leaves it except as the header of a dispatch to the app that issued it.
  */
 import {randomBytes} from 'node:crypto';
-import type {InstalledCard} from '../registry/installedCard.js';
+import type {AgentCard} from '@a2a-js/sdk';
 import {parseSourceId, sourceId, type AuthRequired} from '@a2uiverse/sdk';
 import type {Account, AccountStore} from '../accounts/accounts.js';
 import {logLine} from '../log.js';
@@ -133,9 +133,9 @@ export interface SignInRecord {
 export interface VaultDeps {
   store: VaultStore;
   /** The app's card as installed: what access is judged against (task-15.5 decision 3). */
-  cardOf(appId: string): InstalledCard | null | undefined;
+  cardOf(appId: string): AgentCard | null | undefined;
   /** This run's live card, read only to see that the app has changed; none when not held. */
-  liveCardOf?(appId: string): InstalledCard | null | undefined;
+  liveCardOf?(appId: string): AgentCard | null | undefined;
   displayName(appId: string): string;
   identity: ClientIdentity;
   journal(record: SignInRecord): void;
@@ -280,7 +280,7 @@ export class AuthVault implements AccountStore {
     return this.#standingOn(live, source).kind === 'need';
   }
 
-  #standingOn(card: InstalledCard | null | undefined, source: string): Standing {
+  #standingOn(card: AgentCard | null | undefined, source: string): Standing {
     const {appId, account: n} = parseSourceId(source) ?? {appId: source};
     const need = cardNeed(card);
     if (need.kind === 'none') return {kind: 'open'};

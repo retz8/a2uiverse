@@ -1,10 +1,10 @@
-import type {InstalledCard} from '../src/registry/installedCard.js';
+import type {AgentCard as LegacyCard} from '@a2a-js/sdk-v0_3';
 import {describe, expect, test} from 'vitest';
-import {asksSignIn, NO_ACCOUNTS, Sources, type AccountStore} from '../src/accounts/accounts.js';
+import {NO_ACCOUNTS, Sources, type AccountStore} from '../src/accounts/accounts.js';
 import {cardFor, testRegistry} from './registryFixture.js';
 
 /** A card asking for sign-in: one OAuth scheme, required. */
-const signingIn = (agentUrl: string, name: string): InstalledCard => ({
+const signingIn = (agentUrl: string, name: string): LegacyCard => ({
   ...cardFor(agentUrl, {name}),
   securitySchemes: {
     oauth: {
@@ -83,14 +83,5 @@ describe('the accounts seam (task-12.4 decision 3)', () => {
     expect(two.displayName('gmail.1')).toBe('Gmail');
     expect(two.appOf('gmail.1')).toBe('gmail');
     expect(two.appOf('github')).toBe('github');
-  });
-
-  test('a card asks sign-in when every alternative of its security names a scheme', () => {
-    const card = cardFor('http://127.0.0.1:1/x');
-    expect(asksSignIn(card)).toBe(false);
-    expect(asksSignIn({...card, security: []})).toBe(false);
-    expect(asksSignIn({...card, security: [{oauth: []}]})).toBe(true);
-    expect(asksSignIn({...card, security: [{oauth: ['read']}, {}]})).toBe(false);
-    expect(asksSignIn(undefined)).toBe(false);
   });
 });

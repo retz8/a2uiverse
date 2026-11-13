@@ -15,16 +15,11 @@ import {
   uninstalledLine,
   UNREACHED_WORDS,
 } from './libraryWords';
+import {readCardFixture} from '../cardFixture';
 
 const app = (more: Partial<InstalledApp> = {}): InstalledApp => ({
   id: 'gmail',
-  card: {
-    name: 'Gmail',
-    description: '',
-    url: 'http://127.0.0.1:11002',
-    version: '1.0.0',
-    skills: [],
-  },
+  card: readCardFixture('Gmail'),
   source: 'marketplace',
   reachable: true,
   ...more,
@@ -51,6 +46,27 @@ describe('an app’s state as the App Library shows it', () => {
       words: UNREACHED_WORDS,
       tone: 'bad',
       press: {kind: 'none'},
+    });
+  });
+
+  it('says an app whose way in A2UIVerse can’t use in place of its update state, with no press and no note (task-20.3 decision 14)', () => {
+    const update: UpdateState = {
+      ...base,
+      state: 'update-required',
+      publishedVersion: '2.0.0',
+      retired: ['x'],
+      newScopes: [],
+    };
+    expect(appStateView(app({noInterface: true}), update, false)).toEqual({
+      kind: 'state',
+      words: 'Connects in a way A2UIVerse can’t use',
+      tone: 'bad',
+      press: {kind: 'none'},
+    });
+    expect(stateNote('Gmail', app({noInterface: true}), update)).toBeUndefined();
+    // An app not reached says that first: nothing is known of its card this run.
+    expect(appStateView(app({reachable: false, noInterface: true}), update, false)).toMatchObject({
+      words: UNREACHED_WORDS,
     });
   });
 

@@ -7,10 +7,12 @@
  * local pack (task-13.8 decision 12), an app ahead of the Store reported, and the states answered as
  * they stand after. Behind `GET /registry/updates.json` and the boot.
  */
-import type {InstalledCard} from './installedCard.js';
+import type {AgentCard} from '@a2a-js/sdk';
+import {readCard, signInAlternatives} from '@a2uiverse/card';
 import {
   aheadOfStore,
   PUBLIC_CATALOG_IDS,
+  publishedVersionOf,
   readSupportedCatalogIds,
   retiredLines,
   type BuildMove,
@@ -19,7 +21,7 @@ import {
   type UpdateState,
 } from '@a2uiverse/sdk';
 import type {EntryLookup, MarketplaceClient} from './marketplace.js';
-import type {Registry} from './registry.js';
+import type {InstalledApp, Registry} from './registry.js';
 import type {InstalledRecord} from './types.js';
 
 export interface UpdateCheckDeps {
@@ -121,10 +123,10 @@ export class UpdateCheck {
    */
   async forApp(appId: string): Promise<AppCheck | undefined> {
     const {registry, marketplace} = this.#deps;
-    const record = registry.installed().find(installed => installed.id === appId);
-    if (!record) return undefined;
+    const installed = installedApp(registry, appId);
+    if (!installed) return undefined;
     const lookup = await marketplace.entry(appId);
-    const state = updateStateOf(record, lookup, registry.card(appId));
+    const state = updateStateOf(installed, lookup, registry.card(appId));
     this.#report(state, lookup);
     if (this.#held) this.#held.states.set(appId, state);
     else {
@@ -180,7 +182,7 @@ export class UpdateCheck {
       return {
         states: records.map(record => ({
           appId: record.id,
-          installedVersion: versionOf(record.card),
+          installedVersion: versionOf(registry.storedCard(record.id)),
           state: 'unknown' as const,
         })),
         marketplace: 'unreached',
@@ -203,7 +205,11 @@ export class UpdateCheck {
     };
     for (const [i, record] of records.entries()) {
       const lookup = lookups[i];
-      let state = updateStateOf(record, lookup, registry.card(record.id));
+      let state = updateStateOf(
+        {record, card: registry.storedCard(record.id)!},
+        lookup,
+        registry.card(record.id),
+      );
       const sent = this.#report(state, lookup);
       if (sent) outcome[sent].push(record.id);
       // A newer build, the card unchanged, installs itself for an app from the marketplace alone
@@ -220,7 +226,13 @@ export class UpdateCheck {
         if (result.ok) {
           outcome.updated.push({appId: record.id, summary: result.summary});
           const moved = registry.installed().find(r => r.id === record.id);
-          if (moved) state = updateStateOf(moved, lookup, registry.card(record.id));
+          if (moved) {
+            state = updateStateOf(
+              {record: moved, card: registry.storedCard(record.id)!},
+              lookup,
+              registry.card(record.id),
+            );
+          }
         } else {
           outcome.failed.push({appId: record.id, findings: result.findings});
         }
@@ -256,28 +268,43 @@ function localFollowers(
     .sort();
 }
 
+/** An installed app's record with its stored card read; none when the app is not installed. */
+function installedApp(registry: Registry, appId: string): InstalledApp | undefined {
+  const record = registry.installed().find(installed => installed.id === appId);
+  const card = registry.storedCard(appId);
+  return record && card ? {record, card} : undefined;
+}
+
 /**
  * One app's state (task-13.2 decision 8), the first match in order: unknown, the marketplace not
- * reached or its entry malformed; not published; ahead of the Store, from the live card through
+ * reached, its entry malformed or its published card not reading; not published; ahead of the Store, from the live card through
  * the sdk's drift function, skipped when this run has no live card; update required, an installed
  * line retired, through the sdk's retired-lines function with the installed card as the earlier
  * and the published as the later; a major update, an id added while every installed one stays; a
  * card update, the version moved with no id added or dropped; each of the three naming its new
- * scopes from `security` (task-15.5 decision 7); a newer build; up to date.
+ * scopes from the cards' sign-in requirements (task-15.5 decision 7); a newer build; up to date.
+ * Every card is compared as read (task-20.3 decision 12): its catalog ids, its version and the
+ * scopes each scheme asks, so a change of A2A version or bindings alone moves no state.
  */
 export function updateStateOf(
-  record: InstalledRecord,
+  {record, card: installedCard}: InstalledApp,
   lookup: EntryLookup,
-  liveCard: InstalledCard | null | undefined,
+  liveCard: AgentCard | null | undefined,
 ): UpdateState {
-  const base = {appId: record.id, installedVersion: versionOf(record.card)};
+  const base = {appId: record.id, installedVersion: versionOf(installedCard)};
   if (lookup.kind === 'unreached' || lookup.kind === 'malformed')
     return {...base, state: 'unknown'};
   if (lookup.kind === 'not-published') return {...base, state: 'not-published'};
   const {entry} = lookup;
-  const publishedVersion = entry.card.version;
+  let publishedCard: AgentCard;
+  try {
+    publishedCard = readCard(entry.card);
+  } catch {
+    return {...base, state: 'unknown'};
+  }
+  const publishedVersion = publishedVersionOf(entry);
   if (liveCard) {
-    const drift = aheadOfStore(entry, liveCard as CardWithExtensions & {version: string});
+    const drift = aheadOfStore(entry, liveCard);
     if (drift.ok && drift.value) {
       return {
         ...base,
@@ -288,10 +315,10 @@ export function updateStateOf(
       };
     }
   }
-  const installedIds = declaredIds(record.card, Object.keys(record.catalogs));
-  const publishedIds = declaredIds(entry.card, Object.keys(entry.catalogs));
+  const installedIds = declaredIds(installedCard, Object.keys(record.catalogs));
+  const publishedIds = declaredIds(publishedCard, Object.keys(entry.catalogs));
   // What the published card newly asks, named on every updatable state (task-15.5 decision 7).
-  const newScopes = newScopesOf(record.card, entry.card);
+  const newScopes = newScopesOf(installedCard, publishedCard);
   const retired = retiredLines(installedIds, publishedIds);
   if (retired.length > 0) {
     return {...base, state: 'update-required', publishedVersion, retired, newScopes};
@@ -308,12 +335,7 @@ export function updateStateOf(
   return {...base, state: 'up-to-date', publishedVersion};
 }
 
-const versionOf = (card: InstalledCard) => card.version ?? '?';
-
-/** The part of a card the scopes are read from: the alternatives of its `security`, structurally. */
-interface CardWithSecurity {
-  security?: Record<string, string[]>[];
-}
+const versionOf = (card: AgentCard | undefined) => card?.version || '?';
 
 /** The catalog ids a card declares, the public ones aside; the record's own when it does not read. */
 function declaredIds(card: CardWithExtensions, fallback: string[]): string[] {
@@ -338,11 +360,11 @@ function buildMoves(
 
 /**
  * What a card update newly asks (task-13.5 decision 10), read as the vault reads consent: from the
- * card's `security` alternatives. For each scheme the published card's alternatives name, the
+ * alternatives of the card's sign-in requirements. For each scheme the published card's alternatives name, the
  * scope keys the installed card's alternatives do not name for it — every scope for a scheme the
  * installed card never names, so a new sign-in requirement shows even with no scope.
  */
-function newScopesOf(installed: CardWithSecurity, published: CardWithSecurity): NewScopes[] {
+function newScopesOf(installed: AgentCard, published: AgentCard): NewScopes[] {
   const was = scopesByScheme(installed);
   const now = scopesByScheme(published);
   const fresh: NewScopes[] = [];
@@ -355,9 +377,9 @@ function newScopesOf(installed: CardWithSecurity, published: CardWithSecurity): 
 }
 
 /** Every scheme a card's alternatives name, with the union of the scopes they ask of it. */
-function scopesByScheme(card: CardWithSecurity): Map<string, Set<string>> {
+function scopesByScheme(card: AgentCard): Map<string, Set<string>> {
   const schemes = new Map<string, Set<string>>();
-  for (const alternative of card.security ?? []) {
+  for (const alternative of signInAlternatives(card)) {
     for (const [scheme, scopes] of Object.entries(alternative)) {
       const held = schemes.get(scheme) ?? new Set<string>();
       for (const scope of scopes) held.add(scope);

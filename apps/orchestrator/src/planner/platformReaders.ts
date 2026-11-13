@@ -4,8 +4,9 @@
  * projection is a pure function of the state it reads, so the readers are testable without a
  * model and the executor is not involved.
  */
-import {updateWords} from '@a2uiverse/sdk';
-import {asksSignIn, Sources} from '../accounts/accounts.js';
+import {asksSignIn} from '@a2uiverse/card';
+import {NO_INTERFACE_WORDS, updateWords} from '@a2uiverse/sdk';
+import {Sources} from '../accounts/accounts.js';
 import type {HeldComposition} from '../composition/compositions.js';
 import type {CompositionState, SlotEntry, SlotState} from '../composition/state.js';
 import type {Registry} from '../registry/registry.js';
@@ -56,7 +57,9 @@ export const BASIC_CATALOG_WORDS = 'basic catalog';
  * down at startup — its catalogs, whether it is reachable this run, whether it asks sign-in, its
  * accounts by source and label, never a credential (task-12.6 decision 9), and its update state as
  * last computed in the App Library's words, with how long ago — never a check run (task-14.5
- * decisions 5 to 7). The platform is not one.
+ * decisions 5 to 7). An app whose live card lists no interface the platform speaks reads, in
+ * place of its update state, as the App Library says it (task-20.3 decision 14). The platform is
+ * not one.
  */
 export function installedApps(
   registry: Registry,
@@ -68,7 +71,8 @@ export function installedApps(
   return registry.list().map(record => {
     const fetched = registry.card(record.id);
     const card = fetched ?? registry.storedCard(record.id);
-    const state = held?.states.get(record.id);
+    const noInterface = registry.liveUnreachable(record.id);
+    const state = noInterface ? undefined : held?.states.get(record.id);
     const source = installed.get(record.id)?.source ?? 'local';
     return {
       id: record.id,
@@ -81,11 +85,11 @@ export function installedApps(
       })),
       catalogs: record.catalogs.length > 0 ? [...record.catalogs] : [BASIC_CATALOG_WORDS],
       reachable: Boolean(fetched),
-      signIn: asksSignIn(card),
+      signIn: card ? asksSignIn(card) : false,
       accounts: sources
         .of(record.id)
         .flatMap(({source, label}) => (label === undefined ? [] : [{source, label}])),
-      update: updateWords(state, source),
+      update: noInterface ? NO_INTERFACE_WORDS : updateWords(state, source),
       ...(state && held ? {checked: checkedAgo(held.checkedAt, now)} : {}),
     };
   });

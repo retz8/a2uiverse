@@ -528,3 +528,103 @@ describe('the update tile in the merge (task-15.5 decision 10)', () => {
     ]);
   });
 });
+
+describe('an installed app the platform cannot reach (task-20.3 decision 13)', () => {
+  /** The agent's live card listing gRPC alone, in place; `back` restores JSON-RPC. */
+  const onlyGrpc = (vendor: FakeVendor) => {
+    vendor.card.preferredTransport = 'GRPC';
+  };
+  const back = (vendor: FakeVendor) => {
+    vendor.card.preferredTransport = 'JSONRPC';
+  };
+
+  test('its slot takes the failure tile under a cause of its own, the agent never called, the dispatch journaled', async () => {
+    const {client, orchestrator} = await boot({apps: {shop: {}}, plan: shopOnly});
+    onlyGrpc(vendors.shop!);
+    await orchestrator.registry.refreshCards();
+
+    const events = await collect(client, utterance('camera prices'));
+    expect(lastSlot(events, 'shop')).toMatchObject({
+      state: 'failed',
+      failure: {cause: 'interface'},
+    });
+    expect(vendors.shop!.requests).toEqual([]);
+    const [record] = await dispatchRecords('shop', 1);
+    expect(record).toMatchObject({
+      outcome: 'failed',
+      cause: 'interface',
+      error:
+        'the card lists no interface A2UIVerse speaks: it lists GRPC at A2A 0.3.0; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x',
+    });
+    expect(record).not.toHaveProperty('a2aVersion');
+    // The app stays installed and routed: the Router ranks it and the plan dispatched it.
+    expect(orchestrator.registry.list().map(app => app.id)).toEqual(['shop']);
+    expect(orchestrator.registry.routable().some(app => app.record.id === 'shop')).toBe(true);
+  });
+
+  test('an app asking sign-in is asked none: the failure tile, not the authority tile, from first paint', async () => {
+    const {client, orchestrator} = await boot({
+      apps: {
+        shop: {
+          card: {
+            securitySchemes: {key: {type: 'apiKey', in: 'header', name: 'X-Key'}},
+            security: [{key: []}],
+          },
+        },
+      },
+      plan: () => layoutFor(['shop.1']),
+    });
+    onlyGrpc(vendors.shop!);
+    await orchestrator.registry.refreshCards();
+
+    const events = await collect(client, utterance('camera prices'));
+    expect(slotPaints(events)[0]!['shop.1']).toMatchObject({state: 'pending'});
+    for (const paint of slotPaints(events)) expect(paint['shop.1']?.authority).toBeUndefined();
+    expect(lastSlot(events, 'shop.1')).toMatchObject({
+      state: 'failed',
+      failure: {cause: 'interface'},
+    });
+    expect(vendors.shop!.requests).toEqual([]);
+  });
+
+  test('its update is not judged either: an app that also cannot paint in what it is installed with takes the failure tile', async () => {
+    const {client, orchestrator} = await boot({apps: {shop: {}}, plan: shopOnly});
+    move(vendors.shop!, [CAT_2], '1.1.0');
+    onlyGrpc(vendors.shop!);
+    await orchestrator.registry.refreshCards();
+    const events = await collect(client, utterance('camera prices'));
+    expect(lastSlot(events, 'shop')).toMatchObject({
+      state: 'failed',
+      failure: {cause: 'interface'},
+    });
+  });
+
+  test('Retry fetches the live card again first: an agent listing an interface the platform speaks again is called, and paints', async () => {
+    const {client, orchestrator} = await boot({apps: {shop: {}}, plan: shopOnly});
+    onlyGrpc(vendors.shop!);
+    await orchestrator.registry.refreshCards();
+    const turn = await collect(client, utterance('camera prices'));
+    expect(lastSlot(turn, 'shop')).toMatchObject({failure: {cause: 'interface'}});
+    expect(orchestrator.registry.liveUnreachable('shop')).toBe(true);
+
+    back(vendors.shop!);
+    const pressed = await collect(client, retry('shop', contextOf(turn)));
+    expect(orchestrator.registry.liveUnreachable('shop')).toBe(false);
+    expect(vendors.shop!.requests).toHaveLength(1);
+    expect(lastSlot(pressed, 'shop')).not.toMatchObject({state: 'failed'});
+    expect(JSON.stringify(pressed)).toContain(FAKE_CATALOG_ID);
+  });
+
+  test('a Retry while the card still lists nothing the platform speaks fails the same way, the agent still not called', async () => {
+    const {client, orchestrator} = await boot({apps: {shop: {}}, plan: shopOnly});
+    onlyGrpc(vendors.shop!);
+    await orchestrator.registry.refreshCards();
+    const turn = await collect(client, utterance('camera prices'));
+    const pressed = await collect(client, retry('shop', contextOf(turn)));
+    expect(lastSlot(pressed, 'shop')).toMatchObject({
+      state: 'failed',
+      failure: {cause: 'interface'},
+    });
+    expect(vendors.shop!.requests).toEqual([]);
+  });
+});

@@ -3,10 +3,12 @@
  * state directory, cards served by a stub fetch, apps installed through the operation, and catalog
  * artifacts packed here with real hashes.
  */
+import type {AgentCard} from '@a2a-js/sdk';
 import {mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import type {InstalledCard} from '../src/registry/installedCard.js';
+import type {AgentCard as LegacyAgentCard} from '@a2a-js/sdk-v0_3';
+import type {ServedCard} from '@a2uiverse/card';
 import {
   A2UI_EXTENSION_URIS,
   ARTIFACT_DESCRIPTOR_FILE,
@@ -29,12 +31,13 @@ export interface CardOptions {
   description?: string;
   /** The catalog ids the card declares under the A2UI extension; none declares nothing. */
   catalogs?: string[];
-  skills?: InstalledCard['skills'];
+  skills?: LegacyAgentCard['skills'];
   /** Whether the agent streams, as its card says; true by default. */
   streaming?: boolean;
 }
 
-export function cardFor(agentUrl: string, options: CardOptions = {}): InstalledCard {
+/** A card as an A2A 0.3 agent serves it, over JSON-RPC. */
+export function cardFor(agentUrl: string, options: CardOptions = {}): LegacyAgentCard {
   const {catalogs} = options;
   return {
     name: options.name ?? 'Fake Vendor',
@@ -100,23 +103,34 @@ export async function fixtureArtifact(
 }
 
 /**
- * Cards served by URL; a URL with no card is unreachable, and one marked hanging never answers.
- * Mutable, so a test can move an agent.
+ * Cards served by URL, each as its agent serves it, in whichever shape; a URL with no card is
+ * unreachable, and one marked hanging answers nothing inside the fetch's time limit. Mutable, so
+ * a test can move an agent.
  */
 export class CardServer {
-  readonly cards = new Map<string, InstalledCard>();
+  readonly cards = new Map<string, ServedCard>();
   readonly hanging = new Set<string>();
   readonly fetched: string[] = [];
+  /** The time limit each fetch was given, in the order fetched. */
+  readonly limits: number[] = [];
 
-  serve(card: InstalledCard): string {
-    const url = cardUrlOf(card.url);
-    this.cards.set(url, card);
+  serve(card: LegacyAgentCard): string {
+    return this.serveAt(cardUrlOf(card.url), card);
+  }
+
+  /** Whatever a card URL answers. */
+  serveAt(url: string, served: ServedCard): string {
+    this.cards.set(url, served);
     return url;
   }
 
-  resolve = async (url: string): Promise<InstalledCard> => {
+  fetch = async (url: string, timeoutMs: number): Promise<ServedCard> => {
     this.fetched.push(url);
-    if (this.hanging.has(url)) return new Promise<InstalledCard>(() => {});
+    this.limits.push(timeoutMs);
+    if (this.hanging.has(url)) {
+      await new Promise(resolve => setTimeout(resolve, timeoutMs));
+      throw new Error(`did not answer within ${timeoutMs / 1000} s`);
+    }
     const card = this.cards.get(url);
     if (!card) throw new Error(`fetch failed: ${url}`);
     return card;
@@ -125,7 +139,7 @@ export class CardServer {
 
 export interface TestApp {
   id: string;
-  card: InstalledCard;
+  card: LegacyAgentCard;
   catalogs?: ArtifactFiles[];
 }
 
@@ -151,8 +165,10 @@ export class JournalSpy implements RegistryJournal {
 export async function testRegistry(
   apps: readonly TestApp[] = [],
   options: {
-    platformCard?: InstalledCard;
+    platformCard?: AgentCard;
     embedder?: Embedder;
+    /** The time limit of a card fetch at boot, at the update check and at install. */
+    cardTimeoutMs?: number;
     stateDir?: string;
     marketplace?: MarketplaceClient;
   } = {},
@@ -162,7 +178,8 @@ export async function testRegistry(
   const journal = new JournalSpy();
   const registry = new Registry({
     stateDir,
-    resolveCard: cards.resolve,
+    fetchCard: cards.fetch,
+    ...(options.cardTimeoutMs !== undefined ? {cardTimeoutMs: options.cardTimeoutMs} : {}),
     embedder: options.embedder ?? new FakeEmbedder(),
     journal,
     ...(options.platformCard ? {platformCard: options.platformCard} : {}),

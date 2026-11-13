@@ -1,11 +1,11 @@
-import type {InstalledCard} from '../registry/installedCard.js';
+import type {AgentCard} from '@a2a-js/sdk';
 import {rank, type Embedder} from '@a2uiverse/embedder';
 import type {Registry} from '../registry/registry.js';
 import type {AppRecord} from '../registry/types.js';
 
 export interface ShortlistEntry {
   record: AppRecord;
-  card: InstalledCard;
+  card: AgentCard;
   score: number;
 }
 

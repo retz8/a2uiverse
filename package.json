@@ -29,6 +29,7 @@
     "verify": "turbo run build typecheck test && pnpm test:scripts && pnpm lint && pnpm format:check"
   },
   "devDependencies": {
+    "@a2uiverse/card": "workspace:*",
     "@a2uiverse/stellify": "workspace:*",
     "@eslint/js": "^9.39.1",
     "eslint": "^9.39.1",

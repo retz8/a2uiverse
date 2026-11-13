@@ -9,16 +9,21 @@
  * holds (task 14.9). HTTP from M7; IPC in Electron swaps the transport only. Runtime
  * objects (catalogs, providers) never cross this boundary; `catalogs/loader` turns what it serves
  * into them.
+ *
+ * A card crosses this boundary as its agent served it, and is read here, where it arrives, through
+ * the card's one reading (task-20.3 decision 6): everything past this file holds read cards.
  */
+import type {AgentCard} from '@a2a-js/sdk';
+import {readCard} from '@a2uiverse/card';
 import {
   INSTALL_REFUSALS,
   artifactIdOf,
+  publishedVersionOf,
   type IndexEntry,
   type InstallRefusal,
   type PreviewDocument,
   type PublishOutcome,
   type PublishRequest,
-  type PublishedCard,
   type UpdateState,
 } from '@a2uiverse/sdk';
 
@@ -184,11 +189,43 @@ export function marketplaceUrl(base: string = agentUrl()): string {
   return new URL('marketplace/', base.endsWith('/') ? base : `${base}/`).href;
 }
 
+/** An index entry as the page holds it: its card read where it arrived. */
+export type StoreEntry = Omit<IndexEntry, 'card'> & {card: AgentCard};
+
 /** One listing as the Store reads it: the entry, whether it is installed, its state as last computed. */
 export interface StoreListing {
+  entry: StoreEntry;
+  installed: boolean;
+  update?: UpdateState;
+}
+
+/** A listing as the orchestrator serves it: its entry's card as its agent served it. */
+interface ServedListing {
   entry: IndexEntry;
   installed: boolean;
   update?: UpdateState;
+}
+
+/** A served listing with its card read; none when the card does not read. */
+function readListing(served: ServedListing): StoreListing | undefined {
+  try {
+    return {...served, entry: {...served.entry, card: readCard(served.entry.card)}};
+  } catch {
+    return undefined;
+  }
+}
+
+/** Served listings read, one whose card does not read left out, as an entry that does not read is. */
+function readListings(read: StoreRead<ServedListing[]>): StoreRead<StoreListing[]> {
+  if (!read.ok) return read;
+  if (!Array.isArray(read.value)) return {ok: false, reason: 'malformed'};
+  return {
+    ok: true,
+    value: read.value.flatMap(served => {
+      const listing = readListing(served);
+      return listing ? [listing] : [];
+    }),
+  };
 }
 
 /** A read of the Store: its answer, or why there is none — unreached, not published, unreadable. */
@@ -220,36 +257,42 @@ async function readStore<T>(url: string): Promise<StoreRead<T>> {
 }
 
 /** Every published app, each annotated. */
-export function readStoreIndex(base: string): Promise<StoreRead<StoreListing[]>> {
-  return readStore(new URL('index.json', marketplaceUrl(base)).href);
+export async function readStoreIndex(base: string): Promise<StoreRead<StoreListing[]>> {
+  return readListings(await readStore(new URL('index.json', marketplaceUrl(base)).href));
 }
 
 /**
  * One publisher's listings, each app's live card read again first, so an app ahead of the Store
  * says so the first time Publish is opened (task-14.11 decision 38).
  */
-export function readPublisherListings(
+export async function readPublisherListings(
   base: string,
   publisher: string,
 ): Promise<StoreRead<StoreListing[]>> {
   const url = new URL('listings.json', marketplaceUrl(base));
   url.searchParams.set('publisher', publisher);
-  return readStore(url.href);
+  return readListings(await readStore(url.href));
 }
 
 /** The Store's search over the words: listings in rank order. */
 export async function searchStore(base: string, words: string): Promise<StoreRead<StoreListing[]>> {
   const url = new URL('search', marketplaceUrl(base));
   url.searchParams.set('q', words);
-  const read = await readStore<{results: StoreListing[]}>(url.href);
-  return read.ok ? {ok: true, value: read.value.results} : read;
+  const read = await readStore<{results: ServedListing[]}>(url.href);
+  return readListings(read.ok ? {ok: true, value: read.value.results} : read);
 }
 
-/** One app's listing. */
-export function readStoreEntry(base: string, appId: string): Promise<StoreRead<StoreListing>> {
-  return readStore(
+/** One app's listing; one whose card does not read is an answer that does not read. */
+export async function readStoreEntry(
+  base: string,
+  appId: string,
+): Promise<StoreRead<StoreListing>> {
+  const read = await readStore<ServedListing>(
     new URL(`apps/${encodeURIComponent(appId)}/entry.json`, marketplaceUrl(base)).href,
   );
+  if (!read.ok) return read;
+  const listing = readListing(read.value);
+  return listing ? {ok: true, value: listing} : {ok: false, reason: 'malformed'};
 }
 
 /** One app's captured preview: the sample its view draws. */
@@ -260,17 +303,19 @@ export function readStorePreview(base: string, appId: string): Promise<StoreRead
 }
 
 /**
- * An installed app as the registry lists it: its card as installed, where it came from, and
- * whether this run holds its card — reached at startup or by a check since (task-14.8 decision 2);
- * a snapshot that does not say is read as reached.
+ * An installed app as the registry lists it: its card as installed, read; where it came from;
+ * whether this run holds its card — reached at startup or by a check since (task-14.8 decision 2),
+ * a snapshot that does not say read as reached; and whether that live card lists no way in that
+ * A2UIVerse uses (task-20.3 decision 14).
  */
 export interface InstalledApp {
   id: string;
-  card: PublishedCard;
+  card: AgentCard;
   /** Each catalog id it holds, at its build's artifact id. */
   catalogs?: Record<string, string>;
   source?: 'marketplace' | 'local';
   reachable?: boolean;
+  noInterface?: boolean;
 }
 
 /** The installed apps; none when the registry cannot be read. */
@@ -282,7 +327,15 @@ export async function readInstalledApps(base: string): Promise<InstalledApp[]> {
 export async function readInstalled(base: string): Promise<InstalledApp[] | null> {
   try {
     const apps = await readJson(new URL('apps.json', registryUrl(base)).href);
-    return Array.isArray(apps) ? (apps as InstalledApp[]) : null;
+    if (!Array.isArray(apps)) return null;
+    // Each stored card read where it arrives; the registry holds none that does not read.
+    return (apps as (Omit<InstalledApp, 'card'> & {card: unknown})[]).flatMap(app => {
+      try {
+        return [{...app, card: readCard(app.card)}];
+      } catch {
+        return [];
+      }
+    });
   } catch {
     return null;
   }
@@ -334,7 +387,7 @@ async function installedAsListed(base: string, appId: string): Promise<boolean> 
   if (!record || !listed.ok) return false;
   const {entry} = listed.value;
   return (
-    record.card.version === entry.card.version &&
+    record.card.version === publishedVersionOf(entry) &&
     Object.entries(entry.catalogs).every(([id, artifact]) => record.catalogs?.[id] === artifact)
   );
 }
@@ -637,7 +690,7 @@ export async function publishApp(
   if (answer === 'unheard') {
     const entry = await listedAsPublished(base, request);
     return entry
-      ? {ok: true, appId: request.appId, version: entry.card.version, summary: '', notes: []}
+      ? {ok: true, appId: request.appId, version: publishedVersionOf(entry), summary: '', notes: []}
       : UNHEARD;
   }
   const body = answer?.body as Partial<PublishOutcome> | undefined;
@@ -669,7 +722,7 @@ export async function unpublishApp(
 }
 
 /** The signed-in publisher's listing of `appId` now, its live card read first: gone, or unread. */
-async function listingNow(base: string, appId: string): Promise<IndexEntry | 'gone' | null> {
+async function listingNow(base: string, appId: string): Promise<StoreEntry | 'gone' | null> {
   const publisher = await signedInNow(base);
   if (publisher === null || publisher === 'signed-out') return null;
   const listings = await readPublisherListings(base, publisher);
@@ -684,7 +737,7 @@ async function listingNow(base: string, appId: string): Promise<IndexEntry | 'go
 async function listedAsPublished(
   base: string,
   request: PublishRequest,
-): Promise<IndexEntry | undefined> {
+): Promise<StoreEntry | undefined> {
   const entry = await listingNow(base, request.appId);
   if (entry === null || entry === 'gone' || entry.aheadOfStore) return undefined;
   const handed = await Promise.all(

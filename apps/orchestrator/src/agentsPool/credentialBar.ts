@@ -15,7 +15,7 @@ import {
   type CredentialFinding,
 } from '@a2uiverse/sdk';
 import {agentMessage, dataOf, dataPart, textPart} from '../a2a/parts.js';
-import type {InstalledCard} from '../registry/installedCard.js';
+import type {AgentCard} from '@a2a-js/sdk';
 import {isSecureOrLocal} from '../vault/oauth.js';
 import {partsOf, STAMP_KEY, withParts, type VendorEvent} from './relay.js';
 
@@ -127,7 +127,7 @@ export function takeDown(shown: readonly CreatedSurface[]): VendorEvent {
  * The fallback's way out (task-12.2 decision 7): the card's `provider.url`, otherwise its
  * `documentationUrl` — https, or a local address.
  */
-export function continueUrlOf(card: InstalledCard | null | undefined): string | undefined {
+export function continueUrlOf(card: AgentCard | null | undefined): string | undefined {
   const candidates = [card?.provider?.url, card?.documentationUrl];
   return candidates.find(
     (url): url is string => typeof url === 'string' && url !== '' && isSecureOrLocal(url),

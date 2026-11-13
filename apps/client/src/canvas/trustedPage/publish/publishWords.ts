@@ -3,6 +3,7 @@
  * answers: plain words first, Stellify's term beside each (task-14.2 decision 12), the Store's own
  * findings kept verbatim beneath the plain lead (task-14.9 decision 10).
  */
+import type {AgentCard} from '@a2a-js/sdk';
 import {
   APP_ID_MAX_LENGTH,
   APP_ID_PATTERN,
@@ -12,7 +13,6 @@ import {
   RESERVED_PUBLISHER_NAMES,
   type Drift,
   type PublishOutcome,
-  type PublishedCard,
 } from '@a2uiverse/sdk';
 import type {PublisherRefusal} from '../../../orchestratorApi';
 import {signInOf} from '../appCard';
@@ -136,7 +136,7 @@ export function aheadSentence(ahead: Drift): Spoken {
 }
 
 /** The sample answer file's hint on the form (task-14.9 decision 14). */
-export function previewHint(card: PublishedCard | undefined): string {
+export function previewHint(card: AgentCard | undefined): string {
   if (!card) return 'Needed only if your app asks people to sign in.';
   if (signInOf(card).kind === 'none') {
     return `${card.name} doesn’t ask people to sign in, so leave this out: the Store asks it its own question.`;

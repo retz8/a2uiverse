@@ -126,6 +126,13 @@ describe('loadConfig — the marketplace (task-13.5 decisions 1, 11)', () => {
       'A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS',
     );
   });
+  test('a live card’s fetch has ten seconds, or what A2UIVERSE_CARD_TIMEOUT_SECONDS says, as the marketplace reads it (task-20.3 decision 5)', () => {
+    expect(loadConfig({}).cardTimeoutMs).toBe(10_000);
+    expect(loadConfig({A2UIVERSE_CARD_TIMEOUT_SECONDS: '0.5'}).cardTimeoutMs).toBe(500);
+    expect(() => loadConfig({A2UIVERSE_CARD_TIMEOUT_SECONDS: 'soon'})).toThrow(
+      'A2UIVERSE_CARD_TIMEOUT_SECONDS',
+    );
+  });
 });
 
 describe('loadConfig — the model seam (task-17.2 decisions 2, 3, 6)', () => {

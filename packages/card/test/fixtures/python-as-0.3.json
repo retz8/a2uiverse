@@ -1,0 +1,61 @@
+{
+  "capabilities": {
+    "extensions": [
+      {
+        "params": {
+          "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+        },
+        "required": false,
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1"
+      }
+    ],
+    "streaming": true
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "description": "an agent for tests",
+  "documentationUrl": "https://example.com/docs",
+  "name": "Fake Agent",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3",
+  "provider": {
+    "organization": "Acme",
+    "url": "https://example.com"
+  },
+  "security": [
+    {
+      "signIn": ["things.read"]
+    }
+  ],
+  "securitySchemes": {
+    "key": {
+      "description": "Paste your key",
+      "in": "header",
+      "name": "X-Api-Key",
+      "type": "apiKey"
+    },
+    "signIn": {
+      "flows": {
+        "authorizationCode": {
+          "authorizationUrl": "http://127.0.0.1:18731/authorize",
+          "scopes": {
+            "things.read": "Read your things"
+          },
+          "tokenUrl": "http://127.0.0.1:18731/token"
+        }
+      },
+      "type": "oauth2"
+    }
+  },
+  "skills": [
+    {
+      "description": "A fake skill",
+      "examples": ["show my things"],
+      "id": "fake",
+      "name": "Fake",
+      "tags": ["fake"]
+    }
+  ],
+  "url": "http://127.0.0.1:18731/",
+  "version": "0.1.0"
+}

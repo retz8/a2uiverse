@@ -1,3 +1,4 @@
+import {publishedVersionOf} from '@a2uiverse/sdk';
 import {buildMarketplace} from './app.js';
 import {loadConfig} from './config.js';
 import {APP_NAME, logLine} from './log.js';
@@ -15,7 +16,7 @@ app.listen(config.port, () => {
   const apps =
     entries.length === 0
       ? 'none published'
-      : entries.map(e => `${e.appId} (${e.publisher}, ${e.card.version})`).join(', ');
+      : entries.map(e => `${e.appId} (${e.publisher}, ${publishedVersionOf(e)})`).join(', ');
   console.log(
     `${APP_NAME} listening on http://localhost:${config.port} · state ${config.stateDir} · apps: ${apps}`,
   );

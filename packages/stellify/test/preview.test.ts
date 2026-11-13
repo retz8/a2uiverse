@@ -14,6 +14,14 @@ import {
   paintParts,
   statusUpdate,
 } from '@a2uiverse/smoke-transport/testing';
+import {
+  cardForV1,
+  completingScriptV1,
+  paintPartsV1,
+  startFakeAgentV1,
+  type CardV1Options,
+  type FakeAgentV1,
+} from '@a2uiverse/smoke-transport/testing/v1';
 import {afterEach, beforeAll, describe, expect, test} from 'vitest';
 import {UNSUPPORTED_SCHEME} from '../src/credential.js';
 import {artifactFiles, preview, stellify} from '../src/index.js';
@@ -42,11 +50,13 @@ beforeAll(async () => {
 });
 
 let agent: FakeAgent | undefined;
+let agentV1: FakeAgentV1 | undefined;
 let marketplace: FakeMarketplace | undefined;
 afterEach(async () => {
   await agent?.close();
+  await agentV1?.close();
   await marketplace?.close();
-  agent = marketplace = undefined;
+  agent = agentV1 = marketplace = undefined;
 });
 
 const NOW = () => new Date('2026-10-10T12:00:00.000Z');
@@ -130,6 +140,62 @@ describe('preview of an app that needs no sign-in', () => {
         },
       },
     ]);
+  });
+});
+
+describe('preview of an agent on A2A 1.0 (task-20.3 decisions 11, 20)', () => {
+  const startV1 = async (options: CardV1Options = {}) => {
+    agentV1 = await startFakeAgentV1({
+      script: completingScriptV1(paintPartsV1(STAR_CATALOG_ID, {component: 'StarText'})),
+      card: interfaces =>
+        cardForV1(interfaces, {name: 'Star Agent', catalogs: [STAR_CATALOG_ID], ...options}),
+      admit: request => request.header('X-Star-Key') !== 'wrong',
+    });
+    return agentV1;
+  };
+
+  test('a card in A2A 1.0’s shape: the request reaches its first interface, and its paint is the document', async () => {
+    const fake = await startV1({version: '1.2.0', order: ['1.0', '0.3']});
+    const result = await preview({
+      appId: 'star',
+      cardUrl: fake.cardUrl,
+      catalogs: [star],
+      now: NOW,
+    });
+    expect(result.findings).toEqual([]);
+    expect(result.document?.version).toBe('1.2.0');
+    expect(result.document?.messages.map(m => Object.keys(m)[1])).toEqual([
+      'createSurface',
+      'updateComponents',
+    ]);
+    expect(fake.requests.map(r => [r.reached, r.method])).toEqual([
+      ['1.0', 'SendStreamingMessage'],
+    ]);
+  });
+
+  test('A2A 0.3 listed first is the interface reached', async () => {
+    const fake = await startV1({order: ['0.3', '1.0']});
+    const result = await preview({appId: 'star', cardUrl: fake.cardUrl, catalogs: [star]});
+    expect(result.findings).toEqual([]);
+    expect(fake.requests.map(r => [r.reached, r.method])).toEqual([['0.3', 'message/stream']]);
+  });
+
+  test('a sign-in card in A2A 1.0’s shape: the credential rides as the header its scheme names', async () => {
+    const fake = await startV1({
+      card: {
+        securitySchemes: {key: {apiKeySecurityScheme: {location: 'header', name: 'X-Star-Key'}}},
+        securityRequirements: [{schemes: {key: {list: []}}}],
+      },
+    });
+    const result = await preview({
+      appId: 'star',
+      cardUrl: fake.cardUrl,
+      catalogs: [star],
+      credential: 'k-1',
+    });
+    expect(result.findings).toEqual([]);
+    expect(result.signIn).toBe(true);
+    expect(fake.requests[0]?.headers['x-star-key']).toBe('k-1');
   });
 });
 
@@ -220,24 +286,60 @@ describe('preview of an app whose card requires sign-in', () => {
       'the agent asked to sign in although a credential was sent: signIn (write)',
     ]);
   });
-
-  test("a 0.3 card the A2A SDK's translators refuse fails the smoke request, in the A2A SDK's own words (task-20.2 decision 5)", async () => {
-    agent = await startFakeAgent();
-    const {skills: _skills, ...noSkills} = agent.card;
-    const fetchImpl: typeof fetch = async (input, init) =>
-      String(input) === agent!.cardUrl ? Response.json(noSkills) : fetch(input, init);
-    const result = await previewWith(
-      {appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]},
-      {fetchImpl},
-    );
-    expect(result.document).toBeNull();
-    expect(result.findings).toHaveLength(1);
-    expect(result.findings[0]).toMatch(/^the smoke request failed: .*skills/);
-    expect(agent.requests).toEqual([]);
-  });
 });
 
 describe('what refuses a preview', () => {
+  /** A preview whose card URL answers `served` in place of the agent's own card. */
+  const previewOf = (served: unknown, cardUrl: string) =>
+    previewWith(
+      {appId: 'star', cardUrl, catalogs: [star]},
+      {
+        fetchImpl: async (input, init) =>
+          String(input) === cardUrl ? Response.json(served) : fetch(input, init),
+      },
+    );
+
+  test('a card the reading refuses: one finding in the A2A SDK’s own words, nothing sent (task-20.3 decision 8)', async () => {
+    agent = await startFakeAgent();
+    const {skills: _skills, ...noSkills} = agent.card;
+    const result = await previewOf(noSkills, agent.cardUrl);
+    expect(result.document).toBeNull();
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toMatch(
+      new RegExp(`^the card at ${agent.cardUrl} could not be read: .*agentCard\\.skills`),
+    );
+    expect(agent.requests).toEqual([]);
+  });
+
+  test('a card with no name is not an agent card', async () => {
+    agent = await startFakeAgent();
+    const result = await previewOf({url: agent.url}, agent.cardUrl);
+    expect(result.findings).toEqual([
+      `the card at ${agent.cardUrl} could not be read: not an agent card: no name`,
+    ]);
+    expect(agent.requests).toEqual([]);
+  });
+
+  test('a card listing no interface the platform speaks: the finding names both, nothing captured, nothing sent (task-20.3 decision 15)', async () => {
+    agentV1 = await startFakeAgentV1({
+      script: completingScriptV1(paintPartsV1(STAR_CATALOG_ID, {component: 'StarText'})),
+      card: interfaces => cardForV1(interfaces, {catalogs: [STAR_CATALOG_ID]}),
+    });
+    const served = {
+      ...(agentV1.served as object),
+      supportedInterfaces: [
+        {url: '127.0.0.1:1', protocolBinding: 'GRPC', protocolVersion: '1.0'},
+        {url: `${agentV1.url}/rest`, protocolBinding: 'HTTP+JSON', protocolVersion: '1.0'},
+      ],
+    };
+    const result = await previewOf(served, agentV1.cardUrl);
+    expect(result.document).toBeNull();
+    expect(result.findings).toEqual([
+      'the card lists no interface A2UIVerse speaks: it lists GRPC at A2A 1.0 and HTTP+JSON at A2A 1.0; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x',
+    ]);
+    expect(agentV1.requests).toEqual([]);
+  });
+
   test('the card cannot be fetched', async () => {
     const result = await preview({
       appId: 'star',

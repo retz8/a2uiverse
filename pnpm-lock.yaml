@@ -12,6 +12,9 @@ importers:
 
   .:
     devDependencies:
+      '@a2uiverse/card':
+        specifier: workspace:*
+        version: link:packages/card
       '@a2uiverse/stellify':
         specifier: workspace:*
         version: link:packages/stellify
@@ -54,6 +57,9 @@ importers:
       '@a2ui/web_core':
         specifier: 0.14.0
         version: 0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc)
+      '@a2uiverse/card':
+        specifier: workspace:*
+        version: link:../../packages/card
       '@a2uiverse/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk/js
@@ -130,6 +136,12 @@ importers:
 
   apps/marketplace:
     dependencies:
+      '@a2a-js/sdk':
+        specifier: 1.3.0
+        version: 1.3.0(express@5.2.1(supports-color@7.2.0))
+      '@a2uiverse/card':
+        specifier: workspace:*
+        version: link:../../packages/card
       '@a2uiverse/embedder':
         specifier: workspace:*
         version: link:../../packages/embedder
@@ -176,6 +188,9 @@ importers:
       '@a2ui/web_core':
         specifier: 0.14.0
         version: 0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc)
+      '@a2uiverse/card':
+        specifier: workspace:*
+        version: link:../../packages/card
       '@a2uiverse/embedder':
         specifier: workspace:*
         version: link:../../packages/embedder
@@ -207,6 +222,9 @@ importers:
       '@a2a-js/sdk-v0_3':
         specifier: npm:@a2a-js/sdk@0.3.14
         version: '@a2a-js/sdk@0.3.14(express@5.2.1(supports-color@7.2.0))'
+      '@a2uiverse/smoke-transport':
+        specifier: workspace:*
+        version: link:../../packages/smoke-transport
       '@ai-sdk/provider-utils':
         specifier: ^5.0.69
         version: 5.0.69(zod@4.4.3)
@@ -222,6 +240,25 @@ importers:
       tsx:
         specifier: ^4.20.0
         version: 4.23.12
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.11(@types/node@22.20.1)(jsdom@29.1.1)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(tsx@4.23.12)(yaml@2.9.1))
+
+  packages/card:
+    dependencies:
+      '@a2a-js/sdk':
+        specifier: 1.3.0
+        version: 1.3.0(express@5.2.1(supports-color@7.2.0))
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.0
+        version: 22.20.1
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1(supports-color@7.2.0)
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
@@ -269,6 +306,9 @@ importers:
         specifier: github:retz8/a2uiverse-apps#7a6d88dbbdc9372c4a8472b53907c278ab805f0c&path:mocks/shop-b/shop-b-catalog
         version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/7a6d88dbbdc9372c4a8472b53907c278ab805f0c#path:mocks/shop-b/shop-b-catalog(@a2ui/react@0.14.0(patch_hash=c6371f25887ca1ab41a5ef8b0378b9243ff9949a443f05ead5eec1c4911b94cf)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
     devDependencies:
+      '@a2uiverse/card':
+        specifier: workspace:*
+        version: link:../card
       '@a2uiverse/sdk':
         specifier: workspace:*
         version: link:../sdk/js
@@ -367,6 +407,9 @@ importers:
       '@a2a-js/sdk':
         specifier: 1.3.0
         version: 1.3.0(express@5.2.1(supports-color@7.2.0))
+      '@a2uiverse/card':
+        specifier: workspace:*
+        version: link:../card
       '@a2uiverse/sdk':
         specifier: workspace:*
         version: link:../sdk/js
@@ -411,6 +454,9 @@ importers:
       '@a2ui/react':
         specifier: 0.14.0
         version: 0.14.0(patch_hash=c6371f25887ca1ab41a5ef8b0378b9243ff9949a443f05ead5eec1c4911b94cf)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+      '@a2uiverse/card':
+        specifier: workspace:*
+        version: link:../card
       '@a2uiverse/sdk':
         specifier: workspace:*
         version: link:../sdk/js

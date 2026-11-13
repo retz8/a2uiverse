@@ -991,14 +991,7 @@ var INDEX_ENTRY_SCHEMA = {
     },
     card: {
       type: "object",
-      required: ["name", "description", "url", "version"],
-      properties: {
-        name: { type: "string" },
-        description: { type: "string" },
-        url: { type: "string" },
-        version: { type: "string", minLength: 1, description: "The agent's version: the app's." }
-      },
-      description: "The A2A AgentCard as published, verbatim."
+      description: "The agent's card as served, in the shape of the A2A version it was written in. Nothing is required of it: a field is reached through the card's one reading."
     },
     catalogs: {
       type: "object",
@@ -1011,7 +1004,7 @@ var INDEX_ENTRY_SCHEMA = {
       minItems: 1,
       uniqueItems: true,
       items: { type: "string", minLength: 1 },
-      description: "Every version this app id has published, in publish order; the last is the card's."
+      description: "Every version this app id has published, in publish order; the last is the published one."
     },
     publishedAt: { type: "string", minLength: 1 },
     retired: {
@@ -1040,16 +1033,15 @@ function validateIndexEntry(input) {
   if (errors.length > 0)
     return { ok: false, errors };
   const entry = input;
-  const last = entry.versions[entry.versions.length - 1];
-  if (last !== entry.card.version) {
-    errors.push(`/versions: the last published version is ${JSON.stringify(last)}, the card’s is ${JSON.stringify(entry.card.version)}`);
-  }
   for (const id of entry.retired) {
     if (id in entry.catalogs) {
       errors.push(`/retired: ${JSON.stringify(id)} is retired and among the catalogs`);
     }
   }
   return errors.length === 0 ? { ok: true, value: entry } : { ok: false, errors };
+}
+function publishedVersionOf(entry) {
+  return entry.versions[entry.versions.length - 1];
 }
 var PREVIEW_CAPTURED_BY = ["marketplace", "publisher"];
 var PREVIEW_SCHEMA = {
@@ -1661,12 +1653,29 @@ async function writeArtifact(result, outDir = result.outDir) {
   return outDir;
 }
 
-// ../smoke-transport/dist/liveCard.js
+// ../card/dist/readCard.js
+import { AgentCard } from "@a2a-js/sdk";
+import { isLegacyAgentCard, parseLegacyAgentCard } from "@a2a-js/sdk/compat/v0_3/client";
+function readCard(served) {
+  if (typeof served !== "object" || served === null || Array.isArray(served)) {
+    throw new Error("not an agent card");
+  }
+  if (typeof served.name !== "string") {
+    throw new Error("not an agent card: no name");
+  }
+  return isLegacyAgentCard(served) ? parseLegacyAgentCard(served) : AgentCard.fromJSON(served);
+}
+
+// ../card/dist/liveCard.js
+var CARD_FETCH_A2A_VERSION = "1.0";
 async function fetchLiveCard(cardUrl, { timeoutMs, fetchImpl = fetch }) {
   const signal = AbortSignal.timeout(timeoutMs);
   let response;
   try {
-    response = await fetchImpl(cardUrl, { signal, headers: { accept: "application/json" } });
+    response = await fetchImpl(cardUrl, {
+      signal,
+      headers: { accept: "application/json", "A2A-Version": CARD_FETCH_A2A_VERSION }
+    });
   } catch (err) {
     if (signal.aborted)
       throw new Error(`did not answer within ${timeoutMs / 1e3} s`);
@@ -1678,21 +1687,70 @@ async function fetchLiveCard(cardUrl, { timeoutMs, fetchImpl = fetch }) {
   try {
     card = await response.json();
   } catch (err) {
+    if (signal.aborted)
+      throw new Error(`did not answer within ${timeoutMs / 1e3} s`);
     throw new Error(`not JSON (${err.message})`);
   }
-  if (typeof card !== "object" || card === null)
+  if (typeof card !== "object" || card === null || Array.isArray(card)) {
     throw new Error("not an agent card");
-  const c = card;
-  if (typeof c.url !== "string" || typeof c.name !== "string") {
-    throw new Error("not an agent card: no url or name");
   }
   return card;
+}
+
+// ../card/dist/interfaces.js
+var SPOKEN_BINDINGS = ["JSONRPC"];
+var ABSENT_A2A_VERSION = "0.3";
+var SPOKEN_VERSIONS_WORDS = "A2A 0.3 and 1.x";
+function a2aVersionOf(agentInterface) {
+  const version = agentInterface.protocolVersion?.trim() ?? "";
+  return version === "" ? ABSENT_A2A_VERSION : version;
+}
+function isSpokenVersion2(version) {
+  const [majorText, minorText = "0"] = version.split(".");
+  if (!/^\d+$/.test(majorText ?? "") || !/^\d+$/.test(minorText))
+    return false;
+  const major = Number(majorText);
+  const minor = Number(minorText);
+  return major === 1 || major === 0 && minor >= 3;
+}
+function isSpokenBinding(binding) {
+  return SPOKEN_BINDINGS.some((spoken) => spoken.toUpperCase() === binding.toUpperCase());
+}
+function spokenInterfaces(card) {
+  return (card.supportedInterfaces ?? []).filter((agentInterface) => Boolean(agentInterface.url) && isSpokenBinding(agentInterface.protocolBinding ?? "") && isSpokenVersion2(a2aVersionOf(agentInterface)));
+}
+function cardToDial(card, taken) {
+  return { ...card, supportedInterfaces: [taken] };
+}
+function noInterfaceFinding(card) {
+  const listed = card.supportedInterfaces ?? [];
+  if (listed.length === 0)
+    return "the card lists no interface";
+  const lists = listed.map((agentInterface) => {
+    const version = agentInterface.protocolVersion?.trim() ?? "";
+    const binding = agentInterface.protocolBinding || "no binding";
+    const at = version === "" ? `${binding} with no A2A version` : `${binding} at A2A ${version}`;
+    return agentInterface.url ? at : `${at} with no URL`;
+  });
+  return `the card lists no interface A2UIVerse speaks: it lists ${lists.join(" and ")}; A2UIVerse speaks ${SPOKEN_BINDINGS.join(", ")} at ${SPOKEN_VERSIONS_WORDS}`;
+}
+
+// ../card/dist/requirements.js
+function signInAlternatives(card) {
+  return (card.securityRequirements ?? []).map((requirement) => Object.fromEntries(Object.entries(requirement.schemes ?? {}).map(([name, scopes]) => [
+    name,
+    [...scopes?.list ?? []]
+  ])));
+}
+function asksSignIn(card) {
+  const alternatives = signInAlternatives(card);
+  return alternatives.length > 0 && alternatives.every((alternative) => Object.keys(alternative).length > 0);
 }
 
 // ../smoke-transport/dist/smokeRunner.js
 import { randomUUID } from "node:crypto";
 import { Role, TaskState as TaskState2 } from "@a2a-js/sdk";
-import { ClientFactory, DefaultAgentCardResolver, JsonRpcTransportFactory, ServiceParameters, withA2AExtensions } from "@a2a-js/sdk/client";
+import { ClientFactory, JsonRpcTransportFactory, ServiceParameters, withA2AExtensions } from "@a2a-js/sdk/client";
 
 // ../smoke-transport/dist/taskStateWord.js
 import { TaskState } from "@a2a-js/sdk";
@@ -1727,6 +1785,9 @@ var UnauthorizedError = class extends Error {
     super("the agent refused the request: 401");
   }
 };
+var NO_RESOLVER = {
+  resolve: () => Promise.reject(new Error("the smoke runner fetches no card"))
+};
 function a2aSmokeRunner(options = {}) {
   const base = options.fetchImpl ?? fetch;
   return async ({ card, entitlement, words, timeoutMs, headers }) => {
@@ -1740,11 +1801,12 @@ function a2aSmokeRunner(options = {}) {
       }
       return response;
     };
-    const legacyCompat = { enabled: true };
-    const cardResolver = new DefaultAgentCardResolver({ fetchImpl, legacyCompat });
+    const [taken] = spokenInterfaces(card);
+    if (!taken)
+      return { kind: "error", message: noInterfaceFinding(card) };
     const factory = new ClientFactory({
-      transports: [new JsonRpcTransportFactory({ fetchImpl, legacyCompat })],
-      cardResolver
+      transports: [new JsonRpcTransportFactory({ fetchImpl, legacyCompat: { enabled: true } })],
+      cardResolver: NO_RESOLVER
     });
     const message = {
       messageId: randomUUID(),
@@ -1762,7 +1824,7 @@ function a2aSmokeRunner(options = {}) {
     let last;
     let answered;
     try {
-      const client = await factory.createFromAgentCard(cardResolver.normalizeAgentCard(card));
+      const client = await factory.createFromAgentCard(cardToDial(card, taken));
       const stream = client.sendMessageStream({ tenant: "", message, configuration: void 0, metadata: void 0 }, {
         signal,
         serviceParameters: {
@@ -1838,37 +1900,28 @@ function wordsOf2(parts) {
 }
 
 // src/credential.ts
-function requiresSignIn(card) {
-  const security = card.security;
-  return Array.isArray(security) && security.length > 0 && security.every(
-    (alternative) => typeof alternative === "object" && alternative !== null && Object.keys(alternative).length > 0
-  );
-}
 var UNSUPPORTED_SCHEME = "the card’s sign-in scheme is not supported here: a credential rides as a header, for OAuth with the authorization-code flow, OpenID Connect, http bearer, or apiKey in a header";
 function credentialHeaders(card, secret) {
-  for (const alternative of card.security ?? []) {
+  for (const alternative of signInAlternatives(card)) {
     const keys = Object.keys(alternative);
     if (keys.length !== 1) continue;
-    const headers = headersFor(card.securitySchemes?.[keys[0]], secret);
+    const headers = headersFor(card.securitySchemes[keys[0]], secret);
     if (headers) return { ok: true, headers };
   }
   return { ok: false, finding: UNSUPPORTED_SCHEME };
 }
 function headersFor(scheme, secret) {
-  if (typeof scheme !== "object" || scheme === null) return void 0;
-  const s = scheme;
+  const declared = scheme?.scheme;
   const bearer = { Authorization: `Bearer ${secret}` };
-  switch (s.type) {
-    case "oauth2": {
-      const flows = s.flows;
-      return flows?.authorizationCode ? bearer : void 0;
-    }
-    case "openIdConnect":
+  switch (declared?.$case) {
+    case "oauth2SecurityScheme":
+      return declared.value.flows?.flow?.$case === "authorizationCode" ? bearer : void 0;
+    case "openIdConnectSecurityScheme":
       return bearer;
-    case "http":
-      return typeof s.scheme === "string" && s.scheme.toLowerCase() === "bearer" ? bearer : void 0;
-    case "apiKey":
-      return s.in === "header" && typeof s.name === "string" && s.name !== "" ? { [s.name]: secret } : void 0;
+    case "httpAuthSecurityScheme":
+      return declared.value.scheme.toLowerCase() === "bearer" ? bearer : void 0;
+    case "apiKeySecurityScheme":
+      return declared.value.location === "header" && declared.value.name !== "" ? { [declared.value.name]: secret } : void 0;
     default:
       return void 0;
   }
@@ -1993,9 +2046,9 @@ async function previewWith(options, deps) {
     notices,
     notes
   });
-  let card;
+  let served;
   try {
-    card = await fetchLiveCard(options.cardUrl, {
+    served = await fetchLiveCard(options.cardUrl, {
       timeoutMs: options.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS,
       fetchImpl
     });
@@ -2003,9 +2056,17 @@ async function previewWith(options, deps) {
     findings.push(`the card at ${options.cardUrl} could not be fetched: ${err.message}`);
     return result(null);
   }
-  if (typeof card.version !== "string" || card.version === "") {
+  let card;
+  try {
+    card = readCard(served);
+  } catch (err) {
+    findings.push(`the card at ${options.cardUrl} could not be read: ${err.message}`);
+    return result(null);
+  }
+  if (!card.version) {
     findings.push("the card has no version: the card's `version` is the app's version");
   }
+  if (spokenInterfaces(card).length === 0) findings.push(noInterfaceFinding(card));
   let declared = [];
   let declaredByVersion = { "v0.9": [], "v0.9.1": [] };
   const read = readCatalogIdsByVersion(card);
@@ -2014,7 +2075,7 @@ async function previewWith(options, deps) {
     const union = readSupportedCatalogIds(card);
     if (union.ok) declared = union.value;
   } else findings.push(...read.errors.map((e) => `the card's ${e}`));
-  const signIn = requiresSignIn(card);
+  const signIn = asksSignIn(card);
   const given = options.credential !== void 0 && options.credential !== "";
   let headers;
   if (signIn) {
@@ -2243,7 +2304,7 @@ async function listPublished({ marketplace, publisher }, deps = {}) {
     const entries = await fetchIndex(marketplace, deps.fetchImpl);
     const apps = entries.filter((entry) => entry.publisher === publisher).map((entry) => ({
       appId: entry.appId,
-      version: entry.card.version,
+      version: publishedVersionOf(entry),
       cardUrl: entry.cardUrl,
       catalogs: { ...entry.catalogs },
       retired: [...entry.retired],

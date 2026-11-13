@@ -4,27 +4,35 @@
  * slot's Retry on an update tile.
  */
 import {describe, expect, it, vi} from 'vitest';
-import type {CompositionOperation, IndexEntry} from '@a2uiverse/sdk';
+import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {AppActRequest, SlotUpdate} from '@a2uiverse/shell-catalog';
-import type {InstallAnswer, InstalledApp, StoreListing, StoreRead} from '../orchestratorApi';
+import type {
+  InstallAnswer,
+  InstalledApp,
+  StoreEntry,
+  StoreListing,
+  StoreRead,
+} from '../orchestratorApi';
 import {appActOf, createCanvasStore} from './canvasStore';
 import {createInstalledApps} from './installedApps';
 import {createSlotActs, slotActState, type SlotActsOptions} from './slotActs';
 import {createTrailStore} from './trail/trailStore';
+import {readCardFixture} from './trustedPage/cardFixture';
 
 const GAP = 'camera prices';
 const entry = (appId: string, name: string) =>
   ({
     appId,
     publisher: 'northlight',
-    card: {name, description: `${name}.`, version: '2.0.0'},
-  }) as unknown as IndexEntry;
+    card: readCardFixture(name, {description: `${name}.`, version: '2.0.0'}),
+    versions: ['2.0.0'],
+  }) as unknown as StoreEntry;
 const listing = (appId: string, name: string, installed = false): StoreRead<StoreListing> => ({
   ok: true,
   value: {entry: entry(appId, name), installed},
 });
 const installedApp = (id: string, name: string, version: string) =>
-  ({id, card: {name, version}}) as InstalledApp;
+  ({id, card: readCardFixture(name, {version})}) as InstalledApp;
 
 /** The offer slot's components on the shell surface, as `fillFromPage` reads them. */
 function shellSurface(props: Record<string, unknown>) {

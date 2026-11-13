@@ -7,7 +7,7 @@ import {mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, describe, expect, test} from 'vitest';
-import type {InstalledCard} from '../src/registry/installedCard.js';
+import type {AgentCard as LegacyCard} from '@a2a-js/sdk-v0_3';
 import {FakeEmbedder} from '@a2uiverse/embedder';
 import {buildOrchestrator} from '../src/app.js';
 import {nowhere, startFakeMarketplace, type FakeMarketplace} from './fakeMarketplace.js';
@@ -58,7 +58,7 @@ describe('the boot runs the check (task-13.5 decisions 8, 9)', () => {
     vendor = await startFakeVendor({name: 'Gmail', catalogs: [FAKE_CATALOG_ID]});
     dir = await mkdtemp(join(tmpdir(), 'a2uiverse-boot-'));
     const cardUrl = `${vendor.url}/.well-known/agent-card.json`;
-    const card = (await (await fetch(cardUrl)).json()) as InstalledCard;
+    const card = (await (await fetch(cardUrl)).json()) as LegacyCard;
     await marketplace.publish('gmail', {
       card,
       cardUrl,

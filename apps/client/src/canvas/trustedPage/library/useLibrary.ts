@@ -7,7 +7,7 @@
  * never brings the app back (task-15.11 decision 35).
  */
 import {useCallback, useEffect, useRef, useState} from 'react';
-import type {IndexEntry, UpdateState} from '@a2uiverse/sdk';
+import type {UpdateState} from '@a2uiverse/sdk';
 import {
   checkUpdates,
   readAccounts,
@@ -15,6 +15,7 @@ import {
   readStoreIndex,
   type InstalledApp,
   type LibraryApp,
+  type StoreEntry,
 } from '../../../orchestratorApi';
 
 export type InstalledRead =
@@ -32,7 +33,7 @@ export interface Library {
   installed: InstalledRead;
   accounts: ReadonlyMap<string, LibraryApp>;
   /** Each listed app's Store entry, by app id; none for an app the Store does not list. */
-  listings: ReadonlyMap<string, IndexEntry>;
+  listings: ReadonlyMap<string, StoreEntry>;
   check: CheckRead;
   /** Runs the check, then reads the installed list again: the check reaches every card. */
   runCheck: () => Promise<void>;
@@ -45,7 +46,7 @@ const NONE = new Map<never, never>();
 export function useLibrary(orchestrator: string): Library {
   const [installed, setInstalled] = useState<InstalledRead>({status: 'loading'});
   const [accounts, setAccounts] = useState<ReadonlyMap<string, LibraryApp>>(NONE);
-  const [listings, setListings] = useState<ReadonlyMap<string, IndexEntry>>(NONE);
+  const [listings, setListings] = useState<ReadonlyMap<string, StoreEntry>>(NONE);
   const [check, setCheck] = useState<CheckRead>({running: true, states: NONE, failed: false});
   const live = useRef(true);
   /** The check in flight: an older one's answer is dropped. */

@@ -10,6 +10,7 @@
  * sign-out each ask once.
  */
 import {useState} from 'react';
+import {publishedVersionOf} from '@a2uiverse/sdk';
 import {AlertDialog, Flex} from '@radix-ui/themes';
 import type {PageCatalogs} from '../../../catalogs/CatalogContext';
 import type {PublisherStatus, StoreListing} from '../../../orchestratorApi';
@@ -261,7 +262,7 @@ function Listing({
       <div className="publish-facts">
         <h2>{entry.card.name}</h2>
         <span>
-          Version <b>{entry.card.version}</b> <Term>(card version)</Term>
+          Version <b>{publishedVersionOf(entry)}</b> <Term>(card version)</Term>
         </span>
         {looks.length === 0 ? (
           <span data-testid="publish-look">

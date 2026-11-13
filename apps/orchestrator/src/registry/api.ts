@@ -40,15 +40,17 @@ export function registryRoutes({
   const router = express.Router();
 
   // Each record says whether this run holds its app's card — reached at startup, or by a check
-  // since — so the App Library can say an app couldn't be reached (task-14.8 decision 2).
+  // since — so the App Library can say an app couldn't be reached (task-14.8 decision 2); and,
+  // beside it, whether that live card lists no interface the platform speaks (task-20.3 decision
+  // 14). The stored card rides as its agent served it: the client reads it where it arrives.
   router.get('/apps.json', (_req, res) => {
-    res
-      .set('Cache-Control', 'no-cache')
-      .json(
-        registry
-          .installed()
-          .map(record => ({...record, reachable: registry.card(record.id) !== null})),
-      );
+    res.set('Cache-Control', 'no-cache').json(
+      registry.installed().map(record => ({
+        ...record,
+        reachable: registry.card(record.id) !== null,
+        noInterface: registry.liveUnreachable(record.id),
+      })),
+    );
   });
   router.get('/catalogs.json', (_req, res) => {
     res.set('Cache-Control', 'no-cache').json(registry.table());

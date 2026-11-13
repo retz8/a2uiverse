@@ -5,7 +5,6 @@
  * 18).
  */
 import {describe, expect, it} from 'vitest';
-import type {PublishedCard} from '@a2uiverse/sdk';
 import {
   addressProblem,
   aheadSentence,
@@ -20,6 +19,7 @@ import {
   unpublishRefusedWords,
   type Spoken,
 } from './publishWords';
+import {readCardFixture} from '../cardFixture';
 
 const said = (spoken: Spoken) =>
   spoken.map(part => (typeof part === 'string' ? part : part.term)).join(' ');
@@ -82,15 +82,8 @@ describe('the ahead-of-the-Store notice', () => {
 });
 
 describe('the sample answer file’s hint', () => {
-  const card = (more: Partial<PublishedCard> = {}): PublishedCard =>
-    ({
-      name: 'Linear',
-      description: '',
-      url: 'http://x',
-      version: '1.0.0',
-      skills: [],
-      ...more,
-    }) as PublishedCard;
+  const card = (more: Parameters<typeof readCardFixture>[1] = {}) =>
+    readCardFixture('Linear', more);
 
   it('says it is needed for an app that asks people to sign in', () => {
     const signIn = card({
@@ -101,7 +94,7 @@ describe('the sample answer file’s hint', () => {
         },
       },
       security: [{linear: []}],
-    } as Partial<PublishedCard>);
+    });
     expect(previewHint(signIn)).toBe(
       'Needed because Linear asks people to sign in: the Store can’t ask it a question without your account.',
     );

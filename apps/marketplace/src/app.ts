@@ -1,8 +1,9 @@
 import {join} from 'node:path';
 import cors from 'cors';
 import express, {type Express} from 'express';
+import {fetchLiveCard} from '@a2uiverse/card';
 import {TransformersEmbedder, type Embedder} from '@a2uiverse/embedder';
-import {a2aSmokeRunner, fetchLiveCard, type SmokeRunner} from '@a2uiverse/smoke-transport';
+import {a2aSmokeRunner, type SmokeRunner} from '@a2uiverse/smoke-transport';
 import {marketplaceRoutes} from './api.js';
 import type {Config} from './config.js';
 import {Marketplace, type FetchCard, type FlagChange} from './marketplace.js';

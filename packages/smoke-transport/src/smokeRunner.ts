@@ -10,6 +10,7 @@ import {randomUUID} from 'node:crypto';
 import {
   Role,
   TaskState,
+  type AgentCard,
   type Message,
   type Part,
   type StreamResponse,
@@ -17,11 +18,12 @@ import {
 } from '@a2a-js/sdk';
 import {
   ClientFactory,
-  DefaultAgentCardResolver,
   JsonRpcTransportFactory,
   ServiceParameters,
   withA2AExtensions,
+  type AgentCardResolver,
 } from '@a2a-js/sdk/client';
+import {cardToDial, noInterfaceFinding, spokenInterfaces} from '@a2uiverse/card';
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
   A2UI_EXTENSION_URIS,
@@ -30,7 +32,6 @@ import {
   readAuthRequired,
   type A2uiMessage,
   type CatalogIdsByVersion,
-  type PublishedCard,
 } from '@a2uiverse/sdk';
 import {taskStateWord} from './taskStateWord.js';
 
@@ -51,8 +52,11 @@ const ENDED_STATES: ReadonlySet<TaskState> = new Set([
 ]);
 
 export interface SmokeRequest {
-  /** The live card, as its agent served it: the A2A SDK's 0.3 layer reads one written for A2A 0.3. */
-  card: PublishedCard;
+  /**
+   * The live card, read. The request goes to the first interface in the card's order that the
+   * platform speaks (task-20.3 decisions 10, 11).
+   */
+  card: AgentCard;
   /**
    * What the request advertises: the app's catalog ids plus the basic catalog — per A2UI version,
    * each version's set under its own key, as the hub advertises (task-19.2 decision 6).
@@ -79,7 +83,10 @@ export type SmokeObservation =
    * carried none.
    */
   | {kind: 'unfinished'; state?: string; messages: A2uiMessage[]}
-  /** The request could not be made: unreachable, past the timeout, or a card the A2A SDK refuses. */
+  /**
+   * The request could not be made: the agent was not reached, the timeout passed, or the card
+   * lists no interface the platform speaks.
+   */
   | {kind: 'error'; message: string};
 
 export type SmokeRunner = (request: SmokeRequest) => Promise<SmokeObservation>;
@@ -91,8 +98,17 @@ class UnauthorizedError extends Error {
 }
 
 /**
- * The transport over the A2A SDK's client, a client built per request from the fetched card.
- * JSON-RPC is the one binding spoken.
+ * The platform reads a card itself and hands the A2A SDK one already read, so the A2A SDK
+ * resolves none and normalizes none: its own normalizing reads an in-memory card with sign-in
+ * schemes over again as JSON and drops them.
+ */
+const NO_RESOLVER: AgentCardResolver = {
+  resolve: () => Promise.reject(new Error('the smoke runner fetches no card')),
+};
+
+/**
+ * The transport over the A2A SDK's client, a client built per request from the read card listing
+ * the one interface the platform takes.
  */
 export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeRunner {
   const base = options.fetchImpl ?? fetch;
@@ -108,11 +124,11 @@ export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeR
       }
       return response;
     };
-    const legacyCompat = {enabled: true};
-    const cardResolver = new DefaultAgentCardResolver({fetchImpl, legacyCompat});
+    const [taken] = spokenInterfaces(card);
+    if (!taken) return {kind: 'error', message: noInterfaceFinding(card)};
     const factory = new ClientFactory({
-      transports: [new JsonRpcTransportFactory({fetchImpl, legacyCompat})],
-      cardResolver,
+      transports: [new JsonRpcTransportFactory({fetchImpl, legacyCompat: {enabled: true}})],
+      cardResolver: NO_RESOLVER,
     });
     const message: Message = {
       messageId: randomUUID(),
@@ -133,7 +149,7 @@ export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeR
     let last: TaskStatus | undefined;
     let answered: Part[] | undefined;
     try {
-      const client = await factory.createFromAgentCard(cardResolver.normalizeAgentCard(card));
+      const client = await factory.createFromAgentCard(cardToDial(card, taken));
       const stream = client.sendMessageStream(
         {tenant: '', message, configuration: undefined, metadata: undefined},
         {

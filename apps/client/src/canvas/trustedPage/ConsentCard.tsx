@@ -9,12 +9,12 @@
  */
 import {useId, useLayoutEffect, useMemo} from 'react';
 import {AlertDialog, Button, Flex, Heading, Popover, Text} from '@radix-ui/themes';
-import type {IndexEntry} from '@a2uiverse/sdk';
+import type {StoreEntry} from '../../orchestratorApi';
 import {newScopeWords, signInOf, tileLetter, type UpdateNewsFacts} from './appCard';
 
 /** What the card asks: an install, or an update that asks for more. */
 export type ConsentAsk =
-  {kind: 'install'; entry: IndexEntry} | {kind: 'update'; entry: IndexEntry; news: UpdateNewsFacts};
+  {kind: 'install'; entry: StoreEntry} | {kind: 'update'; entry: StoreEntry; news: UpdateNewsFacts};
 
 export interface ConsentCardProps {
   ask: ConsentAsk | null;
@@ -76,7 +76,7 @@ function Scopes({note, words, icon}: {note: string; words: string[]; icon: 'tick
 }
 
 /** What installing says of signing in. */
-function InstallSignIn({entry}: {entry: IndexEntry}) {
+function InstallSignIn({entry}: {entry: StoreEntry}) {
   const name = entry.card.name;
   const need = signInOf(entry.card);
   switch (need.kind) {
@@ -108,7 +108,7 @@ function InstallSignIn({entry}: {entry: IndexEntry}) {
 }
 
 /** What updating brings that the installed app did not ask for. */
-function UpdateNews({entry, news}: {entry: IndexEntry; news: UpdateNewsFacts}) {
+function UpdateNews({entry, news}: {entry: StoreEntry; news: UpdateNewsFacts}) {
   const name = entry.card.name;
   const words = newScopeWords(entry.card, news.newScopes);
   return (
@@ -126,7 +126,7 @@ function UpdateNews({entry, news}: {entry: IndexEntry; news: UpdateNewsFacts}) {
 }
 
 /** The app the card is about: its letter, its name, its publisher. */
-function Who({entry}: {entry: IndexEntry}) {
+function Who({entry}: {entry: StoreEntry}) {
   return (
     <div className="store-consent__who">
       <span className="store-tile store-tile--40" aria-hidden="true">

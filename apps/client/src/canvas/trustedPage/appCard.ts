@@ -4,13 +4,14 @@
  * what a refused install or update says, and the sample's caption — for the Store and the App
  * Library alike. Every word is the person's — never a scheme, a scope key or a catalog.
  */
+import type {AgentCard, SecurityScheme} from '@a2a-js/sdk';
+import {signInAlternatives} from '@a2uiverse/card';
 import {
   UPDATE_WORDS,
   asksForMore,
   stateWords,
   type NewScopes,
   type PreviewDocument,
-  type PublishedCard,
   type UpdateState,
 } from '@a2uiverse/sdk';
 import type {StoreListing} from '../../orchestratorApi';
@@ -21,10 +22,8 @@ export function tileLetter(name: string): string {
 }
 
 /** The questions to try: the first example of each skill, up to three (task-14.7 decision 8). */
-export function tryAsking(card: PublishedCard): string[] {
-  return (card.skills ?? [])
-    .flatMap(skill => (skill.examples?.[0] ? [skill.examples[0]] : []))
-    .slice(0, 3);
+export function tryAsking(card: AgentCard): string[] {
+  return card.skills.flatMap(skill => (skill.examples[0] ? [skill.examples[0]] : [])).slice(0, 3);
 }
 
 /** What signing in to the app will be (task-14.7 decision 10). */
@@ -36,53 +35,45 @@ export type SignInNeed =
   | {kind: 'key'}
   | {kind: 'unsupported'};
 
-type Scheme = {
-  type?: string;
-  scheme?: string;
-  in?: string;
-  name?: string;
-  flows?: {authorizationCode?: {scopes?: Record<string, string>}};
-};
-
 /** A scheme the platform signs in with, by its kind; none for one it does not. */
-function kindOf(scheme: Scheme | undefined): 'signIn' | 'key' | undefined {
-  switch (scheme?.type) {
-    case 'oauth2':
-      return scheme.flows?.authorizationCode ? 'signIn' : undefined;
-    case 'openIdConnect':
+function kindOf(scheme: SecurityScheme | undefined): 'signIn' | 'key' | undefined {
+  const declared = scheme?.scheme;
+  switch (declared?.$case) {
+    case 'oauth2SecurityScheme':
+      return declared.value.flows?.flow?.$case === 'authorizationCode' ? 'signIn' : undefined;
+    case 'openIdConnectSecurityScheme':
       return 'signIn';
-    case 'http':
-      return scheme.scheme?.toLowerCase() === 'bearer' ? 'key' : undefined;
-    case 'apiKey':
-      return scheme.in === 'header' && scheme.name ? 'key' : undefined;
+    case 'httpAuthSecurityScheme':
+      return declared.value.scheme.toLowerCase() === 'bearer' ? 'key' : undefined;
+    case 'apiKeySecurityScheme':
+      return declared.value.location === 'header' && declared.value.name ? 'key' : undefined;
     default:
       return undefined;
   }
 }
 
 /** The card's own words for scope keys under a scheme; a key with none is left out. */
-function wordsOf(scheme: Scheme | undefined, keys: readonly string[]): string[] {
-  const words = scheme?.flows?.authorizationCode?.scopes ?? {};
+function wordsOf(scheme: SecurityScheme | undefined, keys: readonly string[]): string[] {
+  const declared = scheme?.scheme;
+  const flow = declared?.$case === 'oauth2SecurityScheme' ? declared.value.flows?.flow : undefined;
+  const words: Record<string, string> =
+    flow?.$case === 'authorizationCode' ? flow.value.scopes : {};
   return keys.flatMap(key => (words[key] ? [words[key]] : []));
 }
 
-const schemesOf = (card: PublishedCard) =>
-  (card.securitySchemes ?? {}) as Record<string, Scheme | undefined>;
-
 /**
- * What the card asks, read as the orchestrator's vault reads it: no `security`, or an empty
+ * What the card asks, read as the orchestrator's vault reads it: no requirement, or an empty
  * alternative, asks nothing; otherwise the first alternative naming one scheme the platform signs
  * in with, its scopes in the card's words; none such is a sign-in not supported here.
  */
-export function signInOf(card: PublishedCard): SignInNeed {
-  const security = card.security;
-  if (!security || security.length === 0) return {kind: 'none'};
+export function signInOf(card: AgentCard): SignInNeed {
+  const security = signInAlternatives(card);
+  if (security.length === 0) return {kind: 'none'};
   if (security.some(requirement => Object.keys(requirement).length === 0)) return {kind: 'none'};
-  const schemes = schemesOf(card);
   for (const requirement of security) {
     const keys = Object.keys(requirement);
     if (keys.length !== 1) continue;
-    const scheme = schemes[keys[0]!];
+    const scheme = card.securitySchemes[keys[0]!];
     const kind = kindOf(scheme);
     if (kind === 'key') return {kind: 'key'};
     if (kind === 'signIn') return {kind: 'signIn', words: wordsOf(scheme, requirement[keys[0]!]!)};
@@ -91,9 +82,8 @@ export function signInOf(card: PublishedCard): SignInNeed {
 }
 
 /** The new permissions a card update asks for, in the published card's words. */
-export function newScopeWords(card: PublishedCard, newScopes: readonly NewScopes[]): string[] {
-  const schemes = schemesOf(card);
-  return newScopes.flatMap(({scheme, scopes}) => wordsOf(schemes[scheme], scopes));
+export function newScopeWords(card: AgentCard, newScopes: readonly NewScopes[]): string[] {
+  return newScopes.flatMap(({scheme, scopes}) => wordsOf(card.securitySchemes[scheme], scopes));
 }
 
 /** The update states whose listing carries Update (task-14.2 decision 8). */

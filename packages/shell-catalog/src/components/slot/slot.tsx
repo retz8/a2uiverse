@@ -772,6 +772,10 @@ export function failureStatement(failure: SlotFailure | undefined): string {
     case 'credential':
       // Said for the reader (task-12.3 decision 7): what the app asked for, and that it never is.
       return 'This app asked for a password, code or card number here. A2UIVerse never asks for those on this screen.';
+    case 'interface':
+      // The app's card lists no way in that A2UIVerse uses (task-20.3 decision 13); the words
+      // name no binding and no protocol version.
+      return 'This app now connects in a way A2UIVerse can’t use.';
     default:
       return 'This app couldn’t answer.';
   }

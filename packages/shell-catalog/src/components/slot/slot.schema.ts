@@ -40,12 +40,13 @@ import {UPDATE_STATES, type UpdateStateKind} from '@a2uiverse/sdk';
  *   "CircleCI runs" — written by the painter at plan time (task-8.2 decision 3). It stays a
  *   painted prop; the failure tile no longer draws it.
  * - `failure` (fragment content) is why the source failed, painted by the runtime with `state:
- *   "failed"` (task-8.2 decision 2): one of eight causes, the vendor's own message only when the
+ *   "failed"` (task-8.2 decision 2): one of nine causes, the vendor's own message only when the
  *   vendor ended its task itself, and the catalog id only with `catalog` — a paint in a catalog
  *   the app is not entitled to (task-11.4 decisions 12, 13) — and with `load` — a catalog the
  *   client could not load (task-11.5 decision 4). `credential` is a paint refused for a credential
  *   field and not repaired, carrying `continueUrl` — the app's own page from its card — when it
- *   has one (task-12.2 decision 7).
+ *   has one (task-12.2 decision 7). `interface` is an app whose card lists no interface the
+ *   platform speaks, its agent not called (task-20.3 decision 13).
  * - `authority` (fragment content) is the slot's sign-in, painted by the runtime with `state:
  *   "authority"` (task-12.2 decision 5): `signIn` — no usable account — with the scopes' words
  *   from the card, possibly none, and `quiet` for the one-line form after the first full tile for
@@ -94,6 +95,7 @@ export const FAILURE_CAUSES = [
   'uninstalled',
   'load',
   'credential',
+  'interface',
 ] as const;
 export type FailureCause = (typeof FAILURE_CAUSES)[number];
 

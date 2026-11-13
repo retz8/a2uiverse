@@ -12,7 +12,7 @@
  */
 import {useCallback, useEffect, useState, type ReactNode} from 'react';
 import {AlertDialog, Button, Flex} from '@radix-ui/themes';
-import {refusalOf, type UpdateState} from '@a2uiverse/sdk';
+import {noInterfaceNotice, refusalOf, type UpdateState} from '@a2uiverse/sdk';
 import {isLoader, type PageCatalogs} from '../../../catalogs/CatalogContext';
 import {
   readStoreEntry,
@@ -686,6 +686,9 @@ function AppBody({
       {app.reachable === false && (
         <UnreachedNotice name={name} checking={library.check.running} onCheck={acts.onCheck} />
       )}
+      {app.reachable !== false && app.noInterface === true && (
+        <NoInterfaceNotice name={name} checking={library.check.running} onCheck={acts.onCheck} />
+      )}
       {accounts?.signIn === 'unsupported' && (
         <div className="store-notice store-notice--warn" data-testid="library-unsupported">
           <WarnIcon />
@@ -782,6 +785,34 @@ function AppBody({
 }
 
 /** The view of an app not reached (task-14.8 decision 2). */
+/** The notice on the view of an app whose way in A2UIVerse can't use (task-20.3 decision 14). */
+function NoInterfaceNotice({
+  name,
+  checking,
+  onCheck,
+}: {
+  name: string;
+  checking: boolean;
+  /** Check again: the check fetches every card again, this app's among them. */
+  onCheck: () => void;
+}) {
+  return (
+    <div className="store-notice store-notice--bad" data-testid="library-no-interface">
+      <WarnIcon />
+      <div className="store-notice__grow">
+        <span>
+          <b>{noInterfaceNotice(name)}</b>
+        </span>
+        <span>
+          <Button size="1" variant="soft" color="gray" disabled={checking} onClick={onCheck}>
+            Check again
+          </Button>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function UnreachedNotice({
   name,
   checking,

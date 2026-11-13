@@ -13,7 +13,7 @@
 import {mkdir, readdir, rm, writeFile} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {parseArgs} from 'node:util';
-import type {IndexEntry, PreviewDocument} from '@a2uiverse/sdk';
+import {publishedVersionOf, type IndexEntry, type PreviewDocument} from '@a2uiverse/sdk';
 
 /** One app as recorded: its entry and its sample, as the marketplace served them. */
 export interface RecordedStoreApp {
@@ -50,7 +50,9 @@ async function main() {
     );
     const recorded: RecordedStoreApp = {entry, preview};
     await writeFile(join(outDir, `${entry.appId}.json`), `${JSON.stringify(recorded, null, 2)}\n`);
-    console.log(`  ${entry.appId} · card ${entry.card.version} · sample by ${preview.capturedBy}`);
+    console.log(
+      `  ${entry.appId} · card ${publishedVersionOf(entry)} · sample by ${preview.capturedBy}`,
+    );
   }
   console.log(`recorded ${index.length} apps into ${values.out}`);
 }

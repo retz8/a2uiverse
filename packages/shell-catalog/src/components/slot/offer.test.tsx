@@ -317,6 +317,12 @@ test.each([
     {name: 'Try again', enabled: true},
   ],
   [
+    'no-interface',
+    'Shop B can’t be installed.',
+    'It connects in a way A2UIVerse can’t use, so nothing was installed.',
+    {name: 'Install', enabled: false},
+  ],
+  [
     'checks',
     'Shop B can’t be installed.',
     'Its files didn’t pass the checks on this computer, so nothing changed.',
@@ -368,6 +374,7 @@ test('every refusal the Store words has its row’s line', () => {
   expect([...INSTALL_REFUSALS]).toEqual([
     'store-behind',
     'app-unreached',
+    'no-interface',
     'checks',
     'store-unreached',
     'unheard',

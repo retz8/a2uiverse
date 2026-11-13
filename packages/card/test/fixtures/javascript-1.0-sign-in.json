@@ -1,0 +1,86 @@
+{
+  "name": "Fake Agent",
+  "description": "an agent for tests",
+  "supportedInterfaces": [
+    {
+      "url": "http://127.0.0.1:18731/",
+      "protocolBinding": "JSONRPC",
+      "tenant": "",
+      "protocolVersion": "1.0"
+    },
+    {
+      "url": "http://127.0.0.1:18731/",
+      "protocolBinding": "JSONRPC",
+      "tenant": "",
+      "protocolVersion": "0.3"
+    }
+  ],
+  "provider": {
+    "url": "https://example.com",
+    "organization": "Acme"
+  },
+  "version": "0.1.0",
+  "documentationUrl": "https://example.com/docs",
+  "capabilities": {
+    "streaming": true,
+    "extensions": [
+      {
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+        "description": "",
+        "required": false,
+        "params": {
+          "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+        }
+      }
+    ]
+  },
+  "securitySchemes": {
+    "signIn": {
+      "scheme": {
+        "$case": "oauth2SecurityScheme",
+        "value": {
+          "description": "",
+          "flows": {
+            "flow": {
+              "$case": "authorizationCode",
+              "value": {
+                "authorizationUrl": "http://127.0.0.1:18731/authorize",
+                "tokenUrl": "http://127.0.0.1:18731/token",
+                "refreshUrl": "",
+                "scopes": {
+                  "things.read": "Read your things"
+                },
+                "pkceRequired": false
+              }
+            }
+          },
+          "oauth2MetadataUrl": ""
+        }
+      }
+    }
+  },
+  "securityRequirements": [
+    {
+      "schemes": {
+        "signIn": {
+          "list": ["things.read"]
+        }
+      }
+    }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "skills": [
+    {
+      "id": "fake",
+      "name": "Fake",
+      "description": "A fake skill",
+      "tags": ["fake"],
+      "examples": ["show my things"],
+      "inputModes": [],
+      "outputModes": [],
+      "securityRequirements": []
+    }
+  ],
+  "signatures": []
+}

@@ -1,4 +1,4 @@
-import type {IndexEntry, PreviewDocument, PublishedCard, UpdateState} from '@a2uiverse/sdk';
+import type {IndexEntry, PreviewDocument, UpdateState} from '@a2uiverse/sdk';
 
 /** The snapshot's root: what the orchestrator serves under `/registry`. */
 export declare const REGISTRY_SNAPSHOT_DIR: string;
@@ -34,7 +34,8 @@ export interface WorldListing {
 export interface WorldInstalledApp {
   id: string;
   cardUrl: string;
-  card: PublishedCard;
+  /** The card as installed, as its agent served it. */
+  card: object;
   catalogs: Record<string, string>;
   entitlement: string[];
   installedAt: string;

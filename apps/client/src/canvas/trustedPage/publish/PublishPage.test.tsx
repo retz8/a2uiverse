@@ -9,24 +9,19 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {useState} from 'react';
 import {fireEvent, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type {IndexEntry, PreviewDocument, PublishedCard, PublishRequest} from '@a2uiverse/sdk';
+import type {IndexEntry, PreviewDocument, PublishRequest} from '@a2uiverse/sdk';
 import type {PublisherStatus} from '../../../orchestratorApi';
 import type {TrustedPageState} from '../../trail/trailStore';
 import {CATALOGS, renderWithShell} from '../../../../tests/helpers';
+import {servedCard} from '../cardFixture';
 import {PublishPage} from './PublishPage';
 
 const BASE = 'https://hub.test';
 const TOKEN = 'T'.repeat(43);
 const ME = 'a2uiverse-apps';
 
-const card = (name: string, more: Partial<PublishedCard> = {}): PublishedCard => ({
-  name,
-  description: `${name} does its thing.`,
-  url: `http://127.0.0.1:11001/${name}`,
-  version: '0.3.0',
-  skills: [],
-  ...more,
-});
+const card = (name: string, more: Parameters<typeof servedCard>[1] = {}) =>
+  servedCard(name, {version: '0.3.0', ...more});
 
 const SIGN_IN = {
   securitySchemes: {
@@ -36,7 +31,7 @@ const SIGN_IN = {
     },
   },
   security: [{linear: []}],
-} as Partial<PublishedCard>;
+};
 
 const LINEAR_CATALOG = 'https://a2uiverse.dev/linear/linear-catalog/catalogs/v0.9.1/catalog.json';
 const LINEAR_BUILD = 'sha256-3f2aAbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_abc';

@@ -32,24 +32,7 @@
     },
     "card": {
       "type": "object",
-      "required": ["name", "description", "url", "version"],
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        },
-        "version": {
-          "type": "string",
-          "minLength": 1,
-          "description": "The agent's version: the app's."
-        }
-      },
-      "description": "The A2A AgentCard as published, verbatim."
+      "description": "The agent's card as served, in the shape of the A2A version it was written in. Nothing is required of it: a field is reached through the card's one reading."
     },
     "catalogs": {
       "type": "object",
@@ -70,7 +53,7 @@
         "type": "string",
         "minLength": 1
       },
-      "description": "Every version this app id has published, in publish order; the last is the card's."
+      "description": "Every version this app id has published, in publish order; the last is the published one."
     },
     "publishedAt": {
       "type": "string",

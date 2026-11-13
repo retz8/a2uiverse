@@ -175,10 +175,9 @@ function recordFileProblem(parsed: unknown): string | undefined {
     if (seen.has(a.id)) return `${at}.id: ${JSON.stringify(a.id)} appears twice`;
     seen.add(a.id);
     if (typeof a.cardUrl !== 'string') return `${at}.cardUrl: not a string`;
-    if (typeof a.card !== 'object' || a.card === null) return `${at}.card: not an object`;
-    const card = a.card as Record<string, unknown>;
-    if (typeof card.url !== 'string' || typeof card.name !== 'string') {
-      return `${at}.card: no url or name`;
+    // A stored card is its agent's card as served: that it reads is the registry's to say.
+    if (typeof a.card !== 'object' || a.card === null || Array.isArray(a.card)) {
+      return `${at}.card: not an object`;
     }
     if (!isStringRecord(a.catalogs))
       return `${at}.catalogs: not a map of catalog id to artifact id`;

@@ -15,6 +15,7 @@ import {snapshotCatalogs} from '../../tests/snapshot';
 import {Providers} from '../providers';
 import {CanvasApp} from './CanvasApp';
 import {createHostRelay} from './hostRelay';
+import {servedCard} from './trustedPage/cardFixture';
 
 const HOST_RELAY = createHostRelay();
 const CATALOGS = await snapshotCatalogs(HOST_RELAY.host);
@@ -30,13 +31,11 @@ const ENTRY = {
   appId: 'shop-b',
   publisher: 'northlight',
   cardUrl: 'http://127.0.0.1:12002/.well-known/agent-card.json',
-  card: {
-    name: 'Shop B',
+  card: servedCard('Shop B', {
     description: SHOP_B.description,
     url: 'http://127.0.0.1:12002',
-    version: '1.0.0',
     skills: [{name: 'stock', description: '', examples: ['What cameras do you have?']}],
-  },
+  }),
   catalogs: {},
   versions: ['1.0.0'],
   publishedAt: '2026-10-03T10:00:00Z',
@@ -90,7 +89,7 @@ beforeEach(() => {
         return json({ok: true, appId: 'shop-b', replaced: false, followed: []});
       }
       if (path === '/registry/apps.json')
-        return json(installed ? [{id: 'shop-b', card: {name: 'Shop B', version: '1.0.0'}}] : []);
+        return json(installed ? [{id: 'shop-b', card: servedCard('Shop B')}] : []);
       return json({}, 404);
     }),
   );

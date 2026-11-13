@@ -310,6 +310,12 @@ test.each([
     undefined,
   ],
   ['store-unreached', 'The Store can’t be reached right now,', 'so nothing changed.', 'Try again'],
+  [
+    'no-interface',
+    'Shop B can’t be updated.',
+    'It connects in a way A2UIVerse can’t use, so nothing changed.',
+    undefined,
+  ],
 ] as const)(
   'a refused update (%s) says why on the line in the Store’s words, with the Store’s press',
   (cause, lead, rest, press) => {

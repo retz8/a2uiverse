@@ -116,30 +116,6 @@ export function hashPublisherToken(token: string): Promise<string> {
 /** An artifact id as the entry names a build: `sha256-<base64url>`, unpadded (task-11.4 decision 10). */
 const ARTIFACT_ID_PATTERN = '^sha256-[A-Za-z0-9_-]{43}$';
 
-/**
- * The part of an A2A AgentCard the entry's readers rely on; structural, so the sdk depends on no
- * A2A package. The entry stores the card verbatim: every other field rides along.
- */
-export interface PublishedCard {
-  name: string;
-  description: string;
-  url: string;
-  /** The agent's version — the app's version as the index sees it. */
-  version: string;
-  skills?: {
-    id?: string;
-    name: string;
-    description: string;
-    tags?: string[];
-    examples?: string[];
-    [key: string]: unknown;
-  }[];
-  capabilities?: {extensions?: {uri: string; params?: Record<string, unknown>}[]};
-  securitySchemes?: Record<string, unknown>;
-  security?: Record<string, string[]>[];
-  [key: string]: unknown;
-}
-
 /** The flag on an entry whose live card is ahead of the Store: what the Store lacks, and when seen. */
 export interface AheadOfStore extends Drift {
   seenAt: string;
@@ -152,11 +128,15 @@ export interface IndexEntry {
   publisher: string;
   /** What the marketplace fetched the live card from; what the registry stores at install. */
   cardUrl: string;
-  /** The card as published, verbatim; its `version` is the app's version. */
-  card: PublishedCard;
+  /**
+   * The card as published: the agent's card as served, in the shape of the A2A version it was
+   * written in. The type names no field, and nothing is required of it: a reader reaches a field
+   * through the card's one reading, and takes the published version from `versions`.
+   */
+  card: object;
   /** Catalog id to artifact id: the builds. */
   catalogs: Record<string, string>;
-  /** Every version this app id has published, in publish order; the last is the card's. */
+  /** Every version this app id has published, in publish order; the last is the published one. */
   versions: string[];
   publishedAt: string;
   /** Catalog ids this app once published and its current card no longer names. */
@@ -194,14 +174,8 @@ export const INDEX_ENTRY_SCHEMA = {
     },
     card: {
       type: 'object',
-      required: ['name', 'description', 'url', 'version'],
-      properties: {
-        name: {type: 'string'},
-        description: {type: 'string'},
-        url: {type: 'string'},
-        version: {type: 'string', minLength: 1, description: "The agent's version: the app's."},
-      },
-      description: 'The A2A AgentCard as published, verbatim.',
+      description:
+        "The agent's card as served, in the shape of the A2A version it was written in. Nothing is required of it: a field is reached through the card's one reading.",
     },
     catalogs: {
       type: 'object',
@@ -215,7 +189,7 @@ export const INDEX_ENTRY_SCHEMA = {
       uniqueItems: true,
       items: {type: 'string', minLength: 1},
       description:
-        "Every version this app id has published, in publish order; the last is the card's.",
+        'Every version this app id has published, in publish order; the last is the published one.',
     },
     publishedAt: {type: 'string', minLength: 1},
     retired: {
@@ -243,25 +217,25 @@ const ajv = new Ajv2020({allErrors: true, strict: true, allowUnionTypes: true});
 const entrySchema = ajv.compile(INDEX_ENTRY_SCHEMA);
 
 /**
- * An entry against the schema, then what the schema cannot say: the card's version is the last
- * published one, and a retired id is not among the catalogs.
+ * An entry against the schema, then what the schema cannot say: a retired id is not among the
+ * catalogs. That the stored card's version is the last published one is the marketplace's to
+ * check, where the entry is written.
  */
 export function validateIndexEntry(input: unknown): Validation<IndexEntry> {
   const errors = schemaErrors(entrySchema, input);
   if (errors.length > 0) return {ok: false, errors};
   const entry = input as IndexEntry;
-  const last = entry.versions[entry.versions.length - 1];
-  if (last !== entry.card.version) {
-    errors.push(
-      `/versions: the last published version is ${JSON.stringify(last)}, the card’s is ${JSON.stringify(entry.card.version)}`,
-    );
-  }
   for (const id of entry.retired) {
     if (id in entry.catalogs) {
       errors.push(`/retired: ${JSON.stringify(id)} is retired and among the catalogs`);
     }
   }
   return errors.length === 0 ? {ok: true, value: entry} : {ok: false, errors};
+}
+
+/** The version an entry publishes: the last of its `versions`. */
+export function publishedVersionOf(entry: IndexEntry): string {
+  return entry.versions[entry.versions.length - 1]!;
 }
 
 // --- The captured preview ---------------------------------------------------------------------
@@ -555,6 +529,17 @@ export const UPDATE_STATES = [
 export type UpdateStateKind = (typeof UPDATE_STATES)[number];
 
 /**
+ * An installed app whose live card lists no interface the platform speaks (task-20.3 decision
+ * 14): what the App Library shows in place of its update state, and what the Planner's
+ * installed-apps reader hands the Planner.
+ */
+export const NO_INTERFACE_WORDS = 'Connects in a way A2UIVerse can’t use';
+
+/** The notice on such an app's view in the App Library: the failure tile's statement, by name. */
+export const noInterfaceNotice = (name: string): string =>
+  `${name} now connects in a way A2UIVerse can’t use.`;
+
+/**
  * Each state in the App Library's words (task-14.5 decision 6): what the App Library shows and
  * what the Planner's installed-apps reader hands it, so the page and the canvas say one thing.
  */
@@ -613,13 +598,15 @@ export function updateWords(
 
 /**
  * Why an install was refused (task-14.7 decision 6), beside its findings: the Store behind the
- * app's live card, the app's card unreached, the checks failed, the Store unreached, or the app no
- * longer in the Store (task-15.11 decision 44). The trusted page words each and chooses its press
- * from it; the findings stay for the journal and the terminal.
+ * app's live card, the app's card unreached, the app's card listing no interface the platform
+ * speaks (task-20.3 decision 16), the checks failed, the Store unreached, or the app no longer in
+ * the Store (task-15.11 decision 44). The trusted page words each and chooses its press from it;
+ * the findings stay for the journal and the terminal.
  */
 export const INSTALL_REFUSALS = [
   'store-behind',
   'app-unreached',
+  'no-interface',
   'checks',
   'store-unreached',
   'unheard',
@@ -649,6 +636,17 @@ export function refusalOf(cause: InstallRefusal, name: string, act: 'install' | 
         lead: `${name} couldn’t be reached,`,
         rest: act === 'install' ? 'so nothing was installed.' : 'so nothing changed.',
         press: 'retry' as const,
+      };
+    // The app's card lists no interface the platform speaks: nothing to try again.
+    case 'no-interface':
+      return {
+        tone: 'bad' as const,
+        lead: `${name} can’t be ${verb}.`,
+        rest:
+          act === 'install'
+            ? 'It connects in a way A2UIVerse can’t use, so nothing was installed.'
+            : 'It connects in a way A2UIVerse can’t use, so nothing changed.',
+        press: 'none' as const,
       };
     case 'checks':
       return {

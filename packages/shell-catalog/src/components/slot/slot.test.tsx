@@ -295,6 +295,8 @@ test('schema accepts the catalog and load causes carrying their id and the unins
   expect(failed({cause: 'load', catalogId: 'urn:catalog:gmail'})).toBe(true);
   expect(failed({cause: 'load'})).toBe(false);
   expect(failed({cause: 'uninstalled'})).toBe(true);
+  expect(failed({cause: 'interface'})).toBe(true);
+  expect(failed({cause: 'interface', message: 'said'})).toBe(false);
   expect(failed({cause: 'uninstalled', catalogId: 'urn:catalog:other'})).toBe(false);
   expect(failed({cause: 'vendor', catalogId: 'urn:catalog:other'})).toBe(false);
   expect(failed({cause: 'catalog', catalogId: 'urn:catalog:other', message: 'said'})).toBe(false);
@@ -322,6 +324,7 @@ test.each([
   ['timeout', 'This app took too long to answer.'],
   ['invalid', 'This app sent a screen that couldn’t be shown.'],
   ['uninstalled', 'This app isn’t installed anymore.'],
+  ['interface', 'This app now connects in a way A2UIVerse can’t use.'],
 ] as const)(
   'with no vendor words the statement is the shell’s reason for %s, with no name in it',
   (cause, reason) => {
@@ -351,6 +354,7 @@ test('the catalog cause names no catalog and no source, and offers no Retry (tas
 test.each([
   [{cause: 'load', catalogId: 'urn:catalog:gmail'}, 'Something went wrong loading this.'],
   [{cause: 'uninstalled'}, 'This app isn’t installed anymore.'],
+  [{cause: 'interface'}, 'This app now connects in a way A2UIVerse can’t use.'],
 ] as const)(
   'the %o tile keeps Retry, its catalog id unshown (task-11.5 decision 9)',
   (failure, statement) => {

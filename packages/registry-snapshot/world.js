@@ -9,9 +9,12 @@
  * snapshot's own artifact for that catalog id — the recordings name the apps checkout's packs — and
  * every installed app is one the snapshot's table packs. The states are written here by hand over
  * them, each as the orchestrator's check would read it from the installed record, the Store's entry
- * and the live card. Pure: the caller reads the recordings and the table.
+ * and the live card. Pure: the caller reads the recordings and the table. A card is kept as its
+ * agent served it, and every fact is read off it through the card's one reading (task-20.3
+ * decision 19).
  */
 import {createHash} from 'node:crypto';
+import {readCard, signInAlternatives} from '@a2uiverse/card';
 
 /** The publisher of every recorded app, signed in to Publish. */
 const PUBLISHER = 'a2uiverse-apps';
@@ -43,7 +46,7 @@ const APPS = {
     installed: entry => ({card: declaring(withVersion(entry.card, EARLIER), []), catalogs: {}}),
     state: (entry, record) => ({
       state: 'major-update',
-      publishedVersion: entry.card.version,
+      publishedVersion: publishedVersion(entry),
       newCatalogIds: declaredIds(entry.card).filter(id => !declaredIds(record.card).includes(id)),
       newScopes: newScopes(record.card, entry.card),
       builds: buildMoves(record.catalogs, entry.catalogs),
@@ -58,7 +61,7 @@ const APPS = {
     }),
     state: (entry, record) => ({
       state: 'card-update',
-      publishedVersion: entry.card.version,
+      publishedVersion: publishedVersion(entry),
       newScopes: newScopes(record.card, entry.card),
       builds: buildMoves(record.catalogs, entry.catalogs),
     }),
@@ -67,7 +70,7 @@ const APPS = {
   // Up to date, on one account.
   github: {
     installed: entry => ({card: entry.card, catalogs: entry.catalogs}),
-    state: entry => ({state: 'up-to-date', publishedVersion: entry.card.version}),
+    state: entry => ({state: 'up-to-date', publishedVersion: publishedVersion(entry)}),
     accounts: [{label: 'me@example.com', scopes: ['github.read', 'github.write']}],
   },
   // A small update: a newer build, the card unchanged, held because the app came from a local
@@ -77,7 +80,7 @@ const APPS = {
     installed: entry => ({card: entry.card, catalogs: olderBuilds(entry.catalogs)}),
     state: (entry, record) => ({
       state: 'newer-build',
-      publishedVersion: entry.card.version,
+      publishedVersion: publishedVersion(entry),
       builds: buildMoves(record.catalogs, entry.catalogs),
     }),
     accounts: [
@@ -90,12 +93,12 @@ const APPS = {
   // On its way from the publisher: its live card declares a look and a version the Store lacks.
   'shop-a': {
     installed: entry => ({card: entry.card, catalogs: entry.catalogs}),
-    ahead: entry => ({catalogIds: [SHOP_A_NEW_LOOK], version: nextMinor(entry.card.version)}),
-    state: ({card, aheadOfStore}) => ({
+    ahead: entry => ({catalogIds: [SHOP_A_NEW_LOOK], version: nextMinor(publishedVersion(entry))}),
+    state: entry => ({
       state: 'ahead-of-store',
-      publishedVersion: card.version,
-      catalogIds: aheadOfStore.catalogIds,
-      version: aheadOfStore.version,
+      publishedVersion: publishedVersion(entry),
+      catalogIds: entry.aheadOfStore.catalogIds,
+      version: entry.aheadOfStore.version,
     }),
     accounts: [],
   },
@@ -107,7 +110,7 @@ const APPS = {
     }),
     state: (entry, record) => ({
       state: 'update-required',
-      publishedVersion: entry.card.version,
+      publishedVersion: publishedVersion(entry),
       retired: retiredLines(record.card, entry.card),
       newScopes: newScopes(record.card, entry.card),
     }),
@@ -116,6 +119,12 @@ const APPS = {
 };
 
 // --- Cards ------------------------------------------------------------------------------------
+
+/** The version an entry publishes: the last of its `versions`. */
+const publishedVersion = entry => entry.versions[entry.versions.length - 1];
+
+/** A card's version, read. */
+const versionOf = card => readCard(card).version;
 
 /** A card at another version. */
 const withVersion = (card, version) => ({...card, version});
@@ -136,18 +145,18 @@ function askingNoSignIn(card) {
   return rest;
 }
 
-/** The catalog ids a card declares through its A2UI extension. */
+/** The catalog ids a card declares through its A2UI extension, read. */
 const declaredIds = card =>
-  (card.capabilities?.extensions ?? []).flatMap(e => e.params?.supportedCatalogIds ?? []);
+  (readCard(card).capabilities?.extensions ?? []).flatMap(e => e.params?.supportedCatalogIds ?? []);
 
 /** The ids the earlier card declared and the later one no longer does. */
 const retiredLines = (earlier, later) =>
   declaredIds(earlier).filter(id => !declaredIds(later).includes(id));
 
-/** Each scheme a card's `security` alternatives name, with the scopes they ask of it. */
+/** Each scheme a card's sign-in alternatives name, with the scopes they ask of it. */
 function scopesAsked(card) {
   const schemes = new Map();
-  for (const alternative of card.security ?? []) {
+  for (const alternative of signInAlternatives(readCard(card))) {
     for (const [scheme, scopes] of Object.entries(alternative)) {
       schemes.set(scheme, [...new Set([...(schemes.get(scheme) ?? []), ...scopes])]);
     }
@@ -179,15 +188,26 @@ function nextMinor(version) {
 
 /** Whether an app signs in, as the vault reads its card: none, supported, or one it can't run. */
 function signInOf(card) {
-  const security = card.security ?? [];
+  const read = readCard(card);
+  const security = signInAlternatives(read);
   if (security.length === 0 || security.some(alt => Object.keys(alt).length === 0)) return 'none';
-  const runs = scheme =>
-    (scheme?.type === 'oauth2' && scheme.flows?.authorizationCode !== undefined) ||
-    scheme?.type === 'openIdConnect' ||
-    (scheme?.type === 'http' && scheme.scheme?.toLowerCase() === 'bearer') ||
-    (scheme?.type === 'apiKey' && scheme.in === 'header' && Boolean(scheme.name));
+  const runs = scheme => {
+    const declared = scheme?.scheme;
+    switch (declared?.$case) {
+      case 'oauth2SecurityScheme':
+        return declared.value.flows?.flow?.$case === 'authorizationCode';
+      case 'openIdConnectSecurityScheme':
+        return true;
+      case 'httpAuthSecurityScheme':
+        return declared.value.scheme.toLowerCase() === 'bearer';
+      case 'apiKeySecurityScheme':
+        return declared.value.location === 'header' && Boolean(declared.value.name);
+      default:
+        return false;
+    }
+  };
   return security.some(
-    alt => Object.keys(alt).length === 1 && runs(card.securitySchemes?.[Object.keys(alt)[0]]),
+    alt => Object.keys(alt).length === 1 && runs(read.securitySchemes[Object.keys(alt)[0]]),
   )
     ? 'supported'
     : 'unsupported';
@@ -195,10 +215,13 @@ function signInOf(card) {
 
 /** The card's own words for the scopes an account holds under its sign-in. */
 function wordsFor(card, scopes) {
-  const scheme = Object.values(card.securitySchemes ?? {}).find(
-    s => s?.flows?.authorizationCode !== undefined,
+  const flows = Object.values(readCard(card).securitySchemes).flatMap(({scheme}) =>
+    scheme?.$case === 'oauth2SecurityScheme' &&
+    scheme.value.flows?.flow?.$case === 'authorizationCode'
+      ? [scheme.value.flows.flow.value]
+      : [],
   );
-  const words = scheme?.flows.authorizationCode.scopes ?? {};
+  const words = flows[0]?.scopes ?? {};
   return scopes.flatMap(scope => (words[scope] ? [words[scope]] : []));
 }
 
@@ -258,7 +281,8 @@ export function storeWorld({recordings, table}) {
     const published = {...recordedEntry, catalogs};
     const held = app.installed?.(published);
     // A record held at an earlier version is one the Store published before this one.
-    const earlier = held && held.card.version !== published.card.version ? [held.card.version] : [];
+    const earlier =
+      held && versionOf(held.card) !== publishedVersion(published) ? [versionOf(held.card)] : [];
     const entry = {
       ...published,
       versions: [...new Set([...earlier, ...published.versions])],
@@ -286,7 +310,7 @@ export function storeWorld({recordings, table}) {
       source: app.source ?? 'marketplace',
       reachable: true,
     };
-    const update = {appId, installedVersion: held.card.version, ...app.state(entry, record)};
+    const update = {appId, installedVersion: versionOf(held.card), ...app.state(entry, record)};
     world.installed.push(record);
     world.updates.push(update);
     world.index.push({entry, installed: true, update});
@@ -300,7 +324,12 @@ export function storeWorld({recordings, table}) {
       accounts: app.accounts.map((account, i) => ({
         source: `${appId}.${i + 1}`,
         ...(account.key
-          ? {label: `${live.name} account ${i + 1}`, kind: 'key', permissions: [], lapsed: false}
+          ? {
+              label: `${readCard(live).name} account ${i + 1}`,
+              kind: 'key',
+              permissions: [],
+              lapsed: false,
+            }
           : {
               label: account.label,
               kind: 'oauth',
@@ -323,11 +352,12 @@ export function searchWorld(world, words) {
     .split(/[^a-z0-9]+/)
     .filter(term => term.length >= 3);
   if (terms.length === 0) return [];
-  const textOf = ({card}) =>
-    [
+  const textOf = entry => {
+    const card = readCard(entry.card);
+    return [
       card.name,
       card.description,
-      ...(card.skills ?? []).flatMap(s => [
+      ...card.skills.flatMap(s => [
         s.name,
         s.description,
         ...(s.tags ?? []),
@@ -336,7 +366,9 @@ export function searchWorld(world, words) {
     ]
       .join(' ')
       .toLowerCase();
+  };
+  const nameOf = entry => readCard(entry.card).name;
   return world.index
     .filter(listing => terms.every(term => textOf(listing.entry).includes(term)))
-    .sort((a, b) => a.entry.card.name.localeCompare(b.entry.card.name, 'en'));
+    .sort((a, b) => nameOf(a.entry).localeCompare(nameOf(b.entry), 'en'));
 }

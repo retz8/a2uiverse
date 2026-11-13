@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest';
 import {A2UI_EXTENSION_URIS, A2UI_VERSIONS} from '@a2uiverse/sdk';
-import {buildAgentCard, indexedPlatformCard} from '../src/agentCard.js';
+import {buildAgentCard} from '../src/agentCard.js';
 
 describe('buildAgentCard', () => {
   const card = buildAgentCard('https://x-10001.asse.devtunnels.ms');
@@ -15,19 +15,6 @@ describe('buildAgentCard', () => {
       },
     ]);
     expect(card.capabilities?.streaming).toBe(true);
-  });
-
-  test('the card the Registry indexes carries the same name, words, skills and extensions in the shape its readers read (task-20.1 decision 1)', () => {
-    const indexed = indexedPlatformCard(card);
-    expect(indexed.url).toBe('https://x-10001.asse.devtunnels.ms');
-    expect(indexed).toMatchObject({name: card.name, description: card.description});
-    expect(indexed.skills.map(s => s.id)).toEqual(card.skills.map(s => s.id));
-    expect(indexed.skills[1]!.examples).toEqual(card.skills[1]!.examples);
-    expect(indexed.skills[0]).not.toHaveProperty('examples');
-    expect(indexed.capabilities.extensions?.map(e => e.uri)).toEqual(
-      A2UI_VERSIONS.map(v => A2UI_EXTENSION_URIS[v]),
-    );
-    expect(indexed.security).toBeUndefined();
   });
 
   test('declares one bare A2UI extension entry per version the platform speaks, none required (task-19.2 decision 5)', () => {

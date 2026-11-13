@@ -6,6 +6,7 @@
  *
  * The marketplace is reached at `MARKETPLACE_URL` (default `http://localhost:$PORT`, port 10002).
  */
+import {cardReadError, readCard} from '@a2uiverse/card';
 import {MARKETPLACE_ROUTES, readSearchResponse, searchPath} from '@a2uiverse/sdk';
 import {DEFAULT_PORT} from './config.js';
 
@@ -46,7 +47,9 @@ export async function runMarketplaceCommand(
     }
     if (read.value.results.length === 0) io.out('no app matches');
     for (const {entry, score} of read.value.results) {
-      io.out(`${entry.appId}  ${entry.card.name}  ${score.toFixed(3)}`);
+      // A card the reading refuses is named by its app id alone.
+      const name = cardReadError(entry.card) === undefined ? readCard(entry.card).name : '';
+      io.out(`${entry.appId}  ${name}  ${score.toFixed(3)}`);
     }
     return 0;
   }

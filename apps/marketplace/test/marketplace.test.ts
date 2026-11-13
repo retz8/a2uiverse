@@ -2,7 +2,7 @@
  * The marketplace's core (task 13.3): the claim, publish in order, the smoke test judged, unpublish,
  * search, the refresh and the report, the boot from a populated directory.
  */
-import {mkdtemp, readFile, rm, stat} from 'node:fs/promises';
+import {mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, describe, expect, test} from 'vitest';
@@ -14,8 +14,8 @@ import {
   clientCapabilities,
   SMOKE_GREETING,
   type PublishBody,
-  type PublishedCard,
 } from '@a2uiverse/sdk';
+import {readCard, type ServedCard} from '@a2uiverse/card';
 import {FakeEmbedder} from '@a2uiverse/embedder';
 import {a2aSmokeRunner, type SmokeRunner} from '@a2uiverse/smoke-transport';
 import {
@@ -24,6 +24,14 @@ import {
   paintParts,
   statusUpdate,
 } from '@a2uiverse/smoke-transport/testing';
+import {
+  cardForV1,
+  completingScriptV1,
+  paintPartsV1,
+  startFakeAgentV1,
+  type CardV1Options,
+  type FakeAgentV1,
+} from '@a2uiverse/smoke-transport/testing/v1';
 import {
   Marketplace,
   matches,
@@ -70,23 +78,26 @@ const CAT2 = 'https://example.com/fake/second/catalog.json';
 
 /** Cards served by URL, so a test can move an agent's live card without restarting it. */
 class CardServer {
-  readonly cards = new Map<string, AgentCard>();
+  readonly cards = new Map<string, ServedCard>();
   readonly fetched: string[] = [];
   serve(card: AgentCard): string {
-    const url = cardUrlOf(card.url);
-    this.cards.set(url, card);
+    return this.serveAt(cardUrlOf(card.url), card);
+  }
+  /** Whatever a card URL answers, in whichever shape. */
+  serveAt(url: string, served: ServedCard): string {
+    this.cards.set(url, served);
     return url;
   }
   /** The card as the marketplace holds it: as its agent served it. */
-  resolve = async (url: string): Promise<PublishedCard> => {
+  resolve = async (url: string): Promise<ServedCard> => {
     this.fetched.push(url);
     const card = this.cards.get(url);
     if (!card) throw new Error(`fetch failed: ${url}`);
-    return card as unknown as PublishedCard;
+    return card;
   };
 }
 
-const agents: FakeAgent[] = [];
+const agents: (FakeAgent | FakeAgentV1)[] = [];
 const dirs: string[] = [];
 afterEach(async () => {
   await Promise.all(agents.splice(0).map(a => a.close()));
@@ -95,6 +106,16 @@ afterEach(async () => {
 
 async function agentOf(options: FakeAgentOptions = {}): Promise<FakeAgent> {
   const agent = await startFakeAgent(options);
+  agents.push(agent);
+  return agent;
+}
+
+/** A fake A2A 1.0 agent painting in `CAT`, its card as `options` say. */
+async function agentV1Of(options: CardV1Options = {}): Promise<FakeAgentV1> {
+  const agent = await startFakeAgentV1({
+    script: completingScriptV1(paintPartsV1(CAT)),
+    card: interfaces => cardForV1(interfaces, {catalogs: [CAT], ...options}),
+  });
   agents.push(agent);
   return agent;
 }
@@ -684,22 +705,6 @@ describe('publish, the smoke test', () => {
     expect(answer.summary).toContain('published locked');
   });
 
-  test("a 0.3 card the A2A SDK's translators refuse fails the smoke request, in the A2A SDK's own words (task-20.2 decision 5)", async () => {
-    const {marketplace, cards} = await made();
-    await claimed(marketplace);
-    const agent = await agentOf();
-    const {skills: _skills, ...noSkills} = agent.card;
-    const answer = refused(
-      await marketplace.publish(
-        'acme',
-        body('shop', cards.serve(noSkills as AgentCard), [await fixtureArtifact(CAT)]),
-      ),
-    );
-    expect(answer.findings).toHaveLength(1);
-    expect(answer.findings[0]).toMatch(/^the smoke request failed: .*skills/);
-    expect(agent.requests).toHaveLength(0);
-  });
-
   test('a sign-in agent passes by 401, by auth-required naming its scheme, and not by painting', async () => {
     const {marketplace, cards} = await made();
     await claimed(marketplace);
@@ -801,6 +806,172 @@ describe('publish, the smoke test', () => {
     expect(answer.findings).toEqual([
       `surface "s1" is painted in catalog ${JSON.stringify(CAT2)}, outside its entitlement`,
     ]);
+  });
+});
+
+describe('publish, the card read (task-20.3 decisions 8, 15)', () => {
+  test('a card the reading refuses: one finding in the A2A SDK’s own words, and no smoke request', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentOf();
+    const {skills: _skills, ...noSkills} = agent.card;
+    const url = cards.serve(noSkills as AgentCard);
+    const answer = refused(
+      await marketplace.publish('acme', body('shop', url, [await fixtureArtifact(CAT)])),
+    );
+    expect(answer.findings).toHaveLength(1);
+    expect(answer.findings[0]).toMatch(
+      new RegExp(`^the card at ${url} could not be read: .*agentCard\\.skills`),
+    );
+    expect(agent.requests).toHaveLength(0);
+  });
+
+  test('a thing that is not a card, and a card with no name', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const url = 'http://127.0.0.1:1/card.json';
+    cards.serveAt(url, ['a list']);
+    expect(refused(await marketplace.publish('acme', body('shop', url))).findings).toEqual([
+      `the card at ${url} could not be read: not an agent card`,
+    ]);
+    cards.serveAt(url, {url: 'http://127.0.0.1:1'});
+    expect(refused(await marketplace.publish('acme', body('shop', url))).findings).toEqual([
+      `the card at ${url} could not be read: not an agent card: no name`,
+    ]);
+  });
+
+  test('a card listing no interface the platform speaks is refused, naming both, with nothing sent', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentV1Of();
+    const served = {
+      ...(agent.served as object),
+      supportedInterfaces: [
+        {url: '127.0.0.1:1', protocolBinding: 'GRPC', protocolVersion: '1.0'},
+        {url: `${agent.url}/rest`, protocolBinding: 'HTTP+JSON', protocolVersion: '1.0'},
+      ],
+    };
+    const answer = refused(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serveAt(agent.cardUrl, served), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    expect(answer.findings).toEqual([
+      'the card lists no interface A2UIVerse speaks: it lists GRPC at A2A 1.0 and HTTP+JSON at A2A 1.0; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x',
+    ]);
+    expect(agent.requests).toHaveLength(0);
+    expect(marketplace.entries()).toEqual([]);
+  });
+
+  test('a card listing no interface at all', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentV1Of();
+    const {supportedInterfaces: _none, ...served} = agent.served as {supportedInterfaces: unknown};
+    const answer = refused(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serveAt(agent.cardUrl, served), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    expect(answer.findings).toEqual(['the card lists no interface']);
+    expect(agent.requests).toHaveLength(0);
+  });
+});
+
+describe('publish, an agent on A2A 1.0 (task-20.3 decisions 11, 12, 20)', () => {
+  test('a card in A2A 1.0’s shape is published: stored as served, its paint captured from the interface taken', async () => {
+    const {marketplace, stateDir, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentV1Of({name: 'Shop', version: '1.0.0', order: ['1.0', '0.3']});
+    const url = cards.serveAt(agent.cardUrl, agent.served as object);
+    const answer = ok(
+      await marketplace.publish('acme', body('shop', url, [await fixtureArtifact(CAT)])),
+    );
+    expect(answer.version).toBe('1.0.0');
+    expect(agent.requests.map(r => [r.reached, r.method])).toEqual([
+      ['1.0', 'SendStreamingMessage'],
+    ]);
+    const entry = marketplace.entry('shop')!;
+    expect(entry.card).toEqual(agent.served);
+    expect(entry.versions).toEqual(['1.0.0']);
+    expect(marketplace.preview('shop')?.messages.map(m => Object.keys(m)[1])).toEqual([
+      'createSurface',
+      'updateComponents',
+    ]);
+    expect(await readJson(join(stateDir, PUBLIC_DIR, APPS_DIR, 'shop', ENTRY_FILE))).toEqual(entry);
+    expect((await marketplace.search('Shop')).results.map(r => r.entry.appId)).toEqual(['shop']);
+  });
+
+  test('A2A 0.3 listed first is the interface the smoke request reaches', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentV1Of({order: ['0.3', '1.0']});
+    ok(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serveAt(agent.cardUrl, agent.served as object), [
+          await fixtureArtifact(CAT),
+        ]),
+      ),
+    );
+    expect(agent.requests.map(r => [r.reached, r.method])).toEqual([['0.3', 'message/stream']]);
+  });
+
+  test('one agent’s card in A2A 0.3’s shape, then in 1.0’s, nothing else changed: accepted at the published version, the live card stored', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const legacy = await agentOf();
+    ok(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serve(legacy.card), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    expect(marketplace.entry('shop')!.card).toEqual(legacy.card);
+
+    const current = await agentV1Of({order: ['1.0', '0.3']});
+    const answer = ok(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serveAt(current.cardUrl, current.served as object)),
+      ),
+    );
+    expect(answer.version).toBe('0.1.0');
+    const entry = marketplace.entry('shop')!;
+    expect(entry.versions).toEqual(['0.1.0']);
+    expect(entry.card).toEqual(current.served);
+    expect(readCard(entry.card).supportedInterfaces.map(i => i.protocolVersion)).toEqual([
+      '1.0',
+      '0.3',
+    ]);
+  });
+
+  test('a changed skill at a published version is still refused, in A2A 1.0’s shape too', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const legacy = await agentOf();
+    ok(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serve(legacy.card), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    const current = await agentV1Of({
+      skills: [{id: 'fake', name: 'fake', description: 'changed', tags: []}],
+    });
+    const answer = refused(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serveAt(current.cardUrl, current.served as object)),
+      ),
+    );
+    expect(answer.findings).toEqual([
+      'the card changed, but version "0.1.0" is already published: a changed card carries a version this app id has never published',
+    ]);
+    expect(current.requests).toHaveLength(0);
+    expect(marketplace.entry('shop')!.card).toEqual(legacy.card);
   });
 });
 
@@ -1116,6 +1287,35 @@ describe('ahead of the Store', () => {
     expect(await marketplace.report('nope')).toBe('unchanged');
   });
 
+  test('a live card in A2A 1.0’s shape, nothing else changed, raises no flag; one that does not read leaves the flag; one unreachable is still judged (task-20.3 decisions 12, 17)', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const legacy = await agentOf();
+    const url = cards.serve(legacy.card);
+    ok(await marketplace.publish('acme', body('shop', url, [await fixtureArtifact(CAT)])));
+    const current = await agentV1Of({order: ['1.0', '0.3']});
+    cards.serveAt(url, current.served as object);
+    expect(await marketplace.report('shop')).toBe('unchanged');
+    expect(marketplace.entry('shop')?.aheadOfStore).toBeUndefined();
+    // The stored copy keeps its older shape until the app is next published.
+    expect(marketplace.entry('shop')?.card).toEqual(legacy.card);
+
+    const ahead = {...(current.served as object), version: '0.3.0'};
+    cards.serveAt(url, ahead);
+    expect(await marketplace.report('shop')).toBe('set');
+    cards.serveAt(url, {url: 'http://127.0.0.1:1'});
+    expect(await marketplace.report('shop')).toBe('unchanged');
+    expect(marketplace.entry('shop')?.aheadOfStore?.version).toBe('0.3.0');
+
+    const grpcOnly = {
+      ...(current.served as object),
+      supportedInterfaces: [{url: '127.0.0.1:1', protocolBinding: 'GRPC', protocolVersion: '1.0'}],
+    };
+    cards.serveAt(url, grpcOnly);
+    expect(await marketplace.report('shop')).toBe('cleared');
+    expect(marketplace.entry('shop')?.card).toEqual(legacy.card);
+  });
+
   test('a burst of reports costs one fetch', async () => {
     const {marketplace, cards} = await made();
     await claimed(marketplace);
@@ -1177,5 +1377,42 @@ describe('the boot', () => {
     expect((await again.publisherOf(token))?.name).toBe('acme');
     expect((await again.search('weather')).results.map(r => r.entry.appId)).toEqual(['sky']);
     expect(await readJson(join(stateDir, PUBLIC_DIR, INDEX_FILE))).toEqual([again.entry('sky')]);
+  });
+
+  test('a stored card that does not read refuses the boot, naming the app and the reason (task-20.3 decision 9)', async () => {
+    const {marketplace, stateDir, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentOf();
+    ok(
+      await marketplace.publish(
+        'acme',
+        body('sky', cards.serve(agent.card), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    const entryPath = join(stateDir, PUBLIC_DIR, APPS_DIR, 'sky', ENTRY_FILE);
+    const entry = await readJson(entryPath);
+    const {skills: _skills, ...noSkills} = entry.card;
+    await writeFile(entryPath, JSON.stringify({...entry, card: noSkills}));
+    await expect(made(stateDir)).rejects.toThrow(
+      /^the stored card of app "sky" could not be read: .*agentCard\.skills/,
+    );
+  });
+
+  test('a stored card whose version is not the last its entry published refuses the boot', async () => {
+    const {marketplace, stateDir, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentOf();
+    ok(
+      await marketplace.publish(
+        'acme',
+        body('sky', cards.serve(agent.card), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    const entryPath = join(stateDir, PUBLIC_DIR, APPS_DIR, 'sky', ENTRY_FILE);
+    const entry = await readJson(entryPath);
+    await writeFile(entryPath, JSON.stringify({...entry, versions: ['0.1.0', '0.2.0']}));
+    await expect(made(stateDir)).rejects.toThrow(
+      'the entry of app "sky" is damaged: the last published version is "0.2.0", the stored card’s is "0.1.0"',
+    );
   });
 });

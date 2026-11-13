@@ -2,8 +2,8 @@
  * Each sign-in app's preview credential under `--publish` (task-13.6 decision 8). For an app on the
  * agent kit's sign-in, a token straight from the agent through the kit's non-interactive entry —
  * register a client, the authorize address naming the roster entry's fake account in place of the
- * chooser's press, the code exchanged — for the scopes the card's first `security` alternative
- * asks, what the vault asks at a first sign-in; the client's transparency check signs in the same
+ * chooser's press, the code exchanged — for the scopes the first alternative of the card's
+ * sign-in requirements asks, what the vault asks at a first sign-in; the client's transparency check signs in the same
  * way. For an app on an API key, the roster entry's demo key. Each credential is used for its one
  * preview and never written, printed, or sent to the marketplace: Stellify's `preview` puts it in
  * the header the card names and sends it to the agent alone.
@@ -13,8 +13,12 @@
  * obtained there, and the live agent and its sign-in store are untouched. Each sign-in leaves a
  * registered client and an issued token in the store of the agent it signed in at, unrevoked — under
  * live mode the instance's, removed with it.
+ *
+ * Every card here is a card read (task-20.3 decision 19): the launcher fetches an agent's card
+ * through the card package's fetch and reads it through its one reading.
  */
 import {createHash, randomBytes} from 'node:crypto';
+import {asksSignIn, signInAlternatives} from '@a2uiverse/card';
 
 /** The non-interactive entry on the kit's sign-in page (task-12.9 decision 12). */
 const FAKE_ACCOUNT_PARAM = 'fake_account';
@@ -24,49 +28,35 @@ const DIRECT_REDIRECT = 'http://127.0.0.1:8765/callback';
 
 const TIMEOUT_MS = 10_000;
 
-/** Whether the card requires sign-in: an OR of ANDs, an empty requirement meaning none (SPEC §8). */
-export function requiresSignIn(card) {
-  const security = card?.security;
-  return (
-    Array.isArray(security) &&
-    security.length > 0 &&
-    security.every(
-      alternative =>
-        typeof alternative === 'object' &&
-        alternative !== null &&
-        Object.keys(alternative).length > 0,
-    )
-  );
-}
-
 /**
  * Whether the preview of an app with `card` is taken from a deterministic instance (task-13.7
  * decision 8): under `--mode live`, for every card that requires sign-in, a key's among them.
  */
 export function previewsFromInstance(mode, card) {
-  return mode === 'live' && requiresSignIn(card);
+  return mode === 'live' && asksSignIn(card);
 }
 
 /**
  * The credential `entry`'s preview sends, for a card that requires sign-in: `{credential}`, or
- * `{reason}` the app is left out for. The card's first `security` alternative names the scheme.
+ * `{reason}` the app is left out for. The first alternative of the card's sign-in requirements
+ * names the scheme.
  */
 export async function previewCredential(card, entry, {fetchImpl = fetch} = {}) {
-  const requirement = card.security[0];
+  const [requirement] = signInAlternatives(card);
   const key = Object.keys(requirement)[0];
-  const scheme = card.securitySchemes?.[key];
-  if (scheme?.type === 'apiKey' && scheme.in === 'header') {
+  const scheme = card.securitySchemes[key]?.scheme;
+  if (scheme?.$case === 'apiKeySecurityScheme' && scheme.value.location === 'header') {
     return entry.previewKey
       ? {credential: entry.previewKey}
       : {reason: 'its card asks an API key, and its roster entry names no previewKey'};
   }
-  if (scheme?.type === 'oauth2' && scheme.oauth2MetadataUrl) {
+  if (scheme?.$case === 'oauth2SecurityScheme' && scheme.value.oauth2MetadataUrl) {
     if (!entry.previewAs) {
       return {reason: 'its card asks sign-in, and its roster entry names no previewAs account'};
     }
     try {
       const token = await agentToken(
-        scheme.oauth2MetadataUrl,
+        scheme.value.oauth2MetadataUrl,
         requirement[key] ?? [],
         entry.previewAs,
         fetchImpl,

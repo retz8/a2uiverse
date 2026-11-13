@@ -17,7 +17,7 @@ The contracts themselves are JSON in [`../contracts/`](../contracts/): [`a2uiver
 - **`packages/stellify`**: classifies the imports it bundles, writes the descriptor and gates its own output with the same checks as install; speaks the marketplace's routes and bodies, and runs the smoke test's checks for `preview`.
 - **`apps/marketplace`**: the index entry and the preview it serves, the publisher's token, the publish body it reads, the gate, the additive-evolution check, the retirement rule, the smoke test's checks and ahead-of-the-Store detection.
 - **`apps/orchestrator`'s update check**: the eight update states it computes and serves, the drift and retirement functions it decides them with; the Planner's reader says each state in the App Library's words, and Publish's listings run the drift function over each live card.
-- **`packages/smoke-transport`**: holds a live card as `PublishedCard`, writes the smoke request's client capabilities, and reads the A2UI messages and the auth-required request out of the answer's parts.
+- **`packages/smoke-transport`**: writes the smoke request's client capabilities, and reads the A2UI messages and the auth-required request out of the answer's parts.
 - **`packages/registry-snapshot`**: names each packed artifact by its id.
 
 ## Commands

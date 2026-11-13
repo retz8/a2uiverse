@@ -10,7 +10,7 @@
  */
 import {wrapLanguageModel, type LanguageModelMiddleware} from 'ai';
 import {describe, expect, test} from 'vitest';
-import {buildAgentCard, indexedPlatformCard} from '../src/agentCard.js';
+import {buildAgentCard} from '../src/agentCard.js';
 import {loadConfig} from '../src/config.js';
 import {getModel, keyFor, parseModelName, reasoningFor} from '../src/model/getModel.js';
 import {ModelPlanner} from '../src/planner/planner.js';
@@ -49,7 +49,7 @@ function entry(appId: string, name: string, description: string, skills: string[
   };
 }
 
-const platformCard = indexedPlatformCard(buildAgentCard('http://localhost:10001'));
+const platformCard = buildAgentCard('http://localhost:10001');
 const shortlist: ShortlistEntry[] = [
   entry('github', 'GitHub', 'Repositories, pull requests and issues.', [
     'Lists pull requests awaiting review',

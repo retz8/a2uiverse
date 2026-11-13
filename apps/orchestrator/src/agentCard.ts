@@ -1,6 +1,5 @@
 import {A2A_PROTOCOL_VERSION, AgentCard} from '@a2a-js/sdk';
 import {A2UI_EXTENSION_URIS, A2UI_VERSIONS} from '@a2uiverse/sdk';
-import type {InstalledCard} from './registry/installedCard.js';
 
 /** The one binding the orchestrator's endpoint serves. */
 const JSON_RPC = 'JSONRPC';
@@ -118,35 +117,4 @@ export function buildAgentCard(baseUrl: string): AgentCard {
       },
     ],
   });
-}
-
-/**
- * The platform's card as the Registry indexes it under `shell`: in the shape the orchestrator's
- * card readers read until the card's one reading lands (task-20.1 decision 1).
- */
-export function indexedPlatformCard(card: AgentCard): InstalledCard {
-  const {capabilities} = card;
-  return {
-    name: card.name,
-    description: card.description,
-    version: card.version,
-    url: card.supportedInterfaces[0]?.url ?? '',
-    capabilities: {
-      ...(capabilities?.streaming !== undefined ? {streaming: capabilities.streaming} : {}),
-      extensions: (capabilities?.extensions ?? []).map(({uri, description, required}) => ({
-        uri,
-        description,
-        required,
-      })),
-    },
-    defaultInputModes: card.defaultInputModes,
-    defaultOutputModes: card.defaultOutputModes,
-    skills: card.skills.map(({id, name, description, tags, examples}) => ({
-      id,
-      name,
-      description,
-      tags,
-      ...(examples.length > 0 ? {examples} : {}),
-    })),
-  };
 }

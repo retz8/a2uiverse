@@ -5,6 +5,15 @@
  * the sdk's contracts, the served subtree on disk the truth, the vectors in memory.
  */
 import {timingSafeEqual} from 'node:crypto';
+import type {AgentCard} from '@a2a-js/sdk';
+import {
+  asksSignIn,
+  noInterfaceFinding,
+  readCard,
+  sameCard,
+  spokenInterfaces,
+  type ServedCard,
+} from '@a2uiverse/card';
 import {corpusDoc, rank, type Embedder} from '@a2uiverse/embedder';
 import {
   aheadOfStore,
@@ -23,6 +32,7 @@ import {
   hashPublisherToken,
   mintPublisherToken,
   PUBLIC_CATALOG_IDS,
+  publishedVersionOf,
   readCatalogIdsByVersion,
   readSupportedCatalogIds,
   type CatalogIdsByVersion,
@@ -36,7 +46,6 @@ import {
   type PreviewDocument,
   type PublishBody,
   type PublishOutcome,
-  type PublishedCard,
   type SearchResponse,
 } from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
@@ -44,10 +53,10 @@ import {FAILED_STATES, type SmokeObservation, type SmokeRunner} from '@a2uiverse
 import {MarketplaceStore, type PublisherRecord} from './store.js';
 
 /**
- * The live card at a card URL, as its agent served it: held as the sdk's `PublishedCard` from the
- * fetch through to the index entry (task-20.2 decision 5).
+ * The live card at a card URL, as its agent served it (task-20.3 decisions 3, 7): what an accepted
+ * publish stores. Every field is reached through the card's one reading.
  */
-export type FetchCard = (cardUrl: string) => Promise<PublishedCard>;
+export type FetchCard = (cardUrl: string) => Promise<ServedCard>;
 
 export interface MarketplaceDeps {
   stateDir: string;
@@ -131,6 +140,8 @@ export class Marketplace {
   readonly #store: MarketplaceStore;
   #publishers = new Map<string, PublisherRecord>();
   #entries = new Map<string, IndexEntry>();
+  /** Each entry's stored card, read once: at load, and when a publish writes the entry. */
+  #cards = new Map<string, AgentCard>();
   #previews = new Map<string, PreviewDocument>();
   #descriptors = new Map<string, ArtifactDescriptor>();
   #vectors = new Map<string, number[]>();
@@ -148,19 +159,38 @@ export class Marketplace {
   }
 
   /**
-   * The boot (task-13.3 decisions 9, 15): everything on disk read and verified — a damaged file
-   * throws — `index.json` regenerated, every entry's card embedded. The card refresh is apart.
+   * The boot (task-13.3 decisions 9, 15; task-20.3 decisions 7, 9): everything on disk read and
+   * verified — a damaged file throws, and so does a stored card that does not read, or whose
+   * version is not the last its entry published — `index.json` regenerated, every entry's card
+   * embedded. The card refresh is apart.
    */
   async load(): Promise<void> {
     const loaded = await this.#store.load();
+    const cards = new Map<string, AgentCard>();
+    for (const entry of loaded.entries) {
+      const card = readStoredCard(entry.appId, entry.card);
+      const published = publishedVersionOf(entry);
+      if (card.version !== published) {
+        throw new Error(
+          `the entry of app ${JSON.stringify(entry.appId)} is damaged: the last published version is ${JSON.stringify(published)}, the stored card’s is ${JSON.stringify(card.version)}`,
+        );
+      }
+      cards.set(entry.appId, card);
+    }
+    for (const publisher of loaded.publishers) {
+      for (const app of publisher.unpublished ?? []) readStoredCard(app.appId, app.card);
+    }
     this.#publishers = new Map(loaded.publishers.map(p => [p.name, p]));
     this.#entries = new Map(loaded.entries.map(e => [e.appId, e]));
+    this.#cards = cards;
     this.#previews = loaded.previews;
     this.#descriptors = loaded.descriptors;
     await this.#store.writeIndex(this.entries());
     const entries = this.entries();
     if (entries.length === 0) return;
-    const vectors = await this.#deps.embedder.embed(entries.map(e => corpusDoc(e.card)));
+    const vectors = await this.#deps.embedder.embed(
+      entries.map(e => corpusDoc(cards.get(e.appId)!)),
+    );
     entries.forEach((e, i) => this.#vectors.set(e.appId, vectors[i]));
   }
 
@@ -262,6 +292,7 @@ export class Marketplace {
       }
       await this.#store.removeApp(appId);
       this.#entries.delete(appId);
+      this.#cards.delete(appId);
       this.#previews.delete(appId);
       this.#vectors.delete(appId);
       await this.#store.writeIndex(this.entries());
@@ -283,7 +314,7 @@ export class Marketplace {
     const ranked = rank(query, candidates).map(({entry, score}) => ({
       entry,
       score,
-      name: entry.card.name,
+      name: this.#cards.get(entry.appId)?.name ?? entry.appId,
     }));
     return {results: searchMatches(words, ranked).map(({entry, score}) => ({entry, score}))};
   }
@@ -291,8 +322,9 @@ export class Marketplace {
   /**
    * A report (phase-13 decision 14; task-13.3 decisions 10, 20): a nudge the marketplace verifies
    * itself — the live card refetched, the flag set on drift, cleared when covered, left as it was
-   * when the card is unreachable or malformed. One refetch in flight per app id. Answers what it did
-   * to the flag, so a clearing is said as a setting is (task-13.8 decision 31).
+   * when the card is unreachable, does not read or is malformed. A card that reads is judged
+   * whatever interfaces it lists (task-20.3 decision 17). One refetch in flight per app id. Answers
+   * what it did to the flag, so a clearing is said as a setting is (task-13.8 decision 31).
    */
   report(appId: string): Promise<FlagChange> {
     let pending = this.#reports.get(appId);
@@ -306,13 +338,12 @@ export class Marketplace {
   async #verify(appId: string): Promise<FlagChange> {
     const entry = this.#entries.get(appId);
     if (!entry) return 'unchanged';
-    let card: PublishedCard;
+    let card: AgentCard;
     try {
-      card = await this.#deps.fetchCard(entry.cardUrl);
+      card = readCard(await this.#deps.fetchCard(entry.cardUrl));
     } catch {
       return 'unchanged';
     }
-    if (typeof card.version !== 'string') return 'unchanged';
     const drift = aheadOfStore(entry, card);
     if (!drift.ok) return 'unchanged';
     return this.#serial(async (): Promise<FlagChange> => {
@@ -364,17 +395,32 @@ export class Marketplace {
       );
     }
 
-    let card: PublishedCard | undefined;
+    let served: ServedCard | undefined;
     try {
-      card = await this.#deps.fetchCard(cardUrl);
+      served = await this.#deps.fetchCard(cardUrl);
     } catch (err) {
       findings.push(`the card at ${cardUrl} could not be fetched: ${(err as Error).message}`);
     }
+    // Nothing runs after a card that does not read (task-20.3 decision 8): its one finding.
+    let card: AgentCard | undefined;
+    if (served) {
+      try {
+        card = readCard(served);
+      } catch (err) {
+        return {
+          ok: false,
+          kind: 'refused',
+          findings: [`the card at ${cardUrl} could not be read: ${(err as Error).message}`],
+        };
+      }
+    }
     if (card) {
-      if (typeof card.version !== 'string' || card.version === '') {
+      if (!card.version) {
         findings.push("the card has no version: the card's `version` is the app's version");
       }
-      if (typeof card.description !== 'string') findings.push('the card has no description');
+      if (!card.description) findings.push('the card has no description');
+      // An agent the platform cannot reach is never listed (task-20.3 decision 15).
+      if (spokenInterfaces(card).length === 0) findings.push(noInterfaceFinding(card));
     }
 
     let declared: string[] = [];
@@ -459,10 +505,13 @@ export class Marketplace {
       }
     }
 
-    // The card-version rule (task-13.3 decision 5), over an unpublished id's history too.
-    if (card && history && typeof card.version === 'string') {
-      if (card.version === history.card.version) {
-        if (!sameCard(card, history.card)) {
+    // The card-version rule (task-13.3 decision 5), over an unpublished id's history too: a card
+    // is changed when it is not the same card as read, how the agent is reached set aside
+    // (task-20.3 decision 12).
+    const publishedBefore = history?.versions[history.versions.length - 1];
+    if (card && history && card.version) {
+      if (card.version === publishedBefore) {
+        if (!sameCard(card, readCard(history.card))) {
           findings.push(
             `the card changed, but version ${JSON.stringify(card.version)} is already published: a changed card carries a version this app id has never published`,
           );
@@ -475,7 +524,7 @@ export class Marketplace {
     }
 
     // The preview rule (task-13.3 decisions 7, 8).
-    const signIn = card !== undefined && requiresSignIn(card);
+    const signIn = card !== undefined && asksSignIn(card);
     if (card && signIn && !preview) {
       findings.push(
         'the card requires sign-in: publish needs the preview `stellify preview` captures with your own credential',
@@ -501,7 +550,7 @@ export class Marketplace {
         findings.push('a handed preview is captured by the publisher');
       }
     }
-    if (findings.length > 0 || !card) return {ok: false, kind: 'refused', findings};
+    if (findings.length > 0 || !card || !served) return {ok: false, kind: 'refused', findings};
 
     // The smoke test (phase-13 decisions 12, 13; task-13.3 decisions 6, 17): the entitlement the
     // app will have, per version as the hub advertises it, each surface judged by its stamp
@@ -605,14 +654,15 @@ export class Marketplace {
     const retired = [...new Set([...(previous?.retired ?? []), ...retiredNow])].filter(
       id => !ids.includes(id),
     );
+    // Every accepted publish stores the live card as served (task-20.3 decision 12).
     const entry: IndexEntry = {
       appId,
       publisher: name,
       cardUrl,
-      card,
+      card: served,
       catalogs: rows,
       versions: history
-        ? card.version === history.card.version
+        ? card.version === publishedBefore
           ? history.versions
           : [...history.versions, card.version]
         : [card.version],
@@ -626,6 +676,7 @@ export class Marketplace {
     await this.#store.writePreview(stored);
     await this.#writePublishers(next);
     this.#entries = entries;
+    this.#cards.set(appId, card);
     this.#previews.set(appId, stored);
     this.#vectors.set(appId, vector);
     for (const {artifact} of gated) this.#descriptors.set(artifact.id, artifact.descriptor);
@@ -714,23 +765,19 @@ export class Marketplace {
   }
 }
 
-/** Whether the card requires sign-in (SPEC §8): an OR of ANDs, an empty requirement meaning none. */
-export function requiresSignIn(card: {security?: unknown}): boolean {
-  const security = card.security;
-  return (
-    Array.isArray(security) &&
-    security.length > 0 &&
-    security.every(
-      alternative =>
-        typeof alternative === 'object' &&
-        alternative !== null &&
-        Object.keys(alternative as object).length > 0,
-    )
-  );
+/** A stored card read; one that does not read is damaged state, naming the app and the reason. */
+function readStoredCard(appId: string, stored: ServedCard): AgentCard {
+  try {
+    return readCard(stored);
+  } catch (err) {
+    throw new Error(
+      `the stored card of app ${JSON.stringify(appId)} could not be read: ${(err as Error).message}`,
+    );
+  }
 }
 
 /** The judgement over a sign-in agent's answer to the request sent with no credential. */
-function judgeSignIn(seen: SmokeObservation, card: PublishedCard): string[] {
+function judgeSignIn(seen: SmokeObservation, card: AgentCard): string[] {
   switch (seen.kind) {
     case 'unauthorized':
       return checkSignInAnswer({httpStatus: 401}, card);
@@ -773,22 +820,6 @@ function parseJson(bytes: Uint8Array | undefined): unknown {
   }
 }
 
-/** Two cards the same: equal as JSON, key order ignored. */
-function sameCard(a: unknown, b: unknown): boolean {
-  return canonical(a) === canonical(b);
-}
-
-function canonical(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
-  if (typeof value === 'object' && value !== null) {
-    return `{${Object.keys(value)
-      .sort()
-      .map(k => `${JSON.stringify(k)}:${canonical((value as Record<string, unknown>)[k])}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(value) ?? 'undefined';
-}
-
 /** An artifact id as a line names it: its digest's first characters. */
 const shortId = (id: string) => `${id.slice(0, 'sha256-'.length + 8)}…`;
 
@@ -797,10 +828,11 @@ const shortId = (id: string) => `${id.slice(0, 'sha256-'.length + 8)}…`;
  * it moved; each catalog's artifact, old → new when it moved, an id gone or new named in full.
  */
 export function publishSummary(previous: IndexEntry | undefined, next: IndexEntry): string {
+  const now = publishedVersionOf(next);
   const version =
-    previous && previous.card.version !== next.card.version
-      ? `${previous.card.version} → ${next.card.version}`
-      : next.card.version;
+    previous && publishedVersionOf(previous) !== now
+      ? `${publishedVersionOf(previous)} → ${now}`
+      : now;
   const parts = [`${previous ? 'republished' : 'published'} ${next.appId}`, `card ${version}`];
   const before = previous?.catalogs ?? {};
   const ids = [...new Set([...Object.keys(before), ...Object.keys(next.catalogs)])];

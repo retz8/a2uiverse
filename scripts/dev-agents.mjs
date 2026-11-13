@@ -58,6 +58,7 @@ import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
+import {asksSignIn, fetchLiveCard, readCard} from '@a2uiverse/card';
 import {
   artifactFiles,
   claim,
@@ -90,7 +91,7 @@ import {
   readPublisherFile,
   writePublisherFile,
 } from './launch-marketplace.mjs';
-import {previewCredential, previewsFromInstance, requiresSignIn} from './launch-preview.mjs';
+import {previewCredential, previewsFromInstance} from './launch-preview.mjs';
 import {
   cardAnswers,
   installBody,
@@ -323,13 +324,19 @@ async function startPreviewInstance(entry) {
     };
   }
   try {
-    const res = await fetch(cardUrl, {signal: AbortSignal.timeout(CARD_READ_TIMEOUT_MS)});
-    if (!res.ok) throw new Error(`it answered ${res.status}`);
-    return {card: await res.json(), cardUrl, stop};
+    return {card: await readLiveCard(cardUrl), cardUrl, stop};
   } catch (err) {
     await stop();
     return {reason: `its preview instance's card could not be read: ${err.message}`};
   }
+}
+
+/**
+ * An agent's live card, fetched as the platform fetches one and read through the card's one
+ * reading (task-20.3 decision 19). Throws when it cannot be fetched or does not read.
+ */
+async function readLiveCard(cardUrl) {
+  return readCard(await fetchLiveCard(cardUrl, {timeoutMs: CARD_READ_TIMEOUT_MS}));
 }
 
 /**
@@ -371,14 +378,12 @@ async function capturePreview(entry, card, files, {marketplace, publisher}, mode
 async function publishApp(entry, files, {marketplace, publisher, token}, mode) {
   let card;
   try {
-    const res = await fetch(entry.cardUrl, {signal: AbortSignal.timeout(CARD_READ_TIMEOUT_MS)});
-    if (!res.ok) return `its card answered ${res.status}`;
-    card = await res.json();
+    card = await readLiveCard(entry.cardUrl);
   } catch (err) {
     return `its card could not be read: ${err.message}`;
   }
   let captured;
-  if (requiresSignIn(card)) {
+  if (asksSignIn(card)) {
     const {document, reason} = await capturePreview(
       entry,
       card,

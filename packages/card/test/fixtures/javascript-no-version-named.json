@@ -1,0 +1,69 @@
+{
+  "name": "Fake Agent",
+  "description": "an agent for tests",
+  "version": "0.1.0",
+  "url": "http://127.0.0.1:18731/",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3",
+  "capabilities": {
+    "streaming": true,
+    "extensions": [
+      {
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+        "required": false,
+        "params": {
+          "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+        }
+      }
+    ]
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "skills": [
+    {
+      "id": "fake",
+      "name": "Fake",
+      "description": "A fake skill",
+      "tags": ["fake"],
+      "examples": ["show my things"]
+    }
+  ],
+  "provider": {
+    "url": "https://example.com",
+    "organization": "Acme"
+  },
+  "documentationUrl": "https://example.com/docs",
+  "securitySchemes": {
+    "signIn": {
+      "type": "oauth2",
+      "flows": {
+        "authorizationCode": {
+          "authorizationUrl": "http://127.0.0.1:18731/authorize",
+          "tokenUrl": "http://127.0.0.1:18731/token",
+          "scopes": {
+            "things.read": "Read your things"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "signIn": ["things.read"]
+    }
+  ],
+  "supportedInterfaces": [
+    {
+      "url": "http://127.0.0.1:18731/",
+      "protocolBinding": "JSONRPC",
+      "tenant": "",
+      "protocolVersion": "1.0"
+    },
+    {
+      "url": "http://127.0.0.1:18731/",
+      "protocolBinding": "JSONRPC",
+      "tenant": "",
+      "protocolVersion": "0.3"
+    }
+  ]
+}

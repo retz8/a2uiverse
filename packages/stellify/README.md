@@ -88,7 +88,12 @@ Stellify runs none of your code: exports are read from the bundle, the id from t
 
 **`publish`** takes what the orchestrator's `registry install` takes: your app id, your agent's card URL, and the folders `pack` wrote, one per catalog your card declares. It never packs. The card URL goes on every publish, because the marketplace fetches your live card and publishes what it says; a catalog the marketplace already holds for you needn't be handed again, so a publish that changes the card alone hands nothing. It prints the marketplace's answer as `registry install` prints the registry's — a summary line, then each note as `note: …` — or `refused <app-id>:` with every finding indented, in the marketplace's words. A `401` means the token on this machine isn't one this marketplace knows: the name was claimed elsewhere, or the marketplace was reset; claim again with `--replace`.
 
-**`preview`** is required for a card that requires sign-in, and a useful look at your Store listing for any card. It fetches your live card, picks the header your credential rides in from the card's `security` and `securitySchemes` exactly as the orchestrator will after install — a bearer `Authorization` header for OAuth, OpenID Connect and `http` bearer, the named header for `apiKey` — and sends your agent the request the marketplace sends: its first skill's first example, else "Hello! Show me what you can do.", advertising your catalogs plus the basic catalog under each A2UI version your card declares them for, as the orchestrator will. It checks the paint as the marketplace will — a surface created, every surface in a catalog your card declares for the version it is stamped with, each tree valid against its schema, no credential input — and writes `preview.json` (`--out` elsewhere) holding the paint as that check judged it, each surface's tree as it stood when the answer ended, printing the card version, the surfaces painted and the file. The credential comes from `STELLIFY_CREDENTIAL`. For a card that needs no sign-in it sends none (a set credential is noted and ignored), still writes the document so you see the screen, and the marketplace captures that app's preview itself at publish, refusing a handed one. Each folder you hand goes through the registry's gate first, so a folder that would fail at publish fails here. A catalog your card declares that you didn't hand — one the marketplace already holds for you — has its schema fetched from the marketplace; a marketplace that can't be reached is a note, and the run goes on. Timeouts, the marketplace's own: `A2UIVERSE_CARD_TIMEOUT_SECONDS` (10) for the card, `A2UIVERSE_SMOKE_TIMEOUT_SECONDS` (60) for your agent's answer.
+**`preview`** is required for a card that requires sign-in, and a useful look at your Store listing for any card. It fetches your live card and reads it as the marketplace will, whether it is written for A2A 0.3 or 1.0, picks the header your credential rides in from the card's sign-in requirements and schemes exactly as the orchestrator will after install — a bearer `Authorization` header for OAuth, OpenID Connect and `http` bearer, the named header for `apiKey` — and sends your agent the request the marketplace sends: its first skill's first example, else "Hello! Show me what you can do.", advertising your catalogs plus the basic catalog under each A2UI version your card declares them for, as the orchestrator will. It checks the paint as the marketplace will — a surface created, every surface in a catalog your card declares for the version it is stamped with, each tree valid against its schema, no credential input — and writes `preview.json` (`--out` elsewhere) holding the paint as that check judged it, each surface's tree as it stood when the answer ended, printing the card version, the surfaces painted and the file. The credential comes from `STELLIFY_CREDENTIAL`. For a card that needs no sign-in it sends none (a set credential is noted and ignored), still writes the document so you see the screen, and the marketplace captures that app's preview itself at publish, refusing a handed one. Each folder you hand goes through the registry's gate first, so a folder that would fail at publish fails here. A catalog your card declares that you didn't hand — one the marketplace already holds for you — has its schema fetched from the marketplace; a marketplace that can't be reached is a note, and the run goes on. Timeouts, the marketplace's own: `A2UIVERSE_CARD_TIMEOUT_SECONDS` (10) for the card, `A2UIVERSE_SMOKE_TIMEOUT_SECONDS` (60) for your agent's answer.
+
+Two findings stop `preview` before anything is sent to your agent, and the marketplace refuses a publish with the same words:
+
+1. A card that cannot be read: `the card at <card URL> could not be read:` followed by the reason. A thing that is not a card reads `not an agent card`, or `not an agent card: no name`; a card the A2A SDK (`@a2a-js/sdk`) refuses reads in the A2A SDK's own words.
+2. A card listing no interface A2UIVerse speaks, naming what the card lists and what A2UIVerse speaks: `the card lists no interface A2UIVerse speaks: it lists GRPC at A2A 1.0 and HTTP+JSON at A2A 1.0; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x`. A card that lists none at all reads `the card lists no interface`. The request goes to the first interface in your card's order that A2UIVerse speaks.
 
 **From A2UIVerse's Publish.** If you run A2UIVerse, you can publish from Publish, on the page over its canvas, instead of this command line: claim a name there, or sign in with the name and the token from your publisher file, then hand it the folders `pack` wrote and the file `preview` captured. Packing and the preview stay here, on your terminal.
 
@@ -154,43 +159,44 @@ In `index.js`, `import {useState} from 'react'` has become a read from `__a2uive
 ## Developing Stellify
 
 ```bash
-pnpm --filter @a2uiverse/stellify build       # dist/: index.js and cli.js with the sdk and the smoke transport inlined, sharing shared.js; declarations
+pnpm --filter @a2uiverse/stellify build       # dist/: index.js and cli.js with the sdk, the smoke transport and the card package inlined, sharing shared.js; declarations
 pnpm --filter @a2uiverse/stellify test        # vitest over the fixture catalog, a scripted agent and a scripted marketplace
 ```
 
-`dist/` is committed, because a git install sees no workspace siblings. The build ships with two workspace packages inlined and needs no build step of its own: the sdk, and the smoke transport ([`packages/smoke-transport`](../smoke-transport/README.md), the smoke request's transport and the fetch of the live card, which the marketplace uses too). Its runtime dependencies come from npm: esbuild; the A2A SDK, `@a2a-js/sdk`, pinned at exactly `1.3.0`; and the sdk's own, `@a2ui/web_core`, zod and ajv, at the sdk's versions. A test holds each equal to the version the inlined package declares.
+`dist/` is committed, because a git install sees no workspace siblings. The build ships with three workspace packages inlined and needs no build step of its own: the sdk; the smoke transport ([`packages/smoke-transport`](../smoke-transport/README.md), the smoke request's transport, which the marketplace uses too); and the card package ([`packages/card`](../card/README.md), the fetch of the live card and its one reading, which every process of the platform uses). Its runtime dependencies come from npm: esbuild; the A2A SDK, `@a2a-js/sdk`, pinned at exactly `1.3.0`; and the sdk's own, `@a2ui/web_core`, zod and ajv, at the sdk's versions. A test holds each equal to the version the inlined package declares.
 
 The A2A SDK stays outside the build until a patch to it first alters how an agent is reached. A pnpm patch reaches installs of this workspace alone, so the change that carries such a patch also moves the A2A SDK into `dist/`, and the build a vendor installs carries the patch.
 
-`pnpm verify` at the root rebuilds `dist/` and fails on any difference. After editing `src/`, the sdk or the smoke transport, run `build` and commit the result.
+`pnpm verify` at the root rebuilds `dist/` and fails on any difference. After editing `src/`, the sdk, the smoke transport or the card package, run `build` and commit the result.
 
-The tests pack the fixture catalog in `test/fixtures` and drive the marketplace verbs against two fakes, each recording what it received so the tests assert on the wire: an in-process agent on A2A 0.3 scripted per turn, the smoke transport's fake agent with Stellify's own cards and paints, and a marketplace scripted per route. The round trip against the real marketplace is run by hand, and by the launcher under `--publish`.
+The tests pack the fixture catalog in `test/fixtures` and drive the marketplace verbs against fakes, each recording what it received so the tests assert on the wire: an in-process agent on A2A 0.3 scripted per turn, the smoke transport's fake agent with Stellify's own cards and paints; the smoke transport's fake agent on A2A 1.0; and a marketplace scripted per route. The round trip against the real marketplace is run by hand, and by the launcher under `--publish`.
 
 <details>
 <summary>Where things are</summary>
 
-| Concern                                                      | File                                                   |
-| ------------------------------------------------------------ | ------------------------------------------------------ |
-| Pipeline and checks                                          | `src/pack.ts`                                          |
-| Bundler and the two rewrites                                 | `src/bundle.ts`                                        |
-| Artifact paths                                               | `src/layout.ts`                                        |
-| Stylesheet assets                                            | `src/stylesheets.ts`                                   |
-| Config file                                                  | `src/config.ts`                                        |
-| The package's entry and name                                 | `src/manifest.ts`                                      |
-| Writer                                                       | `src/write.ts`                                         |
-| The publisher file                                           | `src/publisher.ts`                                     |
-| The marketplace's routes over fetch                          | `src/marketplace.ts`                                   |
-| claim, publish, unpublish, list                              | `src/verbs.ts`                                         |
-| preview                                                      | `src/preview.ts`                                       |
-| The smoke request's transport and the fetch of the live card | `../smoke-transport/src/smokeRunner.ts`, `liveCard.ts` |
-| The credential's header                                      | `src/credential.ts`                                    |
-| The notices                                                  | `src/notices.ts`                                       |
-| A packed folder read                                         | `src/tree.ts`                                          |
-| Command line                                                 | `src/cli.ts`, `src/main.ts`                            |
-| The API and its types                                        | `src/index.ts`, `src/types.ts`                         |
-| The committed build                                          | `scripts/build.mjs`                                    |
-| Fixture catalog and dependency                               | `test/fixtures/`                                       |
-| The scripted agent and marketplace                           | `test/fakeAgent.ts`, `test/fakeMarketplace.ts`         |
+| Concern                                    | File                                           |
+| ------------------------------------------ | ---------------------------------------------- |
+| Pipeline and checks                        | `src/pack.ts`                                  |
+| Bundler and the two rewrites               | `src/bundle.ts`                                |
+| Artifact paths                             | `src/layout.ts`                                |
+| Stylesheet assets                          | `src/stylesheets.ts`                           |
+| Config file                                | `src/config.ts`                                |
+| The package's entry and name               | `src/manifest.ts`                              |
+| Writer                                     | `src/write.ts`                                 |
+| The publisher file                         | `src/publisher.ts`                             |
+| The marketplace's routes over fetch        | `src/marketplace.ts`                           |
+| claim, publish, unpublish, list            | `src/verbs.ts`                                 |
+| preview                                    | `src/preview.ts`                               |
+| The smoke request's transport              | `../smoke-transport/src/smokeRunner.ts`        |
+| The fetch of the live card and its reading | `../card/src/liveCard.ts`, `readCard.ts`       |
+| The credential's header                    | `src/credential.ts`                            |
+| The notices                                | `src/notices.ts`                               |
+| A packed folder read                       | `src/tree.ts`                                  |
+| Command line                               | `src/cli.ts`, `src/main.ts`                    |
+| The API and its types                      | `src/index.ts`, `src/types.ts`                 |
+| The committed build                        | `scripts/build.mjs`                            |
+| Fixture catalog and dependency             | `test/fixtures/`                               |
+| The scripted agent and marketplace         | `test/fakeAgent.ts`, `test/fakeMarketplace.ts` |
 
 </details>
 

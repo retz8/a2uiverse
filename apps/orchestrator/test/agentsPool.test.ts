@@ -157,7 +157,8 @@ describe('AgentsPool.dispatch', () => {
     expect(partsOf(last)[0]).toEqual(dataPart(A2UI_PART.data));
     expect(record.outcome).toBe('completed');
     expect(record.endState).toBe('TASK_STATE_COMPLETED');
-    expect(record.a2aVersion).toBe('0.3');
+    // The interface taken is the card's own, at the A2A version the card names (task-20.3 decision 11).
+    expect(record.a2aVersion).toBe('0.3.0');
     expect(record.binding).toBe('JSONRPC');
     expect(record.vendorContextId).toBeDefined();
     expect(record.vendorContextId).not.toBe('o-ctx');

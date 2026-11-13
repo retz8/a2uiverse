@@ -8,25 +8,22 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {useState} from 'react';
 import {screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type {IndexEntry, PublishedCard, UpdateState} from '@a2uiverse/sdk';
+import type {IndexEntry, UpdateState} from '@a2uiverse/sdk';
 import type {CatalogLoader} from '../../../catalogs/loader';
 import type {InstalledApp, LibraryApp} from '../../../orchestratorApi';
 import type {TrustedPageState} from '../../trail/trailStore';
 import {CATALOGS, renderWithShell} from '../../../../tests/helpers';
 import {createInstalledApps, InstalledAppsContext} from '../../installedApps';
+import {servedCard, type ServedCardFixture} from '../cardFixture';
 import {LibraryPage} from './LibraryPage';
 
 /** Over https: a sign-in window opens only there, localhost exempt. */
 const BASE = 'https://hub.test';
 
-const card = (name: string, more: Partial<PublishedCard> = {}): PublishedCard => ({
-  name,
-  description: `${name} does its thing.`,
-  url: `http://127.0.0.1:11001/${name}`,
-  version: '1.0.0',
-  skills: [],
-  ...more,
-});
+const card = servedCard;
+
+/** An installed app as the orchestrator serves it: its card as its agent served it. */
+type ServedApp = Omit<InstalledApp, 'card'> & {card: ServedCardFixture};
 
 const OAUTH = {
   securitySchemes: {
@@ -42,14 +39,14 @@ const OAUTH = {
     },
   },
   security: [{google: ['read']}],
-} as Partial<PublishedCard>;
+};
 
 const KEY = {
   securitySchemes: {shop: {type: 'apiKey', in: 'header', name: 'X-Key'}},
   security: [{shop: []}],
-} as Partial<PublishedCard>;
+};
 
-const installed = (id: string, name: string, more: Partial<InstalledApp> = {}): InstalledApp => ({
+const installed = (id: string, name: string, more: Partial<ServedApp> = {}): ServedApp => ({
   id,
   card: card(name),
   source: 'marketplace',
@@ -72,7 +69,7 @@ const at = (appId: string, more: Record<string, unknown>) =>
   ({appId, installedVersion: '1.0.0', ...more}) as UpdateState;
 
 interface Fake {
-  installed: InstalledApp[];
+  installed: ServedApp[];
   states: UpdateState[];
   accounts: LibraryApp[];
   listings: IndexEntry[];
@@ -468,6 +465,27 @@ describe('an app’s view', () => {
     await waitFor(() => expect(screen.queryByTestId('library-unreached-app')).toBeNull());
     expect(fake.checks).toBe(2);
     expect(screen.getByTestId('library-state')).toHaveTextContent('Up to date');
+  });
+
+  it('says an app that now connects in a way A2UIVerse can’t use, on its row and on its view (task-20.3 decision 14)', async () => {
+    fake.installed = fake.installed.map(app =>
+      app.id === 'shop-b' ? {...app, noInterface: true} : app,
+    );
+    renderWithShell(<Library initial={{page: 'appLibrary', app: 'shop-b'}} />);
+    const notice = await screen.findByTestId('library-no-interface');
+    expect(notice).toHaveTextContent('Shop B now connects in a way A2UIVerse can’t use.');
+    expect(screen.getByTestId('library-state')).toHaveTextContent(
+      'Connects in a way A2UIVerse can’t use',
+    );
+    expect(screen.queryByTestId('library-unreached-app')).toBeNull();
+    // Nothing drawn names a binding or a protocol version.
+    expect(document.body.textContent).not.toMatch(/JSON-?RPC|gRPC|A2A|interface/i);
+
+    fake.installed = fake.installed.map(app =>
+      app.id === 'shop-b' ? {...app, noInterface: false} : app,
+    );
+    await userEvent.click(within(notice).getByRole('button', {name: 'Check again'}));
+    await waitFor(() => expect(screen.queryByTestId('library-no-interface')).toBeNull());
   });
 
   it('says an app that isn’t installed, with the Store’s view of it (decision 5)', async () => {

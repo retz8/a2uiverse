@@ -1,10 +1,10 @@
-import type {InstalledCard} from '../src/registry/installedCard.js';
+import type {AgentCard as LegacyCard} from '@a2a-js/sdk-v0_3';
 import {describe, expect, test} from 'vitest';
 import {Router} from '../src/router/router.js';
 import {FakeEmbedder} from '@a2uiverse/embedder';
 import {cardUrlOf, testRegistry} from './registryFixture.js';
 
-function cardFor(name: string, description: string, id = name.toLowerCase()): InstalledCard {
+function cardFor(name: string, description: string, id = name.toLowerCase()): LegacyCard {
   return {
     name,
     description,
@@ -20,7 +20,7 @@ function cardFor(name: string, description: string, id = name.toLowerCase()): In
 }
 
 /** A router over apps installed through the registry; an undefined card is an agent down at startup. */
-async function routerWith(cards: Record<string, InstalledCard | undefined>, cap = 5) {
+async function routerWith(cards: Record<string, LegacyCard | undefined>, cap = 5) {
   const embedder = new FakeEmbedder();
   const apps = Object.entries(cards).map(([id, card]) => ({
     id,

@@ -12,6 +12,7 @@
 import {randomUUID} from 'node:crypto';
 import {mkdir, readdir, readFile, rename, rm, stat, writeFile} from 'node:fs/promises';
 import {dirname, join, relative, sep} from 'node:path';
+import type {ServedCard} from '@a2uiverse/card';
 import {
   ARTIFACT_DESCRIPTOR_FILE,
   validateArtifactDescriptor,
@@ -22,7 +23,6 @@ import {
   type ArtifactFiles,
   type IndexEntry,
   type PreviewDocument,
-  type PublishedCard,
 } from '@a2uiverse/sdk';
 
 /** The served subtree inside the state directory. */
@@ -57,7 +57,8 @@ export interface PublisherRecord {
 export interface UnpublishedApp {
   appId: string;
   versions: string[];
-  card: PublishedCard;
+  /** Its card at the last version, as its agent served it. */
+  card: ServedCard;
 }
 
 export interface Loaded {

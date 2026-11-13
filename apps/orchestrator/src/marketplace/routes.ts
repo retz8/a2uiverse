@@ -27,18 +27,19 @@
  */
 import {extname, join} from 'node:path';
 import express, {type Request, type RequestHandler, type Response, type Router} from 'express';
+import type {AgentCard} from '@a2a-js/sdk';
+import {readCard} from '@a2uiverse/card';
 import {
   aheadOfStore,
   SEARCH_QUERY_PARAM,
-  type CardWithExtensions,
   type Drift,
   type IndexEntry,
   type UpdateState,
 } from '@a2uiverse/sdk';
 import {logLine} from '../log.js';
-import {LIVE_CARD_TIMEOUT_MS, withTimeout} from '../timeout.js';
+import {LIVE_CARD_TIMEOUT_MS} from '../timeout.js';
 import type {DroppedEntry, MarketplaceClient} from '../registry/marketplace.js';
-import type {Registry, ResolveCard} from '../registry/registry.js';
+import type {FetchCard, Registry} from '../registry/registry.js';
 import {IMMUTABLE} from '../registry/api.js';
 import type {UpdateCheck} from '../registry/updates.js';
 import {callerOf} from '../writeGuard.js';
@@ -73,7 +74,7 @@ export function marketplaceRoutes({
   updates,
   artifacts,
   publisher,
-  resolveCard,
+  fetchCard,
   guard,
 }: {
   registry: Registry;
@@ -82,7 +83,7 @@ export function marketplaceRoutes({
   artifacts: ArtifactRelay;
   publisher: Publisher;
   /** Fetches an app's live card, as the registry does. */
-  resolveCard: ResolveCard;
+  fetchCard: FetchCard;
   /** The write guard: the JSON content type, then an allowed origin or the write token. */
   guard: RequestHandler;
 }): Router {
@@ -206,14 +207,13 @@ export function marketplaceRoutes({
    * does not read leaves the Store's flag.
    */
   const withLiveDrift = async (entry: IndexEntry): Promise<IndexEntry> => {
-    let card: CardWithExtensions & {version?: unknown};
+    let card: AgentCard;
     try {
-      card = (await withTimeout(resolveCard(entry.cardUrl), LIVE_CARD_TIMEOUT_MS)) as typeof card;
+      card = readCard(await fetchCard(entry.cardUrl, LIVE_CARD_TIMEOUT_MS));
     } catch {
       return entry;
     }
-    if (typeof card.version !== 'string') return entry;
-    const drift = aheadOfStore(entry, card as CardWithExtensions & {version: string});
+    const drift = aheadOfStore(entry, card);
     if (!drift.ok) return entry;
     const {aheadOfStore: flagged, ...rest} = entry;
     if (sameDrift(flagged, drift.value)) return entry;

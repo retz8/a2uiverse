@@ -9,6 +9,7 @@ import {
   BASIC_CATALOG_ID,
 } from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
+import {readCard} from '@a2uiverse/card';
 import {corpusDoc, FakeEmbedder} from '@a2uiverse/embedder';
 import {Registry} from '../src/registry/registry.js';
 import {
@@ -136,7 +137,7 @@ describe('install', () => {
       cards.hanging.add(cardUrlOf('http://127.0.0.1:11002'));
       const reopened = new Registry({
         stateDir,
-        resolveCard: cards.resolve,
+        fetchCard: cards.fetch,
         embedder: new FakeEmbedder(),
       });
       await reopened.load();
@@ -188,7 +189,7 @@ describe('install', () => {
     await writeFile(path, JSON.stringify(file));
     const reopened = new Registry({
       stateDir,
-      resolveCard: cards.resolve,
+      fetchCard: cards.fetch,
       embedder: new FakeEmbedder(),
     });
     await reopened.load();
@@ -200,7 +201,7 @@ describe('install', () => {
     const card = cardFor('http://127.0.0.1:11002', {name: 'Gmail'});
     await registry.install({appId: 'gmail', cardUrl: cards.serve(card), catalogs: []});
     expect(registry.routable().map(app => app.record.id)).toEqual(['gmail']);
-    expect(registry.card('gmail')).toEqual(card);
+    expect(registry.card('gmail')).toEqual(readCard(card));
   });
 
   test('installs persist: a registry opened over the same state directory holds them', async () => {
@@ -213,7 +214,7 @@ describe('install', () => {
     });
     const reopened = new Registry({
       stateDir,
-      resolveCard: cards.resolve,
+      fetchCard: cards.fetch,
       embedder: new FakeEmbedder(),
     });
     await reopened.load();
@@ -554,14 +555,14 @@ describe('startup', () => {
     const {cards, stateDir} = await fresh([{id: 'gmail', card: installed}]);
     const moved = cardFor('http://127.0.0.1:11022', {name: 'Gmail, renamed'});
     cards.cards.set('http://127.0.0.1:11002/.well-known/agent-card.json', moved);
-    const next = new Registry({stateDir, resolveCard: cards.resolve, embedder: new FakeEmbedder()});
+    const next = new Registry({stateDir, fetchCard: cards.fetch, embedder: new FakeEmbedder()});
     await next.load();
     await next.refreshCards();
     expect(next.get('gmail')).toMatchObject({
       displayName: 'Gmail, renamed',
       agentUrl: 'http://127.0.0.1:11022',
     });
-    expect(next.card('gmail')).toEqual(moved);
+    expect(next.card('gmail')).toEqual(readCard(moved));
     expect(next.installed()[0].card).toEqual(installed);
   });
 
@@ -570,8 +571,8 @@ describe('startup', () => {
     const {registry, cards} = await fresh([{id: 'gmail', card: installed}]);
     const moved = cardFor('http://127.0.0.1:11002', {name: 'Gmail, moved', catalogs: [GMAIL]});
     cards.cards.set('http://127.0.0.1:11002/.well-known/agent-card.json', moved);
-    expect(await registry.refetchLiveCard('gmail', 1_000)).toEqual(moved);
-    expect(registry.card('gmail')).toEqual(moved);
+    expect(await registry.refetchLiveCard('gmail', 1_000)).toEqual(readCard(moved));
+    expect(registry.card('gmail')).toEqual(readCard(moved));
     expect(registry.get('gmail').displayName).toBe('Gmail, moved');
     expect(registry.installed()[0].card).toEqual(installed);
   });
@@ -582,11 +583,11 @@ describe('startup', () => {
     const url = 'http://127.0.0.1:11002/.well-known/agent-card.json';
     cards.hanging.add(url);
     expect(await registry.refetchLiveCard('gmail', 20)).toBeUndefined();
-    expect(registry.card('gmail')).toEqual(installed);
+    expect(registry.card('gmail')).toEqual(readCard(installed));
     cards.hanging.delete(url);
     cards.cards.delete(url);
     expect(await registry.refetchLiveCard('gmail', 1_000)).toBeUndefined();
-    expect(registry.card('gmail')).toEqual(installed);
+    expect(registry.card('gmail')).toEqual(readCard(installed));
     expect(await registry.refetchLiveCard('nobody', 1_000)).toBeUndefined();
   });
 
@@ -594,7 +595,7 @@ describe('startup', () => {
     const installed = cardFor('http://127.0.0.1:11002', {name: 'Gmail'});
     const {cards, stateDir} = await fresh([{id: 'gmail', card: installed}]);
     cards.cards.clear();
-    const next = new Registry({stateDir, resolveCard: cards.resolve, embedder: new FakeEmbedder()});
+    const next = new Registry({stateDir, fetchCard: cards.fetch, embedder: new FakeEmbedder()});
     await next.load();
     await next.refreshCards();
     expect(next.card('gmail')).toBeNull();
@@ -603,12 +604,12 @@ describe('startup', () => {
       displayName: 'Gmail',
       agentUrl: 'http://127.0.0.1:11002',
     });
-    expect(next.storedCard('gmail')).toEqual(installed);
+    expect(next.storedCard('gmail')).toEqual(readCard(installed));
   });
 
   test('the platform’s card is indexed under shell, never listed as installed', async () => {
     const embedder = new FakeEmbedder();
-    const platformCard = cardFor('http://127.0.0.1:10001', {name: 'A2UIVerse'});
+    const platformCard = readCard(cardFor('http://127.0.0.1:10001', {name: 'A2UIVerse'}));
     const {registry} = await fresh([], {platformCard, embedder});
     await registry.refreshCards();
     expect(registry.list()).toEqual([]);
@@ -631,7 +632,7 @@ describe('startup', () => {
       await damage(stateDir, await idOf(artifact));
       const next = new Registry({
         stateDir,
-        resolveCard: cards.resolve,
+        fetchCard: cards.fetch,
         embedder: new FakeEmbedder(),
       });
       return next.load();

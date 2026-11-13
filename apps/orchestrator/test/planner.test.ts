@@ -4,7 +4,7 @@
  * a five-step budget per attempt, the Store's search beside the readers (task 15.4) — driven by
  * the AI SDK's mock model.
  */
-import type {InstalledCard} from '../src/registry/installedCard.js';
+import type {AgentCard as LegacyCard} from '@a2a-js/sdk-v0_3';
 import {createA2uiValidator} from '@a2uiverse/sdk';
 import {LAYOUT_SURFACE_KEEP_SET} from '@a2uiverse/shell-catalog/schema';
 import {MockLanguageModelV3} from 'ai/test';
@@ -42,7 +42,7 @@ type LanguageModelV3CallOptions = Parameters<DoGenerate>[0];
 type LanguageModelV3GenerateResult = Awaited<ReturnType<DoGenerate>>;
 
 function entry(appId: string, name: string, description: string): ShortlistEntry {
-  const card: InstalledCard = {
+  const card: LegacyCard = {
     name,
     description,
     version: '0.0.0',

@@ -8,6 +8,7 @@
  * record serves the plan check, the line with nothing to offer and the journal (task-15.4
  * decisions 3, 15).
  */
+import {readCard} from '@a2uiverse/card';
 import type {IndexEntry} from '@a2uiverse/sdk';
 import type {ToolCallRecord} from '../journal/types.js';
 import type {SearchLookup} from '../registry/marketplace.js';
@@ -50,20 +51,28 @@ export function storeSearch(deps: StoreSearchDeps): StoreSearch {
       return {
         apps: read.results
           .filter(({entry}) => !installed.has(entry.appId))
-          .map(({entry}) => storeApp(entry)),
+          .flatMap(({entry}) => {
+            // An entry whose card does not read is left out of the answer.
+            try {
+              return [storeApp(entry)];
+            } catch {
+              return [];
+            }
+          }),
       };
     },
   };
 }
 
-/** One entry as the search answers it, from the card as published. */
+/** One entry as the search answers it, from the card as published, read; throws when it does not read. */
 export function storeApp(entry: IndexEntry): StoreApp {
+  const card = readCard(entry.card);
   return {
     appId: entry.appId,
-    name: entry.card.name,
+    name: card.name,
     publisher: entry.publisher,
-    description: entry.card.description,
-    skills: (entry.card.skills ?? []).map(skill => ({
+    description: card.description,
+    skills: card.skills.map(skill => ({
       name: skill.name,
       description: skill.description,
       examples: skill.examples ?? [],

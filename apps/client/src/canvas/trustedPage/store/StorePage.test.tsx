@@ -14,10 +14,10 @@ import {
   type PreviewDocument,
   type UpdateState,
 } from '@a2uiverse/sdk';
-import type {StoreListing} from '../../../orchestratorApi';
 import type {TrustedPageState} from '../../trail/trailStore';
 import {CATALOGS, renderWithShell} from '../../../../tests/helpers';
 import {createInstalledApps, InstalledAppsContext} from '../../installedApps';
+import {servedCard} from '../cardFixture';
 import {StorePage} from './StorePage';
 
 const BASE = 'http://hub.test';
@@ -26,13 +26,10 @@ const entry = (appId: string, name: string, more: Partial<IndexEntry> = {}): Ind
   appId,
   publisher: 'a2uiverse-apps',
   cardUrl: `http://127.0.0.1:11001/${appId}/.well-known/agent-card.json`,
-  card: {
-    name,
-    description: `${name} does its thing.`,
+  card: servedCard(name, {
     url: `http://127.0.0.1:11001/${appId}`,
-    version: '1.0.0',
     skills: [{name: 'main', description: '', examples: [`What does ${name} have?`]}],
-  },
+  }),
   catalogs: {},
   versions: ['1.0.0'],
   publishedAt: '2026-10-03T10:00:00Z',
@@ -41,11 +38,9 @@ const entry = (appId: string, name: string, more: Partial<IndexEntry> = {}): Ind
 });
 
 const LINEAR = entry('linear', 'Linear', {
-  card: {
-    name: 'Linear',
+  card: servedCard('Linear', {
     description: 'Shows the user’s Linear issues.',
     url: 'http://127.0.0.1:11005',
-    version: '1.0.0',
     skills: [{name: 'issues', description: '', examples: ['What’s assigned to me in Linear?']}],
     securitySchemes: {
       linear: {
@@ -60,7 +55,7 @@ const LINEAR = entry('linear', 'Linear', {
       },
     },
     security: [{linear: ['read']}],
-  },
+  }),
 });
 const SHOP_A = entry('shop-a', 'Shop A');
 const GMAIL = entry('gmail', 'Gmail');
@@ -89,10 +84,17 @@ const preview = (appId: string, text: string): PreviewDocument => ({
   capturedAt: '2026-10-03T10:00:00Z',
 });
 
+/** A listing as the orchestrator serves it: its entry's card as its agent served it. */
+interface ServedListing {
+  entry: IndexEntry;
+  installed: boolean;
+  update?: UpdateState;
+}
+
 interface Fake {
-  listings: StoreListing[];
+  listings: ServedListing[];
   /** What a search answers, in rank order. */
-  search: StoreListing[];
+  search: ServedListing[];
   install: Record<string, unknown>;
   unreached: boolean;
   installs: string[];
@@ -136,7 +138,10 @@ beforeEach(() => {
         return json(
           app[2] === 'entry'
             ? listing
-            : preview(app[1]!, `${listing.entry.card.name}: Lumen X100 · $1,449`),
+            : preview(
+                app[1]!,
+                `${(listing.entry.card as {name: string}).name}: Lumen X100 · $1,449`,
+              ),
         );
       }
       if (path === '/registry/install' && init?.method === 'POST') {
@@ -423,6 +428,26 @@ describe('installing', () => {
       expect(screen.getByRole('button', {name: press})).toBeEnabled();
     },
   );
+
+  it('an app that connects in a way A2UIVerse can’t use is refused in those words, with no press (task-20.3 decision 16)', async () => {
+    fake.install = {
+      ok: false,
+      findings: ['the card lists no interface A2UIVerse speaks: it lists GRPC at A2A 1.0; …'],
+      cause: 'no-interface',
+    };
+    renderWithShell(<Store initial={{page: 'store', app: 'linear'}} />);
+    await userEvent.click(await screen.findByRole('button', {name: 'Install Linear'}));
+    await userEvent.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', {name: 'Install'}),
+    );
+    const refused = await screen.findByTestId('store-refused');
+    expect(refused).toHaveTextContent(
+      'Linear can’t be installed. It connects in a way A2UIVerse can’t use, so nothing was installed.',
+    );
+    expect(refused).not.toHaveTextContent(/GRPC|A2A|interface/);
+    expect(screen.getByRole('button', {name: 'Install'})).toBeDisabled();
+    expect(screen.queryByRole('button', {name: 'Try again'})).toBeNull();
+  });
 
   it('a refusal by the checks leaves Install off', async () => {
     fake.install = {ok: false, findings: ['…'], cause: 'checks'};

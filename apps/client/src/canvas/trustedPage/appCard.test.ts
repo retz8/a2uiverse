@@ -3,7 +3,10 @@
  * questions to try, what signing in will be, the listing's press, the sample's caption.
  */
 import {describe, expect, it} from 'vitest';
-import type {IndexEntry, PublishedCard, UpdateState} from '@a2uiverse/sdk';
+import type {AgentCard} from '@a2a-js/sdk';
+import {readCard} from '@a2uiverse/card';
+import type {UpdateState} from '@a2uiverse/sdk';
+import type {StoreEntry} from '../../orchestratorApi';
 import {
   bringsNewLook,
   dayOf,
@@ -14,14 +17,11 @@ import {
   tileLetter,
   tryAsking,
 } from './appCard';
+import {readCardFixture} from './cardFixture';
 
-const card = (more: Partial<PublishedCard> = {}): PublishedCard => ({
-  name: 'Linear',
-  description: 'Shows the user’s Linear issues.',
-  url: 'http://127.0.0.1:11005',
-  version: '1.0.0',
-  ...more,
-});
+/** Linear's card as its agent serves it for A2A 0.3, with `more`, read as the page holds it. */
+const card = (more: Parameters<typeof readCardFixture>[1] = {}): AgentCard =>
+  readCardFixture('Linear', {description: 'Shows the user’s Linear issues.', ...more});
 
 const LINEAR_SCHEMES = {
   linear: {
@@ -36,7 +36,7 @@ const LINEAR_SCHEMES = {
   },
 };
 
-const entry = (c: PublishedCard = card()): IndexEntry => ({
+const entry = (c: AgentCard = card()): StoreEntry => ({
   appId: 'linear',
   publisher: 'a2uiverse-apps',
   cardUrl: 'http://127.0.0.1:11005/.well-known/agent-card.json',
@@ -102,6 +102,35 @@ describe('what signing in will be (task-14.7 decision 10)', () => {
     expect(
       signInOf(card({securitySchemes: {m: {type: 'mutualTLS'}}, security: [{m: []}]})),
     ).toEqual({kind: 'unsupported'});
+  });
+
+  it('reads a card written in A2A 1.0’s shape the same way, the device-code flow not supported here', () => {
+    const current = (flow: string) =>
+      readCard({
+        name: 'Linear',
+        version: '1.0.0',
+        supportedInterfaces: [
+          {url: 'http://127.0.0.1:11005', protocolBinding: 'JSONRPC', protocolVersion: '1.0'},
+        ],
+        securitySchemes: {
+          linear: {
+            oauth2SecurityScheme: {
+              flows: {
+                [flow]: {
+                  tokenUrl: 'https://linear.example/token',
+                  scopes: {read: 'See your issues'},
+                },
+              },
+            },
+          },
+        },
+        securityRequirements: [{schemes: {linear: {list: ['read']}}}],
+      });
+    expect(signInOf(current('authorizationCode'))).toEqual({
+      kind: 'signIn',
+      words: ['See your issues'],
+    });
+    expect(signInOf(current('deviceCode'))).toEqual({kind: 'unsupported'});
   });
 
   it('words a card update’s new permissions from the published card', () => {

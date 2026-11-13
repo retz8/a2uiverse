@@ -4,8 +4,9 @@ import express, {type Express} from 'express';
 import {AGENT_CARD_PATH} from '@a2a-js/sdk';
 import {DefaultRequestHandler, InMemoryTaskStore} from '@a2a-js/sdk/server';
 import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
+import {fetchLiveCard} from '@a2uiverse/card';
 import {Sources, type AccountStore} from './accounts/accounts.js';
-import {buildAgentCard, indexedPlatformCard} from './agentCard.js';
+import {buildAgentCard} from './agentCard.js';
 import {AgentsPool} from './agentsPool/agentsPool.js';
 import {Compositions} from './composition/compositions.js';
 import {STEP_QUIET_MS, type Config} from './config.js';
@@ -23,9 +24,8 @@ import {MARKETPLACE_ROUTE_PREFIX, marketplaceRoutes} from './marketplace/routes.
 import type {PlatformReaders} from './planner/readers.js';
 import {storeSearch, type StoreSearch} from './planner/storeSearch.js';
 import {registryRoutes, REGISTRY_ROUTE_PREFIX} from './registry/api.js';
-import type {InstalledCard} from './registry/installedCard.js';
 import {MarketplaceClient} from './registry/marketplace.js';
-import {Registry, type ResolveCard} from './registry/registry.js';
+import {Registry, type FetchCard} from './registry/registry.js';
 import {issueWriteToken} from './registry/token.js';
 import {UpdateTile} from './registry/updateTile.js';
 import {UpdateCheck, type CheckOutcome} from './registry/updates.js';
@@ -72,7 +72,8 @@ export interface OrchestratorOverrides {
   planner?: Planner;
   /** The Synthesizer's text seam: the model behind it, not the loop. */
   synthesisModel?: SynthesisModel;
-  resolveCard?: ResolveCard;
+  /** The fetch of a live card, in place of the card package's: a test's seam. */
+  fetchCard?: FetchCard;
   /** The quiet after a step before its walk starts; `STEP_QUIET_MS` unless a test shortens it. */
   stepQuietMs?: number;
   /** The accounts held per app, in place of the vault's (task-12.4 decision 3): a test's seam. */
@@ -104,17 +105,20 @@ export function buildOrchestrator({
   // The registry is the orchestrator's persisted state, booted from alone (task-11.4 decision 8).
   // One platform card, two readers (phase-6 decision 1): the client fetches it; the Registry
   // indexes it.
-  const resolveCard = overrides?.resolveCard ?? defaultResolveCard();
+  // The one fetch of the live card (task-20.3 decision 3): a card kept as its agent served it.
+  const fetchCard: FetchCard =
+    overrides?.fetchCard ?? ((cardUrl, timeoutMs) => fetchLiveCard(cardUrl, {timeoutMs}));
   const marketplace = new MarketplaceClient({
     url: config.marketplaceUrl,
     timeoutMs: config.marketplaceTimeoutMs,
   });
   const registry = new Registry({
     stateDir: config.stateDir,
-    resolveCard,
+    fetchCard,
+    cardTimeoutMs: config.cardTimeoutMs,
     embedder,
     journal,
-    platformCard: indexedPlatformCard(card),
+    platformCard: card,
     marketplace,
   });
   const updates = new UpdateCheck({registry, marketplace});
@@ -212,7 +216,7 @@ export function buildOrchestrator({
       registry,
       marketplace,
       updates,
-      resolveCard,
+      fetchCard,
       artifacts: new ArtifactRelay(marketplace),
       publisher,
       guard,
@@ -239,7 +243,7 @@ export function buildOrchestrator({
         };
       },
       app: appId => {
-        const card = registry.card(appId) ?? registry.storedCard(appId);
+        const card = registry.dialCard(appId);
         return {
           name: registry.displayName(appId),
           ...(card?.documentationUrl ? {documentationUrl: card.documentationUrl} : {}),
@@ -339,19 +343,4 @@ function synthesisModelFrom(config: Config): SynthesisModel {
     model: getModel({seam: 'Synthesizer', keys: config, modelId: config.synthesizerModelId}),
     reasoning: reasoningFor(config.synthesizerEffort),
   });
-}
-
-/**
- * Fetches a card from its full URL: the path is part of the URL, none appended. The card is kept
- * as its agent served it (task-20.1 decision 1), so the A2A SDK's resolver, which returns its own
- * translation of a card, is not what fetches it.
- */
-function defaultResolveCard(): ResolveCard {
-  return async url => {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch Agent Card from ${url}: ${response.status}`);
-    }
-    return (await response.json()) as InstalledCard;
-  };
 }

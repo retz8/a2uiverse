@@ -20,6 +20,9 @@ import {
   readSearchResponse,
   readUnpublishRequest,
   readUpdateState,
+  NO_INTERFACE_WORDS,
+  noInterfaceNotice,
+  publishedVersionOf,
   refusalOf,
   searchPath,
   updateWords,
@@ -125,23 +128,37 @@ describe('the index entry', () => {
     expect(validateIndexEntry(flagged).ok).toBe(true);
   });
 
-  test('a missing field, an unknown field, a card without a version, a bad artifact id', () => {
+  test('a missing field, an unknown field, a card that is no object, a bad artifact id', () => {
     const errors = (input: unknown) => {
       const result = validateIndexEntry(input);
       return result.ok ? [] : result.errors;
     };
     expect(errors({...entry, publisher: undefined})[0]).toMatch(/publisher/);
     expect(errors({...entry, extra: 1})[0]).toMatch(/extra/);
-    expect(errors({...entry, card: {...card, version: undefined}})[0]).toMatch(/version/);
+    expect(errors({...entry, card: 'a card'})[0]).toMatch(/card/);
     expect(errors({...entry, catalogs: {'cat/v1': 'not-a-hash'}})[0]).toMatch(/catalogs/);
   });
 
-  test('the card’s version is the last of versions, and a retired id is not among the catalogs', () => {
-    const result = validateIndexEntry({...entry, versions: ['1.1.0', '1.0.0']});
-    expect(result).toEqual({
-      ok: false,
-      errors: ['/versions: the last published version is "1.0.0", the card’s is "1.1.0"'],
-    });
+  test('nothing is required of the stored card: one in A2A 1.0’s shape, and one naming no field', () => {
+    const current = {
+      name: 'Shop A',
+      version: '1.1.0',
+      supportedInterfaces: [
+        {url: 'http://localhost:10100', protocolBinding: 'JSONRPC', protocolVersion: '1.0'},
+      ],
+    };
+    expect(validateIndexEntry({...entry, card: current}).ok).toBe(true);
+    expect(validateIndexEntry({...entry, card: {}}).ok).toBe(true);
+  });
+
+  test('the published version is the last of versions, whatever the stored card says', () => {
+    expect(publishedVersionOf(entry)).toBe('1.1.0');
+    const moved = {...entry, versions: ['1.1.0', '1.0.0']};
+    expect(validateIndexEntry(moved).ok).toBe(true);
+    expect(publishedVersionOf(moved)).toBe('1.0.0');
+  });
+
+  test('a retired id is not among the catalogs', () => {
     expect(validateIndexEntry({...entry, retired: ['cat/v1']})).toEqual({
       ok: false,
       errors: ['/retired: "cat/v1" is retired and among the catalogs'],
@@ -312,6 +329,12 @@ describe('the words of a refused install or update (task-14.7 decision 6, task-1
         rest: 'so nothing was installed.',
         press: 'retry',
       },
+      'no-interface': {
+        tone: 'bad',
+        lead: 'Shop B can’t be installed.',
+        rest: 'It connects in a way A2UIVerse can’t use, so nothing was installed.',
+        press: 'none',
+      },
       checks: {
         tone: 'bad',
         lead: 'Shop B can’t be installed.',
@@ -346,6 +369,17 @@ describe('the words of a refused install or update (task-14.7 decision 6, task-1
     expect(refusalOf('store-unreached', 'Shop B', 'update').rest).toBe('so nothing changed.');
     expect(refusalOf('unheard', 'Shop B', 'update').rest).toBe('so nothing changed.');
     expect(refusalOf('not-in-store', 'Shop B', 'update').rest).toBe('so nothing changed.');
+    expect(refusalOf('no-interface', 'Shop B', 'update')).toEqual({
+      tone: 'bad',
+      lead: 'Shop B can’t be updated.',
+      rest: 'It connects in a way A2UIVerse can’t use, so nothing changed.',
+      press: 'none',
+    });
+  });
+
+  test('an app the platform cannot reach, in the App Library’s words and on its view', () => {
+    expect(NO_INTERFACE_WORDS).toBe('Connects in a way A2UIVerse can’t use');
+    expect(noInterfaceNotice('Shop B')).toBe('Shop B now connects in a way A2UIVerse can’t use.');
   });
 });
 

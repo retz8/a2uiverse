@@ -568,9 +568,11 @@ export class OrchestratorExecutor implements AgentExecutor {
       // decision 2): the pool's check stops that dispatch and the slot takes the update tile.
       for (const {plan: slot} of state.slots.values()) {
         if (slot.source === SHELL_SOURCE_ID) continue;
-        if (this.#deps.updates?.catalogsChanged(parseSourceId(slot.source)?.appId ?? slot.source)) {
-          continue;
-        }
+        const slotApp = parseSourceId(slot.source)?.appId ?? slot.source;
+        // An app the platform cannot reach is asked no sign-in (task-20.3 decision 13): the
+        // pool's check stops its dispatch and the slot takes the failure tile.
+        if (!this.#deps.sources.reachable(slotApp)) continue;
+        if (this.#deps.updates?.catalogsChanged(slotApp)) continue;
         const standing = this.#deps.gate?.standing(slot.source);
         if (standing?.kind !== 'need') continue;
         this.#takeAuthority(state, slot.source, standing.need);
@@ -1237,6 +1239,8 @@ export class OrchestratorExecutor implements AgentExecutor {
     const merge = synthesisSlot(state);
     const pack = !state.mergeDecided && state.trigger !== undefined;
     const fromUpdate = slot.state === 'update';
+    // A Retry from the tile of an app the platform could not reach judges the app as it is now.
+    const fromNoInterface = slot.state === 'failed' && slot.failure?.cause === 'interface';
     // Resent from the update tile, the slot keeps its line until the answer lands; filled from an
     // offer by `useApp`, the offer it came from; from any other state, nothing (task-15.8 decision
     // 2).
@@ -1255,8 +1259,11 @@ export class OrchestratorExecutor implements AgentExecutor {
     this.#repaint([sink], state);
 
     // Judged afresh: the app's live card as it is now, not the one the run last fetched — an agent
-    // moved back to what the Store holds is called (task-16.11).
-    if (fromUpdate) await this.#deps.updates?.refetched(parseSourceId(source)?.appId ?? source);
+    // moved back to what the Store holds is called (task-16.11), and so is one that lists an
+    // interface the platform speaks again (task-20.3 decision 13).
+    if (fromUpdate || fromNoInterface) {
+      await this.#deps.updates?.refetched(parseSourceId(source)?.appId ?? source);
+    }
     state.redispatching.add(source);
     const arrived = await this.#redispatch(sink, state, source, signal).finally(() =>
       state.redispatching.delete(source),

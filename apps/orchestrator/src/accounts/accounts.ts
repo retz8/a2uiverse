@@ -1,4 +1,5 @@
-import type {InstalledCard} from '../registry/installedCard.js';
+import type {AgentCard} from '@a2a-js/sdk';
+import {asksSignIn} from '@a2uiverse/card';
 import {parseSourceId, sourceId, sourceName} from '@a2uiverse/sdk';
 import type {Registry} from '../registry/registry.js';
 
@@ -59,7 +60,7 @@ export class Sources {
       return held.map(({n, label}) => ({source: sourceId(appId, n), label}));
     }
     const card = this.#registry.storedCard(appId);
-    if (!asksSignIn(card)) return [{source: appId}];
+    if (!card || !asksSignIn(card)) return [{source: appId}];
     return [{source: sourceId(appId, this.#accounts.nextAccount(appId)), notSignedIn: true}];
   }
 
@@ -94,18 +95,16 @@ export class Sources {
     return sourceName(this.displayName(source), this.account(source));
   }
 
-  /** The app's card as installed; none when the app is not installed (task-15.4 decision 10). */
-  installedCard(appId: string): InstalledCard | undefined {
+  /** The app's card as installed, read; none when the app is not installed (task-15.4 decision 10). */
+  installedCard(appId: string): AgentCard | undefined {
     return this.#registry.storedCard(appId);
   }
-}
 
-/**
- * Whether the card asks for sign-in: a card-level `security` none of whose alternatives is empty.
- * Absent or empty, or with an empty alternative, nothing is needed.
- */
-export function asksSignIn(card: InstalledCard | null | undefined): boolean {
-  const security = card?.security;
-  if (!security || security.length === 0) return false;
-  return security.every(requirement => Object.keys(requirement).length > 0);
+  /**
+   * Whether the platform can reach the app (task-20.3 decision 13): the card a dispatch would dial
+   * from lists an interface the platform speaks. An app that is not installed is not judged here.
+   */
+  reachable(appId: string): boolean {
+    return !this.#registry.find(appId) || this.#registry.takenInterface(appId) !== undefined;
+  }
 }

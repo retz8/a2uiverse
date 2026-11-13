@@ -1,14 +1,22 @@
 import {randomUUID} from 'node:crypto';
 import {elapsedMs, logLine} from '../log.js';
-import {TaskState, taskStateToJSON, type Message, type Part} from '@a2a-js/sdk';
+import {
+  TaskState,
+  taskStateToJSON,
+  type AgentCard,
+  type AgentInterface,
+  type Message,
+  type Part,
+} from '@a2a-js/sdk';
 import {
   ClientFactory,
-  DefaultAgentCardResolver,
   JsonRpcTransportFactory,
   ServiceParameters,
   withA2AExtensions,
+  type AgentCardResolver,
   type Client,
 } from '@a2a-js/sdk/client';
+import {a2aVersionOf, cardToDial, noInterfaceFinding, spokenInterfaces} from '@a2uiverse/card';
 import type {FailureCause} from '@a2uiverse/shell-catalog/schema';
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
@@ -125,8 +133,10 @@ export class AgentsPool {
   readonly #options: AgentsPoolOptions;
   readonly #contexts: VendorContextMap;
   readonly #clients = new Map<string, Promise<Client>>();
-  /** The app each dispatch was sent to, as the registry held it then: what its cancel reaches. */
+  /** The app each dispatch was sent to, as the registry held it then. */
   readonly #sentTo = new WeakMap<DispatchRecord, AppRecord>();
+  /** The card and the interface each dispatch dialed: what its cancel reaches. */
+  readonly #dialed = new WeakMap<DispatchRecord, {card: AgentCard; taken: AgentInterface}>();
   // Keyed by client task id; a fan-out turn holds several handles under one key.
   readonly #inflight = new Map<string, Set<DispatchHandle>>();
   /**
@@ -286,6 +296,18 @@ export class AgentsPool {
         finalMessage = fault.message;
         yield relayEvent(event, relayCtx);
       } else {
+        // Reachability, judged before the agent is called, ahead of the update check and of any
+        // sign-in (task-20.3 decision 13): on the card the dispatch would dial from, the first
+        // interface in its order that the platform speaks.
+        const dial = this.#registry.dialCard(app.id);
+        const taken = dial ? spokenInterfaces(dial)[0] : undefined;
+        if (!dial || !taken) {
+          finish('failed', {
+            error: dial ? noInterfaceFinding(dial) : `app ${appId} has no card`,
+            cause: 'interface',
+          });
+          return;
+        }
         // The update check before dispatch (task-15.5 decisions 1 to 3): an app whose live card
         // names nothing it is installed with is not called, before any sign-in is judged.
         const updates = this.#options.updates;
@@ -309,10 +331,12 @@ export class AgentsPool {
         // A live card asking more than the account meets, once the installed card is met.
         if (updates?.permissionChanged(source) && (await stopped('permission'))) return;
         let headers = prepared?.headers ?? {};
-        const client = await this.#connect(app);
-        // The interface the SDK chose from the card (task-20.1 decision 5).
-        record.a2aVersion = client.protocolVersion;
-        record.binding = client.transport.protocolName;
+        const client = await this.#connect(dial, taken);
+        // The interface the platform took from the card (task-20.1 decision 5; task-20.3
+        // decision 11).
+        record.a2aVersion = a2aVersionOf(taken);
+        record.binding = taken.protocolBinding;
+        this.#dialed.set(record, {card: dial, taken});
         // The catalog each of the source's surfaces was created in: its options are what a
         // painted value is matched by.
         const catalogs = this.#surfaceCatalogs(turn.clientContextId, source);
@@ -442,7 +466,7 @@ export class AgentsPool {
             `✗ ${source} task=${turn.clientTaskId} painted a credential input: ${found.component}, matching ${JSON.stringify(found.term)}`,
           );
           if (sendTaskId !== undefined && !foundOnTerminal) {
-            this.#cancelTask(source, app, record, sendTaskId);
+            this.#cancelTask(source, {card: dial, taken}, record, sendTaskId);
           }
           if (shown.length > 0) yield relayEvent(takeDown(shown), relayCtx);
           if (send > 0) {
@@ -488,9 +512,7 @@ export class AgentsPool {
           cause: 'catalog',
         });
       } else if (credentialRefused) {
-        const continueUrl = continueUrlOf(
-          this.#registry.card(app.id) ?? this.#registry.storedCard(app.id),
-        );
+        const continueUrl = continueUrlOf(this.#registry.dialCard(app.id));
         if (continueUrl !== undefined) record.continueUrl = continueUrl;
         finish('failed', {
           error: 'painted a credential input, and again after the repair',
@@ -557,21 +579,26 @@ export class AgentsPool {
    */
   #cancelVendor(source: string, record: DispatchRecord): void {
     const id = record.vendorTaskId;
-    const app = this.#sentTo.get(record);
+    const dialed = this.#dialed.get(record);
     if (
       !id ||
-      !app ||
+      !dialed ||
       record.fault === 'fail' ||
       record.fault === 'hang' ||
       record.fault === 'refuse'
     )
       return;
-    this.#cancelTask(source, app, record, id);
+    this.#cancelTask(source, dialed, record, id);
   }
 
   /** A2A's cancel for one vendor task, fire and forget. */
-  #cancelTask(source: string, app: AppRecord, record: DispatchRecord, id: string): void {
-    void this.#connect(app)
+  #cancelTask(
+    source: string,
+    dialed: {card: AgentCard; taken: AgentInterface},
+    record: DispatchRecord,
+    id: string,
+  ): void {
+    void this.#connect(dialed.card, dialed.taken)
       .then(client => client.cancelTask({tenant: '', id, metadata: undefined}))
       .then(
         () => logLine(`✗ ${source} task=${record.clientTaskId} cancel sent`),
@@ -592,14 +619,19 @@ export class AgentsPool {
   }
 
   /**
-   * A client for the app's agent, from this run's card — the stored one when the agent was down at
-   * startup — so a dispatch fetches no card of its own (task-11.4 decision 8). The card is handed
-   * to the SDK as its agent served it (task-20.1 decision 1): the SDK's 0.3 layer reads a card
-   * written for A2A 0.3 and speaks 0.3 to its agent. JSON-RPC is the one binding spoken.
+   * A client for the app's agent at the one interface the platform took from its card (task-20.3
+   * decision 11): the read card listing that interface alone is handed to the A2A SDK, which
+   * dials it — its 0.3 layer for an interface on A2A 0.3 — so the card's order holds inside one
+   * binding too. A dispatch fetches no card of its own (task-11.4 decision 8).
    */
-  #connect(app: AppRecord): Promise<Client> {
-    const {agentUrl} = app;
-    let pending = this.#clients.get(agentUrl);
+  #connect(card: AgentCard, taken: AgentInterface): Promise<Client> {
+    const key = JSON.stringify([
+      taken.url,
+      taken.protocolBinding,
+      taken.protocolVersion,
+      taken.tenant,
+    ]);
+    let pending = this.#clients.get(key);
     if (!pending) {
       const base = this.#options.fetchImpl ?? fetch;
       // A 401 becomes an error of its own, thrown out through the A2A client to the dispatch
@@ -612,27 +644,28 @@ export class AgentsPool {
         }
         return response;
       };
-      const legacyCompat = {enabled: true};
-      const cardResolver = new DefaultAgentCardResolver({fetchImpl, legacyCompat});
       const factory = new ClientFactory({
-        transports: [new JsonRpcTransportFactory({fetchImpl, legacyCompat})],
-        cardResolver,
+        transports: [new JsonRpcTransportFactory({fetchImpl, legacyCompat: {enabled: true}})],
+        cardResolver: NO_RESOLVER,
       });
-      const card = this.#registry.card(app.id) ?? this.#registry.storedCard(app.id);
-      const created = card
-        ? Promise.resolve()
-            .then(() => cardResolver.normalizeAgentCard(card))
-            .then(read => factory.createFromAgentCard(read))
-        : factory.createFromUrl(agentUrl);
-      pending = created.catch(err => {
-        this.#clients.delete(agentUrl);
+      pending = factory.createFromAgentCard(cardToDial(card, taken)).catch(err => {
+        this.#clients.delete(key);
         throw err;
       });
-      this.#clients.set(agentUrl, pending);
+      this.#clients.set(key, pending);
     }
     return pending;
   }
 }
+
+/**
+ * The platform reads a card itself and hands the A2A SDK one already read, so the A2A SDK
+ * resolves none and normalizes none: its own normalizing reads an in-memory card with sign-in
+ * schemes over again as JSON and drops them.
+ */
+const NO_RESOLVER: AgentCardResolver = {
+  resolve: () => Promise.reject(new Error('the dispatch fetches no card')),
+};
 
 /**
  * The vendor-bound message with the app's own entitlement as its A2UI client capabilities

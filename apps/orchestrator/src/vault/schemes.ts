@@ -3,13 +3,13 @@
  * a card asks for. A credential travels only as an HTTP header (phase-12 decision 4): OAuth with
  * the authorization-code flow and OpenID Connect against a server the vault can register with;
  * `http` bearer and `apiKey` in a header, through the token page. Anything else is not supported
- * here. A card's `security` is an OR of ANDs; one alternative naming only supported schemes makes
- * it usable, and the first such, in the card's order, is followed.
+ * here. A card's sign-in requirements are an OR of ANDs; one alternative naming only supported
+ * schemes makes it usable, and the first such, in the card's order, is followed. The card is read
+ * in A2A 1.0's shape, whichever A2A version it was written in (task-20.3 decision 1).
  */
-import type {InstalledCard} from '../registry/installedCard.js';
+import type {AgentCard, SecurityScheme} from '@a2a-js/sdk';
+import {signInAlternatives} from '@a2uiverse/card';
 import type {CredentialKind} from './store.js';
-
-type Scheme = NonNullable<InstalledCard['securitySchemes']>[string];
 
 /** A scheme the vault can sign in with, read off the card. */
 export type SupportedScheme =
@@ -30,7 +30,7 @@ export type SupportedScheme =
       description?: string;
     };
 
-/** One alternative of the card's `security`, read: a scheme key → the scope keys it asks. */
+/** One alternative of the card's sign-in requirements: a scheme key → the scope keys it asks. */
 export type Requirement = Record<string, string[]>;
 
 /** What the card asks, as the vault reads it. */
@@ -44,31 +44,43 @@ export type CardNeed =
 /** The scheme read, or undefined when the vault cannot sign in with it. */
 export function supportedScheme(
   key: string,
-  scheme: Scheme | undefined,
+  scheme: SecurityScheme | undefined,
 ): SupportedScheme | undefined {
-  if (!scheme) return undefined;
-  switch (scheme.type) {
-    case 'oauth2': {
-      const flow = scheme.flows?.authorizationCode;
-      if (!flow) return undefined;
+  const declared = scheme?.scheme;
+  switch (declared?.$case) {
+    case 'oauth2SecurityScheme': {
+      // The authorization-code flow alone; the device-code flow waits for 20.6.
+      const flow = declared.value.flows?.flow;
+      if (flow?.$case !== 'authorizationCode') return undefined;
       const metadataUrl =
-        scheme.oauth2MetadataUrl ?? wellKnown(flow.authorizationUrl, 'oauth-authorization-server');
+        declared.value.oauth2MetadataUrl ||
+        wellKnown(flow.value.authorizationUrl, 'oauth-authorization-server');
       if (!metadataUrl) return undefined;
-      return {key, kind: 'oauth', metadataUrl, openId: false, words: {...(flow.scopes ?? {})}};
+      return {key, kind: 'oauth', metadataUrl, openId: false, words: {...flow.value.scopes}};
     }
-    case 'openIdConnect':
-      return {key, kind: 'oauth', metadataUrl: scheme.openIdConnectUrl, openId: true, words: {}};
-    case 'http':
-      return scheme.scheme?.toLowerCase() === 'bearer'
-        ? {key, kind: 'bearer', ...(scheme.description ? {description: scheme.description} : {})}
+    case 'openIdConnectSecurityScheme':
+      return {
+        key,
+        kind: 'oauth',
+        metadataUrl: declared.value.openIdConnectUrl,
+        openId: true,
+        words: {},
+      };
+    case 'httpAuthSecurityScheme':
+      return declared.value.scheme.toLowerCase() === 'bearer'
+        ? {
+            key,
+            kind: 'bearer',
+            ...(declared.value.description ? {description: declared.value.description} : {}),
+          }
         : undefined;
-    case 'apiKey':
-      return scheme.in === 'header' && scheme.name
+    case 'apiKeySecurityScheme':
+      return declared.value.location === 'header' && declared.value.name
         ? {
             key,
             kind: 'apiKey',
-            header: scheme.name,
-            ...(scheme.description ? {description: scheme.description} : {}),
+            header: declared.value.name,
+            ...(declared.value.description ? {description: declared.value.description} : {}),
           }
         : undefined;
     default:
@@ -77,20 +89,20 @@ export function supportedScheme(
 }
 
 /**
- * What the card asks. An absent or empty `security`, or an empty alternative, asks nothing. An
- * alternative is usable when it names exactly one scheme the vault supports; one naming two at
- * once — a credential of each on one request — is beyond the vault.
+ * What the card asks. No requirement, or an empty alternative, asks nothing. An alternative is
+ * usable when it names exactly one scheme the vault supports; one naming two at once — a
+ * credential of each on one request — is beyond the vault.
  */
-export function cardNeed(card: InstalledCard | null | undefined): CardNeed {
-  const security = card?.security;
-  if (!security || security.length === 0) return {kind: 'none'};
+export function cardNeed(card: AgentCard | null | undefined): CardNeed {
+  const security = card ? signInAlternatives(card) : [];
+  if (security.length === 0) return {kind: 'none'};
   if (security.some(requirement => Object.keys(requirement).length === 0)) return {kind: 'none'};
   const alternatives: {requirement: Requirement; scheme: SupportedScheme}[] = [];
   for (const requirement of security) {
     const keys = Object.keys(requirement);
     if (keys.length !== 1) continue;
     const key = keys[0]!;
-    const scheme = supportedScheme(key, card?.securitySchemes?.[key]);
+    const scheme = supportedScheme(key, card?.securitySchemes[key]);
     if (scheme) alternatives.push({requirement: {[key]: [...(requirement[key] ?? [])]}, scheme});
   }
   return alternatives.length === 0 ? {kind: 'unsupported'} : {kind: 'signIn', alternatives};
@@ -98,10 +110,10 @@ export function cardNeed(card: InstalledCard | null | undefined): CardNeed {
 
 /** The scheme the card declares under `key`, when the vault supports it. */
 export function schemeOf(
-  card: InstalledCard | null | undefined,
+  card: AgentCard | null | undefined,
   key: string,
 ): SupportedScheme | undefined {
-  return supportedScheme(key, card?.securitySchemes?.[key]);
+  return supportedScheme(key, card?.securitySchemes[key]);
 }
 
 /** The scope keys in the card's words for the scheme; a key with no words is left out. */

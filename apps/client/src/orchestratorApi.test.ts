@@ -1,5 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {artifactIdOf} from '@a2uiverse/sdk';
+import {servedCard} from './canvas/trustedPage/cardFixture';
 import {
   checkUpdates,
   claimPublisher,
@@ -7,7 +8,9 @@ import {
   publishApp,
   readAccounts,
   readInstalled,
+  readInstalledApps,
   readPublisher,
+  readStoreEntry,
   readStoreIndex,
   renameAccount,
   signOutAccount,
@@ -74,9 +77,93 @@ describe('the page’s reads are bounded (task-14.11 decision 26)', () => {
   });
 });
 
+describe('a card is read where it arrives (task-20.3 decision 6)', () => {
+  /** A card in A2A 1.0's shape, as its agent serves it. */
+  const current = {
+    name: 'Shop B',
+    description: 'Cameras.',
+    version: '2.0.0',
+    supportedInterfaces: [
+      {url: 'http://127.0.0.1:12002/a2a', protocolBinding: 'JSONRPC', protocolVersion: '1.0'},
+    ],
+    skills: [
+      {id: 'stock', name: 'Stock', description: 'In stock.', tags: [], examples: ['Any Z6?']},
+    ],
+  };
+  const entryOf = (appId: string, card: unknown, version: string) => ({
+    appId,
+    publisher: 'northlight',
+    cardUrl: `http://127.0.0.1:12002/${appId}/.well-known/agent-card.json`,
+    card,
+    catalogs: {},
+    versions: [version],
+    publishedAt: '2026-10-03T10:00:00Z',
+    retired: [],
+  });
+  const serve = (routes: Record<string, unknown>) =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: unknown) => {
+        const path = new URL(String(input)).pathname;
+        return path in routes ? json(routes[path]) : json({}, 404);
+      }),
+    );
+
+  it('the installed apps: each stored card read, whichever A2A version it was written in, beside what the list says of it', async () => {
+    serve({
+      '/registry/apps.json': [
+        {id: 'linear', card: servedCard('Linear', {version: '0.2.0'}), reachable: true},
+        {id: 'shop-b', card: current, reachable: true, noInterface: true},
+      ],
+    });
+    const apps = await readInstalledApps(BASE);
+    expect(apps.map(app => [app.id, app.card.name, app.card.version, app.noInterface])).toEqual([
+      ['linear', 'Linear', '0.2.0', undefined],
+      ['shop-b', 'Shop B', '2.0.0', true],
+    ]);
+    expect(apps[0]!.card.supportedInterfaces[0]).toMatchObject({
+      protocolBinding: 'JSONRPC',
+      protocolVersion: '0.3.0',
+    });
+    expect(apps[1]!.card.skills[0]!.examples).toEqual(['Any Z6?']);
+  });
+
+  it('the Store’s listings: each entry’s card read, one whose card does not read left out', async () => {
+    serve({
+      '/marketplace/index.json': [
+        {entry: entryOf('linear', servedCard('Linear'), '1.0.0'), installed: true},
+        {entry: entryOf('shop-b', current, '2.0.0'), installed: false},
+        {entry: entryOf('broken', {name: 'Broken', url: 'http://x'}, '1.0.0'), installed: false},
+      ],
+    });
+    const read = await readStoreIndex(BASE);
+    expect(read.ok && read.value.map(l => [l.entry.appId, l.entry.card.name])).toEqual([
+      ['linear', 'Linear'],
+      ['shop-b', 'Shop B'],
+    ]);
+  });
+
+  it('one app’s listing whose card does not read is an answer that does not read', async () => {
+    serve({
+      '/marketplace/apps/broken/entry.json': {
+        entry: entryOf('broken', {name: 'Broken', url: 'http://x'}, '1.0.0'),
+        installed: false,
+      },
+      '/marketplace/apps/shop-b/entry.json': {
+        entry: entryOf('shop-b', current, '2.0.0'),
+        installed: false,
+      },
+    });
+    expect(await readStoreEntry(BASE, 'broken')).toEqual({ok: false, reason: 'malformed'});
+    const read = await readStoreEntry(BASE, 'shop-b');
+    expect(read.ok && read.value.entry.card.version).toBe('2.0.0');
+  });
+});
+
 describe('a write that gets no answer is read back, never sent again (task-14.11 decision 40)', () => {
   const CATALOG = 'https://example.com/linear/catalog.json';
-  const card = (version: string) => ({name: 'Linear', version});
+  /** Linear's card as its agent serves it: the page reads it where it arrives. */
+  const card = (version: string) => servedCard('Linear', {version});
 
   /** The page's fetch: every write left unanswered, each read answered from `reads` by its path. */
   function tunnel(reads: Record<string, () => unknown>) {
@@ -98,7 +185,12 @@ describe('a write that gets no answer is read back, never sent again (task-14.11
 
   it('an update is done when the app is installed as the Store lists it now', async () => {
     const listed = {
-      entry: {appId: 'linear', card: card('0.2.0'), catalogs: {[CATALOG]: 'sha256-b'}},
+      entry: {
+        appId: 'linear',
+        card: card('0.2.0'),
+        catalogs: {[CATALOG]: 'sha256-b'},
+        versions: ['0.1.0', '0.2.0'],
+      },
     };
     const installed = (version: string, build: string) => [
       {id: 'linear', card: card(version), catalogs: {[CATALOG]: build}},
@@ -178,6 +270,7 @@ describe('a write that gets no answer is read back, never sent again (task-14.11
       appId: 'linear',
       card: card('0.2.0'),
       catalogs: {[CATALOG]: handed},
+      versions: ['0.2.0'],
     };
     tunnel({
       '/marketplace/publisher.json': () => ({

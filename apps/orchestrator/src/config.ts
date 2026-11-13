@@ -56,6 +56,13 @@ export interface Config {
   marketplaceUrl: string;
   /** Every request to the marketplace has this long (`A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS`, task-13.5 decision 11). */
   marketplaceTimeoutMs: number;
+  /**
+   * How long a live-card fetch may take at boot, at the update check and at install
+   * (`A2UIVERSE_CARD_TIMEOUT_SECONDS`, task-20.3 decision 5): the variable the marketplace and
+   * Stellify read for the same fetch. A card fetched again from a tile, and for Publish's
+   * listings, has five seconds whatever this says.
+   */
+  cardTimeoutMs: number;
 }
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -64,6 +71,8 @@ const DEFAULT_PORT = 10001;
 /** The marketplace's default port, as its own config has it. */
 export const DEFAULT_MARKETPLACE_URL = 'http://localhost:10002';
 export const DEFAULT_MARKETPLACE_TIMEOUT_SECONDS = 10;
+/** A live card's fetch at boot, at the update check and at install, as the marketplace bounds it. */
+export const DEFAULT_CARD_TIMEOUT_SECONDS = 10;
 const DEFAULT_SHORTLIST_CAP = 5;
 export const DEFAULT_SOFT_DEADLINE_SECONDS = 10;
 export const DEFAULT_HARD_CAP_SECONDS = 300;
@@ -124,6 +133,11 @@ export function loadConfig(env: Env = process.env): Config {
       env.A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS,
       'A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS',
       DEFAULT_MARKETPLACE_TIMEOUT_SECONDS,
+    ),
+    cardTimeoutMs: parseSeconds(
+      env.A2UIVERSE_CARD_TIMEOUT_SECONDS,
+      'A2UIVERSE_CARD_TIMEOUT_SECONDS',
+      DEFAULT_CARD_TIMEOUT_SECONDS,
     ),
   };
 }

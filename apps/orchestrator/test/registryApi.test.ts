@@ -129,6 +129,31 @@ describe('the read routes', () => {
     await registry.refetchLiveCards();
     expect(await reachable()).toBe(true);
   });
+
+  test('beside it, whether its live card lists no interface the platform speaks; the stored card rides as served (task-20.3 decisions 6, 14)', async () => {
+    const {base, token, cards, registry} = await serve();
+    const card = cardFor('http://127.0.0.1:11002', {name: 'Gmail'});
+    const cardUrl = cards.serve(card);
+    await post(`${base}/install`, {appId: 'gmail', cardUrl, catalogs: []}, token);
+    const listed = async () =>
+      (
+        (await (await fetch(`${base}/apps.json`)).json()) as {
+          reachable: boolean;
+          noInterface: boolean;
+          card: unknown;
+        }[]
+      )[0]!;
+    expect(await listed()).toMatchObject({reachable: true, noInterface: false, card});
+
+    cards.serveAt(cardUrl, {...card, preferredTransport: 'GRPC'});
+    await registry.refetchLiveCards();
+    expect(await listed()).toMatchObject({reachable: true, noInterface: true, card});
+
+    // Down at the next start: not reached, and nothing said of its interfaces.
+    cards.cards.delete(cardUrl);
+    await registry.refreshCards();
+    expect(await listed()).toMatchObject({reachable: false, noInterface: false});
+  });
 });
 
 describe('install and uninstall over HTTP', () => {
