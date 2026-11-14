@@ -40,12 +40,13 @@ The same facts in A2A 1.0's shape:
 }
 ```
 
-That raises four problems:
+That raises five problems:
 
 1. **Two shapes, many readers.** If each reader understood both shapes by itself, each would get one of them slightly wrong.
 2. **A card can list several ways in.** A2A 1.0 lets an agent list several interfaces: more than one binding (JSON-RPC, HTTP+JSON, gRPC) and more than one A2A version. The platform has to choose one, and the one it chooses may not answer.
 3. **An agent changes how it is reached without changing what it does.** When Shop B starts serving its card in A2A 1.0's shape, nothing about the app is new. Nobody should be asked to update it or to publish a new version.
 4. **Some agents cannot be reached at all.** A card listing only a binding the platform does not speak describes an app that would fail on every question.
+5. **A card can be signed.** A2A 1.0 lets an agent sign its card, so a client can tell the card it holds is the one the agent wrote. A signature that does not check out means the card was changed on the way or the agent's keys moved, and the platform should not act on that card.
 
 A2UIVerse's answer is one small package, [`@a2uiverse/card`](../../packages/card/README.md), that every process goes through.
 
@@ -60,7 +61,9 @@ flowchart LR
     I --> D["dispatch, smoke request"]
 ```
 
-## Five ideas to hold on to
+A signed card is checked inside the fetch, before anything keeps or reads it.
+
+## Six ideas to hold on to
 
 ### 1. A card is kept as its agent served it
 
@@ -82,11 +85,15 @@ Each entry of `supportedInterfaces` is an interface: a URL, a binding and an A2A
 
 A card that lists no interface the platform speaks is refused at publish, at install and at Stellify's `preview`. An app already installed, whose agent later lists nothing the platform speaks, stays installed and its slot says so.
 
+### 6. A signed card is checked every time it is fetched
+
+When a card carries signatures, the fetch checks them against the keys the agent publishes at its own origin, the scheme, host and port of its card URL. One signature passing is enough. A card none of whose signatures passes is refused at the same doors as an agent the platform cannot reach. A pass says the card is intact against the keys at its agent's own origin; it says nothing about who the publisher is. An unsigned card is taken as before, and so is a signed card written for A2A 0.3.
+
 ## One card, end to end
 
 Shop B is published, installed and asked a question. Each step names the function that does it.
 
-1. **Publish fetches the live card.** The marketplace calls `fetchLiveCard(cardUrl, {timeoutMs})`. The request carries `A2A-Version: 1.0`, and the answer is kept as served.
+1. **Publish fetches the live card.** The marketplace calls `fetchLiveCard(cardUrl, {timeoutMs})`. The request carries `A2A-Version: 1.0`, and the answer is kept as served. Shop B's card carries no signature, so nothing more is fetched.
 2. **Publish reads it.** `readCard` turns the answer into an `AgentCard`. If it does not read, the publisher gets one finding and nothing else runs.
 3. **Publish judges reachability.** `spokenInterfaces` finds Shop B's one interface, JSON-RPC at A2A 0.3.0. The smoke request (the one question the marketplace asks an agent before listing it) goes to that interface.
 4. **The entry stores the card as served.** The index entry's `card` is the 0.3 JSON, untouched.
@@ -146,7 +153,7 @@ Apart from those two, what the SDK's two functions drop, the reading drops, and 
 
 ### Fetching the live card
 
-`fetchLiveCard(cardUrl, {timeoutMs, fetchImpl})` is the one fetch for the orchestrator, the marketplace and Stellify. It sends `A2A-Version: 1.0` and `accept: application/json`, bounds the request with `AbortSignal.timeout`, and throws in the words of a finding: `HTTP 404`, `did not answer within 10 s`, `not JSON (…)`, `not an agent card`. It returns the parsed JSON object and does not read it: whether the object is a card is the reading's to say.
+`fetchLiveCard(cardUrl, {timeoutMs, fetchImpl})` is the one fetch for the orchestrator, the marketplace and Stellify. It sends `A2A-Version: 1.0` and `accept: application/json`, bounds the request with `AbortSignal.timeout`, and throws in the words of a finding: `HTTP 404`, `did not answer within 10 s`, `not JSON (…)`, `not an agent card`. It does not read the card: whether the object is a card is the reading's to say. It checks a signed card's signatures under the same time limit (next section) and returns `{served, signature}`: the parsed JSON as served, and the signature that passed, which is absent for a card taken as unsigned.
 
 The time limits:
 
@@ -158,6 +165,60 @@ The time limits:
 | Orchestrator: a tile's Retry or Update, Publish's listings       | 5 s   |
 
 The 10 s limits read the environment variable `A2UIVERSE_CARD_TIMEOUT_SECONDS`. The 5 s limits are fixed.
+
+### Checking a signed card
+
+Say Shop B's publisher signs its card in A2A 1.0's shape. The card gains a `signatures` list, and the agent serves the public half of its key at its own origin:
+
+```json
+"signatures": [
+  {
+    "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6InNob3AtYi0xIiwiamt1IjoiaHR0cDovL2xvY2FsaG9zdDoxMjAwMi8ud2VsbC1rbm93bi9qd2tzLmpzb24iLCJ0eXAiOiJKT1NFIn0",
+    "signature": "…"
+  }
+]
+```
+
+The `protected` field is the signature's protected header, base64url-encoded. Decoded it reads `{"alg":"ES256","kid":"shop-b-1","jku":"http://localhost:12002/.well-known/jwks.json","typ":"JOSE"}`: the algorithm, the key's id, the URL of the key set holding the key, and the type. A key set is a JSON Web Key Set: `{"keys": [...]}`, each key named by its `kid`.
+
+`checkSignatures(served, {cardUrl, signal, timeoutMs})` runs inside `fetchLiveCard`, on the card as served:
+
+```mermaid
+flowchart TD
+    C["the card as served"] --> L{"written for<br/>A2A 0.3, or<br/>no signatures?"}
+    L -->|yes| U["taken as an unsigned card is"]
+    L -->|no| E["each signature in order"]
+    E --> H{"protected header names<br/>alg, typ, kid and jku;<br/>alg on the list?"}
+    H -->|no| X["this signature fails"]
+    H -->|yes| O{"jku on the card URL's<br/>origin, https or<br/>this machine?"}
+    O -->|no| X
+    O -->|yes| K["the key set fetched,<br/>no redirect followed"]
+    K --> V{"its key under kid<br/>verifies the payload?"}
+    V -->|yes| P["the card passes"]
+    V -->|no| X
+    X --> E
+    E -->|"none left"| R["refused: UnconfirmedCardError"]
+```
+
+The steps, with what each guards against:
+
+1. **Which cards are judged.** A card the reading reads as written for A2A 0.3 is taken as an unsigned card is, whatever its `signatures` hold. A2A 0.3 defines the signature object but names no canonical form and no way to find the key: the Python A2A SDK 0.3.26 signs a form that is not RFC 8785, and a 0.3 card the Python A2A SDK 1.3.0 converts keeps a signature over its 1.0 form, which fails every verifier once the card lists a 1.0 interface (findings 17 and 18). A card with an empty `signatures` list is unsigned, and so is one whose signatures were removed: nothing is remembered between fetches.
+2. **The header.** `kid` and `jku` are read from the protected header only, the part the signature covers. A signature whose protected header lacks `alg`, `typ` or `kid` does not pass, and neither does one with no `jku`, since the platform has nowhere else to find the key. Any value of `typ` is taken.
+3. **The algorithm.** The algorithm must be one of RS256, RS384, RS512, PS256, PS384, PS512, ES256, ES384, ES512 and EdDSA. `none` and the shared-secret HMAC algorithms never pass. The A2A SDK's own verifier has no such list (finding 15 in `_dev/a2a-findings.md`).
+4. **Where the key set may be.** The `jku` must have the card URL's scheme, host and port, taken from the card URL the platform holds, not from where a redirect of the card's fetch led. It must be `https`, unless its host is the local machine (`localhost`, `127.0.0.1`, `::1`), where `http` is taken, as the popup rule and a gRPC address already treat the local machine. So a card cannot send the platform to fetch from an address its agent does not own.
+5. **The key set's fetch.** It follows no redirect, and it runs under the card's own time limit: the card's fetch and every key set's together. Several signatures naming one key set fetch it once. Nothing is kept past the check, so a key taken out of the set stops passing at the next fetch.
+6. **The payload.** What the signature is checked against comes from `canonicalizeAgentCard` in `@a2a-js/sdk`, given the card as served: the card read into A2A 1.0's schema and written back, its default and empty values and its `signatures` removed, in canonical JSON. It must be the card as served. Handed a card already read into memory, that function drops sign-in schemes, and every card with one fails (issue 663 on `a2aproject/a2a-js`). The A2A SDK 1.3.0 and the Python A2A SDK 1.3.0 sign byte-identical payloads for the same card.
+7. **The verdict.** The first signature that passes is the card's pass, whatever the others do. When none passes, the card is refused with one finding naming each signature's reason:
+
+```
+the card's signature did not pass: the key set at http://localhost:12002/.well-known/jwks.json holds no key under kid "shop-b-1" for ES256
+```
+
+A key set that does not answer within the time limit is different: it is the card not answering, and the fetch throws in those words (`the key set at … did not answer within 10 s`), as it would for the card itself.
+
+Since the reading reads a 1.0 card with the same function of the A2A SDK that makes the payload, everything the platform reads from a signed card is inside what its signature covers. A field outside A2A 1.0's schema is outside the signature, and the reading does not read it either.
+
+A signature is set aside when two cards are compared (see the next section): a card that gains, loses or changes a signature and nothing else is the same card, so re-signing is never an update.
 
 ### Choosing the interface
 
@@ -266,6 +327,17 @@ Three readers choose one alternative to follow: the vault, Stellify's credential
 | Install or update       | Refused under the cause `no-interface`, from a local copy and from the marketplace alike, with no press   | "Shop B can't be installed. It connects in a way A2UIVerse can't use, so nothing was installed." |
 | An installed app's slot | The failure tile under the cause `interface`, the agent not called, Retry kept                            | "This app now connects in a way A2UIVerse can't use."                                            |
 
+A signed card that does not pass meets the same doors, under causes of its own:
+
+| Door                    | What happens                                                                                                 | Who reads what                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Publish                 | Refused with the one finding, nothing sent to the agent, the app never listed                                | The publisher reads `the card at … could not be confirmed: …`                         |
+| `stellify preview`      | Nothing captured, nothing sent                                                                               | The publisher reads the same finding on the terminal                                  |
+| Install or update       | Refused under the cause `unconfirmed`, from a local copy and from the marketplace alike, with no press       | "Shop B can't be installed. Its details couldn't be confirmed, so nothing was installed." |
+| An installed app's slot | The failure tile under the cause `unconfirmed`, the agent not called, Retry kept                             | "This app's details couldn't be confirmed, so it isn't shown."                        |
+
+A pass draws nothing. It is a note on an accepted publish and on Stellify's terminal at `preview`, `the card's signature passed: key "shop-b-1" (ES256) in the key set at …`, and a `cardSignature` line in the orchestrator's journal. The orchestrator writes that line for every fetch of a signed card, at install, at boot, at the update check and when one card is fetched again: the app, the card URL, where it was fetched, and the signature that passed or the refusal's finding.
+
 The finding names what the card lists and what the platform speaks:
 
 ```
@@ -279,6 +351,12 @@ An installed app that becomes unreachable stays routed. The Router still ranks i
 The installed list the orchestrator serves at `/registry/apps.json` carries `noInterface` beside `reachable`. In the App Library the app reads "Connects in a way A2UIVerse can't use" in place of its update state, and its view carries the notice "Shop B now connects in a way A2UIVerse can't use." The Planner's installed-apps reader hands the Planner the same words.
 
 The marketplace does nothing new for a published app that becomes unreachable. Its listing stays, and its live card is judged for drift whatever interfaces it lists.
+
+An installed app whose live card is later signed and refused stays installed too. The run keeps the card it last took: the live card it already held, or at boot the card stored at install, so the Router still ranks the app and its name stays what it was. The registry holds the refusal (`unconfirmed(appId)`), and the dispatch judges it first, before reachability, the update check and any sign-in, so the agent is not called and its slot takes the failure tile. Retry fetches the live card again first: a card that passes again, or an unsigned one, is taken, and the agent is called. A fetch that does not answer, the key set's included, changes nothing: the card and the refusal held both stay. The installed list carries `unconfirmed` beside `noInterface`; the App Library reads "Details couldn't be confirmed" in place of the update state, ahead of the interface's words, and the app's view carries the notice "Shop B's details couldn't be confirmed, so it isn't shown." with Check again. The Planner's installed-apps reader hands the Planner the same words.
+
+The marketplace does nothing new for a listed app whose live card later is signed and refused: the listing stays as published, and its drift check treats the card as one it could not take, the flag left as it was. The person learns at Install, and the publisher at their next publish or `preview`.
+
+The orchestrator's own card is unsigned, and the client never runs the check: it reads cards through the orchestrator.
 
 ### Reading in the browser
 
@@ -296,6 +374,8 @@ The reading adds about 32 kB to the client's bundle (7 kB gzipped), measured on 
 | A stored card does not read                                      | The orchestrator and the marketplace refuse to boot, naming the app and the reason                                        |
 | The marketplace hands the orchestrator a card that does not read | The update state is unknown, and the Store's search leaves the entry out                                                  |
 | The card lists nothing the platform speaks                       | The four doors above                                                                                                      |
+| The card is signed and no signature passes                       | Its four doors above, under `unconfirmed`                                                                                 |
+| A key set the card names does not answer in time                 | As the card not answering: publish and install refused with "could not be fetched", the held card kept at a refetch      |
 | No interface the card lists is reached                           | The slot fails as an agent not reached, with Retry; publish is refused and `preview` captures nothing, with one finding   |
 
 ## Design decisions
@@ -312,12 +392,17 @@ The reading adds about 32 kB to the client's bundle (7 kB gzipped), measured on 
 | The fetch names A2A 1.0                                           | A server that answers both versions serves its 1.0 form, which keeps its sign-in when read | An agent that answers differently by that header is kept in the form it serves to A2A 1.0 callers                  |
 | The client runs the same reading                                  | The wire carries cards unchanged, and the page and the orchestrator read one way           | About 32 kB more in the bundle                                                                                     |
 | A device-code flow on a 0.3 card is read around the A2A SDK       | An agent still on A2A 0.3 can name the sign-in A2A 1.0 adds, and the vault signs in by it   | One place where the reading is not the SDK's own, kept until a release of the SDK reads the flow (finding 13)      |
+| A key set must be on the card URL's own origin                    | A card cannot make the platform fetch from an address its agent does not own              | An agent cannot keep its keys on another host; A2A 1.0 does not say what makes a key the agent's own (finding 19) |
+| The payload is the A2A SDK's canonical form; the rules are the platform's | Both A2A 1.0 signers agree with it, and the reading and the payload come from one function | The platform keeps its own list of algorithms and its own key set fetch beside the SDK's verifier         |
+| A signature on a card written for A2A 0.3 is not judged           | Every 0.3 agent composes as before; no 0.3 signer agrees with a 1.0 verifier              | A signed 0.3 card gets nothing from its signature                                                                  |
+| The check runs with every fetch, nothing remembered               | A key taken out of a key set stops passing at once; no cache to go stale                  | Each fetch of a signed card costs one more request, and a stored copy is never checked again                       |
 
 ## Known limits
 
 1. Toward an agent on A2A 0.3 over HTTP+JSON or gRPC, the A2A SDK drops every part's `metadata`, both ways: a mark in `metadata.mimeType` does not arrive (`_dev/a2a-findings.md` 9). The platform reads a part by what it holds and carries no patch.
 2. A gRPC channel the orchestrator opens stays open for the run, one for each interface it has sent to.
-3. A card's signatures and its extended-card flag are read and kept, and nothing uses them.
+3. A card's extended-card flag is read and kept, and nothing uses it.
+4. A pass says nothing about who the publisher is: a publisher's identity is not verified (`SPEC.md` section 17, out of scope).
 
 ## Trying it without a model
 
@@ -341,6 +426,8 @@ console.log(spokenInterfaces(card), signInAlternatives(card));
 "
 ```
 
+The signed-card fixtures under `packages/card/test/fixtures` come from the Python A2A SDK's own signers, 1.3.0 and 0.3.26, each beside the key set it names, so the check is proven against a signer the platform did not write. `@a2uiverse/card/testing` holds a small signer for the tests that need a card signed at a port only known at run time.
+
 The fake A2A 1.0 agent the tests dispatch to is in `@a2uiverse/smoke-transport/testing/v1`. It answers A2A 1.0 and 0.3 on JSON-RPC, HTTP+JSON and gRPC, and records which binding and which A2A version a request reached. The walk's own tests run against it and against the fake A2A 0.3 agent:
 
 ```bash
@@ -353,6 +440,7 @@ pnpm --filter @a2uiverse/smoke-transport test
 | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | The reading, a device-code flow on a 0.3 card among it | [`packages/card/src/readCard.ts`](../../packages/card/src/readCard.ts)                                                                                                                                          |
 | The fetch                                           | [`packages/card/src/liveCard.ts`](../../packages/card/src/liveCard.ts)                                                                                                                                             |
+| The check of a signed card                          | [`packages/card/src/signatures.ts`](../../packages/card/src/signatures.ts)                                                                                                                                         |
 | Spoken interfaces, the card to dial, the finding    | [`packages/card/src/interfaces.ts`](../../packages/card/src/interfaces.ts)                                                                                                                                         |
 | The same-card test                                  | [`packages/card/src/sameCard.ts`](../../packages/card/src/sameCard.ts)                                                                                                                                             |
 | Sign-in requirements and the order they are followed in | [`packages/card/src/requirements.ts`](../../packages/card/src/requirements.ts)                                                                                                                                 |
@@ -385,3 +473,7 @@ pnpm --filter @a2uiverse/smoke-transport test
 | Door            | A place an agent comes through: publish, install, Stellify's `preview`, or an installed app's slot                        |
 | Finding         | One line saying why a publish, a preview or an install was refused, written for the publisher                             |
 | Smoke request   | The one A2A request the marketplace and Stellify send an agent to check that it answers and paints                        |
+| Signed card     | A card whose `signatures` list holds at least one entry                                                                   |
+| Key set         | The JSON Web Key Set a signature's `jku` names, holding the agent's public keys by `kid`                                  |
+| Origin          | A URL's scheme, host and port together: a key set must share the card URL's                                              |
+| Pass            | A signature the check verifies; a card passes when one of its signatures does                                            |

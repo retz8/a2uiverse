@@ -101,6 +101,8 @@ The listing stays as published. A live card that reads is judged for drift as to
 
 A sign-in scheme the vault does not sign in with keeps today's tile, "Signing in to Shop B isn't supported here.", the device-code flow among them until 20.6. The reading keeps a card's signatures and its extended-card flag, and nothing uses them until 20.7 (signed cards verified) and 20.8 (the extended card).
 
+*Amended by task 20.7 decisions 5, 6 and 8.* A signed card read as A2A 1.0 is checked with every fetch from its card URL, its signatures judged over the A2A SDK's canonical form of the card as served; a signed card read as written for A2A 0.3 is taken as an unsigned card is. The reading keeps a card's extended-card flag, and nothing uses it until 20.8.
+
 ### 19. Every reader goes through the reading
 
 Beside the four processes, the readers are two scripts ([`dev-agents.mjs`](../../../scripts/dev-agents.mjs) and [`launch-preview.mjs`](../../../scripts/launch-preview.mjs)), the [registry snapshot](../../../packages/registry-snapshot/world.js) and the embedder's corpus text. The platform's own card needs no reading: the orchestrator already holds it as the A2A SDK's `AgentCard`.

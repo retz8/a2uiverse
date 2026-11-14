@@ -49,6 +49,8 @@ The words on the tile are plain and name no binding and no protocol version.
 
 The platform takes up all three. The AuthVault (the orchestrator's credential store) signs in by the device-code flow, which A2A 1.0 adds. A card that carries a signature is verified. The extended card that an agent serves to a signed-in caller is read for that account.
 
+*Amended by task 20.7 decision 6.* A card written for A2A 1.0 that carries a signature is verified. A card the card's one reading reads as written for A2A 0.3 is taken as an unsigned card is, whatever its signatures hold.
+
 ### 8. Where upstream A2UI is silent on A2A 1.0: read every spelling, write each agent's own
 
 Upstream's A2UI extension specifications are written in A2A 0.3's terms and name no A2A version. When reading, content decides: a part is A2UI under `application/a2ui+json` or the older `application/json+a2ui` in `metadata.mimeType`, under `mediaType`, or unmarked, and its `data` may be one message or a list. When writing, the platform addresses each agent in the terms of that agent's own A2A version, marked as upstream's specification requires. A2UIVerse's own two conventions on the vendor wire follow the same rule: `paintMeta` (the kit's per-paint shell object) is read under either mark, and the auth-required request is read in the requirement shape of the agent's own card. The reading is recorded in the protocol delta register, and upstream's silence in [`_dev/a2ui-findings.md`](../../a2ui-findings.md) as a report for upstream.

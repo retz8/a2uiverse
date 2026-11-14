@@ -334,6 +334,8 @@ flowchart TD
 
 **A card that doesn't read answers alone too.** The fetched card goes through the card's one reading (`readCard` in the card package, `packages/card`), and one that doesn't read answers `422` with one finding, `the card at <card URL> could not be read:` followed by the A2A SDK's own message. A thing that is not a card reads `not an agent card`, or `not an agent card: no name`. Nothing else runs, and no smoke request is sent.
 
+**A signed card is checked as it is fetched.** The fetch is the card package's, and it checks a card that carries signatures against the key set its signature names on the card URL's own origin ([`card.md`](card.md#checking-a-signed-card)). One that does not pass answers `422` alone too, `the card at <card URL> could not be confirmed:` and why, with nothing else run and no smoke request sent. One that passes is published as any card is, the pass a note on the answer: `the card's signature passed: key "…" (ES256) in the key set at …`. At the drift check a refused card is one the marketplace could not take: the flag stays as it was and the listing as published.
+
 **Everything else is collected**, in this order, and answered as one `422` list:
 
 1. The card's own facts: a `version`, a `description`, and an interface the platform speaks. A card listing none says what it lists and what the platform speaks (`the card lists no interface A2UIVerse speaks: it lists GRPC at A2A 1.0 and HTTP+JSON at A2A 1.0; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x`), or `the card lists no interface` when it lists none at all, and nothing is sent to the agent.
@@ -459,7 +461,7 @@ sequenceDiagram
 
 1. The app id is checked (`checkAppId`), and a marketplace must be configured — `MARKETPLACE_URL`, `http://localhost:10002` by default, every request under `A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS`, 10 by default.
 2. The **entry** is read. Four outcomes: `entry`; `not-published` (404 → `app "shop-b" is not published on the marketplace at http://localhost:10002`); `unreached` (no answer, a timeout, or an unexpected status → `the marketplace at http://localhost:10002 could not be reached: ECONNREFUSED`); `malformed` (not an entry by the sdk's schema, or another app's).
-3. The **live card** is fetched from `entry.cardUrl` — the registry's own fetch, the same one install from disk uses, given ten seconds — and read. A card that lists no interface the platform speaks refuses the install under the `no-interface` cause, with the finding publish gives for it.
+3. The **live card** is fetched from `entry.cardUrl` — the registry's own fetch, the same one install from disk uses, given ten seconds — and read. A card that lists no interface the platform speaks refuses the install under the `no-interface` cause, with the finding publish gives for it, and a signed card none of whose signatures passes refuses it under the `unconfirmed` cause.
 4. **Drift** is tested; any refuses with the Store-behind words and posts a report.
 5. Each artifact the entry names is **resolved**. One already held is read whole from disk. Otherwise its descriptor is fetched and parsed, and then file by file: the registry keeps a map from **file hash → a held artifact and path** (`#heldFiles`), so a file an earlier build also shipped is copied from disk and only the rest is fetched. A rebuilt `index.js` is fetched; an unchanged `catalog.json` or stylesheet is not.
 6. The ordinary `#install` runs with the card already fetched, `source: 'marketplace'`, and `automatic` when the update check is the caller.
@@ -516,6 +518,7 @@ The orchestrator's Planner reads the marketplace too, when a question needs some
 | Another publisher's app id or catalog id | `refused aperture-copy:` then one line, `catalog "…" belongs to publisher "a2uiverse-apps"`; `403`; nothing fetched or stored |
 | The card can't be fetched at publish | `the card at … could not be fetched: …`, with everything else found, `422` |
 | The card was fetched and doesn't read | `the card at … could not be read: …`, the A2A SDK's own message, alone, `422`; no smoke request sent |
+| The card is signed and none of its signatures passes | `the card at … could not be confirmed: …`, alone, `422`; no smoke request sent |
 | The card lists no interface the platform speaks | `the card lists no interface A2UIVerse speaks: it lists … ; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x`, `422`; nothing sent to the agent, the app never listed |
 | A sign-in app published with no preview | `the card requires sign-in: publish needs the preview `stellify preview` captures with your own credential` |
 | A preview handed for an open app, or at another version | `a preview is only taken for an app whose card requires sign-in …`; `the preview was captured at version "0.1.0", the card is at "0.2.0"` |

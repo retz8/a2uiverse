@@ -332,7 +332,7 @@ It's a **hash tree** one level deep, like a Merkle tree: the id is a hash over t
 
 `apps/orchestrator/src/registry/registry.ts` (`Registry.install`) and the sdk's `gateArtifact` (`packages/sdk/js/src/gate.ts`). Every check is a function of the sdk's, and the marketplace runs the same gate at publish, so both refuse the same things for the same reasons. Install runs every check and collects every finding before it answers. One finding refuses the whole app, and the publisher sees everything there is to fix at once.
 
-**Reading the card.** The registry fetches the card through the card package's fetch (`fetchLiveCard` in `packages/card`, naming A2A 1.0 in its request, ten seconds unless `A2UIVERSE_CARD_TIMEOUT_SECONDS` says otherwise) and reads it through the card's one reading (`readCard`). A card that can't be fetched, or that was fetched and doesn't read (`the card at … could not be read: …`, the A2A SDK's own message), refuses the install as an app that couldn't be reached. A card that lists no interface the platform speaks refuses it under a cause of its own, `no-interface`, with one finding saying what the card lists and what the platform speaks, and nothing else is checked.
+**Reading the card.** The registry fetches the card through the card package's fetch (`fetchLiveCard` in `packages/card`, naming A2A 1.0 in its request, ten seconds unless `A2UIVERSE_CARD_TIMEOUT_SECONDS` says otherwise) and reads it through the card's one reading (`readCard`). A card that can't be fetched, or that was fetched and doesn't read (`the card at … could not be read: …`, the A2A SDK's own message), refuses the install as an app that couldn't be reached. A card that lists no interface the platform speaks refuses it under a cause of its own, `no-interface`, with one finding saying what the card lists and what the platform speaks, and nothing else is checked. The fetch checks a signed card's signatures as it fetches it ([`card.md`](card.md#checking-a-signed-card)): a card none of whose signatures passes refuses the install under the cause `unconfirmed`, with one finding, `the card at … could not be confirmed: …`, and a key set that doesn't answer in time is the card that couldn't be fetched. Each fetch of a signed card writes a `cardSignature` line in the journal.
 
 **Reading the card's catalogs.** `readCatalogIdsByVersion` reads the card per A2UI version: the extension entries whose URI is v0.9's or v0.9.1's count, and an entry for a version the platform does not speak — upstream's ADK restaurant finder lists v0.8 beside v0.9 — is passed over. Inside a counted entry the params are read flat, as the extension guide writes them and Gmail's card has them, or keyed by version (`{"v0.9.1": {"supportedCatalogIds": […]}}`), the shape of the schema's whole object and of GitHub's card; the entry's URI decides which version the ids land under, and each object is validated against the one version part of the pinned schema, never the root's required key. The map comes out filled: a version whose entries name no ids takes the other's set, so only a card whose two entries name different sets keeps a version axis, which the hub alone reads. `readSupportedCatalogIds` is the union over the versions, and it is what install, coverage and the update check read. A malformed entry is a finding for the whole card, naming its version, never read as "declares none".
 
@@ -418,7 +418,7 @@ The journal's `registry` line carries three fields from this: `source`, `followe
 
 | Route | What it serves |
 | --- | --- |
-| `GET apps.json` | the installed records, each with `reachable`, whether this run holds its card, and `noInterface`, whether that live card lists no interface the platform speaks; `Cache-Control: no-cache` |
+| `GET apps.json` | the installed records, each with `reachable`, whether this run holds its card, `noInterface`, whether that live card lists no interface the platform speaks, and `unconfirmed`, whether it was last fetched signed and refused; `Cache-Control: no-cache` |
 | `GET catalogs.json` | the catalog table, `Cache-Control: no-cache` |
 | `GET artifacts/<id>/<path>` | an artifact's files, `Cache-Control: public, max-age=31536000, immutable` |
 | `GET updates.json` | each installed app's update state, the check run first; `Cache-Control: no-cache` |
@@ -437,6 +437,7 @@ The read routes are shaped like files on purpose: a folder with the same layout,
 - `catalogOutside` checks the `catalogId` of every `createSurface` in every event the app sends against the set of the message's `version` — the union of the two sets when the stamp is missing or unspoken — through the sdk's `paintOutside`, the rule the marketplace's smoke test shares. A miss is never relayed: the app is sent A2A's `tasks/cancel`, and the dispatch fails with the `catalog` cause, carrying the id; the error names the stamp when the catalog is in the app's union but declared for the other version. The slot's failure tile says "This app sent something that can't be shown here." with no Retry, since the same paint would be refused the same way.
 - An app that isn't installed when the dispatch starts isn't asked at all: its slot fails with the `uninstalled` cause.
 - An app whose card lists no interface the platform speaks isn't asked either: its slot fails with the `interface` cause.
+- Nor is an app whose live card was last fetched signed and refused: its slot fails with the `unconfirmed` cause, judged before the others.
 
 The snapshot is what keeps uninstall and install-over safe in the middle of a question: a dispatch already running finishes under the entitlement it was sent with, and the next one reads the registry as it stands.
 
@@ -536,6 +537,7 @@ Two browser behaviours shape the third column:
 | The card can't be fetched at install | Refused: `the card at … could not be fetched: …` |
 | The card was fetched and doesn't read | Refused: `the card at … could not be read: …`, the A2A SDK's own message |
 | The card lists no interface the platform speaks | Refused under the `no-interface` cause, with one finding: `the card lists no interface A2UIVerse speaks: it lists …; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x` |
+| The card is signed and none of its signatures passes | Refused under the `unconfirmed` cause, with one finding: `the card at … could not be confirmed: the card's signature did not pass: …` |
 | No write token, or the wrong one | `401`; the command names the state directory it read the token from |
 | A browser write from an origin outside the list, or not JSON | `403` or `415`; nothing changes |
 | The registry on disk is damaged | The orchestrator doesn't start; the error names the file and the problem |
@@ -543,6 +545,7 @@ Two browser behaviours shape the third column:
 | An app paints outside its entitlement | The paint is dropped; the slot fails with the `catalog` cause, no Retry |
 | A question or a click reaches an app uninstalled since | The slot fails with the `uninstalled` cause, with Retry |
 | A question or a click reaches an app whose card lists no interface the platform speaks | The slot fails with the `interface` cause, "This app now connects in a way A2UIVerse can't use.", with Retry |
+| A question or a click reaches an app whose live card was last fetched signed and refused | The slot fails with the `unconfirmed` cause, "This app's details couldn't be confirmed, so it isn't shown.", with Retry, which fetches the live card again first |
 | The client can't load a catalog: the table or the artifact unanswered twice, an interface it doesn't lend, missing exports, another catalog id, an entry that throws | The slot fails with the `load` cause, "Something went wrong loading this.", with Retry |
 
 ## Design decisions

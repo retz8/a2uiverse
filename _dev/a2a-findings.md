@@ -842,3 +842,469 @@ A2UIVerse carries no change for it: such a card is refused at publish, at instal
 ### Prior art
 
 No issue or pull request on `a2aproject/a2a-js` reports it, searched on 2026-11-14.
+
+## 15. The card signature verifier takes any algorithm its key callback hands a key for (a2a-js 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0, `src/signature.ts` at tag `v1.3.0`: `verifyAgentCardSignature` (line 80) decodes each signature's protected header (line 97), asks the caller's `retrievePublicKey(kid, jku)` for a key, and verifies with `jose.flattenedVerify(jws, publicKey)` (line 110), passing no `algorithms` option.
+
+**Severity:** security hardening. The algorithm a card's signature is checked under is whatever its own protected header names, as long as the key the callback returns fits it. A callback that resolves keys from a key set holding a symmetric key, or one that returns the wrong kind of key for a `kid`, lets a shared-secret signature pass. RFC 8725 section 3.1: "Libraries MUST enable the caller to specify a supported set of algorithms and MUST NOT use any other algorithms when performing cryptographic operations."
+
+### Issue
+
+`verifyAgentCardSignature(retrievePublicKey)` takes no list of algorithms, so a caller cannot say which ones it accepts. It requires `alg`, `typ` and `kid` in the protected header (line 98) and takes any value of `typ`. The Python SDK's `create_signature_verifier(key_provider, algorithms)` takes the list as a required argument.
+
+### Reproduction
+
+Run on 2026-11-14 with `@a2a-js/sdk` 1.3.0 and `jose` 6.2.17, each card signed by the SDK's own `generateAgentCardSignature` and verified with a callback returning the matching key:
+
+```js
+import {AgentCard, generateAgentCardSignature, verifyAgentCardSignature} from '@a2a-js/sdk';
+import {generateKeyPair, generateSecret} from 'jose';
+
+const card = AgentCard.toJSON(AgentCard.fromJSON({
+  name: 'Shop', description: 'a shop', version: '1.0.0',
+  supportedInterfaces: [{url: 'https://shop.example/a2a', protocolBinding: 'JSONRPC', protocolVersion: '1.0'}],
+}));
+async function tryAlg(alg, header = {}) {
+  const key = alg.startsWith('HS') ? await generateSecret(alg) : await generateKeyPair(alg);
+  const signed = await generateAgentCardSignature(key.privateKey ?? key, {alg, kid: 'k', typ: 'JOSE', ...header})(card);
+  try {
+    await verifyAgentCardSignature(async () => key.publicKey ?? key)(signed);
+    return 'passes';
+  } catch (e) {
+    return `fails: ${e.message}`;
+  }
+}
+for (const alg of ['RS256', 'EdDSA', 'ES384', 'HS256']) console.log(alg, await tryAlg(alg));
+console.log('typ JWT', await tryAlg('ES256', {typ: 'JWT'}));
+console.log('no typ', await tryAlg('ES256', {typ: undefined}));
+// RS256 passes
+// EdDSA passes
+// ES384 passes
+// HS256 passes
+// typ JWT passes
+// no typ fails: No valid signatures found on agent card.
+```
+
+### Fix
+
+Give `verifyAgentCardSignature` an `algorithms` argument, as the Python SDK's verifier has, and pass it to `jose.flattenedVerify` as `{algorithms}`; with none given, default to the public-key algorithms and never to HMAC.
+
+A2UIVerse checks a signature with its own code around `canonicalizeAgentCard`, under a fixed list of public-key algorithms (`packages/card/src/signatures.ts` in `retz8/a2uiverse`).
+
+### Prior art
+
+No issue or pull request on `a2aproject/a2a-js` reports it, searched on 2026-11-14 ("signature", "signature algorithms"). Issue 663 (open) reports `canonicalizeAgentCard` dropping sign-in schemes from a card already read into memory, and issue 627 (open) its dropping of required fields with default values.
+
+## 16. The client reads a card's sign-in schemes from the A2A 0.3 copy served beside them, and checks the signature against that copy (a2a-python 1.3.0)
+
+**Component:** `a2a-sdk` 1.3.0, `src/a2a/client/card_resolver.py` at tag `v1.3.0`: `parse_agent_card` (line 21) runs `_handle_security_compatibility` (line 91), which for every scheme holding a 0.3 `type` pops it (line 119) and wraps the whole scheme object, the 1.0 copy's key with it, under the 1.0 key that `type` maps to (lines 125 to 128). `ParseDict(..., ignore_unknown_fields=True)` (line 32) then drops the nested 1.0 copy. `A2ACardResolver.get_agent_card` (line 151) hands that reading to the caller's `signature_verifier` (lines 201 and 202), and `create_signature_verifier` (`src/a2a/utils/signing.py`, line 103) canonicalizes the reading with `_canonicalize_agent_card` (line 208). The served card comes from `agent_card_to_dict` (`src/a2a/server/request_handlers/response_helpers.py`, line 88), which merges `to_compat_agent_card`'s output into the 1.0 card key by key (lines 105 to 117), so each scheme holds both shapes in one object.
+
+**Severity:** correctness. A card signed by the SDK's signer and served by the SDK's card route fails the SDK's own client when a scheme holds something A2A 0.3 cannot say, and the client reads that scheme without it even when no signature is checked. Where the check passes, it vouches for the 0.3 copy the Python client read, not for the signed 1.0 copy a reader of A2A 1.0's shape reads: the 1.0 copy can be changed and the Python verifier still passes, while `@a2a-js/sdk` 1.3.0 refuses the same card.
+
+### Issue
+
+A 1.3.0 card that lists an interface at A2A 0.3 is served with 0.3's fields beside 1.0's. `agent_card_to_dict` writes `MessageToDict` of the card and merges in the dump of `to_compat_agent_card`, so `securitySchemes.signIn` holds `oauth2SecurityScheme` (1.0) and `type` and `flows` (0.3) in one object, and the card holds `security` beside `securityRequirements`. The signature is made before this, over `MessageToDict` of the 1.0 card, and covers none of the 0.3 keys.
+
+`parse_agent_card` treats the two copies differently by field. For requirements it keeps `securityRequirements` and drops `security` when both are present (lines 93 to 100), and for interfaces it keeps `supportedInterfaces` (line 56). For schemes it does not check: any scheme holding a 0.3 `type` is rewritten from the 0.3 copy, and the 1.0 copy inside it is lost as an unknown field. The verifier then canonicalizes that reading and checks it against a signature over the 1.0 form. A2A 1.0 section 8.4.3 asks a verifier to canonicalize "the received Agent Card".
+
+Two things follow. The 0.3 copy is written by `to_compat_oauth_flows` (`src/a2a/compat/v0_3/conversions.py`, line 507), which writes no `pkceRequired` (lines 514 to 522) and drops a device-code flow (line 547). A scheme with either reads back without it, and a signed card carrying one fails at the SDK's own client, while `@a2a-js/sdk`, which reads the 1.0 copy, passes it. And the Python client neither reads nor checks the 1.0 copy, so a pass from the Python verifier says nothing about the scheme a reader of 1.0's shape uses.
+
+### Reproduction
+
+Run on 2026-11-14 with `a2a-sdk[http-server,signing]` 1.3.0 (`uv run --no-project --with 'a2a-sdk[http-server,signing]==1.3.0' python -I f16_repro.py cards.json`), then `@a2a-js/sdk` 1.3.0 and `jose` 6.2.17 on the cards it writes (`node --input-type=module - cards.json < f16_repro.mjs`, from a directory where `@a2a-js/sdk` resolves). Each card is signed by the SDK's signer, served by its `create_agent_card_routes`, and read by its `A2ACardResolver` with its verifier:
+
+```python
+import asyncio, copy, json, sys
+import httpx
+from cryptography.hazmat.primitives.asymmetric import ec
+from google.protobuf.json_format import ParseDict
+from jwt.algorithms import ECAlgorithm
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse
+from starlette.routing import Route
+from a2a.client.card_resolver import A2ACardResolver
+from a2a.server.routes import create_agent_card_routes
+from a2a.types.a2a_pb2 import (AgentCapabilities, AgentCard, AgentInterface, AgentSkill,
+    AuthorizationCodeOAuthFlow, DeviceCodeOAuthFlow, OAuth2SecurityScheme, OAuthFlows,
+    SecurityRequirement, SecurityScheme, StringList)
+from a2a.utils.signing import create_agent_card_signer, create_signature_verifier
+
+key = ec.generate_private_key(ec.SECP256R1())
+sign = create_agent_card_signer(key, {'alg': 'ES256', 'typ': 'JOSE', 'kid': 'k1'})
+verify = create_signature_verifier(lambda kid, jku: key.public_key(), ['ES256'])
+URL = 'https://shop.example/authorize'
+
+def card(flows):  # JSON-RPC at A2A 1.0 and at 0.3, one OAuth scheme, signed
+    return sign(AgentCard(name='Shop', description='d', version='0.1.0',
+        supported_interfaces=[AgentInterface(url='https://shop.example/', protocol_binding='JSONRPC',
+                                             protocol_version=v) for v in ('1.0', '0.3')],
+        capabilities=AgentCapabilities(streaming=True), default_input_modes=['text'],
+        default_output_modes=['text'],
+        skills=[AgentSkill(id='orders', name='Orders', description='Your orders', tags=['shop'])],
+        security_schemes={'signIn': SecurityScheme(
+            oauth2_security_scheme=OAuth2SecurityScheme(flows=flows))},
+        security_requirements=[SecurityRequirement(schemes={'signIn': StringList(list=['orders'])})]))
+
+code = lambda pkce=False: OAuthFlows(authorization_code=AuthorizationCodeOAuthFlow(
+    authorization_url=URL, token_url='https://shop.example/token',
+    scopes={'orders': 'See your orders'}, pkce_required=pkce))
+device = OAuthFlows(device_code=DeviceCodeOAuthFlow(device_authorization_url='https://shop.example/device',
+    token_url='https://shop.example/token', scopes={'orders': 'See your orders'}))
+
+async def served(c):  # the card as the SDK's own card route serves it
+    app = Starlette(routes=create_agent_card_routes(c))
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app)) as h:
+        return (await h.get('https://shop.example/.well-known/agent-card.json')).json()
+
+async def resolve(body, verifier=verify):  # the SDK's card resolver, with the SDK's verifier
+    app = Starlette(routes=[Route('/.well-known/agent-card.json', lambda _: JSONResponse(body))])
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app)) as h:
+        try:
+            read = await A2ACardResolver(h, 'https://shop.example').get_agent_card(
+                signature_verifier=verifier)
+        except Exception as e:
+            return f'{type(e).__name__}: {e}'
+    flows = read.security_schemes['signIn'].oauth2_security_scheme.flows
+    return (f'{"verified" if verifier else "not verified"}, reads flow {flows.WhichOneof("flow")}, '
+            f'{flows.authorization_code.authorization_url}, '
+            f'pkceRequired {flows.authorization_code.pkce_required}')
+
+async def main():
+    body = await served(card(code()))
+    print('signIn as served:', json.dumps(body['securitySchemes']['signIn']))
+    print('1. as served:', await resolve(body))
+    copy_0_3 = copy.deepcopy(body)
+    copy_0_3['securitySchemes']['signIn']['flows']['authorizationCode']['authorizationUrl'] = 'https://evil.example/'
+    print("2. 0.3 copy's URL changed:", await resolve(copy_0_3))
+    copy_1_0 = copy.deepcopy(body)
+    copy_1_0['securitySchemes']['signIn']['oauth2SecurityScheme']['flows']['authorizationCode'][
+        'authorizationUrl'] = 'https://evil.example/'
+    print("3. 1.0 copy's URL changed:", await resolve(copy_1_0))
+    read = ParseDict(copy.deepcopy(copy_1_0), AgentCard(), ignore_unknown_fields=True)
+    print('   read in 1.0 shape alone:',
+          read.security_schemes['signIn'].oauth2_security_scheme.flows.authorization_code.authorization_url)
+    pkce = await served(card(code(pkce=True)))
+    print('4. pkceRequired, as served:', await resolve(pkce))
+    print('   unverified:', await resolve(pkce, None))
+    device_card = await served(card(device))
+    print('5. device code, as served:', await resolve(device_card))
+    print('   unverified:', await resolve(device_card, None))
+    json.dump({'jwk': ECAlgorithm.to_jwk(key.public_key(), as_dict=True), 'asServed': body,
+               'copy10Changed': copy_1_0, 'pkce': pkce, 'deviceCode': device_card}, open(sys.argv[1], 'w'))
+
+asyncio.run(main())
+```
+
+```js
+import {readFileSync} from 'node:fs';
+import {verifyAgentCardSignature} from '@a2a-js/sdk';
+import * as jose from 'jose';
+
+console.debug = () => {};
+const {jwk, ...cards} = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+const verify = verifyAgentCardSignature(async () => jose.importJWK(jwk, 'ES256'));
+for (const [name, card] of Object.entries(cards)) {
+  console.log(`${name}: ${await verify(card).then(() => 'verified', (e) => e.message)}`);
+}
+```
+
+Output, the Python run then the JavaScript one:
+
+```text
+signIn as served: {"oauth2SecurityScheme": {"flows": {"authorizationCode": {"authorizationUrl": "https://shop.example/authorize", "tokenUrl": "https://shop.example/token", "scopes": {"orders": "See your orders"}}}}, "flows": {"authorizationCode": {"authorizationUrl": "https://shop.example/authorize", "scopes": {"orders": "See your orders"}, "tokenUrl": "https://shop.example/token"}}, "type": "oauth2"}
+1. as served: verified, reads flow authorization_code, https://shop.example/authorize, pkceRequired False
+2. 0.3 copy's URL changed: InvalidSignaturesError: No valid signature found
+3. 1.0 copy's URL changed: verified, reads flow authorization_code, https://shop.example/authorize, pkceRequired False
+   read in 1.0 shape alone: https://evil.example/
+4. pkceRequired, as served: InvalidSignaturesError: No valid signature found
+   unverified: not verified, reads flow authorization_code, https://shop.example/authorize, pkceRequired False
+5. device code, as served: InvalidSignaturesError: No valid signature found
+   unverified: not verified, reads flow None, , pkceRequired False
+asServed: verified
+copy10Changed: No valid signatures found on agent card.
+pkce: verified
+deviceCode: verified
+```
+
+Emptying the 0.3 copy's `security` changes nothing the Python client reads, and the card still verifies there, since `parse_agent_card` keeps `securityRequirements` when both are present.
+
+### Fix
+
+In `_handle_security_compatibility`, leave a scheme as it is when it already holds one of A2A 1.0's scheme keys (the values of `type_mapping`), as the same function does for `securityRequirements` and `_handle_connection_fields_compatibility` does for `supportedInterfaces`, and rewrite only a scheme that holds no 1.0 key. The client then reads, and the verifier checks, the copy the signature covers.
+
+A2UIVerse reads such a card with `AgentCard.fromJSON`, the 1.0 copy, and checks its signature with `canonicalizeAgentCard` over the card as served, the same copy (`packages/card/src/readCard.ts` and `packages/card/src/signatures.ts` in `retz8/a2uiverse`).
+
+### Prior art
+
+No issue or pull request on `a2aproject/a2a-python` reports it, searched on 2026-11-14 ("parse_agent_card", "agent_card_to_dict", "to_compat_agent_card", "_handle_security_compatibility", "pkce_required", "pkceRequired", "signature compat", "card resolver signature", "oauth2SecurityScheme flows", "compat security"). Issue 1051 (closed as stale on 2026-06-10) asked what the 0.3 fields `agent_card_to_dict` merges into a served card say about the agent's protocol version, not about sign-in or signatures. Pull request 1434 (merged on 2026-11-13, after 1.3.0) fixes the 0.3 gRPC card method failing on a card with a device-code scheme, which JSON-RPC and HTTP+JSON serve as `flows: {}`.
+
+## 17. The card `to_compat_agent_card` writes keeps the signature over its A2A 1.0 form, which fails every verifier once the card lists a 1.0 interface (a2a-python 1.3.0)
+
+**Component:** `a2a-sdk` 1.3.0, `src/a2a/compat/v0_3/conversions.py` at tag `v1.3.0`: `to_compat_agent_card` (line 917) keeps only the interfaces at a 0.3 version (lines 920 to 927) and copies the card's signatures as they are (lines 984 to 988, through `to_compat_agent_card_signature`, line 833). The 0.3 extended card is that card: `RequestHandler03.on_get_extended_agent_card` (`src/a2a/compat/v0_3/request_handler.py`, lines 168 to 178) returns it, and `JSONRPC03Adapter` answers `agent/getAuthenticatedExtendedCard` with it (`src/a2a/compat/v0_3/jsonrpc_adapter.py`, line 231), as the 0.3 HTTP+JSON and gRPC handlers do for their card methods. A 1.3.0 client reads it back in `CompatJsonRpcTransport.get_extended_agent_card` (`src/a2a/compat/v0_3/jsonrpc_transport.py`, line 371) with `to_core_agent_card` (line 394; defined in `conversions.py`, line 846) and checks it in `BaseClient.get_extended_agent_card` (`src/a2a/client/base_client.py`, line 337) with the caller's verifier (lines 365 and 366).
+
+**Severity:** interoperability. A 1.3.0 agent that signs its card and offers it on A2A 0.3 beside 1.0 hands a 0.3 client a signature that cannot pass: a client that checks signatures refuses the card, and one that does not holds a signature that vouches for nothing it was given.
+
+### Issue
+
+The signer signs `MessageToDict` of the 1.0 card (`_canonicalize_agent_card`, `src/a2a/utils/signing.py`, line 208). `to_compat_agent_card` writes a different card: 0.3's field names and shapes, with only the interfaces at a 0.3 version, since A2A 0.3's card cannot name an interface's version. It keeps the 1.0 form's signatures.
+
+Each verifier rebuilds a different payload from that card:
+
+1. The 0.3.26 `create_signature_verifier` canonicalizes the 0.3 model (`url`, `protocolVersion`, `security`, schemes under `type` and `flows`), never the 1.0 form, so it fails every such card.
+2. The 1.3.0 verifier, on the card read back by `parse_agent_card` or by `to_core_agent_card`, gets the 1.0 form back without the interfaces the conversion dropped, so it fails whenever the card listed a 1.0 interface. Anything else the conversion drops breaks it the same way: a card whose every interface is at 0.3 passes, and the same card with `pkceRequired` on its scheme fails (finding 16).
+3. `@a2a-js/sdk` 1.3.0's `verifyAgentCardSignature` canonicalizes `AgentCard.fromJSON` of what it is handed. Handed the 0.3 JSON, it reads it in 1.0's shape, losing the URL, the requirements and the schemes, so it fails every such card. Handed `AgentCard.toJSON(parseLegacyAgentCard(card))`, it gives what the 1.3.0 verifier gives.
+
+A2A 0.3 says nothing of how a card is canonicalized for signing (finding 18), so no rule makes a signature over one shape valid on the other.
+
+### Reproduction
+
+Run on 2026-11-14 with `a2a-sdk[http-server,signing]` 1.3.0 (`uv run --no-project --with 'a2a-sdk[http-server,signing]==1.3.0' python -I f17_repro.py cards.json`), then 0.3.26 on the cards it writes (`uv run --no-project --with 'a2a-sdk[http-server,signing]==0.3.26' python -I f17_repro_v0_3.py cards.json`), then `@a2a-js/sdk` 1.3.0 and `jose` 6.2.17 (`node --input-type=module - cards.json < f17_repro.mjs`). Each 0.3 card is written as `JSONRPC03Adapter` writes the extended card:
+
+```python
+# f17_repro.py, a2a-sdk 1.3.0
+import copy, json, sys
+from cryptography.hazmat.primitives.asymmetric import ec
+from jwt.algorithms import ECAlgorithm
+from a2a.client.card_resolver import parse_agent_card
+from a2a.compat.v0_3 import types as types_v03
+from a2a.compat.v0_3.conversions import to_compat_agent_card, to_core_agent_card
+from a2a.types.a2a_pb2 import (AgentCapabilities, AgentCard, AgentInterface, AgentSkill,
+    AuthorizationCodeOAuthFlow, OAuth2SecurityScheme, OAuthFlows, SecurityRequirement,
+    SecurityScheme, StringList)
+from a2a.utils.signing import create_agent_card_signer, create_signature_verifier
+
+key = ec.generate_private_key(ec.SECP256R1())
+sign = create_agent_card_signer(key, {'alg': 'ES256', 'typ': 'JOSE', 'kid': 'k1'})
+verify = create_signature_verifier(lambda kid, jku: key.public_key(), ['ES256'])
+
+def card(versions):
+    return AgentCard(name='Shop', description='d', version='0.1.0',
+        supported_interfaces=[AgentInterface(url='https://shop.example/', protocol_binding='JSONRPC',
+                                             protocol_version=v) for v in versions],
+        capabilities=AgentCapabilities(streaming=True), default_input_modes=['text'],
+        default_output_modes=['text'],
+        skills=[AgentSkill(id='orders', name='Orders', description='Your orders', tags=['shop'])],
+        security_schemes={'signIn': SecurityScheme(oauth2_security_scheme=OAuth2SecurityScheme(
+            flows=OAuthFlows(authorization_code=AuthorizationCodeOAuthFlow(
+                authorization_url='https://shop.example/authorize', token_url='https://shop.example/token',
+                scopes={'orders': 'See your orders'}))))},
+        security_requirements=[SecurityRequirement(schemes={'signIn': StringList(list=['orders'])})])
+
+def check(read):
+    try:
+        verify(read)
+        return 'verified'
+    except Exception as e:
+        return f'{type(e).__name__}: {e}'
+
+cards = {}
+for name, versions in {'both': ('1.0', '0.3'), 'only-0.3': ('0.3',)}.items():
+    # as the SDK's 0.3 JSON-RPC adapter writes it for agent/getAuthenticatedExtendedCard
+    compat = to_compat_agent_card(sign(card(versions))).model_dump(
+        mode='json', by_alias=True, exclude_none=True)
+    cards[name] = compat
+    by_resolver = parse_agent_card(copy.deepcopy(compat))
+    by_transport = to_core_agent_card(types_v03.AgentCard.model_validate(compat))
+    print(f'{name}: signed over interfaces at {list(versions)}, the 0.3 card lists one at '
+          f'{compat["protocolVersion"]} and carries {len(compat["signatures"])} signature')
+    print(f'  1.3.0, read by parse_agent_card:   {check(by_resolver)}')
+    print(f'  1.3.0, read by to_core_agent_card: {check(by_transport)}')
+json.dump({'jwk': ECAlgorithm.to_jwk(key.public_key(), as_dict=True), 'cards': cards},
+          open(sys.argv[1], 'w'))
+```
+
+```python
+# f17_repro_v0_3.py, a2a-sdk 0.3.26
+import json, sys
+from jwt.algorithms import ECAlgorithm
+from a2a.types import AgentCard
+from a2a.utils.signing import create_signature_verifier
+
+data = json.load(open(sys.argv[1]))
+key = ECAlgorithm.from_jwk(json.dumps(data['jwk']))
+verify = create_signature_verifier(lambda kid, jku: key, ['ES256'])
+for name, served in data['cards'].items():
+    try:
+        verify(AgentCard.model_validate(served))
+        print(f'{name}: 0.3.26: verified')
+    except Exception as e:
+        print(f'{name}: 0.3.26: {type(e).__name__}: {e}')
+```
+
+```js
+// f17_repro.mjs, @a2a-js/sdk 1.3.0
+import {readFileSync} from 'node:fs';
+import {AgentCard, verifyAgentCardSignature} from '@a2a-js/sdk';
+import {parseLegacyAgentCard} from '@a2a-js/sdk/compat/v0_3/client';
+import * as jose from 'jose';
+
+console.debug = () => {};
+const {jwk, cards} = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+const verify = verifyAgentCardSignature(async () => jose.importJWK(jwk, 'ES256'));
+const check = (card) => verify(card).then(() => 'verified', (e) => e.message);
+for (const [name, card] of Object.entries(cards)) {
+  console.log(`${name}: a2a-js, handed the JSON: ${await check(card)}`);
+  const read = AgentCard.toJSON(parseLegacyAgentCard(card));
+  console.log(`${name}: a2a-js, read by parseLegacyAgentCard: ${await check(read)}`);
+}
+```
+
+Output, the three runs in order:
+
+```text
+both: signed over interfaces at ['1.0', '0.3'], the 0.3 card lists one at 0.3 and carries 1 signature
+  1.3.0, read by parse_agent_card:   InvalidSignaturesError: No valid signature found
+  1.3.0, read by to_core_agent_card: InvalidSignaturesError: No valid signature found
+only-0.3: signed over interfaces at ['0.3'], the 0.3 card lists one at 0.3 and carries 1 signature
+  1.3.0, read by parse_agent_card:   verified
+  1.3.0, read by to_core_agent_card: verified
+both: 0.3.26: InvalidSignaturesError: No valid signature found
+only-0.3: 0.3.26: InvalidSignaturesError: No valid signature found
+both: a2a-js, handed the JSON: No valid signatures found on agent card.
+both: a2a-js, read by parseLegacyAgentCard: No valid signatures found on agent card.
+only-0.3: a2a-js, handed the JSON: No valid signatures found on agent card.
+only-0.3: a2a-js, read by parseLegacyAgentCard: verified
+```
+
+### Fix
+
+Leave the signatures off the card `to_compat_agent_card` returns unless `to_core_agent_card` of that card gives back the signed card without its signatures, since in every other case they cannot pass on it. A 0.3 client then holds an unsigned card rather than a signature that fails. Even kept, a signature over the 1.0 form never passes a 0.3.26 verifier, which canonicalizes the 0.3 shape.
+
+A2UIVerse keeps the signatures of a card read as written for A2A 0.3 and does not check them (`checkSignatures` in `packages/card/src/signatures.ts` in `retz8/a2uiverse`).
+
+### Prior art
+
+No issue or pull request reports it, searched on 2026-11-14: on `a2aproject/a2a-python` for "to_compat_agent_card", "signature compat", "signature legacy", "signature 0.3", "signature extended card", "signed card 0.3" and "AgentCardSignature", and on `a2aproject/a2a-js` for "verifyAgentCardSignature", "canonicalizeAgentCard", "signature legacy" and "signature 0.3". On `a2aproject/a2a-js`, issue 663 (open) reports `canonicalizeAgentCard` dropping the schemes of a card already read into memory, and issue 627 (open) its dropping of required fields at their default value; neither concerns a card in 0.3's shape.
+
+## 18. The 0.3 line signs a card over `json.dumps` with sorted keys, which is not RFC 8785 (a2a-python 0.3.26)
+
+**Component:** `a2a-sdk` 0.3.26, `src/a2a/utils/helpers.py` at tag `v0.3.26`: `canonicalize_agent_card` (line 369), whose docstring says "Canonicalizes the Agent Card JSON according to RFC 8785 (JCS)" (line 370), takes `model_dump(exclude={'signatures'}, exclude_defaults=True, exclude_none=True, by_alias=True)` (lines 371 to 376) and returns `json.dumps(cleaned_dict, separators=(',', ':'), sort_keys=True)` (line 379). `create_agent_card_signer` (`src/a2a/utils/signing.py`, line 53) signs it (line 71) and `create_signature_verifier` (line 98) checks it (line 133). `v0.3.26` is the 0.3 line's newest tag.
+
+**Severity:** interoperability. A card signed by a 0.3.26 agent passes only a verifier that repeats 0.3.26's own serialization. A verifier that follows RFC 8785, which A2A 1.0 requires and the SDK's docstring names, fails it whenever the card holds a character outside ASCII or a number Python writes differently from ECMAScript, and fails every card when it canonicalizes the card as served.
+
+### Issue
+
+A2A 0.3 names no canonical form. Its `AgentCardSignature` "represents a JWS signature of an AgentCard" and "follows the JSON format of an RFC 7515 JSON Web Signature (JWS)" (`specification/json/a2a.json` at A2A `v0.3.0`), and `docs/specification.md` at `v0.3.0` says no more (section 5.5.6). A2A 1.0 section 8.4.1 requires RFC 8785, with REQUIRED fields kept even at their default value.
+
+`json.dumps` with these arguments departs from RFC 8785 in three places:
+
+1. `ensure_ascii` is left on, so every character outside ASCII is written as a `\uXXXX` escape. RFC 8785 section 3.2.2.2 writes it as it is.
+2. A number is written by Python's `repr`, so `2.0` stays `2.0`. RFC 8785 section 3.2.2.3 writes it by ECMAScript's rules, as `2`. Numbers reach a 0.3 card through `AgentExtension.params`.
+3. `sort_keys` orders keys by code point. RFC 8785 section 3.2.3 orders them by UTF-16 code unit, which differs once a key holds a character outside the Basic Multilingual Plane. This one is not reproduced below; issue 1174 shows it on the 1.x line.
+
+The content signed differs from the card served as well. `exclude_defaults=True` leaves out `protocolVersion` when it is "0.3.0", which A2A 0.3's `AgentCard` requires and its schema gives that default, `preferredTransport` when it is "JSONRPC", and every security scheme's `type`, which A2A 0.3 requires and fixes by a `const`. A verifier that canonicalizes the card it received, as A2A 1.0 section 8.4.3 describes, finds those fields and fails.
+
+The signer hands `json.loads` of the canonical string to PyJWT's `jwt.encode` (lines 72 to 79), which writes it again with `json.dumps(payload, separators=(",", ":"))`. The escapes come out the same, so the bytes signed are the canonical form's, and the SDK's own verifier passes its own cards.
+
+### Reproduction
+
+Run on 2026-11-14 with `a2a-sdk[http-server,signing]` 0.3.26, PyJWT 2.15.1 and `rfc8785` 0.1.4 (`uv run --no-project --with 'a2a-sdk[http-server,signing]==0.3.26' --with rfc8785==0.1.4 python -I f18_repro.py`). Each card is signed by the SDK's signer and served as its card handler serves it, and the SDK's verifier passes all three. The JCS check takes the signature over RFC 8785's bytes, first for the content the SDK canonicalizes, then for the card as served:
+
+```python
+import base64
+import rfc8785
+from cryptography.hazmat.primitives.asymmetric import ec
+from jwt import api_jws
+from a2a.types import (AgentCapabilities, AgentCard, AgentExtension, AgentSkill,
+    AuthorizationCodeOAuthFlow, OAuth2SecurityScheme, OAuthFlows, SecurityScheme)
+from a2a.utils.helpers import _clean_empty, canonicalize_agent_card
+from a2a.utils.signing import create_agent_card_signer, create_signature_verifier
+
+key = ec.generate_private_key(ec.SECP256R1())
+sign = create_agent_card_signer(key, {'alg': 'ES256', 'typ': 'JOSE', 'kid': 'k1'})
+verify = create_signature_verifier(lambda kid, jku: key.public_key(), ['ES256'])
+
+def card(description, params):
+    return AgentCard(name='Shop', description=description, version='0.1.0',
+        url='https://shop.example/', default_input_modes=['text'], default_output_modes=['text'],
+        capabilities=AgentCapabilities(streaming=True, extensions=[
+            AgentExtension(uri='https://shop.example/ext', params=params)]),
+        skills=[AgentSkill(id='orders', name='Orders', description='Your orders', tags=['shop'])],
+        security_schemes={'signIn': SecurityScheme(root=OAuth2SecurityScheme(flows=OAuthFlows(
+            authorization_code=AuthorizationCodeOAuthFlow(
+                authorization_url='https://shop.example/authorize',
+                token_url='https://shop.example/token', scopes={'orders': 'See your orders'}))))},
+        security=[{'signIn': ['orders']}])
+
+def jcs_check(payload, sig):  # the JWS over RFC 8785's bytes for `payload`
+    body = base64.urlsafe_b64encode(rfc8785.dumps(payload)).rstrip(b'=').decode()
+    try:
+        api_jws.decode(f'{sig["protected"]}.{body}.{sig["signature"]}', key.public_key(), ['ES256'])
+        return 'verified'
+    except Exception as e:
+        return f'{type(e).__name__}: {e}'
+
+for name, c in {'ascii': card('Order food', {'size': 2}),
+                'non-ascii': card('Réservez à Zürich', {'size': 2}),
+                'number': card('Order food', {'size': 2.0})}.items():
+    served = sign(c).model_dump(exclude_none=True, by_alias=True)  # as its card handler serves it
+    read = AgentCard.model_validate(served)
+    verify(read)  # the SDK's own verifier passes every card here
+    content = _clean_empty(read.model_dump(exclude={'signatures'}, exclude_defaults=True,
+                                           exclude_none=True, by_alias=True))
+    as_served = {k: v for k, v in served.items() if k != 'signatures'}
+    print(f'{name}: JCS over what the SDK signs: {jcs_check(content, served["signatures"][0])}; '
+          f'JCS over the card as served: {jcs_check(as_served, served["signatures"][0])}')
+    sdk, jcs = canonicalize_agent_card(read), rfc8785.dumps(content).decode()
+    at = next((i for i, (a, b) in enumerate(zip(sdk, jcs)) if a != b), None)
+    if at is not None:
+        print(f'  0.3.26:   ...{sdk[at - 14:at + 34]}...\n  RFC 8785: ...{jcs[at - 14:at + 18]}...')
+print('served but not signed:', sorted(set(as_served) - set(content)), 'and signIn',
+      sorted(set(as_served['securitySchemes']['signIn']) - set(content['securitySchemes']['signIn'])))
+```
+
+Output:
+
+```text
+ascii: JCS over what the SDK signs: verified; JCS over the card as served: InvalidSignatureError: Signature verification failed
+non-ascii: JCS over what the SDK signs: InvalidSignatureError: Signature verification failed; JCS over the card as served: InvalidSignatureError: Signature verification failed
+  0.3.26:   ...escription":"Réservez à Zürich","...
+  RFC 8785: ...escription":"Réservez à Zürich",...
+number: JCS over what the SDK signs: InvalidSignatureError: Signature verification failed; JCS over the card as served: InvalidSignatureError: Signature verification failed
+  0.3.26:   ...ams":{"size":2.0},"uri":"https://shop.example/ex...
+  RFC 8785: ...ams":{"size":2},"uri":"https://s...
+served but not signed: ['preferredTransport', 'protocolVersion'] and signIn ['type']
+```
+
+### Fix
+
+Canonicalize with an RFC 8785 implementation and hand its bytes to the JWS layer as they are, as the 1.x line does since pull request 1193 (`_canonicalize_agent_card` over `src/a2a/utils/_jcs.py`, and `api_jws.encode(payload=canonical_payload.encode('utf-8'), ...)` in `src/a2a/utils/signing.py` at `v1.3.0`, lines 77 to 86), and keep required fields in the payload at their default value. Both change the bytes the 0.3 line signs, so a card signed by an earlier 0.3 release would stop passing a verifier on the new one.
+
+A2UIVerse keeps the signatures of a card read as written for A2A 0.3 and does not check them (`checkSignatures` in `packages/card/src/signatures.ts` in `retz8/a2uiverse`).
+
+### Prior art
+
+Issue 1174 on `a2aproject/a2a-python` (closed on 2026-08-25) reports the same three departures on the 1.x line, where `_canonicalize_agent_card` ended in the same `json.dumps` call, against a2a-sdk 1.1.2 and `@a2a-js/sdk` 1.0.1. Pull request 1193 (merged on 2026-08-25) fixed it on `main`, first released in 1.1.4 (2026-09-08). 0.3.26 was released on 2026-04-09 and no 0.3 release has followed. Issue 1278 (open) reports the 1.x line dropping REQUIRED fields at their default value from the payload, the 1.x counterpart of the dropped `protocolVersion` and `type` here. No issue or pull request asks for either fix on the 0.3 line, searched on 2026-11-14 ("canonicalize", "RFC 8785", "JCS", "ensure_ascii", "0.3 backport", "signature 0.3").
+
+## 19. The specification does not say what makes a key the agent's own (A2A 1.0)
+
+**Component:** the A2A 1.0 specification, `docs/specification.md` at tag `v1.0.0` of `a2aproject/A2A`, section 8.4.3 (Signature Verification), with section 8.4.2 (Signature Format).
+
+**Severity:** security, specification. A client that follows section 8.4.3 as written can verify a forged card: whoever serves a card can sign it with a fresh key and name a key set holding that key.
+
+### Issue
+
+Section 8.4.2 lists `jku`, "URL to JSON Web Key Set (JWKS) containing the public key", among the protected header's parameters, all chosen by the signer. Section 8.4.3 has a client "Retrieve the public key using the `kid` and `jku` (or from a trusted key store)", and its security considerations say "Public keys **SHOULD** be retrieved over secure channels (HTTPS)", "Clients **MAY** maintain a trusted key store for known agent providers" and "Expired or revoked keys **MUST NOT** be used for verification". Nothing says which keys a client may trust for a given agent: where a key set may be, or how a key comes to be the agent's. Read literally, any key set the signature names is acceptable, so a pass shows only that the card matches a key its signer chose.
+
+RFC 7515, which section 8.4 builds on, asks for this decision without making it: "The key management technique employed to obtain public keys must authenticate the origin of the key" (section 10.3). RFC 8725 section 3.10 warns that "blindly following a "jku" (JWK set URL) or "x5u" (X.509 URL) header, which may contain an arbitrary URL, could result in server-side request forgery (SSRF) attacks", and suggests "matching the URL to a whitelist of allowed locations".
+
+### Reproduction
+
+Read on 2026-11-14 from `docs/specification.md` at `v1.0.0`:
+
+1. Section 8.4.2: "`jku`: URL to JSON Web Key Set (JWKS) containing the public key", one of the protected header's parameters.
+2. Section 8.4.3, step 2: "Retrieve the public key using the `kid` and `jku` (or from a trusted key store)".
+3. Section 8.4.3, Security Considerations: HTTPS retrieval, a trusted key store as a MAY, expired or revoked keys, multiple signatures for rotation; no rule on where a key set may be or which keys belong to an agent.
+
+`@a2a-js/sdk` 1.3.0's `verifyAgentCardSignature` leaves the whole decision to its caller's `retrievePublicKey(kid, jku)` callback (finding 15), and so does the Python SDK's `create_signature_verifier(key_provider, algorithms)`.
+
+### Fix
+
+Say in section 8.4.3 which key sets a client may take a key from. One rule a client can apply with nothing configured: a key set must be on the origin (RFC 6454: scheme, host and port) of the URL the card was fetched from, over HTTPS, with no redirect followed; a client with a trusted key store for a provider uses that instead.
+
+A2UIVerse takes a key only from a key set on the card URL's own origin, `https` unless on the local machine, its `kid` and `jku` read from the protected header alone, and records the rule as a local convention in the protocol delta register of `SPEC.md` section 14 (`retz8/a2uiverse`). A pass there says the card is intact against the keys at its agent's own origin, nothing about who the publisher is.
+
+### Prior art
+
+Issue 2096 on `a2aproject/A2A`, "spec(§8.4.3): Agent Card signature verification permits signer-controlled trust root via jku", open since 2026-08-02, reports the same gap; it points to `a2aproject/a2a-go` pull request 368, merged on 2026-09-23, whose verifier takes its trust root from its own policy and never from the signer's `jku`. Searched on 2026-11-14 ("jku", "agent card signature key").
