@@ -57,6 +57,7 @@ CONFIG = AgentAppConfig(
     a2ui_versions=["v0.9"],              # the A2UI versions it speaks; both when left out
     default_port=11005,                  # JSON-RPC and HTTP+JSON
     default_grpc_port=11105,             # gRPC
+    interfaces=[("HTTP+JSON", "0.3"), *(i for i in DEFAULT_INTERFACES if i != ("HTTP+JSON", "0.3"))],  # the card's paths, HTTP+JSON at A2A 0.3 first
     catalog_path=_AGENT_DIR.parent / "linear-catalog" / "catalogs" / "v0.9.1" / "catalog.json",
     catalog_kind="custom",               # Linear's own catalog, in its design language
     role_description=prose.ROLE_DESCRIPTION,
@@ -174,7 +175,7 @@ flowchart TD
     V -->|"invalid again"| TD["Delete what was painted,<br/>apologize in text"]
 ```
 
-**1. The request arrives.** The kit's server is the Python A2A SDK's request handler with the kit's executor behind it, served on six paths: JSON-RPC, HTTP+JSON and gRPC, each at A2A 1.0 and 0.3 ([Six paths, one handler](#six-paths-one-handler)). A2UIVerse sends a streaming request on the first path Linear's card lists that it speaks, JSON-RPC at A2A 1.0 by default. It reaches `LlmAgentExecutor.execute`, which opens an A2A task for the answer.
+**1. The request arrives.** The kit's server is the Python A2A SDK's request handler with the kit's executor behind it, served on six paths: JSON-RPC, HTTP+JSON and gRPC, each at A2A 1.0 and 0.3 ([Six paths, one handler](#six-paths-one-handler)). A2UIVerse sends a streaming request on the first path Linear's card lists that it speaks, HTTP+JSON at A2A 0.3, the path Linear's config puts first. It reaches `LlmAgentExecutor.execute`, which opens an A2A task for the answer.
 
 **2. The prompt is resolved.** Usually the message carries text: the Planner's request. When it carries a click instead (an A2UI action, like opening an issue), there's no text, so the kit frames one: _"The user activated the "open-issue" action on the current surface. Compose the next surface…"_, with the action's values listed. Either way, if the client sent its current data model (surfaces created with `sendDataModel: true` report it with every message, under `a2uiClientDataModel`), that's appended too, so the model sees edits the user made locally, like a checked box.
 
@@ -550,7 +551,7 @@ The kit knows nothing about A2UIVerse. The connection is made from A2UIVerse's s
 | **An old catalog line beside the new one** | A breaking catalog change ships as a suggested update; installs on the old id keep getting answers in it | Two lines to keep until the old one retires: its catalog, examples, brand doc and deterministic answers |
 | **A version set per app, each request's version chosen as upstream's helper chooses and stamped at send** | An app speaks v0.9, v0.9.1 or both from one field; a both app answers each client in the version it asked for | Fixtures, the prompt and the catalog stay written to v0.9's schemas whatever the set, a v0.9.1 answer being that content restamped; no response names the choice |
 | **The kit's own part-building in place of `a2ui-a2a`** | The kit on `a2a-sdk` 1.x ahead of upstream, writing what upstream's helper writes there | A few dozen lines of the kit's own to keep in step with upstream's mapping, until `a2ui-a2a` allows `a2a-sdk` 1.x |
-| **Six paths, in an order the publisher sets** | Any client of either A2A version reaches the agent on any standard binding, and the roster can put each path first on a real agent | Two ports per app, and a gRPC server beside the HTTP app |
+| **Six paths, in an order the publisher sets** | Any client of either A2A version reaches the agent on any standard binding, and the roster puts each path first on a real agent, as the [apps README's roster table](https://github.com/retz8/a2uiverse-apps#apps) shows | Two ports per app, and a gRPC server beside the HTTP app |
 | **One credential check over every call** | A credential means the same on every path, the extended card's call among them | The kit's own middleware and gRPC interceptor, since the SDK checks none |
 | **A press read by its content** | A press reaches the agent whatever mark survives the path, one message or a list | A part holding an A2UI-shaped object is read whatever its mark says |
 | **The card signed with a key the kit makes** | One field turns signing on, with nothing to provision | One key per state directory; rotating it means deleting the file, and the next run makes a new one |
