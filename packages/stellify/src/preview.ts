@@ -13,8 +13,10 @@ import {
   asksSignIn,
   fetchLiveCard,
   noInterfaceFinding,
+  passedNote,
   readCard,
   spokenInterfaces,
+  UnconfirmedCardError,
   type ServedCard,
 } from '@a2uiverse/card';
 import {
@@ -93,16 +95,20 @@ export async function previewWith(
     notes,
   });
 
-  // The live card, as the marketplace will fetch it, then read as the marketplace will read it
-  // (task-20.3 decisions 3, 8). Nothing runs after a card that does not read.
+  // The live card, as the marketplace will fetch it, a signed one checked as the marketplace will
+  // check it, then read as the marketplace will read it (task-20.3 decisions 3, 8; task-20.7
+  // decisions 9, 12). Nothing runs after a card that does not pass or does not read.
   let served: ServedCard;
   try {
-    served = await fetchLiveCard(options.cardUrl, {
+    const live = await fetchLiveCard(options.cardUrl, {
       timeoutMs: options.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS,
       fetchImpl,
     });
+    served = live.served;
+    if (live.signature) notes.push(passedNote(live.signature));
   } catch (err) {
-    findings.push(`the card at ${options.cardUrl} could not be fetched: ${(err as Error).message}`);
+    const what = err instanceof UnconfirmedCardError ? 'confirmed' : 'fetched';
+    findings.push(`the card at ${options.cardUrl} could not be ${what}: ${(err as Error).message}`);
     return result(null);
   }
   let card: AgentCard;

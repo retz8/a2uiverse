@@ -8,7 +8,7 @@ import {mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import type {AgentCard as LegacyAgentCard} from '@a2a-js/sdk-v0_3';
-import type {ServedCard} from '@a2uiverse/card';
+import {fetchLiveCard, type LiveCard, type ServedCard} from '@a2uiverse/card';
 import {
   A2UI_EXTENSION_URIS,
   ARTIFACT_DESCRIPTOR_FILE,
@@ -17,7 +17,11 @@ import {
 } from '@a2uiverse/sdk';
 import {FakeEmbedder, type Embedder} from '@a2uiverse/embedder';
 import type {MarketplaceClient} from '../src/registry/marketplace.js';
-import {Registry, type RegistryJournal} from '../src/registry/registry.js';
+import {
+  Registry,
+  type CardSignatureJournalEntry,
+  type RegistryJournal,
+} from '../src/registry/registry.js';
 
 export type ArtifactFiles = Map<string, Uint8Array>;
 
@@ -103,12 +107,16 @@ export async function fixtureArtifact(
 }
 
 /**
- * Cards served by URL, each as its agent serves it, in whichever shape; a URL with no card is
+ * Cards served by URL, each as its agent serves it, in whichever shape, through the one fetch of
+ * the live card, so a signed card is checked as it is in a run (task-20.7 decision 8); a key set
+ * or any other document a card names is served beside them. A URL with nothing served is
  * unreachable, and one marked hanging answers nothing inside the fetch's time limit. Mutable, so
  * a test can move an agent.
  */
 export class CardServer {
   readonly cards = new Map<string, ServedCard>();
+  /** What a URL other than a card's answers: a key set, by its URL. */
+  readonly documents = new Map<string, unknown>();
   readonly hanging = new Set<string>();
   readonly fetched: string[] = [];
   /** The time limit each fetch was given, in the order fetched. */
@@ -124,16 +132,24 @@ export class CardServer {
     return url;
   }
 
-  fetch = async (url: string, timeoutMs: number): Promise<ServedCard> => {
+  fetch = async (url: string, timeoutMs: number): Promise<LiveCard> => {
     this.fetched.push(url);
     this.limits.push(timeoutMs);
+    return fetchLiveCard(url, {timeoutMs, fetchImpl: this.#answer});
+  };
+
+  /** What the network answers: a card, a document, nothing in time, or no connection. */
+  #answer: typeof fetch = async (input, init) => {
+    const url = String(input);
+    const signal = init?.signal ?? undefined;
     if (this.hanging.has(url)) {
-      await new Promise(resolve => setTimeout(resolve, timeoutMs));
-      throw new Error(`did not answer within ${timeoutMs / 1000} s`);
+      return new Promise<Response>((_resolve, reject) => {
+        signal?.addEventListener('abort', () => reject(signal.reason));
+      });
     }
-    const card = this.cards.get(url);
-    if (!card) throw new Error(`fetch failed: ${url}`);
-    return card;
+    const body = this.cards.get(url) ?? this.documents.get(url);
+    if (body === undefined) throw new Error(`fetch failed: ${url}`);
+    return new Response(JSON.stringify(body), {headers: {'content-type': 'application/json'}});
   };
 }
 
@@ -152,8 +168,14 @@ export interface TestRegistry {
 
 export class JournalSpy implements RegistryJournal {
   readonly entries: Parameters<RegistryJournal['registry']>[0][] = [];
+  /** Each signed card's check (task-20.7 decision 12). */
+  readonly signatures: CardSignatureJournalEntry[] = [];
   registry(entry: Parameters<RegistryJournal['registry']>[0]): Promise<void> {
     this.entries.push(entry);
+    return Promise.resolve();
+  }
+  cardSignature(entry: CardSignatureJournalEntry): Promise<void> {
+    this.signatures.push(entry);
     return Promise.resolve();
   }
 }

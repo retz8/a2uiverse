@@ -1,0 +1,30 @@
+{
+  "keys": [
+    {
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "hZ_d7O57Upx--lc_2omMm9imX1OzQMsI_LRFtexBqm4",
+      "y": "LWYaMzo4_9oBUjTsEVWl5YUBdC0xSofGTyO_cCc05KI",
+      "kid": "es-1",
+      "alg": "ES256",
+      "use": "sig"
+    },
+    {
+      "kty": "RSA",
+      "key_ops": ["verify"],
+      "n": "xHYpP2jyaM7-tVJ3AYpHBDxyQWwIeHSL6plbXKVYyOnWeFjiADyg1lLFm32rAtVdkalG3EKyA5fkmCB-IcjJnPbGpizoKfuUg7aKRGgbIvYmTv62voExND-XEWdyQhantKh0gM46Xjn6PgzsIs-l2qeYNAV8D9T1Cjw7aOU-iwNPwa8jeXbDvma_-A6Rpu2asyiTBMRCcg0QBpX17Qty6aQimxWWbCTE_IcXD8L1yx8q0YxwqZwLrlSAX5GiICnU6MsEWGY1BOuNFAuRs_Bv50vPQsqGu_UBAMbgYd9ZN5hSd0jWJRKicS-IpJheQs0s9cMQs2EZhArIwOeRE62Hxw",
+      "e": "AQAB",
+      "kid": "rs-1",
+      "alg": "RS256",
+      "use": "sig"
+    },
+    {
+      "x": "Nvzh9pSzPbuvY83lPUjPfVTz_wKOKtW39qTiuxfOd7c",
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "kid": "ed-1",
+      "alg": "EdDSA",
+      "use": "sig"
+    }
+  ]
+}

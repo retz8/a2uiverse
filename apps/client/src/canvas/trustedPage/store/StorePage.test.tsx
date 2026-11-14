@@ -449,6 +449,25 @@ describe('installing', () => {
     expect(screen.queryByRole('button', {name: 'Try again'})).toBeNull();
   });
 
+  it('an app whose details couldn’t be confirmed is refused in those words, with no press (task-20.7 decision 13)', async () => {
+    fake.install = {
+      ok: false,
+      findings: ['the card at … could not be confirmed: the card’s signature did not pass: …'],
+      cause: 'unconfirmed',
+    };
+    renderWithShell(<Store initial={{page: 'store', app: 'linear'}} />);
+    await userEvent.click(await screen.findByRole('button', {name: 'Install Linear'}));
+    await userEvent.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', {name: 'Install'}),
+    );
+    const refused = await screen.findByTestId('store-refused');
+    expect(refused).toHaveTextContent(
+      'Linear can’t be installed. Its details couldn’t be confirmed, so nothing was installed.',
+    );
+    expect(refused).not.toHaveTextContent(/signature|key/i);
+    expect(screen.queryByRole('button', {name: 'Try again'})).toBeNull();
+  });
+
   it('a refusal by the checks leaves Install off', async () => {
     fake.install = {ok: false, findings: ['…'], cause: 'checks'};
     renderWithShell(<Store initial={{page: 'store', app: 'linear'}} />);

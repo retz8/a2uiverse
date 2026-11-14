@@ -1,0 +1,41 @@
+{
+  "capabilities": {
+    "extensions": [
+      {
+        "params": {
+          "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+        },
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1"
+      }
+    ],
+    "streaming": true
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "description": "an agent for tests",
+  "documentationUrl": "https://example.com/docs",
+  "name": "Fake Agent",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3.0",
+  "provider": {
+    "organization": "Acme",
+    "url": "https://example.com"
+  },
+  "signatures": [
+    {
+      "protected": "eyJhbGciOiJFUzI1NiIsImprdSI6Imh0dHA6Ly8xMjcuMC4wLjE6MTg3MzEvLndlbGwta25vd24vandrcy5qc29uIiwia2lkIjoiZXMtMSIsInR5cCI6IkpPU0UifQ",
+      "signature": "M1LX2lu9hb7QYbzfqwhtXiljfKycbYzbz9yPf6Fd5rbFUdc83DB9YiUr5WYo0ZvL8lJf1L3zUrGEbCh8ojaszg"
+    }
+  ],
+  "skills": [
+    {
+      "description": "A fake skill",
+      "examples": ["show my things"],
+      "id": "fake",
+      "name": "Fake",
+      "tags": ["fake"]
+    }
+  ],
+  "url": "http://127.0.0.1:18731/",
+  "version": "0.1.0"
+}

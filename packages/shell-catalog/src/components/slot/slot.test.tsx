@@ -297,6 +297,8 @@ test('schema accepts the catalog and load causes carrying their id and the unins
   expect(failed({cause: 'uninstalled'})).toBe(true);
   expect(failed({cause: 'interface'})).toBe(true);
   expect(failed({cause: 'interface', message: 'said'})).toBe(false);
+  expect(failed({cause: 'unconfirmed'})).toBe(true);
+  expect(failed({cause: 'unconfirmed', message: 'said'})).toBe(false);
   expect(failed({cause: 'uninstalled', catalogId: 'urn:catalog:other'})).toBe(false);
   expect(failed({cause: 'vendor', catalogId: 'urn:catalog:other'})).toBe(false);
   expect(failed({cause: 'catalog', catalogId: 'urn:catalog:other', message: 'said'})).toBe(false);
@@ -325,6 +327,7 @@ test.each([
   ['invalid', 'This app sent a screen that couldn’t be shown.'],
   ['uninstalled', 'This app isn’t installed anymore.'],
   ['interface', 'This app now connects in a way A2UIVerse can’t use.'],
+  ['unconfirmed', 'This app’s details couldn’t be confirmed, so it isn’t shown.'],
 ] as const)(
   'with no vendor words the statement is the shell’s reason for %s, with no name in it',
   (cause, reason) => {

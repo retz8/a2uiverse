@@ -22,6 +22,8 @@ import {
   readUpdateState,
   NO_INTERFACE_WORDS,
   noInterfaceNotice,
+  UNCONFIRMED_WORDS,
+  unconfirmedNotice,
   publishedVersionOf,
   refusalOf,
   searchPath,
@@ -335,6 +337,12 @@ describe('the words of a refused install or update (task-14.7 decision 6, task-1
         rest: 'It connects in a way A2UIVerse can’t use, so nothing was installed.',
         press: 'none',
       },
+      unconfirmed: {
+        tone: 'bad',
+        lead: 'Shop B can’t be installed.',
+        rest: 'Its details couldn’t be confirmed, so nothing was installed.',
+        press: 'none',
+      },
       checks: {
         tone: 'bad',
         lead: 'Shop B can’t be installed.',
@@ -375,6 +383,22 @@ describe('the words of a refused install or update (task-14.7 decision 6, task-1
       rest: 'It connects in a way A2UIVerse can’t use, so nothing changed.',
       press: 'none',
     });
+  });
+
+  test('an app whose details couldn’t be confirmed, updated: nothing changed (task-20.7 decision 13)', () => {
+    expect(refusalOf('unconfirmed', 'Shop B', 'update')).toEqual({
+      tone: 'bad',
+      lead: 'Shop B can’t be updated.',
+      rest: 'Its details couldn’t be confirmed, so nothing changed.',
+      press: 'none',
+    });
+  });
+
+  test('an app whose details couldn’t be confirmed, in the App Library’s words and on its view', () => {
+    expect(UNCONFIRMED_WORDS).toBe('Details couldn’t be confirmed');
+    expect(unconfirmedNotice('Shop B')).toBe(
+      'Shop B’s details couldn’t be confirmed, so it isn’t shown.',
+    );
   });
 
   test('an app the platform cannot reach, in the App Library’s words and on its view', () => {

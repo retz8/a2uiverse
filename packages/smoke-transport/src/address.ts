@@ -7,6 +7,7 @@
  * reads a target with a scheme as a name it cannot resolve.
  */
 import type {AgentInterface} from '@a2a-js/sdk';
+import {isLocalMachine} from '@a2uiverse/card';
 
 export interface InterfaceAddress {
   host: string;
@@ -15,9 +16,6 @@ export interface InterfaceAddress {
   /** The interface's URL as the A2A SDK is handed it. */
   dialUrl: string;
 }
-
-/** The hosts a bare gRPC `host:port` names the local machine by, dialed without TLS. */
-const LOCAL_HOSTS: ReadonlySet<string> = new Set(['localhost', '127.0.0.1', '::1']);
 
 const DEFAULT_PORTS: Record<string, number> = {'http:': 80, 'https:': 443};
 const GRPC_DEFAULT_PORT = 443;
@@ -67,7 +65,8 @@ function fromBareHostPort(hostPort: string): InterfaceAddress | undefined {
   if (parsed.hostname === '' || parsed.host !== hostPort) return undefined;
   const host = unbracketed(parsed.hostname);
   const port = parsed.port === '' ? GRPC_DEFAULT_PORT : Number(parsed.port);
-  return {host, port, tls: !LOCAL_HOSTS.has(host), dialUrl: `${parsed.hostname}:${port}`};
+  // The local machine as the card package names it, where a key set over `http` is taken too.
+  return {host, port, tls: !isLocalMachine(host), dialUrl: `${parsed.hostname}:${port}`};
 }
 
 /** An IPv6 literal without the brackets a URL writes it in. */

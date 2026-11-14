@@ -6,6 +6,9 @@ import {
   readCard,
   sameCard,
   spokenInterfaces,
+  UnconfirmedCardError,
+  type LiveCard,
+  type PassedSignature,
   type ServedCard,
 } from '@a2uiverse/card';
 import {
@@ -48,10 +51,11 @@ import {
 } from './types.js';
 
 /**
- * How the registry fetches a card from its full URL, as its agent serves it, under a time limit;
- * injected so tests need no network.
+ * How the registry fetches a card from its full URL, as its agent serves it, a signed card checked
+ * as it is fetched, under a time limit (task-20.7 decision 8); injected so tests need no network.
+ * Throws an `UnconfirmedCardError` for a signed card that does not pass.
  */
-export type FetchCard = (cardUrl: string, timeoutMs: number) => Promise<ServedCard>;
+export type FetchCard = (cardUrl: string, timeoutMs: number) => Promise<LiveCard>;
 
 /**
  * How long a card fetch may take at boot, at the update check and at install (task-20.3 decision
@@ -59,11 +63,25 @@ export type FetchCard = (cardUrl: string, timeoutMs: number) => Promise<ServedCa
  */
 export const DEFAULT_CARD_TIMEOUT_MS = 10_000;
 
-/** A card as its agent served it, and as read. */
+/** A card as its agent served it, and as read, with the signature that passed on a signed one. */
 interface FetchedCard {
   served: ServedCard;
   card: AgentCard;
+  signature?: PassedSignature;
 }
+
+/** Where a live card was fetched, as its signature's journal line names it. */
+export type CardFetch = 'install' | 'boot' | 'check' | 'refetch';
+
+/**
+ * A signed card's check as the journal records it (task-20.7 decision 12): where it was fetched,
+ * and the signature that passed or the finding of a refusal. An unsigned card writes none.
+ */
+export type CardSignatureJournalEntry = {
+  appId: string;
+  cardUrl: string;
+  fetch: CardFetch;
+} & ({outcome: 'passed'; signature: PassedSignature} | {outcome: 'refused'; finding: string});
 
 /** A card that was fetched and does not read: an install refused for it says so. */
 class UnreadCard extends Error {}
@@ -123,6 +141,8 @@ export interface RowMove {
 
 export interface RegistryJournal {
   registry(entry: RegistryJournalEntry): Promise<void>;
+  /** A signed card's check (task-20.7 decision 12). */
+  cardSignature?(entry: CardSignatureJournalEntry): Promise<void>;
 }
 
 export interface InstallRequest {
@@ -207,6 +227,12 @@ export class Registry {
   readonly #stored = new Map<string, AgentCard>();
   /** This run's cards: null when the startup fetch failed; absent before it ran. */
   readonly #cards = new Map<string, FetchedCard | null>();
+  /**
+   * The finding of each app whose live card was last fetched signed and refused (task-20.7
+   * decision 10): the run keeps the card it last took — at boot the one stored at install — and
+   * the app's slot takes the failure tile until a fetch takes a card again.
+   */
+  readonly #refused = new Map<string, string>();
   /**
    * How many fetches of each app's live card this run has had answered, the card changed or not:
    * a dispatch's walk starts over once the count moves (task-20.5 decision 5).
@@ -331,17 +357,24 @@ export class Registry {
   async refreshCards(): Promise<void> {
     const records = [...this.#records.values()];
     const cards = await Promise.all(
-      records.map(record => this.#fetchCard(record.cardUrl).catch(() => null)),
+      records.map(record => this.#fetchLive(record.id, record.cardUrl, 'boot')),
     );
     this.#cards.clear();
     this.#vectors.clear();
     const carded: {id: string; card: AgentCard}[] = [];
     records.forEach((record, i) => {
       const fetched = cards[i]!;
-      this.#cards.set(record.id, fetched);
-      if (fetched) {
+      if (fetched.kind === 'refused') {
+        // A signed card refused at boot: the card stored at install is the last one taken.
+        const stored = this.#stored.get(record.id)!;
+        this.#cards.set(record.id, {served: record.card, card: stored});
+        carded.push({id: record.id, card: stored});
+        return;
+      }
+      this.#cards.set(record.id, fetched.kind === 'taken' ? fetched.live : null);
+      if (fetched.kind === 'taken') {
         this.#fetchedLive(record.id);
-        carded.push({id: record.id, card: fetched.card});
+        carded.push({id: record.id, card: fetched.live.card});
       }
     });
     if (this.#platform) carded.push({id: SHELL_SOURCE_ID, card: this.#platform.card});
@@ -358,12 +391,14 @@ export class Registry {
   async refetchLiveCards(): Promise<void> {
     const records = [...this.#records.values()];
     const fetched = await Promise.all(
-      records.map(record => this.#fetchCard(record.cardUrl).catch(() => null)),
+      records.map(record => this.#fetchLive(record.id, record.cardUrl, 'check')),
     );
     const changed: {id: string; card: AgentCard}[] = [];
     records.forEach((record, i) => {
-      const live = fetched[i];
-      if (!live || !this.#records.has(record.id)) return;
+      // A card not answered or refused leaves the one held (task-20.7 decision 10).
+      const outcome = fetched[i]!;
+      if (outcome.kind !== 'taken' || !this.#records.has(record.id)) return;
+      const live = outcome.live;
       this.#fetchedLive(record.id);
       if (this.#holds(record.id, live)) return;
       this.#cards.set(record.id, live);
@@ -381,19 +416,15 @@ export class Registry {
   /**
    * One app's live card fetched again, given `timeoutMs` (task-15.5 decision 4): a card that answers
    * and reads replaces the one held, its corpus vector recomputed when it changed, and is returned;
-   * one that does not answer in time, or at all, or does not read, leaves the one held and returns
-   * none.
+   * one that does not answer in time, or at all, or does not read, or is signed and refused, leaves
+   * the one held and returns none.
    */
   async refetchLiveCard(appId: string, timeoutMs: number): Promise<AgentCard | undefined> {
     const record = this.#records.get(appId);
     if (!record) return undefined;
-    let live: FetchedCard;
-    try {
-      live = await this.#fetchCard(record.cardUrl, timeoutMs);
-    } catch {
-      return undefined;
-    }
-    if (!this.#records.has(appId)) return undefined;
+    const outcome = await this.#fetchLive(appId, record.cardUrl, 'refetch', timeoutMs);
+    if (outcome.kind !== 'taken' || !this.#records.has(appId)) return undefined;
+    const live = outcome.live;
     this.#fetchedLive(appId);
     if (this.#holds(appId, live)) return live.card;
     this.#cards.set(appId, live);
@@ -483,6 +514,15 @@ export class Registry {
   firstSpokenInterface(appId: string): AgentInterface | undefined {
     const card = this.dialCard(appId);
     return card ? spokenInterfaces(card)[0] : undefined;
+  }
+
+  /**
+   * The finding when the app's live card was last fetched signed and refused (task-20.7 decision
+   * 10): its slot takes the failure tile, the App Library says its details couldn't be confirmed.
+   * Undefined once a fetch takes a card again; a fetch that does not answer changes nothing.
+   */
+  unconfirmed(appId: string): string | undefined {
+    return this.#refused.get(appId);
   }
 
   /**
@@ -603,8 +643,14 @@ export class Registry {
     try {
       card = await this.#fetchCard(entry.cardUrl);
     } catch (err) {
+      // A signed card that does not pass is refused as fetched (task-20.7 decision 9).
+      if (err instanceof UnconfirmedCardError) {
+        await this.#journalSignature(appId, entry.cardUrl, 'install', err);
+        return refuse('unconfirmed', [cardFinding(entry.cardUrl, err)], entry.cardUrl);
+      }
       return refuse('app-unreached', [cardFinding(entry.cardUrl, err)], entry.cardUrl);
     }
+    await this.#journalSignature(appId, entry.cardUrl, 'install', card);
     // An agent the platform cannot reach is turned away before its drift is judged (task-20.3
     // decision 16).
     if (spokenInterfaces(card.card).length === 0) {
@@ -733,7 +779,25 @@ export class Registry {
     if (!live) {
       try {
         live = await this.#fetchCard(cardUrl);
+        await this.#journalSignature(appId, cardUrl, 'install', live);
       } catch (err) {
+        // A signed card that does not pass is refused under a cause of its own, with its one
+        // finding (task-20.7 decision 9).
+        if (err instanceof UnconfirmedCardError) {
+          await this.#journalSignature(appId, cardUrl, 'install', err);
+          const refusal = [cardFinding(cardUrl, err)];
+          await this.#journal({
+            operation,
+            appId,
+            cardUrl,
+            catalogs: [],
+            outcome: 'refused',
+            findings: refusal,
+            source,
+            ...journalExtra,
+          });
+          return {ok: false, findings: refusal, cause: 'unconfirmed'};
+        }
         findings.push(cardFinding(cardUrl, err));
       }
     }
@@ -857,6 +921,7 @@ export class Registry {
     await this.#commit(next);
     this.#stored.set(appId, card);
     this.#cards.set(appId, live);
+    this.#refused.delete(appId);
     this.#fetchedLive(appId);
     this.#vectors.set(appId, vector);
     this.#notifyChanged({appIds: [appId, ...followed], automatic});
@@ -904,6 +969,7 @@ export class Registry {
     await this.#commit(next);
     this.#stored.delete(appId);
     this.#cards.delete(appId);
+    this.#refused.delete(appId);
     this.#vectors.delete(appId);
     this.#notifyChanged({appIds: [appId], automatic: false});
     const catalogs = Object.entries(record.catalogs).map(([catalogId, artifact]) => ({
@@ -976,11 +1042,65 @@ export class Registry {
     cardUrl: string,
     timeoutMs = this.#deps.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS,
   ): Promise<FetchedCard> {
-    const served = await this.#deps.fetchCard(cardUrl, timeoutMs);
+    const {served, signature} = await this.#deps.fetchCard(cardUrl, timeoutMs);
+    let card: AgentCard;
     try {
-      return {served, card: readCard(served)};
+      card = readCard(served);
     } catch (err) {
       throw new UnreadCard((err as Error).message);
+    }
+    return signature ? {served, card, signature} : {served, card};
+  }
+
+  /**
+   * An installed app's live card fetched again (task-20.7 decisions 8, 10): taken, its signature's
+   * pass journaled; refused, the app's refusal held and journaled; or not answered — not fetched in
+   * time, not at all, or not read — which changes nothing. A card taken clears a refusal held.
+   */
+  async #fetchLive(
+    appId: string,
+    cardUrl: string,
+    fetch: CardFetch,
+    timeoutMs?: number,
+  ): Promise<{kind: 'taken'; live: FetchedCard} | {kind: 'refused'} | {kind: 'unanswered'}> {
+    try {
+      const live = await this.#fetchCard(cardUrl, timeoutMs);
+      await this.#journalSignature(appId, cardUrl, fetch, live);
+      if (this.#records.has(appId)) this.#refused.delete(appId);
+      return {kind: 'taken', live};
+    } catch (err) {
+      if (!(err instanceof UnconfirmedCardError)) return {kind: 'unanswered'};
+      await this.#journalSignature(appId, cardUrl, fetch, err);
+      if (this.#records.has(appId)) this.#refused.set(appId, cardFinding(cardUrl, err));
+      return {kind: 'refused'};
+    }
+  }
+
+  /** A signed card's check on the journal: the pass of a card taken, or the refusal; none unsigned. */
+  async #journalSignature(
+    appId: string,
+    cardUrl: string,
+    fetch: CardFetch,
+    checked: FetchedCard | UnconfirmedCardError,
+  ): Promise<void> {
+    const journal = this.#deps.journal;
+    if (!journal?.cardSignature) return;
+    if (checked instanceof UnconfirmedCardError) {
+      await journal.cardSignature({
+        appId,
+        cardUrl,
+        fetch,
+        outcome: 'refused',
+        finding: checked.message,
+      });
+    } else if (checked.signature) {
+      await journal.cardSignature({
+        appId,
+        cardUrl,
+        fetch,
+        outcome: 'passed',
+        signature: checked.signature,
+      });
     }
   }
 
@@ -1013,7 +1133,12 @@ class UnreadableArtifact extends Error {}
 
 /** The finding for a card an install could not take: not fetched, or fetched and not read. */
 function cardFinding(cardUrl: string, err: unknown): string {
-  const what = err instanceof UnreadCard ? 'read' : 'fetched';
+  const what =
+    err instanceof UnreadCard
+      ? 'read'
+      : err instanceof UnconfirmedCardError
+        ? 'confirmed'
+        : 'fetched';
   return `the card at ${cardUrl} could not be ${what}: ${(err as Error).message}`;
 }
 

@@ -70,6 +70,17 @@ describe('an app’s state as the App Library shows it', () => {
     });
   });
 
+  it('says an app whose details couldn’t be confirmed in place of its update state, ahead of its interfaces, with no press and no note (task-20.7 decision 13)', () => {
+    const update: UpdateState = {...base, state: 'up-to-date', publishedVersion: '1.0.0'};
+    expect(appStateView(app({unconfirmed: true, noInterface: true}), update, false)).toEqual({
+      kind: 'state',
+      words: 'Details couldn’t be confirmed',
+      tone: 'bad',
+      press: {kind: 'none'},
+    });
+    expect(stateNote('Gmail', app({unconfirmed: true}), update)).toBeUndefined();
+  });
+
   it('carries Update for a waiting update, through the card only for one that asks for more', () => {
     const card: UpdateState = {
       ...base,

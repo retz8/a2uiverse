@@ -540,6 +540,17 @@ export const noInterfaceNotice = (name: string): string =>
   `${name} now connects in a way A2UIVerse can’t use.`;
 
 /**
+ * An installed app whose live card is signed and did not pass the check (task-20.7 decision 13):
+ * what the App Library shows in place of its update state, and what the Planner's installed-apps
+ * reader hands the Planner. The words name no signature and no key.
+ */
+export const UNCONFIRMED_WORDS = 'Details couldn’t be confirmed';
+
+/** The notice on such an app's view in the App Library, by name. */
+export const unconfirmedNotice = (name: string): string =>
+  `${name}’s details couldn’t be confirmed, so it isn’t shown.`;
+
+/**
  * Each state in the App Library's words (task-14.5 decision 6): what the App Library shows and
  * what the Planner's installed-apps reader hands it, so the page and the canvas say one thing.
  */
@@ -599,14 +610,16 @@ export function updateWords(
 /**
  * Why an install was refused (task-14.7 decision 6), beside its findings: the Store behind the
  * app's live card, the app's card unreached, the app's card listing no interface the platform
- * speaks (task-20.3 decision 16), the checks failed, the Store unreached, or the app no longer in
- * the Store (task-15.11 decision 44). The trusted page words each and chooses its press from it;
+ * speaks (task-20.3 decision 16), the app's card signed and not passing the check (task-20.7
+ * decision 9), the checks failed, the Store unreached, or the app no longer in the Store
+ * (task-15.11 decision 44). The trusted page words each and chooses its press from it;
  * the findings stay for the journal and the terminal.
  */
 export const INSTALL_REFUSALS = [
   'store-behind',
   'app-unreached',
   'no-interface',
+  'unconfirmed',
   'checks',
   'store-unreached',
   'unheard',
@@ -646,6 +659,17 @@ export function refusalOf(cause: InstallRefusal, name: string, act: 'install' | 
           act === 'install'
             ? 'It connects in a way A2UIVerse can’t use, so nothing was installed.'
             : 'It connects in a way A2UIVerse can’t use, so nothing changed.',
+        press: 'none' as const,
+      };
+    // The app's card is signed and its signature did not pass (task-20.7 decision 13).
+    case 'unconfirmed':
+      return {
+        tone: 'bad' as const,
+        lead: `${name} can’t be ${verb}.`,
+        rest:
+          act === 'install'
+            ? 'Its details couldn’t be confirmed, so nothing was installed.'
+            : 'Its details couldn’t be confirmed, so nothing changed.',
         press: 'none' as const,
       };
     case 'checks':

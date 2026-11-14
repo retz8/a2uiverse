@@ -203,13 +203,13 @@ export function marketplaceRoutes({
   /**
    * An entry with its app's drift as the live card shows it now, through the sdk's drift function
    * the marketplace runs; where that differs from the Store's flag the marketplace is sent the
-   * report, so its own flag catches up for every reader. A card that does not answer in time or
-   * does not read leaves the Store's flag.
+   * report, so its own flag catches up for every reader. A card that does not answer in time,
+   * does not read, or is signed and refused (task-20.7 decision 11) leaves the Store's flag.
    */
   const withLiveDrift = async (entry: IndexEntry): Promise<IndexEntry> => {
     let card: AgentCard;
     try {
-      card = readCard(await fetchCard(entry.cardUrl, LIVE_CARD_TIMEOUT_MS));
+      card = readCard((await fetchCard(entry.cardUrl, LIVE_CARD_TIMEOUT_MS)).served);
     } catch {
       return entry;
     }

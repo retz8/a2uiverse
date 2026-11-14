@@ -776,6 +776,10 @@ export function failureStatement(failure: SlotFailure | undefined): string {
       // The app's card lists no way in that A2UIVerse uses (task-20.3 decision 13); the words
       // name no binding and no protocol version.
       return 'This app now connects in a way A2UIVerse can’t use.';
+    case 'unconfirmed':
+      // The app's live card is signed and did not pass the check (task-20.7 decision 13); the
+      // words name no signature and no key.
+      return 'This app’s details couldn’t be confirmed, so it isn’t shown.';
     default:
       return 'This app couldn’t answer.';
   }

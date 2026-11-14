@@ -488,6 +488,24 @@ describe('an app’s view', () => {
     await waitFor(() => expect(screen.queryByTestId('library-no-interface')).toBeNull());
   });
 
+  it('says an app whose details couldn’t be confirmed, on its row and on its view, Check again taking it back (task-20.7 decision 13)', async () => {
+    fake.installed = fake.installed.map(app =>
+      app.id === 'shop-b' ? {...app, unconfirmed: true} : app,
+    );
+    renderWithShell(<Library initial={{page: 'appLibrary', app: 'shop-b'}} />);
+    const notice = await screen.findByTestId('library-unconfirmed');
+    expect(notice).toHaveTextContent('Shop B’s details couldn’t be confirmed, so it isn’t shown.');
+    expect(screen.getByTestId('library-state')).toHaveTextContent('Details couldn’t be confirmed');
+    // Nothing drawn names a signature or a key.
+    expect(document.body.textContent).not.toMatch(/signature|signed|key set|jku|kid\b/i);
+
+    fake.installed = fake.installed.map(app =>
+      app.id === 'shop-b' ? {...app, unconfirmed: false} : app,
+    );
+    await userEvent.click(within(notice).getByRole('button', {name: 'Check again'}));
+    await waitFor(() => expect(screen.queryByTestId('library-unconfirmed')).toBeNull());
+  });
+
   it('says an app that isn’t installed, with the Store’s view of it (decision 5)', async () => {
     renderWithShell(<Library initial={{page: 'appLibrary', app: 'acme'}} />);
     expect(await screen.findByText('This app isn’t installed.')).toBeInTheDocument();

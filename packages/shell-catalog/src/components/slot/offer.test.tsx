@@ -323,6 +323,12 @@ test.each([
     {name: 'Install', enabled: false},
   ],
   [
+    'unconfirmed',
+    'Shop B can’t be installed.',
+    'Its details couldn’t be confirmed, so nothing was installed.',
+    {name: 'Install', enabled: false},
+  ],
+  [
     'checks',
     'Shop B can’t be installed.',
     'Its files didn’t pass the checks on this computer, so nothing changed.',
@@ -375,6 +381,7 @@ test('every refusal the Store words has its row’s line', () => {
     'store-behind',
     'app-unreached',
     'no-interface',
+    'unconfirmed',
     'checks',
     'store-unreached',
     'unheard',

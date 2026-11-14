@@ -316,6 +316,12 @@ test.each([
     'It connects in a way A2UIVerse can’t use, so nothing changed.',
     undefined,
   ],
+  [
+    'unconfirmed',
+    'Shop B can’t be updated.',
+    'Its details couldn’t be confirmed, so nothing changed.',
+    undefined,
+  ],
 ] as const)(
   'a refused update (%s) says why on the line in the Store’s words, with the Store’s press',
   (cause, lead, rest, press) => {

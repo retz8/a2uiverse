@@ -4,7 +4,11 @@ import type {Message} from '@a2a-js/sdk';
 import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {Embedder} from '@a2uiverse/embedder';
 import type {PublisherJournalEntry} from '../marketplace/publisher.js';
-import type {RegistryJournal, RegistryJournalEntry} from '../registry/registry.js';
+import type {
+  CardSignatureJournalEntry,
+  RegistryJournal,
+  RegistryJournalEntry,
+} from '../registry/registry.js';
 import type {SignInRecord} from '../vault/vault.js';
 import {logLine} from '../log.js';
 import {describe} from './descriptor.js';
@@ -45,6 +49,9 @@ export interface JournalTurn {
 
 /** A registry change as its journal line carries it. */
 export type RegistryLine = {kind: 'registry'; at: string} & RegistryJournalEntry;
+
+/** A signed card's check as its journal line carries it (task-20.7 decision 12). */
+export type CardSignatureLine = {kind: 'cardSignature'; at: string} & CardSignatureJournalEntry;
 
 /** A sign-in fact as its journal line carries it (task-12.5 decision 11): never a secret. */
 export type SignInLine = {kind: 'signIn'; at: string} & SignInRecord;
@@ -155,6 +162,17 @@ export class IntentJournal implements RegistryJournal {
   }
 
   /**
+   * A signed card's check (task-20.7 decision 12): one line of kind `cardSignature` for each fetch
+   * of a signed card from its card URL — at install, at boot, at the update check or fetched again
+   * — naming the app, the card URL and where it was fetched, with the signature that passed, its
+   * key id, key set and algorithm, or the refusal's finding. An unsigned card writes none. Never
+   * throws.
+   */
+  async cardSignature(entry: CardSignatureJournalEntry): Promise<void> {
+    await this.#append({kind: 'cardSignature', at: new Date().toISOString(), ...entry});
+  }
+
+  /**
    * A sign-in fact (task-12.5 decision 11): one line of kind `signIn` beside the turns — started,
    * signed in, failed, expired, refreshed, a refresh failed, revoked, a request for more access
    * (valid or invalid) and its Not now — naming the app, the source, the canvas, why and the scope
@@ -196,7 +214,9 @@ export class IntentJournal implements RegistryJournal {
     }
   }
 
-  async #append(entry: JournalEntry | RegistryLine | SignInLine | PublisherLine): Promise<void> {
+  async #append(
+    entry: JournalEntry | RegistryLine | CardSignatureLine | SignInLine | PublisherLine,
+  ): Promise<void> {
     try {
       await mkdir(dirname(this.#filePath), {recursive: true});
       await appendFile(this.#filePath, `${JSON.stringify(entry)}\n`);

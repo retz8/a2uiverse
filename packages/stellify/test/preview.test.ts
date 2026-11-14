@@ -24,6 +24,8 @@ import {
   type FakeAgentV1,
   type FakePath,
 } from '@a2uiverse/smoke-transport/testing/v1';
+import {AgentCard} from '@a2a-js/sdk';
+import {keySetOf, signServed, testSigner, type TestSigner} from '@a2uiverse/card/testing';
 import {createServer as createNetServer} from 'node:net';
 import {afterEach, beforeAll, describe, expect, test} from 'vitest';
 import {UNSUPPORTED_SCHEME} from '../src/credential.js';
@@ -234,6 +236,55 @@ describe('preview of an agent on A2A 1.0 (task-20.3 decisions 11, 20)', () => {
       ]);
     },
   );
+});
+
+describe('preview of a signed card (task-20.7 decisions 9, 10, 12)', () => {
+  /** A fake A2A 1.0 agent serving its card signed by `signer`, the key set `keySet` at its origin. */
+  const startSigned = async (signer: TestSigner, keySet: unknown) => {
+    agentV1 = await startFakeAgentV1({
+      script: completingScriptV1(paintPartsV1(STAR_CATALOG_ID, {component: 'StarText'})),
+      card: interfaces => cardForV1(interfaces, {name: 'Star Agent', catalogs: [STAR_CATALOG_ID]}),
+      serve: (card, {keySetUrl}) =>
+        signServed(AgentCard.toJSON(card) as object, signer, {jku: keySetUrl}),
+      keySet,
+    });
+    return agentV1;
+  };
+
+  test('one that passes: the paint captured as before, the pass a note on the terminal', async () => {
+    const signer = await testSigner();
+    const fake = await startSigned(signer, keySetOf(signer));
+    const result = await preview({appId: 'star', cardUrl: fake.cardUrl, catalogs: [star]});
+    expect(result.findings).toEqual([]);
+    expect(result.document).not.toBeNull();
+    expect(result.notes).toContain(
+      `the card's signature passed: key "test-1" (ES256) in the key set at ${fake.keySetUrl}`,
+    );
+  });
+
+  test('one that does not pass: one finding naming why in a developer’s terms, nothing captured, nothing sent', async () => {
+    const fake = await startSigned(await testSigner(), keySetOf(await testSigner({kid: 'other'})));
+    const result = await preview({appId: 'star', cardUrl: fake.cardUrl, catalogs: [star]});
+    expect(result.document).toBeNull();
+    expect(result.findings).toEqual([
+      `the card at ${fake.cardUrl} could not be confirmed: the card's signature did not pass: the key set at ${fake.keySetUrl} holds no key under kid "test-1" for ES256`,
+    ]);
+    expect(fake.requests).toEqual([]);
+  });
+
+  test('a key set that does not answer within the card’s time limit: the card could not be fetched', async () => {
+    const fake = await startSigned(await testSigner(), 'hang');
+    const result = await preview({
+      appId: 'star',
+      cardUrl: fake.cardUrl,
+      catalogs: [star],
+      cardTimeoutMs: 200,
+    });
+    expect(result.findings).toEqual([
+      `the card at ${fake.cardUrl} could not be fetched: the key set at ${fake.keySetUrl} did not answer within 0.2 s`,
+    ]);
+    expect(fake.requests).toEqual([]);
+  });
 });
 
 describe('preview over the card’s interfaces (task-20.5 decisions 1, 2, 7, 8, 9)', () => {

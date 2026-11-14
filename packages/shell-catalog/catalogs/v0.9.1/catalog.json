@@ -875,9 +875,10 @@
                 "uninstalled",
                 "load",
                 "credential",
-                "interface"
+                "interface",
+                "unconfirmed"
               ],
-              "description": "`vendor`: the vendor ended its task failed; `unreachable`: the connection or stream broke, nothing said; `timeout`: no answer within the time allowed; `invalid`: the paint arrived and could not be rendered; `catalog`: the agent painted in a catalog the app is not entitled to; `uninstalled`: the app is no longer installed; `load`: the client could not load the catalog the paint is in; `credential`: the agent painted a credential field and did not repair it — no Retry; `interface`: the app's card lists no interface the platform speaks, so the agent was not called."
+              "description": "`vendor`: the vendor ended its task failed; `unreachable`: the connection or stream broke, nothing said; `timeout`: no answer within the time allowed; `invalid`: the paint arrived and could not be rendered; `catalog`: the agent painted in a catalog the app is not entitled to; `uninstalled`: the app is no longer installed; `load`: the client could not load the catalog the paint is in; `credential`: the agent painted a credential field and did not repair it — no Retry; `interface`: the app's card lists no interface the platform speaks, so the agent was not called; `unconfirmed`: the app's live card is signed and did not pass the check, so the agent was not called."
             },
             "message": {
               "type": "string",

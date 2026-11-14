@@ -320,6 +320,13 @@ export class AgentsPool {
         finalMessage = fault.message;
         yield relayEvent(event, relayCtx);
       } else {
+        // A live card fetched signed and refused (task-20.7 decision 10): the agent is not called,
+        // ahead of everything else judged on the card.
+        const unconfirmed = this.#registry.unconfirmed(app.id);
+        if (unconfirmed !== undefined) {
+          finish('failed', {error: unconfirmed, cause: 'unconfirmed'});
+          return;
+        }
         // Reachability, judged before the agent is called, ahead of the update check and of any
         // sign-in (task-20.3 decision 13): the card the dispatch would dial from lists an
         // interface the platform speaks.

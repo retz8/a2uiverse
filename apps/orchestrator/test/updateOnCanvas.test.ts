@@ -10,7 +10,9 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
-import type {Message} from '@a2a-js/sdk';
+import {AgentCard as ReadAgentCard, type Message} from '@a2a-js/sdk';
+import {readCard} from '@a2uiverse/card';
+import {keySetOf, signServed, testSigner, type TestSigner} from '@a2uiverse/card/testing';
 import {ClientFactory, type Client} from '@a2a-js/sdk/client';
 import {
   clientMessage,
@@ -624,6 +626,96 @@ describe('an installed app the platform cannot reach (task-20.3 decision 13)', (
     expect(lastSlot(pressed, 'shop')).toMatchObject({
       state: 'failed',
       failure: {cause: 'interface'},
+    });
+    expect(vendors.shop!.requests).toEqual([]);
+  });
+});
+
+describe('an installed app whose live card does not pass (task-20.7 decisions 10, 12)', () => {
+  /** The vendor's card in A2A 1.0's JSON, signed by `signer` naming the vendor's own key set. */
+  const signedBy = async (vendor: FakeVendor, signer: TestSigner) =>
+    signServed(ReadAgentCard.toJSON(readCard(copy(vendor.card))) as object, signer, {
+      jku: vendor.keySetUrl,
+    });
+
+  async function journalLines(kind: string) {
+    const text = await readFile(join(dir, 'intent-journal.jsonl'), 'utf8').catch(() => '');
+    return text
+      .split('\n')
+      .filter(Boolean)
+      .map(line => JSON.parse(line) as Record<string, unknown>)
+      .filter(line => line.kind === kind);
+  }
+
+  test('a signed card that passes: the app paints as before, nothing drawn, the pass journaled', async () => {
+    const {client, orchestrator} = await boot({apps: {shop: {}}, plan: shopOnly});
+    const signer = await testSigner();
+    vendors.shop!.served = await signedBy(vendors.shop!, signer);
+    vendors.shop!.keySet = keySetOf(signer);
+    await orchestrator.registry.refreshCards();
+
+    const events = await collect(client, utterance('camera prices'));
+    expect(lastSlot(events, 'shop')).not.toMatchObject({state: 'failed'});
+    expect(vendors.shop!.requests).toHaveLength(1);
+    expect(JSON.stringify(events)).toContain(FAKE_CATALOG_ID);
+    expect(await journalLines('cardSignature')).toEqual([
+      expect.objectContaining({
+        appId: 'shop',
+        fetch: 'boot',
+        outcome: 'passed',
+        signature: {kid: 'test-1', jku: vendors.shop!.keySetUrl, alg: 'ES256'},
+      }),
+    ]);
+  });
+
+  test('one that does not pass: the failure tile under a cause of its own, the agent never called, the app installed and routed', async () => {
+    const {client, orchestrator} = await boot({apps: {shop: {}}, plan: shopOnly});
+    vendors.shop!.served = await signedBy(vendors.shop!, await testSigner());
+    vendors.shop!.keySet = keySetOf(await testSigner());
+    await orchestrator.registry.refreshCards();
+
+    const events = await collect(client, utterance('camera prices'));
+    expect(lastSlot(events, 'shop')).toMatchObject({
+      state: 'failed',
+      failure: {cause: 'unconfirmed'},
+    });
+    expect(vendors.shop!.requests).toEqual([]);
+    const [record] = await dispatchRecords('shop', 1);
+    expect(record).toMatchObject({outcome: 'failed', cause: 'unconfirmed'});
+    expect(String(record!.error)).toMatch(/could not be confirmed: .*does not match the card/);
+    expect(orchestrator.registry.list().map(app => app.id)).toEqual(['shop']);
+    expect(orchestrator.registry.routable().some(app => app.record.id === 'shop')).toBe(true);
+    expect(await journalLines('cardSignature')).toEqual([
+      expect.objectContaining({appId: 'shop', fetch: 'boot', outcome: 'refused'}),
+    ]);
+  });
+
+  test('Retry fetches the live card again first: a card that passes again is taken, and the agent paints', async () => {
+    const {client, orchestrator} = await boot({apps: {shop: {}}, plan: shopOnly});
+    const signer = await testSigner();
+    vendors.shop!.served = await signedBy(vendors.shop!, signer);
+    vendors.shop!.keySet = {keys: []};
+    await orchestrator.registry.refreshCards();
+    const turn = await collect(client, utterance('camera prices'));
+    expect(lastSlot(turn, 'shop')).toMatchObject({failure: {cause: 'unconfirmed'}});
+
+    vendors.shop!.keySet = keySetOf(signer);
+    const pressed = await collect(client, retry('shop', contextOf(turn)));
+    expect(orchestrator.registry.unconfirmed('shop')).toBeUndefined();
+    expect(vendors.shop!.requests).toHaveLength(1);
+    expect(lastSlot(pressed, 'shop')).not.toMatchObject({state: 'failed'});
+  });
+
+  test('a Retry while the card still does not pass fails the same way, the agent still not called', async () => {
+    const {client, orchestrator} = await boot({apps: {shop: {}}, plan: shopOnly});
+    vendors.shop!.served = await signedBy(vendors.shop!, await testSigner());
+    vendors.shop!.keySet = {keys: []};
+    await orchestrator.registry.refreshCards();
+    const turn = await collect(client, utterance('camera prices'));
+    const pressed = await collect(client, retry('shop', contextOf(turn)));
+    expect(lastSlot(pressed, 'shop')).toMatchObject({
+      state: 'failed',
+      failure: {cause: 'unconfirmed'},
     });
     expect(vendors.shop!.requests).toEqual([]);
   });

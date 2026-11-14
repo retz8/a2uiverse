@@ -15,7 +15,8 @@ import {
   SMOKE_GREETING,
   type PublishBody,
 } from '@a2uiverse/sdk';
-import {readCard, type ServedCard} from '@a2uiverse/card';
+import {fetchLiveCard, readCard, type LiveCard, type ServedCard} from '@a2uiverse/card';
+import {keySetOf, signServed, testSigner} from '@a2uiverse/card/testing';
 import {FakeEmbedder} from '@a2uiverse/embedder';
 import {a2aSmokeRunner, type SmokeRunner} from '@a2uiverse/smoke-transport';
 import {
@@ -94,12 +95,22 @@ class CardServer {
     this.cards.set(url, served);
     return url;
   }
-  /** The card as the marketplace holds it: as its agent served it. */
-  resolve = async (url: string): Promise<ServedCard> => {
+  /** What a URL other than a card's answers: a key set, by its URL (task-20.7). */
+  readonly documents = new Map<string, unknown>();
+  /**
+   * The card as the marketplace holds it: as its agent served it, through the one fetch of the
+   * live card, so a signed card is checked as it is in a run.
+   */
+  resolve = async (url: string): Promise<LiveCard> => {
     this.fetched.push(url);
-    const card = this.cards.get(url);
-    if (!card) throw new Error(`fetch failed: ${url}`);
-    return card;
+    return fetchLiveCard(url, {
+      timeoutMs: 5_000,
+      fetchImpl: async input => {
+        const body = this.cards.get(String(input)) ?? this.documents.get(String(input));
+        if (body === undefined) throw new Error(`fetch failed: ${String(input)}`);
+        return new Response(JSON.stringify(body));
+      },
+    });
   };
 }
 
@@ -841,9 +852,10 @@ describe('publish, the card read (task-20.3 decisions 8, 15)', () => {
     const {marketplace, cards} = await made();
     await claimed(marketplace);
     const url = 'http://127.0.0.1:1/card.json';
+    // A body that is no JSON object is turned back by the fetch itself.
     cards.serveAt(url, ['a list']);
     expect(refused(await marketplace.publish('acme', body('shop', url))).findings).toEqual([
-      `the card at ${url} could not be read: not an agent card`,
+      `the card at ${url} could not be fetched: not an agent card`,
     ]);
     cards.serveAt(url, {url: 'http://127.0.0.1:1'});
     expect(refused(await marketplace.publish('acme', body('shop', url))).findings).toEqual([
@@ -888,6 +900,87 @@ describe('publish, the card read (task-20.3 decisions 8, 15)', () => {
     );
     expect(answer.findings).toEqual(['the card lists no interface']);
     expect(agent.requests).toHaveLength(0);
+  });
+});
+
+describe('publish, a signed card (task-20.7 decisions 8, 9, 11, 12)', () => {
+  /** A fake A2A 1.0 agent serving its card signed, the key set at its own origin. */
+  async function signedAgent() {
+    const signer = await testSigner();
+    const agent = await agentV1Of();
+    const signed = await signServed(agent.served as object, signer, {jku: agent.keySetUrl});
+    return {agent, signer, signed};
+  }
+
+  test('one that passes is published, stored as served, its pass a note on the accepted publish', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const {agent, signer, signed} = await signedAgent();
+    cards.documents.set(agent.keySetUrl, keySetOf(signer));
+    const answer = ok(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serveAt(agent.cardUrl, signed), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    expect(answer.notes).toContain(
+      `the card's signature passed: key "test-1" (ES256) in the key set at ${agent.keySetUrl}`,
+    );
+    expect(marketplace.entry('shop')?.card).toEqual(signed);
+  });
+
+  test('one that does not pass is refused with its one finding, nothing sent to the agent and nothing listed', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const {agent, signed} = await signedAgent();
+    cards.documents.set(agent.keySetUrl, keySetOf(await testSigner({kid: 'someone-else'})));
+    const url = cards.serveAt(agent.cardUrl, signed);
+    const answer = refused(
+      await marketplace.publish('acme', body('shop', url, [await fixtureArtifact(CAT)])),
+    );
+    expect(answer.findings).toEqual([
+      `the card at ${url} could not be confirmed: the card's signature did not pass: the key set at ${agent.keySetUrl} holds no key under kid "test-1" for ES256`,
+    ]);
+    expect(agent.requests).toHaveLength(0);
+    expect(marketplace.entries()).toEqual([]);
+  });
+
+  test('an unsigned card publishes with no note of a signature', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentV1Of();
+    const answer = ok(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serveAt(agent.cardUrl, agent.served as object), [
+          await fixtureArtifact(CAT),
+        ]),
+      ),
+    );
+    expect(answer.notes.filter(note => note.includes('signature'))).toEqual([]);
+  });
+
+  test('a listed app whose live card later does not pass: the listing stays, and its flag as it was', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const {agent, signer, signed} = await signedAgent();
+    cards.documents.set(agent.keySetUrl, keySetOf(signer));
+    const url = cards.serveAt(agent.cardUrl, signed);
+    ok(await marketplace.publish('acme', body('shop', url, [await fixtureArtifact(CAT)])));
+
+    // Ahead of the Store, then refused: the flag set stays set, and the listing stays.
+    cards.serveAt(
+      url,
+      await signServed({...(agent.served as object), version: '9.0.0'}, signer, {
+        jku: agent.keySetUrl,
+      }),
+    );
+    expect(await marketplace.report('shop')).toBe('set');
+    cards.documents.set(agent.keySetUrl, {keys: []});
+    cards.serveAt(url, signed);
+    expect(await marketplace.report('shop')).toBe('unchanged');
+    expect(marketplace.entry('shop')?.aheadOfStore?.version).toBe('9.0.0');
+    expect(marketplace.entry('shop')?.card).toEqual(signed);
   });
 });
 

@@ -4,6 +4,9 @@ import {readFile, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {afterEach, describe, expect, test} from 'vitest';
 import express from 'express';
+import {AgentCard} from '@a2a-js/sdk';
+import {readCard} from '@a2uiverse/card';
+import {signServed, testSigner} from '@a2uiverse/card/testing';
 import {
   ARTIFACT_DESCRIPTOR_FILE,
   artifactIdOf,
@@ -153,6 +156,23 @@ describe('the read routes', () => {
     cards.cards.delete(cardUrl);
     await registry.refreshCards();
     expect(await listed()).toMatchObject({reachable: false, noInterface: false});
+  });
+
+  test('beside them, whether its live card was signed and refused (task-20.7 decision 13)', async () => {
+    const {base, token, cards, registry} = await serve();
+    const card = cardFor('http://127.0.0.1:11002', {name: 'Gmail'});
+    const cardUrl = cards.serve(card);
+    await post(`${base}/install`, {appId: 'gmail', cardUrl, catalogs: []}, token);
+    const listed = async () =>
+      ((await (await fetch(`${base}/apps.json`)).json()) as {unconfirmed: boolean}[])[0]!;
+    expect(await listed()).toMatchObject({unconfirmed: false});
+
+    const jku = 'http://127.0.0.1:11002/jwks.json';
+    const asRead = AgentCard.toJSON(readCard(card)) as object;
+    cards.serveAt(cardUrl, await signServed(asRead, await testSigner(), {jku}));
+    cards.documents.set(jku, {keys: []});
+    await registry.refetchLiveCards();
+    expect(await listed()).toMatchObject({reachable: true, unconfirmed: true, noInterface: false});
   });
 });
 

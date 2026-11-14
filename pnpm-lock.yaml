@@ -258,6 +258,9 @@ importers:
       '@a2a-js/sdk':
         specifier: 1.3.0
         version: 1.3.0(@bufbuild/protobuf@2.16.0)(@grpc/grpc-js@1.14.7)(express@5.2.1(supports-color@7.2.0))
+      jose:
+        specifier: 6.2.17
+        version: 6.2.17
     devDependencies:
       '@types/node':
         specifier: ^22.15.0
@@ -465,6 +468,9 @@ importers:
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
+      jose:
+        specifier: 6.2.17
+        version: 6.2.17
       zod:
         specifier: ^3.25.76
         version: 3.25.76

@@ -47,6 +47,13 @@ export interface FakeVendor {
   url: string;
   /** The card it serves, live: a test changes it to move the agent ahead of its install. */
   card: AgentCard;
+  /**
+   * What its card URL answers in place of `card` while set — a signed card (task-20.7) — and what
+   * its key set's URL, `keySetUrl`, answers: nothing while unset, nothing in time when `hang`.
+   */
+  served?: unknown;
+  keySet?: unknown;
+  keySetUrl: string;
   requests: ReceivedRequest[];
   /** Every JSON-RPC method called on it, in order — `message/stream`, `tasks/cancel`, … */
   methods: string[];
@@ -197,17 +204,31 @@ export async function startFakeVendor(options: FakeVendorOptions = {}): Promise<
   card.url = url;
 
   const requestHandler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
-  app.use('/.well-known/agent-card.json', agentCardHandler({agentCardProvider: requestHandler}));
-  app.use('/', jsonRpcHandler({requestHandler, userBuilder: UserBuilder.noAuthentication}));
-  server.on('request', app);
-
-  return {
+  const vendor: FakeVendor = {
     url,
     card,
+    keySetUrl: `${url}/.well-known/jwks.json`,
     requests,
     methods,
     contextIds,
     close: () =>
-      new Promise<void>((resolve, reject) => server.close(err => (err ? reject(err) : resolve()))),
+      new Promise<void>((resolve, reject) => {
+        server.closeAllConnections();
+        server.close(err => (err ? reject(err) : resolve()));
+      }),
   };
+  app.get('/.well-known/agent-card.json', (_req: Request, res: Response, next: NextFunction) => {
+    if (vendor.served === undefined) return next();
+    res.json(vendor.served);
+  });
+  app.get('/.well-known/jwks.json', (_req: Request, res: Response) => {
+    if (vendor.keySet === 'hang') return;
+    if (vendor.keySet === undefined) res.status(404).end();
+    else res.json(vendor.keySet);
+  });
+  app.use('/.well-known/agent-card.json', agentCardHandler({agentCardProvider: requestHandler}));
+  app.use('/', jsonRpcHandler({requestHandler, userBuilder: UserBuilder.noAuthentication}));
+  server.on('request', app);
+
+  return vendor;
 }

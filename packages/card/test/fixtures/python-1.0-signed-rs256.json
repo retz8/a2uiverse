@@ -1,0 +1,76 @@
+{
+  "name": "Fake Agent",
+  "description": "an agent for tests",
+  "supportedInterfaces": [
+    {
+      "url": "http://127.0.0.1:18731/",
+      "protocolBinding": "JSONRPC",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "provider": {
+    "url": "https://example.com",
+    "organization": "Acme"
+  },
+  "version": "0.1.0",
+  "documentationUrl": "https://example.com/docs",
+  "capabilities": {
+    "streaming": true,
+    "extensions": [
+      {
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+        "params": {
+          "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+        }
+      }
+    ]
+  },
+  "securitySchemes": {
+    "key": {
+      "apiKeySecurityScheme": {
+        "description": "Paste your key",
+        "location": "header",
+        "name": "X-Api-Key"
+      }
+    },
+    "signIn": {
+      "oauth2SecurityScheme": {
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "http://127.0.0.1:18731/authorize",
+            "tokenUrl": "http://127.0.0.1:18731/token",
+            "scopes": {
+              "things.read": "Read your things"
+            }
+          }
+        }
+      }
+    }
+  },
+  "securityRequirements": [
+    {
+      "schemes": {
+        "signIn": {
+          "list": ["things.read"]
+        }
+      }
+    }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "skills": [
+    {
+      "id": "fake",
+      "name": "Fake",
+      "description": "A fake skill",
+      "tags": ["fake"],
+      "examples": ["show my things"]
+    }
+  ],
+  "signatures": [
+    {
+      "protected": "eyJhbGciOiJSUzI1NiIsImprdSI6Imh0dHA6Ly8xMjcuMC4wLjE6MTg3MzEvLndlbGwta25vd24vandrcy5qc29uIiwia2lkIjoicnMtMSIsInR5cCI6IkpPU0UifQ",
+      "signature": "dVBAy6dK8h7snf9aez6MXaZDTKtP8uU4SAZcGHshtQOvq7QAU-UkvgPZP8sOuFMrMXZ-Y9shb-Xb4G1utx8sXSyFxP1xJnTc2Myy1gZIfKSQr2t9Xa4brmKJlKIt4Sm-4ZuzUeBUWoMMe0dnLhCfo0pEW6-zIXmhAYwUaijLN0sP9_QXYWsVDSYU1hBJEM7fYNHrKpNh6BN6-nuiXVxTdxxAISF5AV5kbNCjgn41ddQboZTHXmmV30yfgn1xELilEfqR9n54vj-5asWSHGn_VxltqUbqbtg-R8RObiV_9TmTUbjfNuseRNm7QtgwjfPwDr5bFuo_z7_4Mm7Q_nsB4w"
+    }
+  ]
+}

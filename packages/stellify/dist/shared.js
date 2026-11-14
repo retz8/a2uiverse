@@ -329,7 +329,7 @@ var idsOf = (params) => params.supportedCatalogIds ?? [];
 var once = (ids) => [...new Set(ids)];
 function readCatalogIdsByVersion(card) {
   const read = { "v0.9": [], "v0.9.1": [] };
-  const errors = [];
+  const errors2 = [];
   for (const entry of card.capabilities?.extensions ?? []) {
     const version = versionOfUri(entry.uri);
     const params = entry.params;
@@ -340,27 +340,27 @@ function readCatalogIdsByVersion(card) {
     if (versionKeys.length === 0) {
       const found = schemaErrors(serverCapabilitiesVersion, params);
       if (found.length > 0)
-        errors.push(...found.map((e) => `${where}${e}`));
+        errors2.push(...found.map((e) => `${where}${e}`));
       else
         read[version].push(...idsOf(params));
       continue;
     }
     const spoken = versionKeys.filter(isSpokenVersion);
     if (spoken.length === 0) {
-      errors.push(`${where}: keyed under neither v0.9 nor v0.9.1 (${versionKeys.map((k) => JSON.stringify(k)).join(", ")})`);
+      errors2.push(`${where}: keyed under neither v0.9 nor v0.9.1 (${versionKeys.map((k) => JSON.stringify(k)).join(", ")})`);
       continue;
     }
     for (const key of A2UI_VERSIONS.filter((v) => spoken.includes(v))) {
       const object = params[key];
       const found = schemaErrors(serverCapabilitiesVersion, object);
       if (found.length > 0)
-        errors.push(...found.map((e) => `${where}/${key}${e}`));
+        errors2.push(...found.map((e) => `${where}/${key}${e}`));
       else
         read[version].push(...idsOf(object));
     }
   }
-  if (errors.length > 0)
-    return { ok: false, errors };
+  if (errors2.length > 0)
+    return { ok: false, errors: errors2 };
   const v09 = once(read["v0.9"]);
   const v091 = once(read["v0.9.1"]);
   return {
@@ -591,15 +591,15 @@ function compileErrorsOf(catalog) {
   const ajv5 = new Ajv20203({ allErrors: true, strict: false, validateFormats: false });
   ajv5.addSchema(COMMON_TYPES_SCHEMA);
   ajv5.addSchema(own);
-  const errors = [];
+  const errors2 = [];
   for (const name of Object.keys(catalog.components ?? {})) {
     try {
       ajv5.compile({ $ref: `${catalogUri}#/components/${name}` });
     } catch (error) {
-      errors.push(`components/${name}: ${messageOf2(error)}`);
+      errors2.push(`components/${name}: ${messageOf2(error)}`);
     }
   }
-  return errors;
+  return errors2;
 }
 function createA2uiValidator(options) {
   const schema = options.catalog;
@@ -848,16 +848,16 @@ var ARTIFACT_DESCRIPTOR_SCHEMA = {
 var ajv3 = new Ajv20204({ allErrors: true, strict: true, allowUnionTypes: true });
 var descriptorSchema = ajv3.compile(ARTIFACT_DESCRIPTOR_SCHEMA);
 function validateArtifactDescriptor(input) {
-  const errors = schemaErrors(descriptorSchema, input);
-  if (errors.length > 0)
-    return { ok: false, errors };
+  const errors2 = schemaErrors(descriptorSchema, input);
+  if (errors2.length > 0)
+    return { ok: false, errors: errors2 };
   const descriptor = input;
   for (const field of ["entry", "schema"]) {
     if (!(descriptor[field] in descriptor.files)) {
-      errors.push(`/${field}: ${JSON.stringify(descriptor[field])} is not listed in files`);
+      errors2.push(`/${field}: ${JSON.stringify(descriptor[field])} is not listed in files`);
     }
   }
-  return errors.length === 0 ? { ok: true, value: descriptor } : { ok: false, errors };
+  return errors2.length === 0 ? { ok: true, value: descriptor } : { ok: false, errors: errors2 };
 }
 function toBase64(bytes) {
   let binary = "";
@@ -875,36 +875,36 @@ async function artifactIdOf(descriptorBytes) {
   return hash.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 async function verifyArtifactFiles(descriptor, files) {
-  const errors = [];
+  const errors2 = [];
   for (const [path, expected] of Object.entries(descriptor.files)) {
     const bytes = files.get(path);
     if (bytes === void 0) {
-      errors.push(`${path}: listed in the descriptor but missing`);
+      errors2.push(`${path}: listed in the descriptor but missing`);
       continue;
     }
     const actual = await hashArtifactFile(bytes);
     if (actual !== expected)
-      errors.push(`${path}: hash is ${actual}, the descriptor says ${expected}`);
+      errors2.push(`${path}: hash is ${actual}, the descriptor says ${expected}`);
   }
   for (const path of files.keys()) {
     if (!(path in descriptor.files))
-      errors.push(`${path}: present but not listed in the descriptor`);
+      errors2.push(`${path}: present but not listed in the descriptor`);
   }
-  return errors;
+  return errors2;
 }
 function checkArtifactSchema(descriptor, schema) {
   if (typeof schema !== "object" || schema === null || Array.isArray(schema)) {
     return [`${descriptor.schema}: not a JSON object`];
   }
-  const errors = [];
+  const errors2 = [];
   const { catalogId, components } = schema;
   if (catalogId !== descriptor.catalogId) {
-    errors.push(`${descriptor.schema}: catalogId is ${JSON.stringify(catalogId)}, the descriptor says ${JSON.stringify(descriptor.catalogId)}`);
+    errors2.push(`${descriptor.schema}: catalogId is ${JSON.stringify(catalogId)}, the descriptor says ${JSON.stringify(descriptor.catalogId)}`);
   }
   if (typeof components !== "object" || components === null || Array.isArray(components)) {
-    errors.push(`${descriptor.schema}: components is not an object`);
+    errors2.push(`${descriptor.schema}: components is not an object`);
   }
-  return errors;
+  return errors2;
 }
 function checkCatalogSchemaCompiles(schema) {
   if (typeof schema !== "object" || schema === null || Array.isArray(schema)) {
@@ -1058,16 +1058,16 @@ var INDEX_ENTRY_SCHEMA = {
 var ajv4 = new Ajv20205({ allErrors: true, strict: true, allowUnionTypes: true });
 var entrySchema = ajv4.compile(INDEX_ENTRY_SCHEMA);
 function validateIndexEntry(input) {
-  const errors = schemaErrors(entrySchema, input);
-  if (errors.length > 0)
-    return { ok: false, errors };
+  const errors2 = schemaErrors(entrySchema, input);
+  if (errors2.length > 0)
+    return { ok: false, errors: errors2 };
   const entry = input;
   for (const id of entry.retired) {
     if (id in entry.catalogs) {
-      errors.push(`/retired: ${JSON.stringify(id)} is retired and among the catalogs`);
+      errors2.push(`/retired: ${JSON.stringify(id)} is retired and among the catalogs`);
     }
   }
-  return errors.length === 0 ? { ok: true, value: entry } : { ok: false, errors };
+  return errors2.length === 0 ? { ok: true, value: entry } : { ok: false, errors: errors2 };
 }
 function publishedVersionOf(entry) {
   return entry.versions[entry.versions.length - 1];
@@ -1106,8 +1106,8 @@ var PREVIEW_SCHEMA = {
 };
 var previewSchema = ajv4.compile(PREVIEW_SCHEMA);
 function validatePreview(input) {
-  const errors = schemaErrors(previewSchema, input);
-  return errors.length === 0 ? { ok: true, value: input } : { ok: false, errors };
+  const errors2 = schemaErrors(previewSchema, input);
+  return errors2.length === 0 ? { ok: true, value: input } : { ok: false, errors: errors2 };
 }
 
 // ../sdk/js/dist/smoke.js
@@ -1735,6 +1735,199 @@ function atCardVersion(card) {
   };
 }
 
+// ../card/dist/signatures.js
+import { AgentCard as AgentCard2, canonicalizeAgentCard } from "@a2a-js/sdk";
+import { isLegacyAgentCard as isLegacyAgentCard2 } from "@a2a-js/sdk/compat/v0_3/client";
+import { base64url, createLocalJWKSet, decodeProtectedHeader, errors, flattenedVerify } from "jose";
+var SIGNATURE_ALGORITHMS = [
+  "RS256",
+  "RS384",
+  "RS512",
+  "PS256",
+  "PS384",
+  "PS512",
+  "ES256",
+  "ES384",
+  "ES512",
+  "EdDSA"
+];
+var LOCAL_HOSTS = /* @__PURE__ */ new Set(["localhost", "127.0.0.1", "::1"]);
+function isLocalMachine(host) {
+  const bare = host.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : host;
+  return LOCAL_HOSTS.has(bare);
+}
+var UnconfirmedCardError = class extends Error {
+  name = "UnconfirmedCardError";
+};
+async function checkSignatures(served, options) {
+  if (isLegacyAgentCard2(served))
+    return void 0;
+  const { signatures } = AgentCard2.fromJSON(served);
+  if (signatures.length === 0)
+    return void 0;
+  const payload = base64url.encode(canonicalizeAgentCard(served));
+  const keySets = new KeySets(options);
+  const reasons = [];
+  let unanswered;
+  for (const signature of signatures) {
+    const judged = await judge(signature, payload, keySets, options.cardUrl);
+    if ("passed" in judged)
+      return judged.passed;
+    if ("unanswered" in judged)
+      unanswered ??= judged.unanswered;
+    reasons.push(judged.reason);
+  }
+  if (unanswered !== void 0)
+    throw new Error(unanswered);
+  throw new UnconfirmedCardError(reasons.length === 1 ? `the card's signature did not pass: ${reasons[0]}` : `none of the card's ${reasons.length} signatures passed: ${reasons.map((reason, i) => `${i + 1}: ${reason}`).join("; ")}`);
+}
+function passedNote({ kid, jku, alg }) {
+  return `the card's signature passed: key ${JSON.stringify(kid)} (${alg}) in the key set at ${jku}`;
+}
+async function judge(signature, payload, keySets, cardUrl) {
+  let header;
+  try {
+    header = decodeProtectedHeader({ protected: signature.protected });
+  } catch {
+    return { reason: "its protected header could not be read" };
+  }
+  for (const parameter of ["alg", "typ", "kid", "jku"]) {
+    const value = header[parameter];
+    if (typeof value !== "string" || value === "") {
+      return { reason: `its protected header names no ${parameter}` };
+    }
+  }
+  const { alg, kid, jku } = header;
+  if (!SIGNATURE_ALGORITHMS.includes(alg)) {
+    return {
+      reason: `it is signed with ${alg}, which A2UIVerse does not take: it takes ${SIGNATURE_ALGORITHMS.slice(0, -1).join(", ")} and ${SIGNATURE_ALGORITHMS.at(-1)}`
+    };
+  }
+  const where = keySetPlace(jku, cardUrl);
+  if (where !== void 0)
+    return { reason: where };
+  const keySet = await keySets.fetch(jku);
+  if ("reason" in keySet)
+    return keySet;
+  let keys;
+  try {
+    keys = [await createLocalJWKSet(keySet.jwks)({ alg, kid })];
+  } catch (err) {
+    if (err instanceof errors.JWKSNoMatchingKey) {
+      return {
+        reason: `the key set at ${jku} holds no key under kid ${JSON.stringify(kid)} for ${alg}`
+      };
+    }
+    if (!(err instanceof errors.JWKSMultipleMatchingKeys)) {
+      return {
+        reason: `the key set at ${jku} holds no usable key under kid ${JSON.stringify(kid)}: ${err.message}`
+      };
+    }
+    keys = [];
+    for await (const key of err)
+      keys.push(key);
+    if (keys.length === 0) {
+      return { reason: `the key set at ${jku} holds no usable key under kid ${JSON.stringify(kid)}` };
+    }
+  }
+  const jws = {
+    payload,
+    protected: signature.protected,
+    signature: signature.signature,
+    ...signature.header !== void 0 ? { header: signature.header } : {}
+  };
+  let last;
+  for (const key of keys) {
+    try {
+      await flattenedVerify(jws, key, { algorithms: [...SIGNATURE_ALGORITHMS] });
+      return { passed: { kid, jku, alg } };
+    } catch (err) {
+      last = err;
+    }
+  }
+  if (last instanceof errors.JWSSignatureVerificationFailed) {
+    return {
+      reason: `it does not match the card, checked against key ${JSON.stringify(kid)} at ${jku}`
+    };
+  }
+  return {
+    reason: `it could not be checked against key ${JSON.stringify(kid)} at ${jku}: ${last.message}`
+  };
+}
+function keySetPlace(jku, cardUrl) {
+  let keySet;
+  try {
+    keySet = new URL(jku);
+  } catch {
+    return `its jku ${jku} is not a URL`;
+  }
+  const origin = new URL(cardUrl).origin;
+  if (keySet.origin !== origin) {
+    return `its key set ${jku} is not on the card URL's origin, ${origin}`;
+  }
+  if (keySet.protocol !== "https:" && !(keySet.protocol === "http:" && isLocalMachine(keySet.hostname))) {
+    return `its key set ${jku} is not fetched over https`;
+  }
+  return void 0;
+}
+var KeySets = class {
+  #options;
+  #fetched = /* @__PURE__ */ new Map();
+  constructor(options) {
+    this.#options = options;
+  }
+  fetch(jku) {
+    let pending = this.#fetched.get(jku);
+    if (!pending) {
+      pending = this.#fetch(jku);
+      this.#fetched.set(jku, pending);
+    }
+    return pending;
+  }
+  async #fetch(jku) {
+    const { signal, timeoutMs, fetchImpl = fetch } = this.#options;
+    const unanswered = () => {
+      const words = `the key set at ${jku} did not answer within ${timeoutMs / 1e3} s`;
+      return { reason: words, unanswered: words };
+    };
+    let response;
+    try {
+      response = await fetchImpl(jku, {
+        signal,
+        redirect: "manual",
+        headers: { accept: "application/json" }
+      });
+    } catch (err) {
+      if (signal.aborted)
+        return unanswered();
+      const words = `the key set at ${jku} did not answer: ${err.message}`;
+      return { reason: words, unanswered: words };
+    }
+    if (response.type === "opaqueredirect" || response.status >= 300 && response.status < 400) {
+      return { reason: `the key set at ${jku} answered with a redirect, which is not followed` };
+    }
+    if (!response.ok)
+      return { reason: `the key set at ${jku} answered HTTP ${response.status}` };
+    let body;
+    try {
+      body = await response.json();
+    } catch {
+      if (signal.aborted)
+        return unanswered();
+      return { reason: `the key set at ${jku} is not JSON` };
+    }
+    if (!isKeySet(body))
+      return { reason: `the key set at ${jku} is no JSON Web Key Set` };
+    return { jwks: body };
+  }
+};
+function isKeySet(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value))
+    return false;
+  const { keys } = value;
+  return Array.isArray(keys) && keys.every((key) => typeof key === "object" && key !== null && !Array.isArray(key));
+}
+
 // ../card/dist/liveCard.js
 var CARD_FETCH_A2A_VERSION = "1.0";
 async function fetchLiveCard(cardUrl, { timeoutMs, fetchImpl = fetch }) {
@@ -1763,7 +1956,8 @@ async function fetchLiveCard(cardUrl, { timeoutMs, fetchImpl = fetch }) {
   if (typeof card !== "object" || card === null || Array.isArray(card)) {
     throw new Error("not an agent card");
   }
-  return card;
+  const signature = await checkSignatures(card, { cardUrl, signal, timeoutMs, fetchImpl });
+  return signature ? { served: card, signature } : { served: card };
 }
 
 // ../card/dist/interfaces.js
@@ -1844,7 +2038,6 @@ import { A2A_ERROR_CODE, isJsonRpcError, VersionNotSupportedError } from "@a2a-j
 import { GRPC_STATUS_CODE, isGrpcError } from "@a2a-js/sdk/errors/grpc";
 
 // ../smoke-transport/dist/address.js
-var LOCAL_HOSTS = /* @__PURE__ */ new Set(["localhost", "127.0.0.1", "::1"]);
 var DEFAULT_PORTS = { "http:": 80, "https:": 443 };
 var GRPC_DEFAULT_PORT = 443;
 function isGrpc(agentInterface) {
@@ -1887,7 +2080,7 @@ function fromBareHostPort(hostPort) {
     return void 0;
   const host = unbracketed(parsed.hostname);
   const port = parsed.port === "" ? GRPC_DEFAULT_PORT : Number(parsed.port);
-  return { host, port, tls: !LOCAL_HOSTS.has(host), dialUrl: `${parsed.hostname}:${port}` };
+  return { host, port, tls: !isLocalMachine(host), dialUrl: `${parsed.hostname}:${port}` };
 }
 function unbracketed(hostname) {
   return hostname.startsWith("[") && hostname.endsWith("]") ? hostname.slice(1, -1) : hostname;
@@ -2466,12 +2659,15 @@ async function previewWith(options, deps) {
   });
   let served;
   try {
-    served = await fetchLiveCard(options.cardUrl, {
+    const live = await fetchLiveCard(options.cardUrl, {
       timeoutMs: options.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS,
       fetchImpl
     });
+    served = live.served;
+    if (live.signature) notes.push(passedNote(live.signature));
   } catch (err) {
-    findings.push(`the card at ${options.cardUrl} could not be fetched: ${err.message}`);
+    const what = err instanceof UnconfirmedCardError ? "confirmed" : "fetched";
+    findings.push(`the card at ${options.cardUrl} could not be ${what}: ${err.message}`);
     return result(null);
   }
   let card;
@@ -2568,7 +2764,7 @@ async function previewWith(options, deps) {
   });
   if ("taken" in seen)
     notes.push(...seen.notReached.map((entry) => passedOverNote(entry, seen.taken)));
-  const judged = judge(seen, headers !== void 0);
+  const judged = judge2(seen, headers !== void 0);
   if ("findings" in judged) {
     findings.push(...judged.findings);
     return result(null, signIn);
@@ -2588,7 +2784,7 @@ async function previewWith(options, deps) {
     signIn
   );
 }
-function judge(seen, credentialSent) {
+function judge2(seen, credentialSent) {
   switch (seen.kind) {
     case "unauthorized":
       return {

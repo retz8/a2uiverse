@@ -305,8 +305,9 @@ export function readStorePreview(base: string, appId: string): Promise<StoreRead
 /**
  * An installed app as the registry lists it: its card as installed, read; where it came from;
  * whether this run holds its card — reached at startup or by a check since (task-14.8 decision 2),
- * a snapshot that does not say read as reached; and whether that live card lists no way in that
- * A2UIVerse uses (task-20.3 decision 14).
+ * a snapshot that does not say read as reached; whether that live card lists no way in that
+ * A2UIVerse uses (task-20.3 decision 14); and whether it was last fetched signed and refused
+ * (task-20.7 decision 13).
  */
 export interface InstalledApp {
   id: string;
@@ -316,6 +317,7 @@ export interface InstalledApp {
   source?: 'marketplace' | 'local';
   reachable?: boolean;
   noInterface?: boolean;
+  unconfirmed?: boolean;
 }
 
 /** The installed apps; none when the registry cannot be read. */

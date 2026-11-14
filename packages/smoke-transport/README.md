@@ -8,9 +8,10 @@ How the platform reaches an agent: the **dial**, which walks a card's interfaces
 import {fetchLiveCard, readCard} from '@a2uiverse/card';
 import {a2aSmokeRunner} from '@a2uiverse/smoke-transport';
 
-const card = readCard(
-  await fetchLiveCard('http://localhost:12001/.well-known/agent-card.json', {timeoutMs: 10_000}),
-);
+const {served} = await fetchLiveCard('http://localhost:12001/.well-known/agent-card.json', {
+  timeoutMs: 10_000,
+});
+const card = readCard(served);
 const seen = await a2aSmokeRunner()({
   card,
   entitlement: {'v0.9': [basicCatalogId], 'v0.9.1': [basicCatalogId, shopCatalogId]},
@@ -56,7 +57,7 @@ The runner reports and does not judge. What an observation means at publish and 
 Two in-process agents, each given a card and a script of events, each answering on JSON-RPC, HTTP+JSON and gRPC and recording every request it received with the binding it came in on, and the wires captured from a third. This package's tests, the marketplace's and Stellify's run against both, and the orchestrator's against the second. Each takes `admit`, which refuses a request as its binding asks sign-in: HTTP 401, or the gRPC status `UNAUTHENTICATED`.
 
 1. `@a2uiverse/smoke-transport/testing` is an agent on A2A 0.3: the server of `@a2a-js/sdk` 0.3.14, which this package keeps as a dev dependency under the alias `@a2a-js/sdk-v0_3`. It answers JSON-RPC at its URL, HTTP+JSON under `/rest` and gRPC on a port of its own; `cardFor`'s `transports` lists them in the card's order. Its card and its script are written in A2A 0.3's shapes.
-2. `@a2uiverse/smoke-transport/testing/v1` is an agent on A2A 1.0: the server of `@a2a-js/sdk` 1.3.0 with its 0.3 layer on, answering the six paths: JSON-RPC at `/a2a/v1` and `/a2a/v0_3`, HTTP+JSON under `/rest`, gRPC on a port of its own. `cardForV1`'s `paths` lists them in the card's order, and each request it records says which binding and which A2A version it reached. Its script is written in the SDK's in-memory shapes. It serves its card in A2A 1.0's JSON; the SDK's own card handler serves its in-memory form. Its `authRequiredScriptV1` asks for sign-in and holds its stream open, and `echoScriptV1` answers with the parts it received.
+2. `@a2uiverse/smoke-transport/testing/v1` is an agent on A2A 1.0: the server of `@a2a-js/sdk` 1.3.0 with its 0.3 layer on, answering the six paths: JSON-RPC at `/a2a/v1` and `/a2a/v0_3`, HTTP+JSON under `/rest`, gRPC on a port of its own. `cardForV1`'s `paths` lists them in the card's order, and each request it records says which binding and which A2A version it reached. Its script is written in the SDK's in-memory shapes. It serves its card in A2A 1.0's JSON; the SDK's own card handler serves its in-memory form. Its `serve` option answers the card URL with another card, a signed one made against its own `keySetUrl`, and its `keySet` option is what that URL answers, `hang` answering nothing; `serveCard` and `serveKeySet` change either mid-test. Its `authRequiredScriptV1` asks for sign-in and holds its stream open, and `echoScriptV1` answers with the parts it received.
 3. `@a2uiverse/smoke-transport/testing/wire` replays a wire captured from a real agent: `capturedWire(name)` loads one of [`test/fixtures`](test/fixtures/README.md), thirty-two answers of a scratch agent on Python's `a2a-sdk` 1.3.0 over JSON-RPC and HTTP+JSON, and `capturedFetch(wire)` is a `fetch` that answers with it. A test replaying a wire passes the dial an `openConnection` that opens none. `scripts/capture-fixtures.mjs` captures them again, and asks the same agent over gRPC on both A2A versions, printing what each answer ended on.
 
 ```ts

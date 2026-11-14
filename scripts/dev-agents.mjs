@@ -336,7 +336,7 @@ async function startPreviewInstance(entry) {
  * reading (task-20.3 decision 19). Throws when it cannot be fetched or does not read.
  */
 async function readLiveCard(cardUrl) {
-  return readCard(await fetchLiveCard(cardUrl, {timeoutMs: CARD_READ_TIMEOUT_MS}));
+  return readCard((await fetchLiveCard(cardUrl, {timeoutMs: CARD_READ_TIMEOUT_MS})).served);
 }
 
 /**

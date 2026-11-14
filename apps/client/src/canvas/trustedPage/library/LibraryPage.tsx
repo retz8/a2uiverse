@@ -12,7 +12,7 @@
  */
 import {useCallback, useEffect, useState, type ReactNode} from 'react';
 import {AlertDialog, Button, Flex} from '@radix-ui/themes';
-import {noInterfaceNotice, refusalOf, type UpdateState} from '@a2uiverse/sdk';
+import {noInterfaceNotice, refusalOf, unconfirmedNotice, type UpdateState} from '@a2uiverse/sdk';
 import {isLoader, type PageCatalogs} from '../../../catalogs/CatalogContext';
 import {
   readStoreEntry,
@@ -686,7 +686,10 @@ function AppBody({
       {app.reachable === false && (
         <UnreachedNotice name={name} checking={library.check.running} onCheck={acts.onCheck} />
       )}
-      {app.reachable !== false && app.noInterface === true && (
+      {app.reachable !== false && app.unconfirmed === true && (
+        <UnconfirmedNotice name={name} checking={library.check.running} onCheck={acts.onCheck} />
+      )}
+      {app.reachable !== false && app.unconfirmed !== true && app.noInterface === true && (
         <NoInterfaceNotice name={name} checking={library.check.running} onCheck={acts.onCheck} />
       )}
       {accounts?.signIn === 'unsupported' && (
@@ -784,7 +787,37 @@ function AppBody({
   );
 }
 
-/** The view of an app not reached (task-14.8 decision 2). */
+/**
+ * The notice on the view of an app whose live card was signed and refused (task-20.7 decision
+ * 13): its words name no signature and no key.
+ */
+function UnconfirmedNotice({
+  name,
+  checking,
+  onCheck,
+}: {
+  name: string;
+  checking: boolean;
+  /** Check again: the check fetches every card again, this app's among them. */
+  onCheck: () => void;
+}) {
+  return (
+    <div className="store-notice store-notice--bad" data-testid="library-unconfirmed">
+      <WarnIcon />
+      <div className="store-notice__grow">
+        <span>
+          <b>{unconfirmedNotice(name)}</b>
+        </span>
+        <span>
+          <Button size="1" variant="soft" color="gray" disabled={checking} onClick={onCheck}>
+            Check again
+          </Button>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 /** The notice on the view of an app whose way in A2UIVerse can't use (task-20.3 decision 14). */
 function NoInterfaceNotice({
   name,
@@ -813,6 +846,7 @@ function NoInterfaceNotice({
   );
 }
 
+/** The view of an app not reached (task-14.8 decision 2). */
 function UnreachedNotice({
   name,
   checking,

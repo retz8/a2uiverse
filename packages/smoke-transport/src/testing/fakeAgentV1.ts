@@ -95,8 +95,14 @@ export interface FakeAgentV1 {
   urls: FakeBindingUrls;
   /** The card the agent runs on, as the A2A SDK holds it. */
   card: AgentCard;
-  /** The card as the card URL answers it. */
+  /** The card as the card URL answers it now. */
   served: unknown;
+  /** Where the agent serves its key set (task-20.7): the URL a signed card's `jku` names. */
+  keySetUrl: string;
+  /** What the card URL answers from now on, a signed card among them. */
+  serveCard(served: unknown): void;
+  /** What the key set's URL answers from now on; `hang` answers nothing. */
+  serveKeySet(keySet: unknown): void;
   requests: ReceivedRequestV1[];
   /** How many HTTP connections to the agent are open: a stream a caller left counts none. */
   connections(): Promise<number>;
@@ -107,8 +113,13 @@ export interface FakeAgentV1Options {
   /** The card it runs on, for the addresses it listens on. */
   card: (urls: FakeBindingUrls) => AgentCard;
   script: ScriptV1;
-  /** What the card URL answers, in place of the card in A2A 1.0's JSON. */
-  serve?: (card: AgentCard) => unknown;
+  /**
+   * What the card URL answers, in place of the card in A2A 1.0's JSON: a signed card is made here,
+   * its `jku` the agent's own `keySetUrl`.
+   */
+  serve?: (card: AgentCard, at: {keySetUrl: string}) => unknown;
+  /** What the key set's URL answers; nothing is served there by default. */
+  keySet?: unknown;
   /**
    * Whether a request is let in; refused, it is answered as the binding asks sign-in — HTTP 401,
    * or the gRPC status `UNAUTHENTICATED`.
@@ -117,6 +128,7 @@ export interface FakeAgentV1Options {
 }
 
 const PATHS: Record<FakeA2aVersion, string> = {'1.0': '/a2a/v1', '0.3': '/a2a/v0_3'};
+const KEY_SET_PATH = '/.well-known/jwks.json';
 const REST_PATH = '/rest';
 
 /** Where the fake answers `path`. */
@@ -336,11 +348,18 @@ export async function startFakeAgentV1(options: FakeAgentV1Options): Promise<Fak
     GRPC: `127.0.0.1:${grpcPort}`,
   };
   const card = options.card(urls);
-  const served = options.serve ? options.serve(card) : AgentCard.toJSON(card);
+  const keySetUrl = `${url}${KEY_SET_PATH}`;
+  let served = options.serve ? await options.serve(card, {keySetUrl}) : AgentCard.toJSON(card);
+  let keySet: unknown = options.keySet;
 
   const requestHandler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
   app.get('/.well-known/agent-card.json', (_req: Request, res: Response) => {
     res.json(served);
+  });
+  app.get(KEY_SET_PATH, (_req: Request, res: Response) => {
+    if (keySet === 'hang') return;
+    if (keySet === undefined) res.status(404).end();
+    else res.json(keySet);
   });
   /** Records a request on an HTTP binding, and answers 401 to one `admit` refuses. */
   const gate =
@@ -437,7 +456,16 @@ export async function startFakeAgentV1(options: FakeAgentV1Options): Promise<Fak
     interfaces: urls.JSONRPC,
     urls,
     card,
-    served,
+    get served() {
+      return served;
+    },
+    keySetUrl,
+    serveCard: next => {
+      served = next;
+    },
+    serveKeySet: next => {
+      keySet = next;
+    },
     requests,
     connections: () =>
       new Promise<number>((resolve, reject) =>

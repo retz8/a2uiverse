@@ -3,8 +3,10 @@
  * projections of orchestrator state — never a partition's contents, never the synthesis document —
  * behind one interface, adapted to the AI SDK's tools.
  */
+import {AgentCard} from '@a2a-js/sdk';
 import type {AgentCard as LegacyCard} from '@a2a-js/sdk-v0_3';
 import {readCard} from '@a2uiverse/card';
+import {signServed, testSigner} from '@a2uiverse/card/testing';
 import {beforeAll, describe, expect, test} from 'vitest';
 import {Compositions} from '../src/composition/compositions.js';
 import {Sources} from '../src/accounts/accounts.js';
@@ -62,7 +64,13 @@ const platformCard = readCard(
  */
 async function registryWith(
   cards: Record<string, LegacyCard>,
-  options: {down?: string[]; unspoken?: string[]; handed?: Record<string, string>} = {},
+  options: {
+    down?: string[];
+    unspoken?: string[];
+    /** Apps whose live card is signed and does not pass (task-20.7). */
+    unconfirmed?: string[];
+    handed?: Record<string, string>;
+  } = {},
 ): Promise<Registry> {
   const apps = await Promise.all(
     Object.entries(cards).map(async ([id, card]) => ({
@@ -75,6 +83,13 @@ async function registryWith(
   for (const id of options.down ?? []) made.cards.cards.delete(cardUrlOf(cards[id].url));
   for (const id of options.unspoken ?? []) {
     made.cards.serveAt(cardUrlOf(cards[id].url), {...cards[id], preferredTransport: 'ACME-RPC'});
+  }
+  for (const id of options.unconfirmed ?? []) {
+    const cardUrl = cardUrlOf(cards[id].url);
+    const jku = `${new URL(cardUrl).origin}/jwks.json`;
+    const asRead = AgentCard.toJSON(readCard(cards[id])) as object;
+    made.cards.serveAt(cardUrl, await signServed(asRead, await testSigner(), {jku}));
+    made.cards.documents.set(jku, {keys: []});
   }
   await made.registry.refreshCards();
   return made.registry;
@@ -249,6 +264,35 @@ describe('installed apps', () => {
       update: 'Up to date',
       checked: 'checked 1 minute ago',
     });
+  });
+
+  test('an app whose live card is signed and does not pass reads so, in place of its update state and ahead of its interfaces (task-20.7 decision 13)', async () => {
+    const registry = await registryWith(
+      {github: named('github', 'GitHub'), gmail: named('gmail', 'Gmail')},
+      {unconfirmed: ['github']},
+    );
+    const checkedAt = Date.parse('2026-10-11T09:00:00Z');
+    const readers = platformReaders({
+      registry,
+      updates: {
+        held: () => ({
+          checkedAt,
+          states: new Map([
+            ['github', {appId: 'github', installedVersion: '0.0.0', state: 'up-to-date' as const}],
+          ]),
+        }),
+      },
+      now: () => checkedAt + 60_000,
+      composition: () => undefined,
+      ancestry: () => [],
+    });
+    const byId = new Map(readers.installedApps().map(app => [app.id, app]));
+    expect(byId.get('github')).toMatchObject({
+      reachable: true,
+      update: 'Details couldn’t be confirmed',
+    });
+    expect(byId.get('github')).not.toHaveProperty('checked');
+    expect(byId.get('gmail')?.update).toBe('Not checked yet');
   });
 
   test('how long ago, in words', () => {

@@ -1242,8 +1242,11 @@ export class OrchestratorExecutor implements AgentExecutor {
     const merge = synthesisSlot(state);
     const pack = !state.mergeDecided && state.trigger !== undefined;
     const fromUpdate = slot.state === 'update';
-    // A Retry from the tile of an app the platform could not reach judges the app as it is now.
-    const fromNoInterface = slot.state === 'failed' && slot.failure?.cause === 'interface';
+    // A Retry from the tile of an app the platform could not reach, or whose live card was signed
+    // and refused (task-20.7 decision 10), judges the app as it is now.
+    const fromCard =
+      slot.state === 'failed' &&
+      (slot.failure?.cause === 'interface' || slot.failure?.cause === 'unconfirmed');
     // Resent from the update tile, the slot keeps its line until the answer lands; filled from an
     // offer by `useApp`, the offer it came from; from any other state, nothing (task-15.8 decision
     // 2).
@@ -1263,8 +1266,8 @@ export class OrchestratorExecutor implements AgentExecutor {
 
     // Judged afresh: the app's live card as it is now, not the one the run last fetched — an agent
     // moved back to what the Store holds is called (task-16.11), and so is one that lists an
-    // interface the platform speaks again (task-20.3 decision 13).
-    if (fromUpdate || fromNoInterface) {
+    // interface the platform speaks again (task-20.3 decision 13) and one whose card passes again.
+    if (fromUpdate || fromCard) {
       await this.#deps.updates?.refetched(parseSourceId(source)?.appId ?? source);
     }
     state.redispatching.add(source);

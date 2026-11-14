@@ -9,9 +9,12 @@ import type {AgentCard} from '@a2a-js/sdk';
 import {
   asksSignIn,
   noInterfaceFinding,
+  passedNote,
   readCard,
   sameCard,
   spokenInterfaces,
+  UnconfirmedCardError,
+  type LiveCard,
   type ServedCard,
 } from '@a2uiverse/card';
 import {corpusDoc, rank, type Embedder} from '@a2uiverse/embedder';
@@ -61,9 +64,11 @@ import {MarketplaceStore, type PublisherRecord} from './store.js';
 
 /**
  * The live card at a card URL, as its agent served it (task-20.3 decisions 3, 7): what an accepted
- * publish stores. Every field is reached through the card's one reading.
+ * publish stores. Every field is reached through the card's one reading. A signed card is checked
+ * as it is fetched, an `UnconfirmedCardError` thrown for one that does not pass (task-20.7
+ * decision 8).
  */
-export type FetchCard = (cardUrl: string) => Promise<ServedCard>;
+export type FetchCard = (cardUrl: string) => Promise<LiveCard>;
 
 export interface MarketplaceDeps {
   stateDir: string;
@@ -329,7 +334,8 @@ export class Marketplace {
   /**
    * A report (phase-13 decision 14; task-13.3 decisions 10, 20): a nudge the marketplace verifies
    * itself — the live card refetched, the flag set on drift, cleared when covered, left as it was
-   * when the card is unreachable, does not read or is malformed. A card that reads is judged
+   * when the card is unreachable, does not read, is signed and refused (task-20.7 decision 11) or
+   * is malformed. A card that reads is judged
    * whatever interfaces it lists (task-20.3 decision 17). One refetch in flight per app id. Answers
    * what it did to the flag, so a clearing is said as a setting is (task-13.8 decision 31).
    */
@@ -347,7 +353,7 @@ export class Marketplace {
     if (!entry) return 'unchanged';
     let card: AgentCard;
     try {
-      card = readCard(await this.#deps.fetchCard(entry.cardUrl));
+      card = readCard((await this.#deps.fetchCard(entry.cardUrl)).served);
     } catch {
       return 'unchanged';
     }
@@ -403,9 +409,19 @@ export class Marketplace {
     }
 
     let served: ServedCard | undefined;
+    let signature: LiveCard['signature'];
     try {
-      served = await this.#deps.fetchCard(cardUrl);
+      ({served, signature} = await this.#deps.fetchCard(cardUrl));
     } catch (err) {
+      // A signed card that does not pass is never listed, with its one finding (task-20.7
+      // decision 9): it is not taken, so nothing else is judged of it.
+      if (err instanceof UnconfirmedCardError) {
+        return {
+          ok: false,
+          kind: 'refused',
+          findings: [`the card at ${cardUrl} could not be confirmed: ${err.message}`],
+        };
+      }
       findings.push(`the card at ${cardUrl} could not be fetched: ${(err as Error).message}`);
     }
     // Nothing runs after a card that does not read (task-20.3 decision 8): its one finding.
@@ -599,8 +615,8 @@ export class Marketplace {
     if (findings.length > 0 || !stored) return {ok: false, kind: 'refused', findings};
 
     // The commit. Each interface the smoke request passed over is the publisher's to know
-    // (task-20.5 decision 7).
-    const notes: string[] = passedOver(seen);
+    // (task-20.5 decision 7), and so is a signature that passed (task-20.7 decision 12).
+    const notes: string[] = [...(signature ? [passedNote(signature)] : []), ...passedOver(seen)];
     const [vector] = await this.#deps.embedder.embed([corpusDoc(card)]);
     for (const {artifact} of gated) await this.#store.writeArtifact(artifact.id, artifact.files);
     const next = new Map(this.#publishers);
