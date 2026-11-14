@@ -109,12 +109,19 @@ export function agentCommand(entry, mode, {publicUrl, agentState} = {}) {
 
 /**
  * Under `--mode live --publish`, the command that starts a sign-in app's preview instance (task-13.7
- * decision 8): the same checkout in deterministic mode on `port`, its sign-in store in `stateDir`,
- * and no public address, since no browser reaches it. The fake accounts sign in there, and one card
+ * decision 8): the same checkout in deterministic mode on `port`, gRPC on `grpcPort`, its sign-in
+ * store in `stateDir`, and no public address, since no browser reaches it. Both ports are its own,
+ * apart from the live agent's beside it (task 20.9). The fake accounts sign in there, and one card
  * serves every mode, so its paint is at the live card's version.
  */
-export function previewInstanceCommand(port, stateDir) {
-  return [...agentCommand({port}, 'deterministic'), '--state-dir', stateDir];
+export function previewInstanceCommand(port, grpcPort, stateDir) {
+  return [
+    ...agentCommand({port}, 'deterministic'),
+    '--grpc-port',
+    String(grpcPort),
+    '--state-dir',
+    stateDir,
+  ];
 }
 
 /** Where the apps checkout is, and which source said so — echoed on every run and every listing. */

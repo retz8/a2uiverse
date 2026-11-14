@@ -32,7 +32,7 @@
  * (task-14.10 decision 4). `--leave-uninstalled` names apps published and left uninstalled — in the
  * Store, not on the canvas, for the store loop to offer (task-15.10 decision 2); the reconcile takes
  * out an install of one an earlier launch left. Under `--mode live`, whose agents refuse the fake accounts, each
- * sign-in app's preview is taken from a deterministic instance of the same checkout on a free port,
+ * sign-in app's preview is taken from a deterministic instance of the same checkout on free ports,
  * its sign-in store in a temporary folder, stopped once the preview is captured; the app is then
  * published against the live agent's card (task-13.7 decision 8). A marketplace that does not
  * answer, or a publisher that cannot be established, installs nothing, as an orchestrator that does
@@ -278,15 +278,17 @@ function freePort() {
 
 /**
  * A sign-in app's preview instance under `--mode live --publish` (task-13.7 decision 8): the same
- * checkout in deterministic mode on a free port, its sign-in store in a temporary folder. Resolves
+ * checkout in deterministic mode on a free port and a free gRPC port, its sign-in store in a
+ * temporary folder. Resolves
  * to `{card, cardUrl, stop}` once its card answers, or `{reason}`; `stop` ends it and removes the
  * folder.
  */
 async function startPreviewInstance(entry) {
   const port = await freePort();
+  const grpcPort = await freePort();
   const stateDir = await mkdtemp(join(tmpdir(), `a2uiverse-preview-${entry.id}-`));
   const cardUrl = `http://localhost:${port}/.well-known/agent-card.json`;
-  const child = spawn('uv', previewInstanceCommand(port, stateDir), {
+  const child = spawn('uv', previewInstanceCommand(port, grpcPort, stateDir), {
     cwd: entry.agentDir,
     stdio: ['ignore', 'pipe', 'pipe'],
   });

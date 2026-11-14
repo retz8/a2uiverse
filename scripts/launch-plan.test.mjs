@@ -238,8 +238,8 @@ test('--publish is a usage error beside --no-install (task-13.6 decision 1)', ()
   assert.match(parseArgsOf(['--publish', '--no-install']).error, /--no-install installs nothing/);
 });
 
-test('a preview instance is the checkout in deterministic mode on its own port and store, with no public address (task-13.7 decision 8)', () => {
-  assert.deepEqual(previewInstanceCommand(53117, '/tmp/a2uiverse-preview-github-x'), [
+test('a preview instance is the checkout in deterministic mode on its own ports and store, with no public address (task-13.7 decision 8, task 20.9)', () => {
+  assert.deepEqual(previewInstanceCommand(53117, 53118, '/tmp/a2uiverse-preview-github-x'), [
     'run',
     'python',
     '-m',
@@ -250,6 +250,8 @@ test('a preview instance is the checkout in deterministic mode on its own port a
     'localhost',
     '--port',
     '53117',
+    '--grpc-port',
+    '53118',
     '--state-dir',
     '/tmp/a2uiverse-preview-github-x',
   ]);
