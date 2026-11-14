@@ -10,11 +10,11 @@ import type {CanvasRuntime} from './canvasRuntime';
 import {createCanvasStore} from './canvasStore';
 import {
   accountNoticeOf,
-  ATTEMPT_WATCH_MS,
   createSignIn,
   mintAttemptId,
   openable,
   POLL_INTERVAL_MS,
+  UNSEEN_WATCH_MS,
 } from './signIn';
 
 /** A canvas as the sign-in sees it: its id, its context, its store and its presses. */
@@ -204,8 +204,22 @@ describe('waiting', () => {
 
     signIn.request(runtime, {kind: 'start', source: 'github.1'});
     answer(1, new Error('Failed to fetch'));
-    await vi.advanceTimersByTimeAsync(ATTEMPT_WATCH_MS + POLL_INTERVAL_MS);
+    await vi.advanceTimersByTimeAsync(UNSEEN_WATCH_MS + POLL_INTERVAL_MS);
     expect(runtime.store.getState().signingIn.size).toBe(0);
+  });
+
+  it('an attempt the orchestrator answers for is asked after until it says it ended, past ten minutes (task-20.6 decision 6)', async () => {
+    // A code given on the app's page lives as long as the app's server says: thirty minutes here.
+    const {signIn, add, answer} = setup();
+    const {runtime} = add('a');
+    signIn.request(runtime, {kind: 'start', source: 'tv.1'});
+    answer(0, {state: 'pending'});
+    await vi.advanceTimersByTimeAsync(29 * 60_000);
+    expect(runtime.store.getState().signingIn.has('tv.1')).toBe(true);
+    answer(0, {state: 'expired'});
+    await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
+    expect(runtime.store.getState().signingIn.size).toBe(0);
+    expect(console.info).toHaveBeenCalledWith('[A2UI:sign-in] tv.1: expired');
   });
 });
 

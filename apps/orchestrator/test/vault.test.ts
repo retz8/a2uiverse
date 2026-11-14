@@ -51,11 +51,24 @@ let auth: FakeAuthServer;
 let vendors: FakeVendor[] = [];
 let server: Server | undefined;
 let logged: string[] = [];
+/** The waits the vault asked between asks of a token endpoint for a device code, in ms. */
+let waits: number[] = [];
+/** How a wait passes: at once, unless a test holds the waits or sets its own. */
+let waitFor: (ms: number) => Promise<void>;
+let held: (() => void)[] | undefined;
+/** Asks of the token endpoint that get no answer, as a connection that never opens. */
+let tokenOutages = 0;
+
+const atOnce = () => new Promise<void>(resolve => setImmediate(resolve));
 
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'a2uiverse-vault-'));
   auth = await startFakeAuthServer();
   logged = [];
+  waits = [];
+  waitFor = atOnce;
+  held = undefined;
+  tokenOutages = 0;
   for (const method of ['log', 'error', 'warn', 'info'] as const) {
     vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
       logged.push(args.map(String).join(' '));
@@ -164,6 +177,17 @@ async function boot(options: {
       embedder: new FakeEmbedder(),
       planner: new FakePlanner(options.plan, {toolCalls: options.toolCalls ?? []}),
       stepQuietMs: 0,
+      vaultWait: ms => {
+        waits.push(ms);
+        return held ? new Promise<void>(resolve => held!.push(resolve)) : waitFor(ms);
+      },
+      vaultFetch: (input, init) => {
+        if (tokenOutages > 0 && String(input).endsWith('/token')) {
+          tokenOutages -= 1;
+          return Promise.reject(new TypeError('fetch failed'));
+        }
+        return fetch(input, init);
+      },
     },
   });
   await orchestrator.init();
@@ -272,6 +296,86 @@ async function signIn(
   };
   return {attempt, start, authorize, callback, outcome, cookie};
 }
+
+/**
+ * A card written for A2A 0.3 whose one sign-in is the device-code flow, in A2A 1.0's field names
+ * (task-20.6 decision 12): found from its metadata address, or with `metadata: false` from the
+ * well-known address at the origin of its device authorization address.
+ */
+function deviceCard(options: {metadata?: boolean} = {}): Partial<AgentCard> {
+  return {
+    securitySchemes: {
+      signIn: {
+        type: 'oauth2',
+        // A2A 0.3 names no device-code flow; the type is widened as the agent's JSON is.
+        flows: {
+          deviceCode: {
+            deviceAuthorizationUrl: `${auth.url}/device`,
+            tokenUrl: `${auth.url}/token`,
+            scopes: WORDS,
+          },
+        } as never,
+        ...(options.metadata === false
+          ? {}
+          : {oauth2MetadataUrl: `${auth.url}/.well-known/oauth-authorization-server`}),
+      },
+    },
+    security: [{signIn: ['read']}],
+  };
+}
+
+type DeviceOutcome = {
+  state: string;
+  source?: string;
+  reason?: string;
+  label?: string;
+  existing?: boolean;
+  rebound?: boolean;
+};
+
+/**
+ * The browser's side of a device-code sign-in: the popup's start, the code page read while the
+ * attempt waits — the vault's asks held until then — and the poll until the attempt has ended,
+ * the fake server answering as the test set it.
+ */
+async function deviceSignIn(base: string, canvas: string | undefined, source: string) {
+  const attempt = randomBytes(16).toString('base64url');
+  const onCanvas = canvas === undefined ? '' : `&canvas=${encodeURIComponent(canvas)}`;
+  const release = () => {
+    const waiting = held ?? [];
+    held = undefined;
+    waiting.forEach(resolve => resolve());
+  };
+  held = [];
+  const start = await fetch(`${base}/auth/start?attempt=${attempt}${onCanvas}&source=${source}`, {
+    redirect: 'manual',
+  });
+  if (start.status !== 302) {
+    release();
+    return {attempt, start, page: undefined, outcome: undefined, cookie: undefined};
+  }
+  const cookie = (start.headers.get('set-cookie') ?? '').split(';')[0]!;
+  const location = new URL(start.headers.get('location')!, base);
+  const page = await (await fetch(location, {headers: {cookie}})).text();
+  release();
+  let outcome: DeviceOutcome = {state: 'pending'};
+  await vi.waitFor(
+    async () => {
+      outcome = (await (await fetch(`${base}/auth/attempts/${attempt}`)).json()) as DeviceOutcome;
+      expect(outcome.state).not.toBe('pending');
+    },
+    {timeout: 5_000},
+  );
+  return {attempt, start, page, outcome, cookie, location};
+}
+
+/** A page's words as the person reads them: its scripts and its unshown templates left out. */
+const shownText = (html: string) =>
+  html
+    .replace(/<script>[\s\S]*?<\/script>/g, '')
+    .replace(/<template[\s\S]*?<\/template>/g, '')
+    .replace(/<style>[\s\S]*?<\/style>/g, '')
+    .replace(/<[^>]+>/g, ' ');
 
 /**
  * An agent asking for more access: `security` in A2A 0.3's requirement shape, or — given a body —
@@ -1510,5 +1614,309 @@ describe("the App Library's side (task 14.3)", () => {
         revocation: 'nowhere',
       },
     );
+  });
+});
+
+describe('device-code sign-in (task 20.6)', () => {
+  const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+
+  test('a first sign-in: the tile as for a redirect, the code page, the code asked with the card’s scopes, the interval waited, the account from the ID token; nothing of either code journaled, logged or polled', async () => {
+    auth.deviceExpiresIn = 1800;
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card: deviceCard(), admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    const events = await collect(client, utterance('my orders'));
+    // The canvas keeps its words: a sign-in in a new window (decision 5).
+    expect(slotOf(events, 'shop.1')).toMatchObject({
+      state: 'authority',
+      authority: {cause: 'signIn', scopes: ['See your orders']},
+    });
+    const canvas = contextOf(events);
+    const {start, page, outcome, location, cookie} = await deviceSignIn(base, canvas, 'shop.1');
+    expect(location!.pathname).toBe('/auth/code');
+    // The attempt lives as long as the server says its codes do, past the vault's ten minutes.
+    expect(start.headers.get('set-cookie')).toMatch(/Max-Age=(1799|1800);/);
+    const code = auth.userCodes[0]!;
+    const shown = shownText(page!);
+    for (const words of [
+      'Sign in to Shop',
+      'Your code',
+      code,
+      'Copy',
+      "Open Shop's sign-in",
+      "Check that Shop's page shows this same code.",
+    ]) {
+      expect(shown).toContain(words);
+    }
+    // The page shows no address; its button opens the address with the code in it.
+    expect(shown).not.toContain(auth.url);
+    expect(shown).not.toContain('http');
+    expect(page).toContain(JSON.stringify(`${auth.verificationUri}?user_code=${code}`));
+
+    const asked = auth.deviceAuthorizations[0]!;
+    expect(asked.get('scope')).toBe('openid read');
+    expect(asked.get('client_id')).toBe(auth.registered[0]);
+    expect(asked.get('login_hint')).toBeNull();
+    // One ask pending, the next approved, each after the server's five seconds.
+    expect(waits).toEqual([5_000, 5_000]);
+    expect(outcome).toEqual({
+      state: 'signedIn',
+      source: 'shop.1',
+      label: 'ada@example.com',
+      app: orchestrator.registry.displayName('shop'),
+      existing: false,
+    });
+    expect(orchestrator.vault.accountsOf('shop')).toEqual([{n: 1, label: 'ada@example.com'}]);
+
+    // Reloaded after, the page says how it ended; another browser reads nothing.
+    expect(await (await fetch(location!, {headers: {cookie: cookie!}})).text()).toContain(
+      "You're signed in to Shop",
+    );
+    expect((await fetch(location!)).status).toBe(400);
+
+    await collect(client, press('retry', 'shop.1', canvas));
+    expect(vendors[0]!.requests).toHaveLength(1);
+    expect(vendors[0]!.requests[0]!.authorization).toMatch(/^Bearer /);
+
+    const lines = await signInLinesWith({event: 'signedIn', source: 'shop.1'});
+    expect(lines.find(line => line.event === 'started')).toMatchObject({
+      source: 'shop.1',
+      purpose: 'first',
+      schemeKind: 'oauth',
+      flow: 'deviceCode',
+      scopes: ['read'],
+    });
+    const journal = await readFile(join(dir, JOURNAL_FILE), 'utf8');
+    const polled = JSON.stringify(outcome);
+    for (const secret of auth.issued) {
+      expect(journal).not.toContain(secret);
+      expect(logged.join('\n')).not.toContain(secret);
+      expect(polled).not.toContain(secret);
+    }
+  });
+
+  test('a code typed on the app’s page: the page says it will be asked; a server naming no interval is waited five seconds', async () => {
+    auth.complete = false;
+    auth.deviceInterval = undefined;
+    const {base, client} = await boot({
+      apps: {shop: {card: deviceCard(), admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    const {page, outcome} = await deviceSignIn(base, canvas, 'shop.1');
+    expect(shownText(page!)).toContain("Shop's page will ask for this code.");
+    expect(page).toContain(JSON.stringify(auth.verificationUri));
+    expect(outcome).toMatchObject({state: 'signedIn', source: 'shop.1'});
+    expect(waits).toEqual([5_000, 5_000]);
+  });
+
+  test('refused at the app: the attempt fails, the code page says the sign-in didn’t finish, no account', async () => {
+    auth.deviceEnd = 'deny';
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card: deviceCard()}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    const {outcome, location, cookie} = await deviceSignIn(base, canvas, 'shop.1');
+    expect(outcome).toMatchObject({state: 'failed', reason: 'the sign-in was refused at the app'});
+    expect(await (await fetch(location!, {headers: {cookie: cookie!}})).text()).toContain(
+      "Sign-in didn't finish",
+    );
+    expect(orchestrator.vault.accountsOf('shop')).toEqual([]);
+  });
+
+  test('the code ran out, as the server says or at the end of its lifetime: the attempt expired, the page saying so', async () => {
+    auth.deviceEnd = 'expire';
+    const {base, client} = await boot({apps: {shop: {card: deviceCard()}}, plan: shopOnly});
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    const told = await deviceSignIn(base, canvas, 'shop.1');
+    expect(told.outcome).toMatchObject({state: 'expired'});
+    const page = await (await fetch(told.location!, {headers: {cookie: told.cookie!}})).text();
+    expect(page).toContain('This code has run out');
+    expect(page).toContain('Close this window and try signing in again.');
+
+    // The server never says: the vault stops asking when the codes' lifetime ends.
+    auth.deviceEnd = 'approve';
+    auth.devicePendings = 1_000_000;
+    auth.deviceExpiresIn = 1;
+    waitFor = () => sleep(50);
+    const lapsed = await deviceSignIn(base, canvas, 'shop.1');
+    expect(lapsed.outcome).toMatchObject({state: 'expired'});
+    const asks = auth.devicePolls;
+    await sleep(200);
+    expect(auth.devicePolls).toBe(asks);
+    expect(await signInLinesWith({event: 'expired', source: 'shop.1'})).toBeTruthy();
+  });
+
+  test('slow down adds five seconds to every wait after it; an ask with no answer doubles the wait', async () => {
+    auth.deviceSlowDowns = 2;
+    const {base, client} = await boot({
+      apps: {shop: {card: deviceCard()}, tv: {card: deviceCard()}},
+      plan: () => layoutFor(['shop.1', 'tv.1']),
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    const slowed = await deviceSignIn(base, canvas, 'shop.1');
+    expect(slowed.outcome).toMatchObject({state: 'signedIn', source: 'shop.1'});
+    expect(waits).toEqual([5_000, 10_000, 15_000, 15_000]);
+
+    auth.deviceSlowDowns = 0;
+    auth.devicePendings = 0;
+    tokenOutages = 2;
+    waits = [];
+    const unheard = await deviceSignIn(base, canvas, 'tv.1');
+    expect(unheard.outcome).toMatchObject({state: 'signedIn', source: 'tv.1'});
+    expect(waits).toEqual([5_000, 10_000, 20_000]);
+  });
+
+  test('more access for an account signed in by device code: only the missing scopes asked, the account named by login_hint, the token carrying both', async () => {
+    const {base, client, orchestrator} = await boot({
+      apps: {
+        shop: {
+          card: deviceCard(),
+          admit: admitsTokens(),
+          script: authRequired([{signIn: ['write']}]),
+        },
+      },
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await deviceSignIn(base, canvas, 'shop.1');
+    const events = await collect(client, press('retry', 'shop.1', canvas));
+    expect(slotOf(events, 'shop.1')).toMatchObject({
+      state: 'authority',
+      authority: {cause: 'more', scopes: ['Change your orders']},
+    });
+    const allowed = await deviceSignIn(base, canvas, 'shop.1');
+    expect(allowed.outcome).toMatchObject({state: 'signedIn', source: 'shop.1', existing: true});
+    const asked = auth.deviceAuthorizations.at(-1)!;
+    expect(asked.get('scope')).toBe('openid write');
+    expect(asked.get('login_hint')).toBe('sub-ada');
+    expect(orchestrator.vault.library(['shop'])[0]!.accounts[0]!.permissions).toEqual([
+      'See your orders',
+      'Change your orders',
+    ]);
+    expect(
+      await signInLinesWith({event: 'started', purpose: 'escalation', flow: 'deviceCode'}),
+    ).toBeTruthy();
+  });
+
+  test('signing in again asks what the account held and the card requires, named by login_hint; another account added takes the next number', async () => {
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card: deviceCard(), admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await deviceSignIn(base, canvas, 'shop.1');
+    auth.endAll();
+    const events = await collect(client, press('retry', 'shop.1', canvas));
+    expect(slotOf(events, 'shop.1')).toMatchObject({authority: {cause: 'again'}});
+    const again = await deviceSignIn(base, canvas, 'shop.1');
+    expect(again.outcome).toMatchObject({state: 'signedIn', source: 'shop.1', existing: true});
+    expect(auth.deviceAuthorizations.at(-1)!.get('scope')).toBe('openid read');
+    expect(auth.deviceAuthorizations.at(-1)!.get('login_hint')).toBe('sub-ada');
+
+    auth.account = {sub: 'sub-bob', email: 'bob@example.com'};
+    const added = await deviceSignIn(base, canvas, 'shop');
+    expect(added.outcome).toMatchObject({
+      state: 'signedIn',
+      source: 'shop.2',
+      label: 'bob@example.com',
+      existing: false,
+    });
+    expect(auth.deviceAuthorizations.at(-1)!.get('login_hint')).toBeNull();
+    expect(orchestrator.vault.accountsOf('shop')).toEqual([
+      {n: 1, label: 'ada@example.com'},
+      {n: 2, label: 'bob@example.com'},
+    ]);
+  });
+
+  test('a sign-in by redirect goes ahead of device code; device code goes ahead of a pasted key the card lists after it (decision 1)', async () => {
+    const both = deviceCard();
+    both.securitySchemes = {code: both.securitySchemes!.signIn!, ...oauthCard().securitySchemes};
+    both.security = [{code: ['read']}, {signIn: ['read']}];
+    const keyAfter = deviceCard();
+    keyAfter.securitySchemes = {
+      ...keyAfter.securitySchemes,
+      key: {type: 'apiKey', in: 'header', name: 'X-Api-Key'},
+    };
+    keyAfter.security = [{signIn: ['read']}, {key: []}];
+    const {base, client} = await boot({
+      apps: {shop: {card: both}, tv: {card: keyAfter}},
+      plan: () => layoutFor(['shop.1', 'tv.1']),
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    const redirect = await signIn(base, canvas, 'shop.1');
+    expect(redirect.outcome).toMatchObject({state: 'signedIn', source: 'shop.1'});
+    expect(auth.deviceAuthorizations).toHaveLength(0);
+    const byCode = await deviceSignIn(base, canvas, 'tv.1');
+    expect(byCode.location!.pathname).toBe('/auth/code');
+    expect(byCode.outcome).toMatchObject({state: 'signedIn', source: 'tv.1'});
+  });
+
+  test('one identity: the metadata document declares the device-code grant; a registration names the grants the server lists, and one made without it is made again when the server refuses it (decision 8)', async () => {
+    auth.grantTypes = ['authorization_code', 'refresh_token'];
+    const {base, client} = await boot({
+      apps: {shop: {card: oauthCard()}, tv: {card: deviceCard()}},
+      plan: () => layoutFor(['shop.1', 'tv.1']),
+    });
+    const document = (await (await fetch(`${base}/auth/client.json`)).json()) as {
+      grant_types: string[];
+    };
+    expect(document.grant_types).toEqual([
+      'authorization_code',
+      'refresh_token',
+      'urn:ietf:params:oauth:grant-type:device_code',
+    ]);
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    auth.grantTypes = [
+      'authorization_code',
+      'refresh_token',
+      'urn:ietf:params:oauth:grant-type:device_code',
+    ];
+    const {outcome} = await deviceSignIn(base, canvas, 'tv.1');
+    expect(outcome).toMatchObject({state: 'signedIn', source: 'tv.1'});
+    const registrations = (await (await fetch(`${auth.url}/registrations`)).json()) as {
+      grant_types: string[];
+    }[];
+    expect(registrations.map(r => r.grant_types)).toEqual([
+      ['authorization_code', 'refresh_token'],
+      ['authorization_code', 'refresh_token', 'urn:ietf:params:oauth:grant-type:device_code'],
+    ]);
+    // The refused one asked once, the new one once: the code came from the second.
+    expect(auth.deviceAuthorizations.map(asked => asked.get('client_id'))).toEqual(auth.registered);
+    const vault = JSON.parse(await readFile(join(dir, VAULT_FILE), 'utf8'));
+    expect(Object.values(vault.registrations)).toEqual([
+      expect.objectContaining({clientId: auth.registered[1]}),
+    ]);
+  });
+
+  test('the server found at the well-known address of the device authorization’s origin, naming no authorization endpoint (decision 9)', async () => {
+    auth.redirect = false;
+    const {base, client} = await boot({
+      apps: {shop: {card: deviceCard({metadata: false}), admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    const {outcome} = await deviceSignIn(base, canvas, 'shop.1');
+    expect(outcome).toMatchObject({state: 'signedIn', source: 'shop.1'});
+  });
+
+  test('a sign-in page off https, or a server the vault cannot introduce itself to: the sign-in can’t start', async () => {
+    auth.verificationUri = 'http://activate.example/device';
+    const {base, client} = await boot({apps: {shop: {card: deviceCard()}}, plan: shopOnly});
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    const offHttps = await deviceSignIn(base, canvas, 'shop.1');
+    expect(offHttps.start.status).toBe(400);
+    expect(await offHttps.start.text()).toContain("This sign-in can't start");
+    expect(
+      await signInLinesWith({event: 'failed', reason: 'the sign-in page is not on https'}),
+    ).toBeTruthy();
+
+    auth.verificationUri = `${auth.url}/activate`;
+    auth.registration = false;
+    const nowhere = await deviceSignIn(base, canvas, 'shop.1');
+    expect(nowhere.start.status).toBe(400);
   });
 });

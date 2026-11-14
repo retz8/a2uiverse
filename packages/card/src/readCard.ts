@@ -3,9 +3,10 @@
  * shape of whichever A2A version it was written in, read into the A2A SDK's own `AgentCard` by
  * the A2A SDK's own two functions. Every process reads a card through here and nowhere else, so
  * what the A2A SDK's functions drop the platform drops, and what they refuse it refuses, but for
- * the A2A version of a 0.3 card's further interfaces (task-20.5 decision 7).
+ * the A2A version of a 0.3 card's further interfaces (task-20.5 decision 7) and a device-code flow
+ * on a 0.3 card (task-20.6 decision 12).
  */
-import {AgentCard} from '@a2a-js/sdk';
+import {AgentCard, SecurityScheme} from '@a2a-js/sdk';
 import {isLegacyAgentCard, parseLegacyAgentCard} from '@a2a-js/sdk/compat/v0_3/client';
 
 /**
@@ -25,10 +26,62 @@ export function readCard(served: unknown): AgentCard {
   if (typeof (served as {name?: unknown}).name !== 'string') {
     throw new Error('not an agent card: no name');
   }
-  return isLegacyAgentCard(served)
-    ? atCardVersion(parseLegacyAgentCard(served))
-    : AgentCard.fromJSON(served);
+  return isLegacyAgentCard(served) ? readLegacy(served) : AgentCard.fromJSON(served);
 }
+
+/**
+ * A card written for A2A 0.3. A2A 0.3 names four OAuth flows and the device-code flow is not one
+ * of them; the A2A SDK's 0.3 reading fails the whole card when a scheme holds none of the four.
+ * A scheme whose only flow is `deviceCode` is read here instead, in A2A 1.0's field names, the
+ * rest of the card by the A2A SDK. A scheme holding one of the four beside it reads with that one.
+ */
+function readLegacy(served: object): AgentCard {
+  const schemes = (served as {securitySchemes?: unknown}).securitySchemes;
+  const deviceCode = deviceCodeSchemes(schemes);
+  if (deviceCode.size === 0) return atCardVersion(parseLegacyAgentCard(served));
+  const declared = schemes as Record<string, unknown>;
+  const others = Object.fromEntries(
+    Object.entries(declared).filter(([name]) => !deviceCode.has(name)),
+  );
+  const card = atCardVersion(parseLegacyAgentCard({...served, securitySchemes: others}));
+  return {
+    ...card,
+    securitySchemes: Object.fromEntries(
+      Object.keys(declared).flatMap(name => {
+        const scheme = deviceCode.get(name) ?? card.securitySchemes[name];
+        return scheme ? [[name, scheme]] : [];
+      }),
+    ),
+  };
+}
+
+/** The A2A 0.3 flows the A2A SDK's 0.3 reading takes, as it tests for them. */
+const V0_3_FLOWS = ['authorizationCode', 'clientCredentials', 'implicit', 'password'];
+
+/** A 0.3 card's OAuth schemes whose one flow is `deviceCode`, each read in A2A 1.0's shape. */
+function deviceCodeSchemes(schemes: unknown): Map<string, SecurityScheme> {
+  const read = new Map<string, SecurityScheme>();
+  if (!isRecord(schemes)) return read;
+  for (const [name, scheme] of Object.entries(schemes)) {
+    if (!isRecord(scheme) || scheme.type !== 'oauth2' || !isRecord(scheme.flows)) continue;
+    const flows = scheme.flows;
+    if (V0_3_FLOWS.some(flow => Boolean(flows[flow])) || !isRecord(flows.deviceCode)) continue;
+    read.set(
+      name,
+      SecurityScheme.fromJSON({
+        oauth2SecurityScheme: {
+          description: scheme.description,
+          flows: {deviceCode: flows.deviceCode},
+          oauth2MetadataUrl: scheme.oauth2MetadataUrl,
+        },
+      }),
+    );
+  }
+  return read;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
  * A card written for A2A 0.3 names one A2A version, the agent's, and its `additionalInterfaces`

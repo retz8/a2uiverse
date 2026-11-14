@@ -8,11 +8,12 @@
  * attempt, and whichever finishes is the outcome. Cancel shows the cancelled line while the
  * attempt is still watched, so a sign-in finished afterwards still shows the account added
  * (task-14.8 decision 10); leaving the app's view stops every watch — an account finished later
- * shows the next time the accounts are read.
+ * shows the next time the accounts are read. An attempt is watched until the orchestrator says it
+ * ended, however long its codes live (task-20.6 decision 6).
  */
 import {useEffect, useState} from 'react';
 import {readAttempt, signInStartUrl} from '../../../orchestratorApi';
-import {ATTEMPT_WATCH_MS, mintAttemptId, openable, POLL_INTERVAL_MS} from '../../signIn';
+import {mintAttemptId, openable, POLL_INTERVAL_MS, UNSEEN_WATCH_MS} from '../../signIn';
 
 /** How a wait ended. */
 export type SignInEnd =
@@ -28,7 +29,8 @@ export type SignInEnd =
 
 interface Attempt {
   id: string;
-  until: number;
+  /** When an attempt never answered for is let go. */
+  unseenUntil: number;
   /** The orchestrator has answered for it: the window reached the start route. */
   seen: boolean;
   timer?: ReturnType<typeof setTimeout>;
@@ -119,7 +121,7 @@ function createWatcher({
     const early = outcome?.state === 'unknown' && !attempt.seen;
     if (outcome && outcome.state !== 'unknown') attempt.seen = true;
     const ended = outcome && outcome.state !== 'pending' && !early;
-    if (ended || Date.now() >= attempt.until) {
+    if (ended || (!attempt.seen && Date.now() >= attempt.unseenUntil)) {
       // This window's attempt is over; another one opened since may still finish.
       wait.attempts.delete(attempt.id);
       if (wait.attempts.size > 0) return;
@@ -150,7 +152,7 @@ function createWatcher({
       wait.showing = true;
       wait.cancelled = false;
       ends.delete(key);
-      const attempt: Attempt = {id, until: Date.now() + ATTEMPT_WATCH_MS, seen: false};
+      const attempt: Attempt = {id, unseenUntil: Date.now() + UNSEEN_WATCH_MS, seen: false};
       wait.attempts.set(id, attempt);
       const watched = wait;
       attempt.timer = setTimeout(() => void ask(watched, attempt), pollMs);

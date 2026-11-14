@@ -15,10 +15,13 @@ import type {SignedOutAccount} from '../registry/registry.js';
 import type {WriteCaller} from '../writeGuard.js';
 import {
   authorizationUrl,
+  authorizeDevice,
+  deviceToken,
   discover,
   exchangeCode,
   freshSecrets,
   hashKey,
+  isSecureOrLocal,
   labelFrom,
   OAuthError,
   refreshTokens,
@@ -27,6 +30,7 @@ import {
   revoke,
   verifyIdToken,
   type ClientIdentity,
+  type DeviceAuthorization,
   type Fetch,
   type IdClaims,
   type ServerMetadata,
@@ -44,8 +48,17 @@ export const KEY_NAME_MAX = 60;
 export const SIGNED_OUT = 'this account was signed out';
 /** A refresh is due when the token has less than this left (task-12.5 decision 8). */
 export const REFRESH_MARGIN_MS = 60_000;
-/** A sign-in attempt lives this long (task-12.5 decision 5). */
+/**
+ * A sign-in attempt lives this long (task-12.5 decision 5); a device-code attempt as long as the
+ * server says its codes do (task-20.6 decision 6). Ended, an attempt stays readable this long.
+ */
 export const ATTEMPT_LIFETIME_MS = 10 * 60_000;
+/** The wait between asks of the token endpoint when the server names none (RFC 8628 §3.2). */
+export const DEVICE_INTERVAL_MS = 5_000;
+/** What `slow_down` adds to the wait, from then on (RFC 8628 §3.5). */
+export const SLOW_DOWN_MS = 5_000;
+/** The server's answers that the vault's client is not, or no longer, one it takes. */
+const REFUSED_CLIENT = new Set(['invalid_client', 'unauthorized_client']);
 
 /** Why a slot cannot be dispatched: the authority it takes. */
 export type AuthorityNeed =
@@ -115,6 +128,8 @@ export interface SignInRecord {
   canvas?: string;
   purpose?: SignInPurpose;
   schemeKind?: SupportedScheme['kind'];
+  /** On `started`: the sign-in goes by a code given on the app's page (task-20.6 decision 15). */
+  flow?: 'deviceCode';
   scopes?: string[];
   account?: 'new' | 'existing';
   reason?: string;
@@ -140,6 +155,8 @@ export interface VaultDeps {
   identity: ClientIdentity;
   journal(record: SignInRecord): void;
   fetchImpl?: Fetch;
+  /** The wait between asks of the token endpoint for a device code; a test's seam. */
+  wait?: (ms: number) => Promise<void>;
 }
 
 export interface Attempt {
@@ -176,11 +193,41 @@ export interface Attempt {
     nonce?: string;
     sub?: string;
   };
+  /** A device-code sign-in in flight (task-20.6): what the code page shows and the vault asks by. */
+  device?: DeviceSignIn;
 }
+
+/** A device-code sign-in in flight. */
+export interface DeviceSignIn {
+  metadata: ServerMetadata;
+  clientId: string;
+  /** Held by the vault alone, as a token is (task-20.6 invariant 1). */
+  deviceCode: string;
+  /** Shown on the code page alone. */
+  userCode: string;
+  /** What the code page opens: the address with the code in it, where the server gave one. */
+  verificationUri: string;
+  /** Whether that address carries the user code already. */
+  complete: boolean;
+  /** The wait between asks of the token endpoint. */
+  intervalMs: number;
+  /** Whether `openid` was asked: an ID token then names who signed in. */
+  openId: boolean;
+  /** The account's subject, for a sign-in bound to it. */
+  sub?: string;
+}
+
+/** An OAuth scheme the vault signs in with. */
+type OAuthScheme = Extract<SupportedScheme, {kind: 'oauth'}>;
+
+/** What a sign-in's tokens are landed by: the server, the client, the account it is bound to. */
+type Grant = Pick<DeviceSignIn, 'metadata' | 'clientId' | 'openId' | 'sub'> & {nonce?: string};
 
 export type Started =
   | {kind: 'redirect'; attempt: Attempt; url: string}
   | {kind: 'keyPage'; attempt: Attempt}
+  /** A device-code sign-in: the code page shows the code (task-20.6 decision 2). */
+  | {kind: 'codePage'; attempt: Attempt}
   /** The account is signed in already: nothing to ask. */
   | {kind: 'signedIn'; attempt: Attempt}
   | {kind: 'refused'; reason: string};
@@ -228,6 +275,7 @@ export type SignedOut = ({ok: true} & SignedOutAccount) | {ok: false; reason: st
 export class AuthVault implements AccountStore {
   readonly #deps: VaultDeps;
   readonly #fetch: Fetch;
+  readonly #wait: (ms: number) => Promise<void>;
   readonly #attempts = new Map<string, Attempt>();
   readonly #byState = new Map<string, string>();
   readonly #refreshing = new Map<string, Promise<boolean>>();
@@ -237,6 +285,8 @@ export class AuthVault implements AccountStore {
   constructor(deps: VaultDeps) {
     this.#deps = deps;
     this.#fetch = deps.fetchImpl ?? fetch;
+    this.#wait =
+      deps.wait ?? (ms => new Promise<void>(resolve => void setTimeout(resolve, ms).unref()));
   }
 
   // ---- the accounts seam (task-12.4 decision 3) -------------------------------------------
@@ -569,6 +619,7 @@ export class AuthVault implements AccountStore {
       expiresAt: Date.now() + ATTEMPT_LIFETIME_MS,
       state: 'pending',
     };
+    const deviceCode = scheme.kind === 'oauth' && scheme.flow === 'deviceCode';
     this.#deps.journal({
       event: 'started',
       appId,
@@ -576,12 +627,15 @@ export class AuthVault implements AccountStore {
       canvas,
       purpose,
       schemeKind: scheme.kind,
+      ...(deviceCode ? {flow: 'deviceCode' as const} : {}),
       scopes: keys,
     });
     if (scheme.kind !== 'oauth') {
       this.#attempts.set(id, attempt);
       return {kind: 'keyPage', attempt};
     }
+    const sub = purpose === 'again' || purpose === 'escalation' ? account?.sub : undefined;
+    if (deviceCode) return this.#startDevice(attempt, scheme, sub);
     try {
       const metadata = await discover(this.#fetch, scheme.metadataUrl);
       const clientId = await this.#clientFor(metadata);
@@ -589,7 +643,6 @@ export class AuthVault implements AccountStore {
       const secrets = freshSecrets();
       const openId = scheme.openId || (metadata.scopes_supported ?? []).includes('openid');
       const scopes = openId ? ['openid', ...keys.filter(key => key !== 'openid')] : keys;
-      const sub = purpose === 'again' || purpose === 'escalation' ? account?.sub : undefined;
       attempt.oauth = {
         metadata,
         clientId,
@@ -612,6 +665,120 @@ export class AuthVault implements AccountStore {
       return {kind: 'redirect', attempt, url};
     } catch (err) {
       return this.#refuse(attempt, reasonOf(err));
+    }
+  }
+
+  /**
+   * A device-code sign-in started (task-20.6 decisions 6–11): the server found and the vault
+   * introduced as for a redirect sign-in, the two codes asked for, and the token endpoint asked
+   * from then on, in the background, until the person finishes, the server refuses or the codes'
+   * lifetime ends. A dynamic registration the server refuses at the ask is made again, once.
+   */
+  async #startDevice(
+    attempt: Attempt,
+    scheme: OAuthScheme,
+    sub: string | undefined,
+  ): Promise<Started> {
+    try {
+      const metadata = await discover(this.#fetch, scheme.metadataUrl);
+      const endpoint = metadata.device_authorization_endpoint || scheme.deviceAuthorizationUrl;
+      if (!endpoint) return this.#refuse(attempt, 'the server names no device authorization');
+      const openId = (metadata.scopes_supported ?? []).includes('openid');
+      const scopes = openId
+        ? ['openid', ...attempt.keys.filter(key => key !== 'openid')]
+        : attempt.keys;
+      const ask = (clientId: string) =>
+        authorizeDevice(this.#fetch, endpoint, {
+          clientId,
+          scopes,
+          ...(sub ? {loginHint: sub} : {}),
+        });
+      let clientId = await this.#clientFor(metadata);
+      if (!clientId) return this.#refuse(attempt, 'this sign-in is not supported here');
+      let granted: DeviceAuthorization;
+      try {
+        granted = await ask(clientId);
+      } catch (err) {
+        const refused = err instanceof OAuthError && REFUSED_CLIENT.has(err.code);
+        if (!refused || !(await this.#dropRegistration(metadata.issuer, clientId))) throw err;
+        clientId = await this.#clientFor(metadata);
+        if (!clientId) return this.#refuse(attempt, 'this sign-in is not supported here');
+        granted = await ask(clientId);
+      }
+      const opens = granted.verificationUriComplete ?? granted.verificationUri;
+      // The app's page opens under the popup rule: https, localhost exempt (decision 3).
+      if (!isSecureOrLocal(opens)) {
+        return this.#refuse(attempt, 'the sign-in page is not on https');
+      }
+      attempt.expiresAt = Date.now() + granted.expiresIn * 1000;
+      attempt.device = {
+        metadata,
+        clientId,
+        deviceCode: granted.deviceCode,
+        userCode: granted.userCode,
+        verificationUri: opens,
+        complete: granted.verificationUriComplete !== undefined,
+        intervalMs: granted.interval === undefined ? DEVICE_INTERVAL_MS : granted.interval * 1000,
+        openId,
+        ...(sub ? {sub} : {}),
+      };
+      this.#attempts.set(attempt.id, attempt);
+      void this.#pollDevice(attempt);
+      return {kind: 'codePage', attempt};
+    } catch (err) {
+      return this.#refuse(attempt, reasonOf(err));
+    }
+  }
+
+  /**
+   * The token endpoint asked for the device code as RFC 8628 has it (task-20.6 decision 7): the
+   * server's interval between asks, five seconds more on `slow_down`, the wait doubled when no
+   * answer came; `authorization_pending` asks again, `expired_token` ends the attempt expired, and
+   * every other error ends it failed. Nothing but the RFC's error codes is read.
+   */
+  async #pollDevice(attempt: Attempt): Promise<void> {
+    let wait = attempt.device?.intervalMs ?? DEVICE_INTERVAL_MS;
+    try {
+      for (;;) {
+        await this.#wait(wait);
+        const device = attempt.device;
+        if (attempt.state !== 'pending' || !device) return;
+        if (attempt.expiresAt <= Date.now()) return this.#expire();
+        let tokens: TokenResponse;
+        try {
+          tokens = await deviceToken(this.#fetch, device.metadata.token_endpoint, {
+            deviceCode: device.deviceCode,
+            clientId: device.clientId,
+          });
+        } catch (err) {
+          if (!(err instanceof OAuthError)) {
+            // No answer: a connection that timed out or never opened (RFC 8628 §3.5).
+            wait = wait * 2 || DEVICE_INTERVAL_MS;
+            continue;
+          }
+          if (err.code === 'authorization_pending') continue;
+          if (err.code === 'slow_down') {
+            wait += SLOW_DOWN_MS;
+            continue;
+          }
+          if (attempt.state !== 'pending') return;
+          if (err.code === 'expired_token') return this.#expireAttempt(attempt);
+          if (REFUSED_CLIENT.has(err.code)) {
+            // A registration made without the device-code grant: made again next time (decision 8).
+            await this.#dropRegistration(device.metadata.issuer, device.clientId);
+          }
+          this.#fail(
+            attempt,
+            err.code === 'access_denied' ? 'the sign-in was refused at the app' : reasonOf(err),
+          );
+          return;
+        }
+        if (attempt.state !== 'pending') return;
+        await this.#land(attempt, device, tokens);
+        return;
+      }
+    } catch (err) {
+      if (attempt.state === 'pending') this.#fail(attempt, reasonOf(err));
     }
   }
 
@@ -671,20 +838,35 @@ export class AuthVault implements AccountStore {
     const oauth = attempt.oauth;
     if (attempt.state !== 'pending' || !oauth) return attempt;
     if (query.error || !query.code) return this.#fail(attempt, query.error ?? 'no code came back');
+    let tokens: TokenResponse;
     try {
-      const tokens = await exchangeCode(this.#fetch, oauth.metadata.token_endpoint, {
+      tokens = await exchangeCode(this.#fetch, oauth.metadata.token_endpoint, {
         code: query.code,
         clientId: oauth.clientId,
         redirectUri: this.#deps.identity.redirectUri,
         verifier: oauth.verifier,
       });
+    } catch (err) {
+      return this.#failGrant(attempt, oauth, err);
+    }
+    // `openid` was asked exactly when a nonce was sent.
+    return this.#land(attempt, {...oauth, openId: oauth.nonce !== undefined}, tokens);
+  }
+
+  /**
+   * The tokens a sign-in ended with, landed on its account, by redirect or by device code alike
+   * (task-12.5 decisions 5, 12; task-20.6 decision 10): the ID token checked — its nonce where one
+   * was sent — who signed in judged, and the account written.
+   */
+  async #land(attempt: Attempt, grant: Grant, tokens: TokenResponse): Promise<Attempt> {
+    try {
       let claims: IdClaims | undefined;
-      if (tokens.id_token && oauth.nonce) {
+      if (tokens.id_token && grant.openId) {
         claims = await verifyIdToken(this.#fetch, tokens.id_token, {
-          issuer: oauth.metadata.issuer,
-          clientId: oauth.clientId,
-          nonce: oauth.nonce,
-          jwksUri: oauth.metadata.jwks_uri,
+          issuer: grant.metadata.issuer,
+          clientId: grant.clientId,
+          ...(grant.nonce !== undefined ? {nonce: grant.nonce} : {}),
+          jwksUri: grant.metadata.jwks_uri,
         });
       }
       const apps = this.#deps.store.app(attempt.appId);
@@ -692,7 +874,7 @@ export class AuthVault implements AccountStore {
       // account is re-bound to it and the outcome says so — never onto an account the app holds
       // already. A request for more access stays bound (task-12.13 decision 24).
       let rebound = false;
-      if (oauth.sub && claims && claims.sub !== oauth.sub) {
+      if (grant.sub && claims && claims.sub !== grant.sub) {
         if (attempt.purpose !== 'again') {
           return this.#fail(attempt, 'signed in as a different account');
         }
@@ -729,11 +911,11 @@ export class AuthVault implements AccountStore {
       }
       account.scheme = attempt.scheme.key;
       account.kind = 'oauth';
-      account.issuer = oauth.metadata.issuer;
-      account.clientId = oauth.clientId;
-      account.tokenEndpoint = oauth.metadata.token_endpoint;
-      if (oauth.metadata.revocation_endpoint)
-        account.revocationEndpoint = oauth.metadata.revocation_endpoint;
+      account.issuer = grant.metadata.issuer;
+      account.clientId = grant.clientId;
+      account.tokenEndpoint = grant.metadata.token_endpoint;
+      if (grant.metadata.revocation_endpoint)
+        account.revocationEndpoint = grant.metadata.revocation_endpoint;
       applyTokens(account, tokens, granted);
       if (claims) account.sub = claims.sub;
       // A label the person chose stays theirs, whatever the identity says (task-14.3 decision 3).
@@ -748,20 +930,28 @@ export class AuthVault implements AccountStore {
       if (rebound) attempt.rebound = true;
       return this.#signedIn(attempt, account, existing);
     } catch (err) {
-      // A registration the server no longer knows is let go: the next sign-in registers again
-      // (task-12.5 decision 3).
-      if (err instanceof OAuthError && err.code === 'invalid_client') {
-        await this.#dropRegistration(oauth.metadata.issuer, oauth.clientId);
-      }
-      return this.#fail(attempt, reasonOf(err));
+      return this.#failGrant(attempt, grant, err);
     }
   }
 
-  async #dropRegistration(issuer: string, clientId: string): Promise<void> {
+  /**
+   * A sign-in the server ended in an error. A registration the server no longer knows is let go:
+   * the next sign-in registers again (task-12.5 decision 3).
+   */
+  async #failGrant(attempt: Attempt, grant: Pick<Grant, 'metadata' | 'clientId'>, err: unknown) {
+    if (err instanceof OAuthError && err.code === 'invalid_client') {
+      await this.#dropRegistration(grant.metadata.issuer, grant.clientId);
+    }
+    return this.#fail(attempt, reasonOf(err));
+  }
+
+  /** The dynamic registration under `clientId` let go; true when one was held. */
+  async #dropRegistration(issuer: string, clientId: string): Promise<boolean> {
     const key = registrationKey(issuer, this.#deps.identity.redirectUri);
-    if (this.#deps.store.data.registrations[key]?.clientId !== clientId) return;
+    if (this.#deps.store.data.registrations[key]?.clientId !== clientId) return false;
     delete this.#deps.store.data.registrations[key];
     await this.#deps.store.save();
+    return true;
   }
 
   /**
@@ -855,6 +1045,7 @@ export class AuthVault implements AccountStore {
     attempt.label = account.label;
     attempt.existing = existing;
     delete attempt.oauth;
+    delete attempt.device;
     this.#deps.journal({
       event: 'signedIn',
       appId: attempt.appId,
@@ -872,6 +1063,7 @@ export class AuthVault implements AccountStore {
     attempt.state = 'failed';
     attempt.reason = reason;
     delete attempt.oauth;
+    delete attempt.device;
     this.#deps.journal({event: 'failed', appId: attempt.appId, source: attempt.source, reason});
     return attempt;
   }
@@ -899,12 +1091,7 @@ export class AuthVault implements AccountStore {
   #expire(): void {
     const now = Date.now();
     for (const attempt of this.#attempts.values()) {
-      if (attempt.state === 'pending' && attempt.expiresAt <= now) {
-        attempt.state = 'expired';
-        if (attempt.oauth) this.#byState.delete(attempt.oauth.state);
-        delete attempt.oauth;
-        this.#deps.journal({event: 'expired', appId: attempt.appId, source: attempt.source});
-      }
+      if (attempt.state === 'pending' && attempt.expiresAt <= now) this.#expireAttempt(attempt);
       // A finished attempt stays readable for the client's next poll and a return arriving again,
       // then goes.
       if (attempt.expiresAt + ATTEMPT_LIFETIME_MS <= now) {
@@ -912,6 +1099,16 @@ export class AuthVault implements AccountStore {
         for (const [state, id] of this.#byState) if (id === attempt.id) this.#byState.delete(state);
       }
     }
+  }
+
+  /** The attempt ran out: its lifetime, or its code as the server says (task-20.6 decision 6). */
+  #expireAttempt(attempt: Attempt): void {
+    attempt.state = 'expired';
+    attempt.expiresAt = Math.min(attempt.expiresAt, Date.now());
+    if (attempt.oauth) this.#byState.delete(attempt.oauth.state);
+    delete attempt.oauth;
+    delete attempt.device;
+    this.#deps.journal({event: 'expired', appId: attempt.appId, source: attempt.source});
   }
 
   // ---- uninstall (phase-12 decision 12) -------------------------------------------------------

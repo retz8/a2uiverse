@@ -13,7 +13,8 @@
  *   expires: the window may be a tab hiding the canvas, so the canvas getting the focus back says
  *   nothing of it. Open the sign-in again opens a new window on a new attempt; whichever finishes
  *   resumes the slot. After Cancel the attempt is still polled, so a sign-in finished afterwards
- *   resumes the slot (decisions 1, 2, 9; task-12.13 decision 26).
+ *   resumes the slot (decisions 1, 2, 9; task-12.13 decision 26). The attempt is asked after until
+ *   the orchestrator says it ended, however long its codes live (task-20.6 decision 6).
  * - Signed in, the source is remembered for the page load and the pressed slot's `retry` goes to
  *   the canvas it was pressed on, on screen or not (decision 8). Allow resumes the same way: the
  *   orchestrator sends again the press that needed the scope (decision 10).
@@ -30,8 +31,12 @@ import type {CanvasRuntime} from './canvasRuntime';
 
 /** How often a pending attempt is asked after. */
 export const POLL_INTERVAL_MS = 1_000;
-/** How long the client asks after an attempt: the orchestrator's ten minutes, and some. */
-export const ATTEMPT_WATCH_MS = 11 * 60_000;
+/**
+ * How long an attempt the orchestrator has never answered for is asked after: its window has not
+ * reached the start route, so nothing will say it ended. Once answered for, an attempt is asked
+ * after until the orchestrator says it ended.
+ */
+export const UNSEEN_WATCH_MS = 11 * 60_000;
 
 export interface SignInOptions {
   /** The orchestrator's base URL. */
@@ -66,7 +71,8 @@ interface Attempt {
   waiting: boolean;
   /** The orchestrator has answered for it: the window reached the start route. */
   seen?: boolean;
-  until: number;
+  /** When an attempt never answered for is let go. */
+  unseenUntil: number;
   timer?: ReturnType<typeof setTimeout>;
 }
 
@@ -180,7 +186,7 @@ export function createSignIn({
       );
       return settle(attempt);
     }
-    if (Date.now() >= attempt.until) {
+    if (!attempt.seen && Date.now() >= attempt.unseenUntil) {
       console.info(`[A2UI:sign-in] ${attempt.source}: no answer`);
       return settle(attempt);
     }
@@ -207,7 +213,7 @@ export function createSignIn({
       source,
       kind,
       waiting: true,
-      until: Date.now() + ATTEMPT_WATCH_MS,
+      unseenUntil: Date.now() + UNSEEN_WATCH_MS,
     };
     attempts.set(id, attempt);
     showWaiting(attempt);

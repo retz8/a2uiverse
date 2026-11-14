@@ -7,9 +7,11 @@
  *
  * - `GET  /auth/client.json` — the vault's client ID metadata document.
  * - `GET  /auth/start?attempt&canvas&source` — opened by the popup; redirects to the
- *   authorization server, or to the token page. The bare app id as the source is add-account's;
- *   no canvas is the App Library's (task-14.3 decision 6).
+ *   authorization server, to the token page, or to the code page. The bare app id as the source is
+ *   add-account's; no canvas is the App Library's (task-14.3 decision 6).
  * - `GET  /auth/key?attempt` and `POST /auth/key` — the token page and its form.
+ * - `GET  /auth/code?attempt` — the code page of a device-code sign-in (task-20.6 decision 2),
+ *   readable by the window that started it alone.
  * - `GET  /auth/callback` — the authorization server's return.
  * - `GET  /auth/attempts/:id` — the outcome the client polls.
  *
@@ -21,7 +23,7 @@
 import express, {type Request, type RequestHandler, type Response, type Router} from 'express';
 import {logLine} from '../log.js';
 import {callerOf} from '../writeGuard.js';
-import {endPage, keyPage, refusedPage} from './pages.js';
+import {codeEndPage, codePage, endPage, keyPage, refusedPage} from './pages.js';
 import {clientDocument, isSecureOrLocal, type ClientIdentity} from './oauth.js';
 import {KEY_NAME_MAX, type Attempt, type AuthVault, type SlotAsk} from './vault.js';
 
@@ -115,9 +117,35 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
       if (!isSecureOrLocal(started.url)) return html(res, 400, refusedPage());
       return res.set('Cache-Control', 'no-store').redirect(302, started.url);
     }
+    const page = started.kind === 'codePage' ? 'code' : 'key';
     return res
       .set('Cache-Control', 'no-store')
-      .redirect(302, `${AUTH_ROUTE_PREFIX}/key?attempt=${encodeURIComponent(started.attempt.id)}`);
+      .redirect(
+        302,
+        `${AUTH_ROUTE_PREFIX}/${page}?attempt=${encodeURIComponent(started.attempt.id)}`,
+      );
+  });
+
+  router.get('/code', (req, res) => {
+    const id = typeof req.query.attempt === 'string' ? req.query.attempt : '';
+    const attempt = bound(req, deps.vault.attempt(id));
+    const byCode = attempt?.scheme.kind === 'oauth' && attempt.scheme.flow === 'deviceCode';
+    if (!attempt || !byCode) return html(res, 400, refusedPage());
+    const app = deps.app(attempt.appId).name;
+    // Reloaded, the page shows the same code; once ended, how it ended (task-20.6 decision 3).
+    if (attempt.state !== 'pending') return html(res, 200, codeEndPage(attempt.state, app));
+    if (!attempt.device) return html(res, 400, refusedPage());
+    return html(
+      res,
+      200,
+      codePage({
+        app,
+        userCode: attempt.device.userCode,
+        opens: attempt.device.verificationUri,
+        complete: attempt.device.complete,
+        outcomeUrl: `${AUTH_ROUTE_PREFIX}/attempts/${encodeURIComponent(attempt.id)}`,
+      }),
+    );
   });
 
   router.get('/key', (req, res) => {

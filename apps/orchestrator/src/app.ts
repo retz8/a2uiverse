@@ -80,6 +80,8 @@ export interface OrchestratorOverrides {
   accounts?: AccountStore;
   /** The vault's network, for a test's fake authorization server. */
   vaultFetch?: typeof fetch;
+  /** The vault's wait between asks of a token endpoint for a device code: a test's seam. */
+  vaultWait?: (ms: number) => Promise<void>;
 }
 
 /** Wires the orchestrator: Registry · the accounts seam · Embedder · Router · Planner · Synthesizer · AgentsPool · IntentJournal behind one A2A executor, the registry's routes beside it. */
@@ -148,6 +150,7 @@ export function buildOrchestrator({
     identity,
     journal: record => void journal.signIn(record),
     ...(overrides?.vaultFetch ? {fetchImpl: overrides.vaultFetch} : {}),
+    ...(overrides?.vaultWait ? {wait: overrides.vaultWait} : {}),
   });
   registry.onUninstalled(appId => vault.forgetApp(appId));
   const sources = new Sources(registry, overrides?.accounts ?? vault);

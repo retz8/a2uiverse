@@ -13,4 +13,11 @@ export {
   spokenInterfaces,
 } from './interfaces.js';
 export {sameCard} from './sameCard.js';
-export {asksSignIn, signInAlternatives, type SignInAlternative} from './requirements.js';
+export {
+  asksSignIn,
+  redirectFirst,
+  signInAlternatives,
+  signInFlow,
+  type SignInAlternative,
+  type SignInFlow,
+} from './requirements.js';

@@ -104,7 +104,7 @@ describe('what signing in will be (task-14.7 decision 10)', () => {
     ).toEqual({kind: 'unsupported'});
   });
 
-  it('reads a card written in A2A 1.0’s shape the same way, the device-code flow not supported here', () => {
+  it('reads a card written in A2A 1.0’s shape the same way, the device-code flow a sign-in in the card’s words (task-20.6 decision 13)', () => {
     const current = (flow: string) =>
       readCard({
         name: 'Linear',
@@ -130,7 +130,39 @@ describe('what signing in will be (task-14.7 decision 10)', () => {
       kind: 'signIn',
       words: ['See your issues'],
     });
-    expect(signInOf(current('deviceCode'))).toEqual({kind: 'unsupported'});
+    expect(signInOf(current('deviceCode'))).toEqual({
+      kind: 'signIn',
+      words: ['See your issues'],
+    });
+    expect(newScopeWords(current('deviceCode'), [{scheme: 'linear', scopes: ['read']}])).toEqual([
+      'See your issues',
+    ]);
+    expect(signInOf(current('clientCredentials'))).toEqual({kind: 'unsupported'});
+  });
+
+  it('says the sign-in the vault follows: by redirect ahead of the device-code flow (task-20.6 decision 1)', () => {
+    const scheme = (flow: string, scopes: Record<string, string>) => ({
+      oauth2SecurityScheme: {flows: {[flow]: {tokenUrl: 'https://tv.example/token', scopes}}},
+    });
+    const tv = readCard({
+      name: 'TV',
+      version: '1.0.0',
+      supportedInterfaces: [
+        {url: 'http://127.0.0.1:11009', protocolBinding: 'JSONRPC', protocolVersion: '1.0'},
+      ],
+      securitySchemes: {
+        device: scheme('deviceCode', {watch: 'See what you watch'}),
+        code: scheme('authorizationCode', {watch: 'See what you watch', list: 'Change your list'}),
+      },
+      securityRequirements: [
+        {schemes: {device: {list: ['watch']}}},
+        {schemes: {code: {list: ['watch', 'list']}}},
+      ],
+    });
+    expect(signInOf(tv)).toEqual({
+      kind: 'signIn',
+      words: ['See what you watch', 'Change your list'],
+    });
   });
 
   it('words a card update’s new permissions from the published card', () => {

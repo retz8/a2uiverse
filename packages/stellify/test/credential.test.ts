@@ -122,7 +122,7 @@ describe('credentialHeaders', () => {
     expect(result.finding).toMatch(/sign-in.*not supported here/);
   });
 
-  test('a card in A2A 1.0’s shape: the code flow and a key in a header ride; the device-code flow does not', () => {
+  test('a card in A2A 1.0’s shape: the code flow, the device-code flow and a key in a header ride; a client-credentials flow does not', () => {
     const flow = (name: string) => ({
       oauth2SecurityScheme: {
         flows: {[name]: {tokenUrl: 'https://a/token', scopes: {read: ''}}},
@@ -148,6 +148,8 @@ describe('credentialHeaders', () => {
         'tok',
       ),
     ).toEqual({ok: true, headers: {'X-Shop-Key': 'tok'}});
+    // A device-code sign-in: the publisher's own token rides as a bearer header (task-20.6
+    // decision 13).
     expect(
       credentialHeaders(
         current({
@@ -155,7 +157,53 @@ describe('credentialHeaders', () => {
           securityRequirements: [{schemes: {signIn: {list: ['read']}}}],
         }),
         'tok',
+      ),
+    ).toEqual({ok: true, headers: {Authorization: 'Bearer tok'}});
+    expect(
+      credentialHeaders(
+        current({
+          securitySchemes: {signIn: flow('clientCredentials')},
+          securityRequirements: [{schemes: {signIn: {list: ['read']}}}],
+        }),
+        'tok',
       ).ok,
     ).toBe(false);
+  });
+
+  test('a sign-in by redirect goes ahead of the device-code flow, as the vault follows them (task-20.6 decision 1)', () => {
+    const flow = (name: string) => ({
+      oauth2SecurityScheme: {
+        flows: {[name]: {tokenUrl: 'https://a/token', scopes: {read: ''}}},
+      },
+    });
+    const schemes = {
+      device: flow('deviceCode'),
+      k: {apiKeySecurityScheme: {location: 'header', name: 'X-Shop-Key'}},
+      code: flow('authorizationCode'),
+    };
+    // Device code, a key, then the code flow: the key comes first once device code steps behind.
+    expect(
+      credentialHeaders(
+        current({
+          securitySchemes: schemes,
+          securityRequirements: [
+            {schemes: {device: {list: []}}},
+            {schemes: {k: {list: []}}},
+            {schemes: {code: {list: []}}},
+          ],
+        }),
+        'tok',
+      ),
+    ).toEqual({ok: true, headers: {'X-Shop-Key': 'tok'}});
+    // Device code ahead of a key with no redirect after them: device code.
+    expect(
+      credentialHeaders(
+        current({
+          securitySchemes: schemes,
+          securityRequirements: [{schemes: {device: {list: []}}}, {schemes: {k: {list: []}}}],
+        }),
+        'tok',
+      ),
+    ).toEqual({ok: true, headers: {Authorization: 'Bearer tok'}});
   });
 });

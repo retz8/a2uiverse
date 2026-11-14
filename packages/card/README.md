@@ -31,13 +31,15 @@ Keep `served` at rest, as the agent wrote it. Hand `card` to every reader.
 10. `sameCard(a, b)` says whether two read cards are the same card: equal as read, with their interfaces and their signatures set aside.
 11. `signInAlternatives(card)` is the card's sign-in requirements as a list of alternatives, each a scheme's name to the scopes it asks.
 12. `asksSignIn(card)` is true when every alternative names a scheme. No requirement, or an empty alternative, asks nothing.
+13. `signInFlow(scheme)` says how a scheme signs a person in: `redirect` for OAuth's authorization-code flow and OpenID Connect, `deviceCode` for OAuth's device-code flow.
+14. `redirectFirst(alternatives, flowOf)` is the order the vault, Stellify and the trusted page follow a card's alternatives in: the card's, a sign-in by redirect ahead of the device-code flow.
 
 ## Things worth knowing
 
 1. The package is on `@a2a-js/sdk` `1.3.0`, pinned exactly. Its main entry runs in a browser: the client reads each card where it arrives from the orchestrator.
 2. The fetch sends `A2A-Version: 1.0`, as the A2A SDK's own card resolver does. The card an agent serves to that request is the card kept.
 3. An interface is spoken when its binding is on `SPOKEN_BINDINGS`, compared whatever its case, and its A2A version is from 0.3 up to but not including 1.0, or is 1.x. An interface naming no URL is not spoken: a 0.3 card with no `url` reads to one.
-4. Apart from a 0.3 card's interface versions, what the A2A SDK's two functions drop, the reading drops. Two cases are held as fixtures:
+4. Apart from a 0.3 card's interface versions and its device-code flow, what the A2A SDK's two functions drop, the reading drops. A 0.3 card's OAuth scheme whose only flow is `deviceCode`, in A2A 1.0's field names, is read in A2A 1.0's shape, where the A2A SDK would fail the whole card. Two cases are held as fixtures:
    1. The `@a2a-js/sdk` 1.3.0 server serves a sign-in scheme in its in-memory form, under `scheme.$case`. The reading keeps the card's requirements and drops the scheme.
    2. The same server, with its A2A 0.3 layer on, answers a caller naming no A2A version with A2A 1.0's interfaces beside 0.3's fields. The reading reads that card as asking no sign-in.
 5. `sameCard` counts a field the reading does not name for nothing. A card that says in A2A 1.0's shape something its 0.3 card could not say, such as an OAuth flow requiring PKCE, is a changed card.

@@ -1,5 +1,6 @@
 /** The card's one reading over real cards, and what it refuses (task-20.3 decisions 1, 8, 21). */
 import {describe, expect, test} from 'vitest';
+import {parseLegacyAgentCard} from '@a2a-js/sdk/compat/v0_3/client';
 import {cardReadError, readCard} from './readCard.js';
 import {signInAlternatives} from './requirements.js';
 import {fixture, trackedLegacyCards} from './trackedCards.js';
@@ -70,6 +71,78 @@ describe('a card written for A2A 0.3', () => {
       $case: 'apiKeySecurityScheme',
       value: {description: 'Paste your key', location: 'header', name: 'X-Api-Key'},
     });
+  });
+});
+
+describe('a device-code flow on a card written for A2A 0.3 (task-20.6 decision 12)', () => {
+  const deviceCode = {
+    deviceAuthorizationUrl: 'http://127.0.0.1:18731/device',
+    tokenUrl: 'http://127.0.0.1:18731/token',
+    scopes: {'things.read': 'Read your things'},
+  };
+  const withFlows = (flows: Record<string, unknown>) => {
+    const served = fixture('python-as-0.3.json') as {
+      securitySchemes: Record<string, Record<string, unknown>>;
+    };
+    return {
+      ...served,
+      securitySchemes: {
+        ...served.securitySchemes,
+        signIn: {
+          type: 'oauth2',
+          description: 'Sign in with your Things account',
+          oauth2MetadataUrl: 'http://127.0.0.1:18731/.well-known/oauth-authorization-server',
+          flows,
+        },
+      },
+    };
+  };
+
+  test('a scheme whose one flow is device code reads with it, in A2A 1.0’s field names', () => {
+    const card = readCard(withFlows({deviceCode}));
+    expect(card.securitySchemes.signIn?.scheme).toEqual({
+      $case: 'oauth2SecurityScheme',
+      value: {
+        description: 'Sign in with your Things account',
+        flows: {flow: {$case: 'deviceCode', value: {...deviceCode, refreshUrl: ''}}},
+        oauth2MetadataUrl: 'http://127.0.0.1:18731/.well-known/oauth-authorization-server',
+      },
+    });
+    // The rest of the card is the A2A SDK's reading: the other scheme, the requirement, the order.
+    expect(Object.keys(card.securitySchemes)).toEqual(['key', 'signIn']);
+    expect(card.securitySchemes.key?.scheme?.$case).toBe('apiKeySecurityScheme');
+    expect(signInAlternatives(card)).toEqual([{signIn: ['things.read']}]);
+    expect(card.supportedInterfaces[0]?.protocolVersion).toBe('0.3');
+  });
+
+  test('the A2A SDK alone refuses that card: the reading goes around it', () => {
+    expect(() => parseLegacyAgentCard(withFlows({deviceCode}))).toThrow(
+      'OAuthFlows must declare at least one flow',
+    );
+  });
+
+  test('a scheme naming the authorization-code flow beside it reads with the authorization-code flow', () => {
+    const card = readCard(
+      withFlows({
+        authorizationCode: {
+          authorizationUrl: 'http://127.0.0.1:18731/authorize',
+          tokenUrl: 'http://127.0.0.1:18731/token',
+          scopes: {'things.read': 'Read your things'},
+        },
+        deviceCode,
+      }),
+    );
+    const scheme = card.securitySchemes.signIn?.scheme;
+    expect(scheme?.$case === 'oauth2SecurityScheme' && scheme.value.flows?.flow?.$case).toBe(
+      'authorizationCode',
+    );
+  });
+
+  test('an OAuth scheme holding none of A2A 0.3’s four flows and no device code still fails the card', () => {
+    expect(() => readCard(withFlows({}))).toThrow('OAuthFlows must declare at least one flow');
+    expect(() => readCard(withFlows({unknownFlow: deviceCode}))).toThrow(
+      'OAuthFlows must declare at least one flow',
+    );
   });
 });
 

@@ -5,7 +5,7 @@
  * Library alike. Every word is the person's — never a scheme, a scope key or a catalog.
  */
 import type {AgentCard, SecurityScheme} from '@a2a-js/sdk';
-import {signInAlternatives} from '@a2uiverse/card';
+import {redirectFirst, signInAlternatives, signInFlow} from '@a2uiverse/card';
 import {
   UPDATE_WORDS,
   asksForMore,
@@ -35,12 +35,15 @@ export type SignInNeed =
   | {kind: 'key'}
   | {kind: 'unsupported'};
 
-/** A scheme the platform signs in with, by its kind; none for one it does not. */
+/**
+ * A scheme the platform signs in with, by its kind; none for one it does not. OAuth signs in by
+ * the authorization-code flow and the device-code flow (task-20.6 decision 13).
+ */
 function kindOf(scheme: SecurityScheme | undefined): 'signIn' | 'key' | undefined {
   const declared = scheme?.scheme;
   switch (declared?.$case) {
     case 'oauth2SecurityScheme':
-      return declared.value.flows?.flow?.$case === 'authorizationCode' ? 'signIn' : undefined;
+      return signInFlow(scheme) ? 'signIn' : undefined;
     case 'openIdConnectSecurityScheme':
       return 'signIn';
     case 'httpAuthSecurityScheme':
@@ -57,28 +60,32 @@ function wordsOf(scheme: SecurityScheme | undefined, keys: readonly string[]): s
   const declared = scheme?.scheme;
   const flow = declared?.$case === 'oauth2SecurityScheme' ? declared.value.flows?.flow : undefined;
   const words: Record<string, string> =
-    flow?.$case === 'authorizationCode' ? flow.value.scopes : {};
+    flow?.$case === 'authorizationCode' || flow?.$case === 'deviceCode' ? flow.value.scopes : {};
   return keys.flatMap(key => (words[key] ? [words[key]] : []));
 }
 
 /**
  * What the card asks, read as the orchestrator's vault reads it: no requirement, or an empty
  * alternative, asks nothing; otherwise the first alternative naming one scheme the platform signs
- * in with, its scopes in the card's words; none such is a sign-in not supported here.
+ * in with — in the card's order, a sign-in by redirect ahead of the device-code flow (task-20.6
+ * decision 1) — its scopes in the card's words; none such is a sign-in not supported here.
  */
 export function signInOf(card: AgentCard): SignInNeed {
   const security = signInAlternatives(card);
   if (security.length === 0) return {kind: 'none'};
   if (security.some(requirement => Object.keys(requirement).length === 0)) return {kind: 'none'};
-  for (const requirement of security) {
+  const usable = security.flatMap(requirement => {
     const keys = Object.keys(requirement);
-    if (keys.length !== 1) continue;
+    if (keys.length !== 1) return [];
     const scheme = card.securitySchemes[keys[0]!];
     const kind = kindOf(scheme);
-    if (kind === 'key') return {kind: 'key'};
-    if (kind === 'signIn') return {kind: 'signIn', words: wordsOf(scheme, requirement[keys[0]!]!)};
-  }
-  return {kind: 'unsupported'};
+    return kind ? [{kind, scheme, scopes: requirement[keys[0]!]!}] : [];
+  });
+  const [first] = redirectFirst(usable, ({scheme}) => signInFlow(scheme));
+  if (!first) return {kind: 'unsupported'};
+  return first.kind === 'key'
+    ? {kind: 'key'}
+    : {kind: 'signIn', words: wordsOf(first.scheme, first.scopes)};
 }
 
 /** The new permissions a card update asks for, in the published card's words. */

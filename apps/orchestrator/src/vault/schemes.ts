@@ -1,14 +1,16 @@
 /**
  * Which of a card's declared schemes the vault can sign in with (task-12.5 decision 4), and what
- * a card asks for. A credential travels only as an HTTP header (phase-12 decision 4): OAuth with
- * the authorization-code flow and OpenID Connect against a server the vault can register with;
- * `http` bearer and `apiKey` in a header, through the token page. Anything else is not supported
- * here. A card's sign-in requirements are an OR of ANDs; one alternative naming only supported
- * schemes makes it usable, and the first such, in the card's order, is followed. The card is read
- * in A2A 1.0's shape, whichever A2A version it was written in (task-20.3 decision 1).
+ * a card asks for. A credential travels only as a header on the request (phase-12 decision 4):
+ * OAuth with the authorization-code flow or the device-code flow, and OpenID Connect, against a
+ * server the vault can register with; `http` bearer and `apiKey` in a header, through the token
+ * page. Anything else is not supported here. A card's sign-in requirements are an OR of ANDs; one
+ * alternative naming only supported schemes makes it usable, and the first such, in the card's
+ * order, is followed — but a sign-in by redirect goes ahead of the device-code flow (task-20.6
+ * decision 1). The card is read in A2A 1.0's shape, whichever A2A version it was written in
+ * (task-20.3 decision 1).
  */
 import type {AgentCard, SecurityScheme} from '@a2a-js/sdk';
-import {signInAlternatives} from '@a2uiverse/card';
+import {redirectFirst, signInAlternatives} from '@a2uiverse/card';
 import type {CredentialKind} from './store.js';
 
 /** A scheme the vault can sign in with, read off the card. */
@@ -16,8 +18,18 @@ export type SupportedScheme =
   | {
       key: string;
       kind: 'oauth';
-      /** Where the server's metadata is read: the scheme's own URL, or the well-known address. */
+      /**
+       * How the person signs in: in a window the app's page sends back to the orchestrator, or by a
+       * code given on the app's own page (RFC 8628). OpenID Connect is always a redirect.
+       */
+      flow: 'redirect' | 'deviceCode';
+      /**
+       * Where the server's metadata is read: the scheme's own URL, or the well-known address at
+       * the origin of the flow's authorization address.
+       */
       metadataUrl: string;
+      /** The device-code flow's authorization address, used where the metadata names none. */
+      deviceAuthorizationUrl?: string;
       openId: boolean;
       /** The scope words, from the card's `scopes` map; none for OpenID Connect. */
       words: Record<string, string>;
@@ -38,7 +50,10 @@ export type CardNeed =
   | {kind: 'none'}
   /** No alternative names only schemes the vault supports. */
   | {kind: 'unsupported'}
-  /** The usable alternatives, in the card's order, each with its one scheme. */
+  /**
+   * The usable alternatives, each with its one scheme, in the order they are followed: the card's,
+   * a sign-in by redirect ahead of the device-code flow.
+   */
   | {kind: 'signIn'; alternatives: {requirement: Requirement; scheme: SupportedScheme}[]};
 
 /** The scheme read, or undefined when the vault cannot sign in with it. */
@@ -49,19 +64,41 @@ export function supportedScheme(
   const declared = scheme?.scheme;
   switch (declared?.$case) {
     case 'oauth2SecurityScheme': {
-      // The authorization-code flow alone; the device-code flow waits for 20.6.
       const flow = declared.value.flows?.flow;
-      if (flow?.$case !== 'authorizationCode') return undefined;
-      const metadataUrl =
-        declared.value.oauth2MetadataUrl ||
-        wellKnown(flow.value.authorizationUrl, 'oauth-authorization-server');
-      if (!metadataUrl) return undefined;
-      return {key, kind: 'oauth', metadataUrl, openId: false, words: {...flow.value.scopes}};
+      if (flow?.$case === 'authorizationCode') {
+        const metadataUrl =
+          declared.value.oauth2MetadataUrl ||
+          wellKnown(flow.value.authorizationUrl, 'oauth-authorization-server');
+        if (!metadataUrl) return undefined;
+        const words = {...flow.value.scopes};
+        return {key, kind: 'oauth', flow: 'redirect', metadataUrl, openId: false, words};
+      }
+      if (flow?.$case === 'deviceCode') {
+        // Found from the card's metadata address, or the well-known one at the origin of its
+        // device authorization address (task-20.6 decision 9).
+        const metadataUrl =
+          declared.value.oauth2MetadataUrl ||
+          wellKnown(flow.value.deviceAuthorizationUrl, 'oauth-authorization-server');
+        if (!metadataUrl) return undefined;
+        return {
+          key,
+          kind: 'oauth',
+          flow: 'deviceCode',
+          metadataUrl,
+          ...(flow.value.deviceAuthorizationUrl
+            ? {deviceAuthorizationUrl: flow.value.deviceAuthorizationUrl}
+            : {}),
+          openId: false,
+          words: {...flow.value.scopes},
+        };
+      }
+      return undefined;
     }
     case 'openIdConnectSecurityScheme':
       return {
         key,
         kind: 'oauth',
+        flow: 'redirect',
         metadataUrl: declared.value.openIdConnectUrl,
         openId: true,
         words: {},
@@ -97,7 +134,7 @@ export function cardNeed(card: AgentCard | null | undefined): CardNeed {
   const security = card ? signInAlternatives(card) : [];
   if (security.length === 0) return {kind: 'none'};
   if (security.some(requirement => Object.keys(requirement).length === 0)) return {kind: 'none'};
-  const alternatives: {requirement: Requirement; scheme: SupportedScheme}[] = [];
+  const alternatives: Alternative[] = [];
   for (const requirement of security) {
     const keys = Object.keys(requirement);
     if (keys.length !== 1) continue;
@@ -105,8 +142,17 @@ export function cardNeed(card: AgentCard | null | undefined): CardNeed {
     const scheme = supportedScheme(key, card?.securitySchemes[key]);
     if (scheme) alternatives.push({requirement: {[key]: [...(requirement[key] ?? [])]}, scheme});
   }
-  return alternatives.length === 0 ? {kind: 'unsupported'} : {kind: 'signIn', alternatives};
+  return alternatives.length === 0
+    ? {kind: 'unsupported'}
+    : {
+        kind: 'signIn',
+        alternatives: redirectFirst(alternatives, ({scheme}) =>
+          scheme.kind === 'oauth' ? scheme.flow : undefined,
+        ),
+      };
 }
+
+type Alternative = {requirement: Requirement; scheme: SupportedScheme};
 
 /** The scheme the card declares under `key`, when the vault supports it. */
 export function schemeOf(

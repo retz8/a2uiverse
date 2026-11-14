@@ -2,21 +2,31 @@
  * The vault's OAuth client (phase-12 decision 8): it follows the authorization server a card's
  * scheme names — its metadata (RFC 8414, or OpenID Connect discovery), a client ID metadata
  * document where the server takes one and can reach it, otherwise dynamic registration
- * (RFC 7591) — the authorization-code flow with S256 PKCE, refresh, revocation (RFC 7009), and
- * the ID token checked against the server's keys. A public client: no secret. No per-vendor code.
+ * (RFC 7591) — the authorization-code flow with S256 PKCE, the device authorization grant
+ * (RFC 8628), refresh, revocation (RFC 7009), and the ID token checked against the server's keys.
+ * A public client: no secret. No per-vendor code.
  */
 import {createHash, createPublicKey, randomBytes, verify, type JsonWebKey} from 'node:crypto';
 
 const FETCH_TIMEOUT_MS = 10_000;
 
+/** RFC 8628's grant type, asked at the token endpoint and declared by the vault's client. */
+export const DEVICE_CODE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code';
+
+/** The grants the vault uses (task-20.6 decision 8). */
+const GRANTS = ['authorization_code', 'refresh_token', DEVICE_CODE_GRANT] as const;
+
 export interface ServerMetadata {
   issuer: string;
-  authorization_endpoint: string;
+  /** None at a server that signs in by device code alone. */
+  authorization_endpoint?: string;
   token_endpoint: string;
+  device_authorization_endpoint?: string;
   registration_endpoint?: string;
   revocation_endpoint?: string;
   jwks_uri?: string;
   scopes_supported?: string[];
+  grant_types_supported?: string[];
   code_challenge_methods_supported?: string[];
   client_id_metadata_document_supported?: boolean;
 }
@@ -66,7 +76,7 @@ export async function discover(fetchImpl: Fetch, url: string): Promise<ServerMet
   if (!response.ok)
     throw new OAuthError('discovery', `metadata at ${url}: HTTP ${response.status}`);
   const body = await json(response);
-  for (const field of ['issuer', 'authorization_endpoint', 'token_endpoint'] as const) {
+  for (const field of ['issuer', 'token_endpoint'] as const) {
     if (typeof body[field] !== 'string') {
       throw new OAuthError('discovery', `metadata at ${url} lacks ${field}`);
     }
@@ -106,10 +116,24 @@ export function clientDocument(identity: ClientIdentity): Record<string, unknown
     client_id: identity.documentUrl,
     client_name: identity.name,
     redirect_uris: [identity.redirectUri],
-    grant_types: ['authorization_code', 'refresh_token'],
+    grant_types: [...GRANTS],
     response_types: ['code'],
     token_endpoint_auth_method: 'none',
   };
+}
+
+/**
+ * The grants a dynamic registration names (task-20.6 decision 8): those the vault uses that the
+ * server's metadata lists. Metadata listing none is read as before this list was read: the
+ * authorization code and refresh, and the device code where it names a device authorization
+ * endpoint.
+ */
+export function registeredGrants(metadata: ServerMetadata): string[] {
+  const listed = metadata.grant_types_supported;
+  if (Array.isArray(listed)) return GRANTS.filter(grant => listed.includes(grant));
+  return GRANTS.filter(
+    grant => grant !== DEVICE_CODE_GRANT || Boolean(metadata.device_authorization_endpoint),
+  );
 }
 
 /**
@@ -123,7 +147,7 @@ export function registrationFor(
 ): 'document' | 'dynamic' | undefined {
   const reachable =
     identity.documentUrl.startsWith('https://') ||
-    isLocal(metadata.issuer || metadata.authorization_endpoint);
+    isLocal(metadata.issuer || metadata.authorization_endpoint || '');
   if (metadata.client_id_metadata_document_supported === true && reachable) return 'document';
   if (metadata.registration_endpoint) return 'dynamic';
   return undefined;
@@ -140,7 +164,7 @@ export async function registerDynamically(
     body: JSON.stringify({
       client_name: identity.name,
       redirect_uris: [identity.redirectUri],
-      grant_types: ['authorization_code', 'refresh_token'],
+      grant_types: registeredGrants(metadata),
       response_types: ['code'],
       token_endpoint_auth_method: 'none',
     }),
@@ -183,6 +207,9 @@ export function authorizationUrl(
     loginHint?: string;
   },
 ): string {
+  if (!metadata.authorization_endpoint) {
+    throw new OAuthError('discovery', 'the server names no authorization endpoint');
+  }
   const url = new URL(metadata.authorization_endpoint);
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('client_id', params.clientId);
@@ -224,6 +251,90 @@ export function exchangeCode(
     client_id: params.clientId,
     redirect_uri: params.redirectUri,
     code_verifier: params.verifier,
+  });
+}
+
+/** The device authorization response (RFC 8628 §3.2), read by the RFC's field names alone. */
+export interface DeviceAuthorization {
+  deviceCode: string;
+  userCode: string;
+  verificationUri: string;
+  /** The verification address with the user code in it, when the server gives one. */
+  verificationUriComplete?: string;
+  /** How long the two codes live, in seconds. */
+  expiresIn: number;
+  /** The wait between asks the server names, in seconds. */
+  interval?: number;
+}
+
+/**
+ * The device authorization request (RFC 8628 §3.1): the client and the scopes, and — for a
+ * sign-in bound to an account — `login_hint`, which the RFC does not define and a server ignores
+ * when it does not take it (task-20.6 decision 11).
+ */
+export async function authorizeDevice(
+  fetchImpl: Fetch,
+  endpoint: string,
+  params: {clientId: string; scopes: readonly string[]; loginHint?: string},
+): Promise<DeviceAuthorization> {
+  const form: Record<string, string> = {client_id: params.clientId};
+  if (params.scopes.length > 0) form.scope = params.scopes.join(' ');
+  if (params.loginHint) form.login_hint = params.loginHint;
+  const response = await request(fetchImpl, endpoint, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json'},
+    body: new URLSearchParams(form).toString(),
+  });
+  const body = await json(response);
+  if (!response.ok) {
+    throw new OAuthError(
+      String(body.error ?? 'device_authorization'),
+      `device authorization: HTTP ${response.status}`,
+    );
+  }
+  const text = (field: string) =>
+    typeof body[field] === 'string' && body[field] !== '' ? (body[field] as string) : undefined;
+  const deviceCode = text('device_code');
+  const userCode = text('user_code');
+  const verificationUri = text('verification_uri');
+  const expiresIn = body.expires_in;
+  if (
+    !deviceCode ||
+    !userCode ||
+    !verificationUri ||
+    typeof expiresIn !== 'number' ||
+    !(expiresIn > 0)
+  ) {
+    throw new OAuthError(
+      'device_authorization',
+      'device authorization: the answer lacks a code, its address or its lifetime',
+    );
+  }
+  const complete = text('verification_uri_complete');
+  return {
+    deviceCode,
+    userCode,
+    verificationUri,
+    ...(complete ? {verificationUriComplete: complete} : {}),
+    expiresIn,
+    ...(typeof body.interval === 'number' && body.interval >= 0 ? {interval: body.interval} : {}),
+  };
+}
+
+/**
+ * One ask of the token endpoint for a device code (RFC 8628 §3.4). The server's error code is
+ * the `OAuthError`'s code — `authorization_pending`, `slow_down` and the rest; no answer at all
+ * throws as `fetch` does.
+ */
+export function deviceToken(
+  fetchImpl: Fetch,
+  tokenEndpoint: string,
+  params: {deviceCode: string; clientId: string},
+): Promise<TokenResponse> {
+  return tokenRequest(fetchImpl, tokenEndpoint, {
+    grant_type: DEVICE_CODE_GRANT,
+    device_code: params.deviceCode,
+    client_id: params.clientId,
   });
 }
 
@@ -275,12 +386,13 @@ const ALGORITHMS: Record<string, {hash: string; dsa?: 'ieee-p1363'; pss?: boolea
 
 /**
  * The ID token checked (task-12.5 decision 5): its signature against the server's keys, its
- * issuer, its audience, its nonce and its expiry. Throws when any fails.
+ * issuer, its audience, its nonce and its expiry. Throws when any fails. A device-code sign-in
+ * sends no nonce, so none is checked (task-20.6 decision 10).
  */
 export async function verifyIdToken(
   fetchImpl: Fetch,
   token: string,
-  expected: {issuer: string; clientId: string; nonce: string; jwksUri: string | undefined},
+  expected: {issuer: string; clientId: string; nonce?: string; jwksUri: string | undefined},
 ): Promise<IdClaims> {
   const [head, body, signature] = token.split('.');
   if (!head || !body || !signature) throw new OAuthError('id_token', 'the ID token is not a JWS');
@@ -330,7 +442,7 @@ export async function verifyIdToken(
     throw new OAuthError('id_token', 'the ID token names another issuer');
   if (!audience.includes(expected.clientId))
     throw new OAuthError('id_token', 'the ID token is for another client');
-  if (claims.nonce !== expected.nonce)
+  if (expected.nonce !== undefined && claims.nonce !== expected.nonce)
     throw new OAuthError('id_token', "the ID token's nonce does not match");
   if (typeof claims.exp !== 'number' || claims.exp * 1000 < Date.now() - 60_000) {
     throw new OAuthError('id_token', 'the ID token has expired');

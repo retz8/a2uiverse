@@ -1673,7 +1673,7 @@ async function writeArtifact(result, outDir = result.outDir) {
 }
 
 // ../card/dist/readCard.js
-import { AgentCard } from "@a2a-js/sdk";
+import { AgentCard, SecurityScheme } from "@a2a-js/sdk";
 import { isLegacyAgentCard, parseLegacyAgentCard } from "@a2a-js/sdk/compat/v0_3/client";
 function readCard(served) {
   if (typeof served !== "object" || served === null || Array.isArray(served)) {
@@ -1682,8 +1682,46 @@ function readCard(served) {
   if (typeof served.name !== "string") {
     throw new Error("not an agent card: no name");
   }
-  return isLegacyAgentCard(served) ? atCardVersion(parseLegacyAgentCard(served)) : AgentCard.fromJSON(served);
+  return isLegacyAgentCard(served) ? readLegacy(served) : AgentCard.fromJSON(served);
 }
+function readLegacy(served) {
+  const schemes = served.securitySchemes;
+  const deviceCode = deviceCodeSchemes(schemes);
+  if (deviceCode.size === 0)
+    return atCardVersion(parseLegacyAgentCard(served));
+  const declared = schemes;
+  const others = Object.fromEntries(Object.entries(declared).filter(([name]) => !deviceCode.has(name)));
+  const card = atCardVersion(parseLegacyAgentCard({ ...served, securitySchemes: others }));
+  return {
+    ...card,
+    securitySchemes: Object.fromEntries(Object.keys(declared).flatMap((name) => {
+      const scheme = deviceCode.get(name) ?? card.securitySchemes[name];
+      return scheme ? [[name, scheme]] : [];
+    }))
+  };
+}
+var V0_3_FLOWS = ["authorizationCode", "clientCredentials", "implicit", "password"];
+function deviceCodeSchemes(schemes) {
+  const read = /* @__PURE__ */ new Map();
+  if (!isRecord2(schemes))
+    return read;
+  for (const [name, scheme] of Object.entries(schemes)) {
+    if (!isRecord2(scheme) || scheme.type !== "oauth2" || !isRecord2(scheme.flows))
+      continue;
+    const flows = scheme.flows;
+    if (V0_3_FLOWS.some((flow) => Boolean(flows[flow])) || !isRecord2(flows.deviceCode))
+      continue;
+    read.set(name, SecurityScheme.fromJSON({
+      oauth2SecurityScheme: {
+        description: scheme.description,
+        flows: { deviceCode: flows.deviceCode },
+        oauth2MetadataUrl: scheme.oauth2MetadataUrl
+      }
+    }));
+  }
+  return read;
+}
+var isRecord2 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 function atCardVersion(card) {
   const version = card.supportedInterfaces[0]?.protocolVersion;
   if (version === void 0)
@@ -1779,6 +1817,26 @@ function signInAlternatives(card) {
 function asksSignIn(card) {
   const alternatives = signInAlternatives(card);
   return alternatives.length > 0 && alternatives.every((alternative) => Object.keys(alternative).length > 0);
+}
+function signInFlow(scheme) {
+  const declared = scheme?.scheme;
+  if (declared?.$case === "openIdConnectSecurityScheme")
+    return "redirect";
+  if (declared?.$case !== "oauth2SecurityScheme")
+    return void 0;
+  const flow = declared.value.flows?.flow?.$case;
+  return flow === "authorizationCode" ? "redirect" : flow === "deviceCode" ? "deviceCode" : void 0;
+}
+function redirectFirst(alternatives, flowOf) {
+  const last = alternatives.findLastIndex((alternative) => flowOf(alternative) === "redirect");
+  if (last < 0)
+    return [...alternatives];
+  const isDeviceCode = (alternative) => flowOf(alternative) === "deviceCode";
+  return [
+    ...alternatives.slice(0, last + 1).filter((alternative) => !isDeviceCode(alternative)),
+    ...alternatives.slice(0, last).filter(isDeviceCode),
+    ...alternatives.slice(last + 1)
+  ];
 }
 
 // ../smoke-transport/dist/answers.js
@@ -2258,22 +2316,24 @@ function wordsOf2(parts) {
 }
 
 // src/credential.ts
-var UNSUPPORTED_SCHEME = "the card’s sign-in scheme is not supported here: a credential rides as a header, for OAuth with the authorization-code flow, OpenID Connect, http bearer, or apiKey in a header";
+var UNSUPPORTED_SCHEME = "the card’s sign-in scheme is not supported here: a credential rides as a header, for OAuth with the authorization-code flow or the device-code flow, OpenID Connect, http bearer, or apiKey in a header";
 function credentialHeaders(card, secret) {
-  for (const alternative of signInAlternatives(card)) {
+  const usable = signInAlternatives(card).flatMap((alternative) => {
     const keys = Object.keys(alternative);
-    if (keys.length !== 1) continue;
-    const headers = headersFor(card.securitySchemes[keys[0]], secret);
-    if (headers) return { ok: true, headers };
-  }
-  return { ok: false, finding: UNSUPPORTED_SCHEME };
+    if (keys.length !== 1) return [];
+    const scheme = card.securitySchemes[keys[0]];
+    const headers = headersFor(scheme, secret);
+    return headers ? [{ headers, flow: signInFlow(scheme) }] : [];
+  });
+  const [first] = redirectFirst(usable, ({ flow }) => flow);
+  return first ? { ok: true, headers: first.headers } : { ok: false, finding: UNSUPPORTED_SCHEME };
 }
 function headersFor(scheme, secret) {
   const declared = scheme?.scheme;
   const bearer = { Authorization: `Bearer ${secret}` };
   switch (declared?.$case) {
     case "oauth2SecurityScheme":
-      return declared.value.flows?.flow?.$case === "authorizationCode" ? bearer : void 0;
+      return signInFlow(scheme) ? bearer : void 0;
     case "openIdConnectSecurityScheme":
       return bearer;
     case "httpAuthSecurityScheme":
