@@ -23,8 +23,11 @@ export interface InstalledApp {
   reachable: boolean;
   /** Whether its card asks sign-in (task-12.6 decision 9). */
   signIn: boolean;
-  /** Its accounts the vault holds, by source and label; none for an app not signed in. */
-  accounts: {source: string; label: string}[];
+  /**
+   * Its accounts the vault holds, by source and label, each with what its own card adds where it
+   * has one (task-20.8 decision 3); none for an app not signed in.
+   */
+  accounts: InstalledAccount[];
   /**
    * Its update state as last computed, in the App Library's words (task-14.5 decision 6); for an
    * app whose live card lists no interface the platform speaks, that it connects in a way
@@ -33,6 +36,18 @@ export interface InstalledApp {
   update: string;
   /** How long ago that state was computed — "checked 12 minutes ago"; absent when none is held. */
   checked?: string;
+}
+
+/** One account of an installed app as the reader gives it. */
+export interface InstalledAccount {
+  source: string;
+  label: string;
+  /** What the account's own card says that the app's card does not; absent when it has none. */
+  ownCardAdds?: {
+    name?: string;
+    description?: string;
+    skills: {name: string; description: string; examples?: string[]}[];
+  };
 }
 
 /**
@@ -145,7 +160,7 @@ export function readerTools(
       : {}),
     installed_apps: tool({
       description:
-        'The apps installed on this platform: each one’s id, display name, its card’s name, description and skills with their example questions, the catalogs it paints in, whether it was reachable at boot, whether it asks the user to sign in, the accounts signed in to it — each its source id and its label; none listed means not signed in — and whether it has an update: its state in the words the App Library shows, with how long ago the last check ran — or, in its place, that the app now connects in a way A2UIVerse can’t use. Call it to answer which apps there are, what an installed app can do, which accounts an app has, or whether anything is out of date. The platform itself is not an app.',
+        'The apps installed on this platform: each one’s id, display name, its card’s name, description and skills with their example questions, the catalogs it paints in, whether it was reachable at boot, whether it asks the user to sign in, the accounts signed in to it — each its source id and its label, and what its own card adds to the app’s card (`ownCardAdds`) when it has one; none listed means not signed in — and whether it has an update: its state in the words the App Library shows, with how long ago the last check ran — or, in its place, that the app now connects in a way A2UIVerse can’t use. Call it to answer which apps there are, what an installed app can do, which accounts an app has, or whether anything is out of date. The platform itself is not an app.',
       inputSchema: NO_INPUT,
       execute: async () => readers.installedApps(),
     }),

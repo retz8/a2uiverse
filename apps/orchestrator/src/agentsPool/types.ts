@@ -41,6 +41,13 @@ export interface DispatchRecord {
   /** The binding of the interface the dispatch used; absent when the agent was not called. */
   binding?: string;
   /**
+   * The dispatch walked its account's own card, the extended card the agent served that account
+   * (task-20.8 decision 4); absent when it walked the app's card.
+   */
+  accountCard?: true;
+  /** The URL of the interface used, when the dispatch walked its account's own card. */
+  url?: string;
+  /**
    * Each interface the walk tried before the one used and did not reach, in the order tried
    * (task-20.5 decision 6); when it reached none, every one it tried, and no version or binding
    * above.

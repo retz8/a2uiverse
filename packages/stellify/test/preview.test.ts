@@ -769,3 +769,132 @@ describe('a catalog the marketplace holds', () => {
     ]);
   });
 });
+
+describe('preview of an agent that serves your account a card of its own (task-20.8 decision 14)', () => {
+  const KEY = 'X-Star-Key';
+  const signInCard = {
+    securitySchemes: {key: {apiKeySecurityScheme: {location: 'header', name: KEY}}},
+    securityRequirements: [{schemes: {key: {list: []}}}],
+  };
+  /** The agent answers JSON-RPC and HTTP+JSON at A2A 1.0; its public card lists JSON-RPC alone. */
+  const startOwn = async (own: (fake: FakeAgentV1) => AgentCard | object | undefined) => {
+    const paths: FakePath[] = [
+      {binding: 'JSONRPC', version: '1.0'},
+      {binding: 'HTTP+JSON', version: '1.0'},
+    ];
+    const fake: FakeAgentV1 = await startFakeAgentV1({
+      script: completingScriptV1(paintPartsV1(STAR_CATALOG_ID, {component: 'StarText'})),
+      card: interfaces =>
+        cardForV1(interfaces, {
+          name: 'Star Agent',
+          catalogs: [STAR_CATALOG_ID],
+          paths,
+          extendedCard: true,
+          card: signInCard,
+        }),
+      serve: card => {
+        const json = AgentCard.toJSON(card) as {supportedInterfaces: object[]};
+        return {...json, supportedInterfaces: json.supportedInterfaces.slice(0, 1)};
+      },
+      admit: request => request.header(KEY) !== 'wrong',
+      extendedCard: () => {
+        const card = own(fake);
+        return card === undefined || 'supportedInterfaces' in card
+          ? (card as AgentCard | undefined)
+          : AgentCard.fromJSON(card);
+      },
+    });
+    agentV1 = fake;
+    return fake;
+  };
+  const ownCard = (fake: FakeAgentV1, options: CardV1Options = {}) =>
+    cardForV1(fake.urls, {
+      name: 'Star Agent',
+      catalogs: [STAR_CATALOG_ID],
+      paths: [{binding: 'HTTP+JSON', version: '1.0'}],
+      extendedCard: true,
+      card: signInCard,
+      ...options,
+    });
+  const run = (fake: FakeAgentV1, credential = 'k-1') =>
+    preview({appId: 'star', cardUrl: fake.cardUrl, catalogs: [star], credential});
+
+  test('the account’s card is read, and the request walks it', async () => {
+    const fake = await startOwn(fake => ownCard(fake));
+    const result = await run(fake);
+    expect(result.findings).toEqual([]);
+    expect(result.notes).toContain(
+      'the agent serves your account a card of its own: the request walks its interfaces, as a dispatch to your account will',
+    );
+    expect(result.document?.messages).toHaveLength(2);
+    const sent = fake.requests.filter(({method}) => method.includes('message'));
+    expect(sent.map(({binding}) => binding)).toEqual(['HTTP+JSON']);
+  });
+
+  test('a note for each sign-in scheme, scope and catalog id it names that the public card lacks', async () => {
+    const fake = await startOwn(fake =>
+      ownCard(fake, {
+        catalogs: [STAR_CATALOG_ID, 'https://star.example/catalogs/other/v1'],
+        card: {
+          securitySchemes: {
+            ...signInCard.securitySchemes,
+            staff: {httpAuthSecurityScheme: {scheme: 'bearer'}},
+          },
+          securityRequirements: [{schemes: {key: {list: ['orders']}}}],
+        },
+      }),
+    );
+    const result = await run(fake);
+    expect(result.findings).toEqual([]);
+    expect(result.notes).toEqual(
+      expect.arrayContaining([
+        `your account's card names the sign-in scheme "staff", which the public card does not declare: A2UIVerse never signs in from an account's card`,
+        `your account's card asks the scope "orders" of "key", which the public card does not ask: A2UIVerse asks only what the card as installed asks`,
+        `your account's card names the catalog id "https://star.example/catalogs/other/v1", which the public card does not: A2UIVerse paints your app in the catalogs the public card names`,
+      ]),
+    );
+  });
+
+  test('no card of its own: a note, and the preview goes ahead on the public card', async () => {
+    const fake = await startOwn(() => undefined);
+    fake.serveExtendedCard(undefined);
+    const result = await run(fake);
+    expect(result.findings).toEqual([]);
+    expect(result.notes).toContain(
+      'the agent served your account no card of its own (it has none): the preview went ahead on the public card',
+    );
+    const sent = fake.requests.filter(({method}) => method.includes('Message'));
+    expect(sent.map(({binding}) => binding)).toEqual(['JSONRPC']);
+  });
+
+  test('a card that does not read: the same note, saying why', async () => {
+    const fake = await startOwn(() => undefined);
+    fake.serveExtendedCard({raw: {hello: 'world'}});
+    const result = await run(fake);
+    expect(result.findings).toEqual([]);
+    expect(result.notes).toContain(
+      'the agent served your account no card of its own (it could not be read: not an agent card: no name): the preview went ahead on the public card',
+    );
+  });
+
+  test('a card listing no interface the platform speaks is a finding, and nothing is captured', async () => {
+    const fake = await startOwn(fake => ({
+      ...(AgentCard.toJSON(ownCard(fake)) as object),
+      supportedInterfaces: [
+        {url: 'https://star.example/acme', protocolBinding: 'ACME-RPC', protocolVersion: '1.0'},
+      ],
+    }));
+    const result = await run(fake);
+    expect(result.document).toBeNull();
+    expect(result.findings).toEqual([
+      "your account's card lists no interface A2UIVerse speaks: it lists ACME-RPC at A2A 1.0; A2UIVerse speaks JSONRPC, HTTP+JSON and GRPC at A2A 0.3 and 1.x",
+    ]);
+    expect(fake.requests.filter(({method}) => method.includes('essage'))).toEqual([]);
+  });
+
+  test('no credential given: no card of its own is asked for', async () => {
+    const fake = await startOwn(fake => ownCard(fake));
+    await preview({appId: 'star', cardUrl: fake.cardUrl, catalogs: [star]});
+    expect(fake.requests).toEqual([]);
+  });
+});

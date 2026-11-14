@@ -4,6 +4,7 @@
  * projection is a pure function of the state it reads, so the readers are testable without a
  * model and the executor is not involved.
  */
+import type {AgentSkill} from '@a2a-js/sdk';
 import {asksSignIn} from '@a2uiverse/card';
 import {NO_INTERFACE_WORDS, UNCONFIRMED_WORDS, updateWords} from '@a2uiverse/sdk';
 import {Sources} from '../accounts/accounts.js';
@@ -55,7 +56,8 @@ export const BASIC_CATALOG_WORDS = 'basic catalog';
 /**
  * Every installed app with its card's content — this run's card, the stored one when the agent was
  * down at startup — its catalogs, whether it is reachable this run, whether it asks sign-in, its
- * accounts by source and label, never a credential (task-12.6 decision 9), and its update state as
+ * accounts by source and label, each with what its own card adds (task-20.8 decision 3), never a
+ * credential (task-12.6 decision 9), and its update state as
  * last computed in the App Library's words, with how long ago — never a check run (task-14.5
  * decisions 5 to 7). An app whose live card lists no interface the platform speaks reads, in
  * place of its update state, as the App Library says it (task-20.3 decision 14), and so does one
@@ -80,17 +82,29 @@ export function installedApps(
       id: record.id,
       displayName: record.displayName,
       ...(card ? {name: card.name, description: card.description} : {}),
-      skills: (card?.skills ?? []).map(({name, description, examples}) => ({
-        name,
-        description,
-        ...(examples?.length ? {examples} : {}),
-      })),
+      skills: (card?.skills ?? []).map(skillWords),
       catalogs: record.catalogs.length > 0 ? [...record.catalogs] : [BASIC_CATALOG_WORDS],
       reachable: Boolean(fetched),
       signIn: card ? asksSignIn(card) : false,
-      accounts: sources
-        .of(record.id)
-        .flatMap(({source, label}) => (label === undefined ? [] : [{source, label}])),
+      accounts: sources.of(record.id).flatMap(({source, label, adds}) =>
+        label === undefined
+          ? []
+          : [
+              {
+                source,
+                label,
+                ...(adds
+                  ? {
+                      ownCardAdds: {
+                        ...(adds.name !== undefined ? {name: adds.name} : {}),
+                        ...(adds.description !== undefined ? {description: adds.description} : {}),
+                        skills: adds.skills.map(skillWords),
+                      },
+                    }
+                  : {}),
+              },
+            ],
+      ),
       update: unconfirmed
         ? UNCONFIRMED_WORDS
         : noInterface
@@ -99,6 +113,15 @@ export function installedApps(
       ...(state && held ? {checked: checkedAgo(held.checkedAt, now)} : {}),
     };
   });
+}
+
+/** A skill as the reader gives it: its name, its description and its example questions. */
+function skillWords({name, description, examples}: AgentSkill): {
+  name: string;
+  description: string;
+  examples?: string[];
+} {
+  return {name, description, ...(examples?.length ? {examples} : {})};
 }
 
 /** How long before `now` a check that began at `at` ran, in words: "checked 12 minutes ago". */

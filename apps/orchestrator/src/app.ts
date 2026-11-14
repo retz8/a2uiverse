@@ -24,6 +24,7 @@ import {MARKETPLACE_ROUTE_PREFIX, marketplaceRoutes} from './marketplace/routes.
 import type {PlatformReaders} from './planner/readers.js';
 import {storeSearch, type StoreSearch} from './planner/storeSearch.js';
 import {registryRoutes, REGISTRY_ROUTE_PREFIX} from './registry/api.js';
+import {AccountCards} from './registry/accountCards.js';
 import {MarketplaceClient} from './registry/marketplace.js';
 import {Registry, type FetchCard} from './registry/registry.js';
 import {issueWriteToken} from './registry/token.js';
@@ -142,18 +143,40 @@ export function buildOrchestrator({
     name: 'A2UIVerse',
   };
   const vaultStore = new VaultStore(config.stateDir);
-  const vault = new AuthVault({
+  const vault: AuthVault = new AuthVault({
     store: vaultStore,
     cardOf: appId => registry.storedCard(appId),
     liveCardOf: appId => registry.card(appId),
     displayName: appId => registry.displayName(appId),
     identity,
     journal: record => void journal.signIn(record),
+    // An account's card fetched before a sign-in's outcome is told, dropped at its sign-out.
+    signedIn: (source: string): Promise<void> => accountCards.signedIn(source),
+    signedOut: source => accountCards.drop(source),
     ...(overrides?.vaultFetch ? {fetchImpl: overrides.vaultFetch} : {}),
     ...(overrides?.vaultWait ? {wait: overrides.vaultWait} : {}),
   });
   registry.onUninstalled(appId => vault.forgetApp(appId));
-  const sources = new Sources(registry, overrides?.accounts ?? vault);
+  // Each signed-in account's own card (task 20.8): fetched behind each fetch of its app's public
+  // card and at a sign-in's completion, over the dispatch's dial, held in memory alone.
+  const accountCards: AccountCards = new AccountCards({
+    accountsOf: appId => vault.accountsOf(appId),
+    credentialFor: async source => {
+      const prepared = await vault.prepare(source);
+      return prepared && 'headers' in prepared ? prepared.headers : undefined;
+    },
+    liveCard: appId => {
+      const card = registry.card(appId);
+      const cardUrl = registry.cardUrl(appId);
+      return card && cardUrl ? {card, cardUrl} : undefined;
+    },
+    fetchExtendedCard: (appId, options) => pool.fetchExtendedCard(appId, options),
+    embedder,
+    journal: entry => journal.accountCard(entry),
+  });
+  registry.behindLiveCard((appId, live, at) => accountCards.afterLiveCard(appId, live, at));
+  registry.onUninstalled(appId => void accountCards.dropApp(appId));
+  const sources = new Sources(registry, overrides?.accounts ?? vault, accountCards);
   const compositions = new Compositions();
   const readers = platformReaders({
     registry,
@@ -169,7 +192,11 @@ export function buildOrchestrator({
   });
   const planner = overrides?.planner ?? plannerFrom(config, readers, sources, store, planCache);
   const synthesizer = synthesizerFrom(config, overrides?.synthesisModel);
-  const router = new Router(registry, embedder, {shortlistCap: config.shortlistCap});
+  const router = new Router(registry, embedder, {
+    shortlistCap: config.shortlistCap,
+    accountVectors: appId =>
+      accountCards.heldFor(appId).flatMap(({vector}) => (vector ? [vector] : [])),
+  });
   // The update on the canvas (task 15.5): the check before every dispatch, the catch after a
   // refused paint, the finding a slot's update tile is drawn from.
   const updateTile = new UpdateTile({
@@ -177,12 +204,13 @@ export function buildOrchestrator({
     updates,
     liveShort: source => vault.liveShort(source),
   });
-  const pool = new AgentsPool(registry, {
+  const pool: AgentsPool = new AgentsPool(registry, {
     hardCapMs: config.hardCapMs,
     debugIds: config.debugIds,
     faults: config.faults,
     credentials: vault,
     updates: updateTile,
+    accountCards,
   });
   const executor = new OrchestratorExecutor({
     sources,

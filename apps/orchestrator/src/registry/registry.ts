@@ -86,6 +86,17 @@ export type CardSignatureJournalEntry = {
 /** A card that was fetched and does not read: an install refused for it says so. */
 class UnreadCard extends Error {}
 
+/**
+ * What runs behind a fetch of an app's public card the run takes (task-20.8 decisions 6, 8): its
+ * accounts' cards, within `timeoutMs`, what remains of that fetch's time limit; whatever waits on
+ * the public fetch waits on it too.
+ */
+export type BehindLiveCard = (
+  appId: string,
+  live: {card: AgentCard; cardUrl: string},
+  at: {fetch: CardFetch; timeoutMs: number},
+) => Promise<void>;
+
 /** An agent the Router can rank: record + this run's card + corpus vector. */
 export interface RoutableApp {
   record: AppRecord;
@@ -155,6 +166,8 @@ export interface InstallRequest {
   source?: InstallSource;
   /** The card already fetched from `cardUrl` by the marketplace path, so it is fetched once. */
   card?: FetchedCard;
+  /** When the fetch of the card handed began: its accounts' cards get what remains of its limit. */
+  fetchBegan?: number;
   /** An install the update check runs by itself (task-13.5 decision 9), journaled as such. */
   automatic?: boolean;
   /** Who made the write, journaled (task-14.3 decision 13). */
@@ -245,6 +258,7 @@ export class Registry {
     appId: string,
   ) => Promise<readonly SignedOutAccount[] | void> | readonly SignedOutAccount[] | void)[] = [];
   readonly #changed: ((change: RecordsChanged) => void)[] = [];
+  readonly #behind: BehindLiveCard[] = [];
 
   constructor(deps: RegistryDeps) {
     this.#deps = deps;
@@ -283,6 +297,33 @@ export class Registry {
    */
   onChanged(listener: (change: RecordsChanged) => void): void {
     this.#changed.push(listener);
+  }
+
+  /**
+   * Called behind each fetch of an app's live card the run takes — at boot, at the update check,
+   * fetched again, at an install over the app — with what remains of its time limit, and awaited
+   * (task-20.8 decisions 6, 8).
+   */
+  behindLiveCard(listener: BehindLiveCard): void {
+    this.#behind.push(listener);
+  }
+
+  /** Every listener behind a fetch of the app's live card, within what remains of its limit. */
+  async #runBehind(
+    appId: string,
+    live: {card: AgentCard; cardUrl: string},
+    fetch: CardFetch,
+    limitMs: number,
+    began: number,
+  ): Promise<void> {
+    const timeoutMs = limitMs - (Date.now() - began);
+    for (const listener of this.#behind) {
+      try {
+        await listener(appId, live, {fetch, timeoutMs});
+      } catch (err) {
+        console.error(`registry: what runs behind ${appId}'s card fetch failed:`, err);
+      }
+    }
   }
 
   #notifyChanged(change: RecordsChanged): void {
@@ -493,6 +534,11 @@ export class Registry {
     return live ? live.card : live;
   }
 
+  /** The URL its card is fetched from; none when the app is not installed. */
+  cardUrl(appId: string): string | undefined {
+    return this.#records.get(appId)?.cardUrl;
+  }
+
   /** The card stored at install, read. */
   storedCard(appId: string): AgentCard | undefined {
     return this.#stored.get(appId);
@@ -640,6 +686,7 @@ export class Registry {
     }
     const {entry} = looked;
     let card: FetchedCard;
+    const fetchBegan = Date.now();
     try {
       card = await this.#fetchCard(entry.cardUrl);
     } catch (err) {
@@ -686,6 +733,7 @@ export class Registry {
       catalogs,
       source: 'marketplace',
       card,
+      fetchBegan,
       automatic,
       ...(by ? {by} : {}),
     });
@@ -767,6 +815,7 @@ export class Registry {
     catalogs,
     source = 'local',
     card: fetched,
+    fetchBegan,
     automatic = false,
     by,
   }: InstallRequest): Promise<InstallResult> {
@@ -776,6 +825,7 @@ export class Registry {
     const journalExtra = {...(automatic ? {automatic: true as const} : {}), ...(by ? {by} : {})};
 
     let live: FetchedCard | undefined = fetched;
+    const began = fetchBegan ?? Date.now();
     if (!live) {
       try {
         live = await this.#fetchCard(cardUrl);
@@ -925,6 +975,16 @@ export class Registry {
     this.#fetchedLive(appId);
     this.#vectors.set(appId, vector);
     this.#notifyChanged({appIds: [appId, ...followed], automatic});
+    // An install over the app keeps its accounts: their cards follow the card it took.
+    if (operation === 'install-over') {
+      await this.#runBehind(
+        appId,
+        {card, cardUrl},
+        'install',
+        this.#deps.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS,
+        began,
+      );
+    }
     await this.#journal({
       operation,
       appId,
@@ -1063,10 +1123,14 @@ export class Registry {
     fetch: CardFetch,
     timeoutMs?: number,
   ): Promise<{kind: 'taken'; live: FetchedCard} | {kind: 'refused'} | {kind: 'unanswered'}> {
+    const began = Date.now();
+    const limitMs = timeoutMs ?? this.#deps.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS;
     try {
-      const live = await this.#fetchCard(cardUrl, timeoutMs);
+      const live = await this.#fetchCard(cardUrl, limitMs);
       await this.#journalSignature(appId, cardUrl, fetch, live);
-      if (this.#records.has(appId)) this.#refused.delete(appId);
+      if (!this.#records.has(appId)) return {kind: 'taken', live};
+      this.#refused.delete(appId);
+      await this.#runBehind(appId, {card: live.card, cardUrl}, fetch, limitMs, began);
       return {kind: 'taken', live};
     } catch (err) {
       if (!(err instanceof UnconfirmedCardError)) return {kind: 'unanswered'};

@@ -16,6 +16,8 @@ import {
   NoInterfaceReachedError,
   noneReachedFinding,
   UnauthorizedError,
+  type ExtendedCardOptions,
+  type FetchedExtendedCard,
   type NotReached,
   type OpenConnection,
 } from '@a2uiverse/smoke-transport';
@@ -91,6 +93,8 @@ export interface AgentsPoolOptions {
   credentials?: Credentials;
   /** The update check (task 15.5): whether the app can paint in what it is installed with. */
   updates?: UpdateGate;
+  /** Each account's own card (task 20.8): a dispatch to an account holding one walks it alone. */
+  accountCards?: {card(source: string): AgentCard | undefined};
 }
 
 /** The update on the canvas as the AgentsPool reaches it (task 15.5). */
@@ -149,7 +153,8 @@ export class AgentsPool {
   /**
    * The interface that last answered for each app, beside the card it was read from and the
    * registry's count of the app's live card fetches then (task-20.5 decision 5): a dispatch starts
-   * there until the live card is fetched again.
+   * there until the live card is fetched again. An account holding a card of its own has its own
+   * entry, under its source (task-20.8 decision 4).
    */
   readonly #answered = new Map<string, {card: AgentCard; fetches: number; taken: AgentInterface}>();
   /** The app each dispatch was sent to, as the registry held it then. */
@@ -329,8 +334,11 @@ export class AgentsPool {
         }
         // Reachability, judged before the agent is called, ahead of the update check and of any
         // sign-in (task-20.3 decision 13): the card the dispatch would dial from lists an
-        // interface the platform speaks.
-        const dial = this.#registry.dialCard(app.id);
+        // interface the platform speaks — an account's own card, where it holds one, alone
+        // (task-20.8 decision 4).
+        const own = this.#options.accountCards?.card(source);
+        const dial = own ?? this.#registry.dialCard(app.id);
+        const walker = own ? source : app.id;
         if (!dial || spokenInterfaces(dial).length === 0) {
           finish('failed', {
             error: dial ? noInterfaceFinding(dial) : `app ${appId} has no card`,
@@ -372,21 +380,23 @@ export class AgentsPool {
             signal: controller.signal,
           };
           if (taken) return this.#dialer.send(dial, taken, request);
+          if (own) record.accountCard = true;
           const dialed = await this.#dialer.dial({
             card: dial,
-            ...this.#remembered(app.id, dial),
+            ...this.#remembered(walker, app.id, dial),
             ...request,
           });
           taken = dialed.taken;
-          this.#answered.set(app.id, {
+          this.#answered.set(walker, {
             card: dial,
             fetches: this.#registry.liveCardFetches(app.id),
             taken: dialed.taken,
           });
           // The interface the dispatch used, and each one passed over before it (task-20.1
-          // decision 5; task-20.5 decision 6).
+          // decision 5; task-20.5 decision 6); its address when it is the account's card's.
           record.a2aVersion = a2aVersionOf(dialed.taken);
           record.binding = dialed.taken.protocolBinding;
+          if (own) record.url = dialed.taken.url;
           if (dialed.notReached.length > 0) record.notReached = journaled(dialed.notReached);
           this.#dialed.set(record, {card: dial, taken: dialed.taken});
           return dialed.events;
@@ -602,11 +612,22 @@ export class AgentsPool {
    * Where the app's walk starts: the interface that last answered, until its live card is fetched
    * again.
    */
-  #remembered(appId: string, card: AgentCard): {first?: AgentInterface} {
-    const answered = this.#answered.get(appId);
+  #remembered(walker: string, appId: string, card: AgentCard): {first?: AgentInterface} {
+    const answered = this.#answered.get(walker);
     return answered?.card === card && answered.fetches === this.#registry.liveCardFetches(appId)
       ? {first: answered.taken}
       : {};
+  }
+
+  /**
+   * A2A's Get Extended Agent Card for an account (task-20.8 decision 7): the public card's spoken
+   * interfaces walked from the one that last answered for the app.
+   */
+  fetchExtendedCard(appId: string, options: ExtendedCardOptions): Promise<FetchedExtendedCard> {
+    return this.#dialer.fetchExtendedCard({
+      ...this.#remembered(appId, appId, options.card),
+      ...options,
+    });
   }
 
   /**

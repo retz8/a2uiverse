@@ -1,0 +1,52 @@
+{
+  "capabilities": {
+    "extensions": [
+      {
+        "params": {
+          "supportedCatalogIds": ["https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"]
+        },
+        "required": false,
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1"
+      }
+    ],
+    "streaming": true
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "description": "A scratch shop that serves each signed-in account a card of its own",
+  "name": "Scratch Shop",
+  "preferredTransport": "HTTP+JSON",
+  "protocolVersion": "0.3",
+  "security": [
+    {
+      "key": []
+    }
+  ],
+  "securitySchemes": {
+    "key": {
+      "description": "Paste alice or bob.",
+      "in": "header",
+      "name": "X-Scratch-Key",
+      "type": "apiKey"
+    }
+  },
+  "skills": [
+    {
+      "description": "The scratch shop’s front page",
+      "examples": ["what is new at the shop"],
+      "id": "shop",
+      "name": "Shop",
+      "tags": ["shop"]
+    },
+    {
+      "description": "The lantern repairs this account has booked with the shop, and their state",
+      "examples": ["how are my lantern repairs"],
+      "id": "lanterns",
+      "name": "Lantern repairs",
+      "tags": ["lanterns"]
+    }
+  ],
+  "supportsAuthenticatedExtendedCard": true,
+  "url": "http://127.0.0.1:18751/rest",
+  "version": "0.1.0"
+}

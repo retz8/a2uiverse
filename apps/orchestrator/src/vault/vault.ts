@@ -157,6 +157,13 @@ export interface VaultDeps {
   fetchImpl?: Fetch;
   /** The wait between asks of the token endpoint for a device code; a test's seam. */
   wait?: (ms: number) => Promise<void>;
+  /**
+   * What runs once a sign-in for the account completes, before its outcome is told (task-20.8
+   * decisions 6, 8): the account's card fetched, so the slot's resume dials from it.
+   */
+  signedIn?(source: string): Promise<void>;
+  /** The account was signed out (task-20.8 decision 6): its card goes. */
+  signedOut?(source: string): void;
 }
 
 export interface Attempt {
@@ -928,7 +935,7 @@ export class AuthVault implements AccountStore {
       delete account.again;
       await this.#deps.store.save();
       if (rebound) attempt.rebound = true;
-      return this.#signedIn(attempt, account, existing);
+      return await this.#signedInAfter(attempt, account, existing);
     } catch (err) {
       return this.#failGrant(attempt, grant, err);
     }
@@ -1020,7 +1027,7 @@ export class AuthVault implements AccountStore {
       account.header = attempt.scheme.header;
     delete account.again;
     await this.#deps.store.save();
-    return this.#signedIn(attempt, account, existing);
+    return this.#signedInAfter(attempt, account, existing);
   }
 
   /**
@@ -1037,6 +1044,26 @@ export class AuthVault implements AccountStore {
     }
     const at = apps.accounts.findIndex(held => held.n > account.n);
     apps.accounts.splice(at < 0 ? apps.accounts.length : at, 0, account);
+  }
+
+  /**
+   * A sign-in that completed, its outcome told once what runs behind it has ended (task-20.8
+   * decision 8). Its exchange is let go first, so a return arriving again meanwhile exchanges
+   * nothing.
+   */
+  async #signedInAfter(
+    attempt: Attempt,
+    account: VaultAccount,
+    existing: boolean,
+  ): Promise<Attempt> {
+    delete attempt.oauth;
+    delete attempt.device;
+    try {
+      await this.#deps.signedIn?.(sourceId(attempt.appId, account.n));
+    } catch (err) {
+      console.error(`vault: what runs behind ${attempt.appId}'s sign-in failed:`, err);
+    }
+    return this.#signedIn(attempt, account, existing);
   }
 
   #signedIn(attempt: Attempt, account: VaultAccount, existing: boolean): Attempt {
@@ -1205,6 +1232,7 @@ export class AuthVault implements AccountStore {
     apps.accounts = apps.accounts.filter(held => held !== account);
     await this.#deps.store.save();
     this.#endAttempts(named.appId, account.n);
+    this.#deps.signedOut?.(source);
     const revocation = await this.#revoke(account);
     this.#deps.journal({
       event: 'signedOut',

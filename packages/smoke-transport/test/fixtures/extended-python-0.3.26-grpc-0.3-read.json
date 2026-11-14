@@ -1,0 +1,32 @@
+{
+  "name": "Scratch Shop",
+  "description": "A scratch shop on a2a-sdk 0.3",
+  "supportedInterfaces": [
+    {
+      "url": "http://127.0.0.1:18761/",
+      "protocolBinding": "JSONRPC",
+      "protocolVersion": "0.3.0"
+    },
+    {
+      "url": "127.0.0.1:18762",
+      "protocolBinding": "GRPC",
+      "protocolVersion": "0.3.0"
+    }
+  ],
+  "version": "0.1.0",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false,
+    "extendedAgentCard": true
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "skills": [
+    {
+      "id": "shop",
+      "name": "Shop",
+      "description": "The front page",
+      "tags": ["shop"]
+    }
+  ]
+}

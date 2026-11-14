@@ -10,6 +10,7 @@ import type {
   RegistryJournalEntry,
 } from '../registry/registry.js';
 import type {SignInRecord} from '../vault/vault.js';
+import type {AccountCardJournalEntry} from '../registry/accountCards.js';
 import {logLine} from '../log.js';
 import {describe} from './descriptor.js';
 import {emptyTouches, mergeTouches, type SurfaceTouches} from './surfaces.js';
@@ -52,6 +53,9 @@ export type RegistryLine = {kind: 'registry'; at: string} & RegistryJournalEntry
 
 /** A signed card's check as its journal line carries it (task-20.7 decision 12). */
 export type CardSignatureLine = {kind: 'cardSignature'; at: string} & CardSignatureJournalEntry;
+
+/** A fetch of an account's card as its journal line carries it (task-20.8 decision 12): never the card. */
+export type AccountCardLine = {kind: 'accountCard'; at: string} & AccountCardJournalEntry;
 
 /** A sign-in fact as its journal line carries it (task-12.5 decision 11): never a secret. */
 export type SignInLine = {kind: 'signIn'; at: string} & SignInRecord;
@@ -173,6 +177,16 @@ export class IntentJournal implements RegistryJournal {
   }
 
   /**
+   * A fetch of an account's card (task-20.8 decision 12): one line of kind `accountCard` for each
+   * fetch made — the app, the account, where it was fetched, the interface that answered and those
+   * passed over, how it ended, the reason it brought no card, the signature that passed; never the
+   * card. Never throws.
+   */
+  async accountCard(entry: AccountCardJournalEntry): Promise<void> {
+    await this.#append({kind: 'accountCard', at: new Date().toISOString(), ...entry});
+  }
+
+  /**
    * A sign-in fact (task-12.5 decision 11): one line of kind `signIn` beside the turns — started,
    * signed in, failed, expired, refreshed, a refresh failed, revoked, a request for more access
    * (valid or invalid) and its Not now — naming the app, the source, the canvas, why and the scope
@@ -215,7 +229,13 @@ export class IntentJournal implements RegistryJournal {
   }
 
   async #append(
-    entry: JournalEntry | RegistryLine | CardSignatureLine | SignInLine | PublisherLine,
+    entry:
+      | JournalEntry
+      | RegistryLine
+      | CardSignatureLine
+      | AccountCardLine
+      | SignInLine
+      | PublisherLine,
   ): Promise<void> {
     try {
       await mkdir(dirname(this.#filePath), {recursive: true});

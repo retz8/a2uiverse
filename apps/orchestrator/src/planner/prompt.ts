@@ -1,4 +1,5 @@
 import {readFileSync} from 'node:fs';
+import type {AgentSkill} from '@a2a-js/sdk';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {pruneCatalog, type A2uiCatalogSchema} from '@a2uiverse/sdk';
@@ -96,19 +97,34 @@ export type SourcesOf = (appId: string) => readonly AppSource[];
 
 const BARE: SourcesOf = appId => [{source: appId}];
 
-/** A source as the listing names it: the account's label, or that it is not signed in yet. */
-function renderSource({source, label, notSignedIn}: AppSource): string {
+/**
+ * A source as the listing names it: the account's label, or that it is not signed in yet; and
+ * what the account's own card adds, when it has one (task-20.8 decision 3).
+ */
+function renderSource({source, label, notSignedIn, adds}: AppSource): string {
   const said = label ?? (notSignedIn ? 'not signed in yet' : undefined);
-  return `    - ${source}${said !== undefined ? ` · ${said}` : ''}`;
+  const line = `    - ${source}${said !== undefined ? ` · ${said}` : ''}`;
+  if (!adds) return line;
+  const lines = [line, `      this account's own card adds:`];
+  if (adds.name !== undefined) lines.push(`        name: ${adds.name}`);
+  if (adds.description !== undefined) lines.push(`        description: ${adds.description}`);
+  if (adds.skills.length > 0)
+    lines.push('        skills:', renderSkills(adds.skills, '          '));
+  return lines.join('\n');
+}
+
+/** Each skill on a line of its own, with its example questions. */
+function renderSkills(skills: readonly AgentSkill[], indent: string): string {
+  return skills
+    .map(skill => {
+      const examples = skill.examples?.length ? ` (e.g. ${skill.examples.join('; ')})` : '';
+      return `${indent}- ${skill.name}: ${skill.description}${examples}`;
+    })
+    .join('\n');
 }
 
 function renderCard({record, card}: ShortlistEntry, sourcesOf?: SourcesOf): string {
-  const skills = (card.skills ?? [])
-    .map(skill => {
-      const examples = skill.examples?.length ? ` (e.g. ${skill.examples.join('; ')})` : '';
-      return `  - ${skill.name}: ${skill.description}${examples}`;
-    })
-    .join('\n');
+  const skills = renderSkills(card.skills ?? [], '  ');
   // The agents carry the sources the dispatch names (task-12.6 decision 1); the platform none.
   const sources = sourcesOf
     ? `\n  sources:\n${sourcesOf(record.id).map(renderSource).join('\n')}`

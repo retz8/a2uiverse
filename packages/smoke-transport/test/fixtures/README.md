@@ -16,3 +16,11 @@ What the agent was asked for, once on each A2A version and binding:
 8. `echo`: a press in the platform's one spelling of an A2UI part, answered with the parts as the executor held them. `mediaType` is on the A2A 1.0 wire and in what the executor held; on the 0.3 wire it is in neither. Over HTTP+JSON at A2A 0.3 the client writes no `metadata` either, so the mark in `metadata.mimeType` is not held.
 
 `capturedWire` and `capturedFetch`, from `@a2uiverse/smoke-transport/testing/wire`, load a file and replay its answer to the client of `@a2a-js/sdk`. The smoke-transport package's suite and the orchestrator's read these wires through them.
+
+## Extended cards
+
+Fourteen extended cards captured on 2026-11-14 by [`scripts/capture-extended-cards.mjs`](../../scripts/capture-extended-cards.mjs), each asked for through the platform's dial with Alice's key and written as served: on JSON-RPC the result, on HTTP+JSON the body, on gRPC at A2A 1.0 the JSON form of the message. On gRPC at A2A 0.3 the A2A SDK hands back only its own reading of the message, so a file named `-read` holds that reading, in A2A 1.0's JSON. None is written by hand.
+
+From the server of `@a2a-js/sdk` 1.3.0, as the fake A2A 1.0 agent runs it, and from a scratch agent on Python's `a2a-sdk` 1.3.0, [`scripts/serve_extended_card.py`](../../scripts/serve_extended_card.py), one file for each of the six paths, named `extended-<javascript|python>-<binding>-<A2A version>.json`. Alice's card is the public card with a skill more, `lanterns`. Over A2A 0.3 on HTTP+JSON the two servers write it differently: `@a2a-js/sdk` in the JSON form of A2A 0.3's protobuf, its key scheme under `apiKeySecurityScheme` and a skill with no tags written with none, which the card's one reading does not take; `a2a-sdk` in A2A 0.3's JSON-schema form, which it does.
+
+From a scratch agent on Python's `a2a-sdk` 0.3.26, [`scripts/serve_extended_card_v0_3.py`](../../scripts/serve_extended_card_v0_3.py): `extended-python-0.3.26-jsonrpc-0.3.json`, the extended card, and `extended-python-0.3.26-grpc-0.3-read.json`, what its gRPC answers to the same request, the public card.

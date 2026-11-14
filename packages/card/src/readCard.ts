@@ -87,9 +87,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
  * A card written for A2A 0.3 names one A2A version, the agent's, and its `additionalInterfaces`
  * name none. The A2A SDK reads the card's own URL at the card's version and each further
  * interface at a fixed "0.3"; here every interface is at the version the card spells, as the
- * first one is.
+ * first one is. Exported for a 0.3 card only the A2A SDK could read, where the answer as served
+ * cannot be had or is in a form the reading does not take (task-20.8 decision 10).
  */
-function atCardVersion(card: AgentCard): AgentCard {
+export function atCardVersion(card: AgentCard): AgentCard {
   const version = card.supportedInterfaces[0]?.protocolVersion;
   if (version === undefined) return card;
   return {

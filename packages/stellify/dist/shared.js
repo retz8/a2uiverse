@@ -1734,6 +1734,14 @@ function atCardVersion(card) {
     }))
   };
 }
+function cardReadError(served) {
+  try {
+    readCard(served);
+    return void 0;
+  } catch (err) {
+    return err.message;
+  }
+}
 
 // ../card/dist/signatures.js
 import { AgentCard as AgentCard2, canonicalizeAgentCard } from "@a2a-js/sdk";
@@ -2033,6 +2041,40 @@ function redirectFirst(alternatives, flowOf) {
   ];
 }
 
+// ../card/dist/accountCard.js
+function servesExtendedCard(card) {
+  return card.capabilities?.extendedAgentCard === true;
+}
+function signInBeyond(publicCard, accountCard) {
+  const declared = new Set(Object.keys(publicCard.securitySchemes ?? {}));
+  const schemes = Object.keys(accountCard.securitySchemes ?? {}).filter((scheme) => !declared.has(scheme));
+  const asked = /* @__PURE__ */ new Map();
+  for (const alternative of signInAlternatives(publicCard)) {
+    for (const [scheme, scopes2] of Object.entries(alternative)) {
+      const set = asked.get(scheme) ?? /* @__PURE__ */ new Set();
+      for (const scope of scopes2)
+        set.add(scope);
+      asked.set(scheme, set);
+    }
+  }
+  const scopes = [];
+  const said = /* @__PURE__ */ new Set();
+  for (const alternative of signInAlternatives(accountCard)) {
+    for (const [scheme, list] of Object.entries(alternative)) {
+      if (!declared.has(scheme))
+        continue;
+      for (const scope of list) {
+        const key = JSON.stringify([scheme, scope]);
+        if (asked.get(scheme)?.has(scope) || said.has(key))
+          continue;
+        said.add(key);
+        scopes.push({ scheme, scope });
+      }
+    }
+  }
+  return { schemes, scopes };
+}
+
 // ../smoke-transport/dist/answers.js
 import { A2A_ERROR_CODE, isJsonRpcError, VersionNotSupportedError } from "@a2a-js/sdk/errors";
 import { GRPC_STATUS_CODE, isGrpcError } from "@a2a-js/sdk/errors/grpc";
@@ -2147,7 +2189,7 @@ async function carriesA2aError(response) {
 
 // ../smoke-transport/dist/dial.js
 import * as grpc from "@grpc/grpc-js";
-import { ClientFactory, JsonRpcTransportFactory, RestTransportFactory } from "@a2a-js/sdk/client";
+import { ClientFactory, JsonRpcTransportFactory, RestTransportFactory, ServiceParameters, withA2AVersion } from "@a2a-js/sdk/client";
 import { GrpcTransportFactory } from "@a2a-js/sdk/client/grpc";
 
 // ../smoke-transport/dist/credentialOnBinding.js
@@ -2165,6 +2207,129 @@ function credentialOn(agentInterface, credential = {}) {
 }
 function isPlainGrpcKey(key) {
   return /^[0-9a-z_.-]+$/.test(key) && !key.startsWith("grpc-") && !key.endsWith("-bin");
+}
+
+// ../smoke-transport/dist/extendedCard.js
+import { AsyncLocalStorage } from "node:async_hooks";
+import { AgentCard as AgentCard3 } from "@a2a-js/sdk";
+import { A2A_ERROR_CODE as A2A_ERROR_CODE2, isJsonRpcError as isJsonRpcError2 } from "@a2a-js/sdk/errors";
+import { GRPC_STATUS_CODE as GRPC_STATUS_CODE2, isGrpcError as isGrpcError2 } from "@a2a-js/sdk/errors/grpc";
+var keeping = new AsyncLocalStorage();
+function keepingFetch(base) {
+  return async (input, init) => {
+    const response = await base(input, init);
+    const kept = keeping.getStore();
+    if (kept) {
+      kept.status = response.status;
+      try {
+        kept.body = JSON.parse(await response.clone().text());
+      } catch {
+        delete kept.body;
+      }
+    }
+    return response;
+  };
+}
+async function keepingAnswer(call) {
+  const kept = {};
+  try {
+    return { kept, result: await keeping.run(kept, call) };
+  } catch (error) {
+    return { kept, error };
+  }
+}
+function servedIn(kept, binding) {
+  if (kept.status === void 0 || kept.status < 200 || kept.status >= 300)
+    return void 0;
+  const body = binding === "JSONRPC" ? resultOf(kept.body) : kept.body;
+  return isObject4(body) ? body : void 0;
+}
+function resultOf(body) {
+  return isObject4(body) && !("error" in body) ? body.result : void 0;
+}
+function servedFromMessage(message) {
+  return AgentCard3.toJSON(message);
+}
+var NONE_REASONS = /* @__PURE__ */ new Set([
+  "EXTENDED_AGENT_CARD_NOT_CONFIGURED",
+  "UNSUPPORTED_OPERATION"
+]);
+var NONE_CODES = /* @__PURE__ */ new Set([
+  A2A_ERROR_CODE2.EXTENDED_CARD_NOT_CONFIGURED,
+  A2A_ERROR_CODE2.UNSUPPORTED_OPERATION
+]);
+var NONE_NAMES = /\b(ExtendedAgentCardNotConfiguredError|UnsupportedOperationError)\b/;
+function noneAnswered(err, kept = {}) {
+  if (!(err instanceof Error))
+    return void 0;
+  const reason = err.reason;
+  if (typeof reason === "string" && NONE_REASONS.has(reason))
+    return err.message;
+  if (isJsonRpcError2(err) && NONE_CODES.has(err.envelopeCode))
+    return err.message;
+  const said = noneInBody(kept.body);
+  if (said !== void 0)
+    return said;
+  if (isGrpcError2(err) && err.status === GRPC_STATUS_CODE2.FAILED_PRECONDITION) {
+    const named2 = err.message.match(NONE_NAMES);
+    if (named2)
+      return err.message;
+  }
+  return void 0;
+}
+function noneInBody(body) {
+  if (!isObject4(body))
+    return void 0;
+  const { error, code, message } = body;
+  if (isObject4(error)) {
+    const { details, code: errorCode, message: said } = error;
+    const named2 = Array.isArray(details) && details.some((detail) => isObject4(detail) && typeof detail.reason === "string" && NONE_REASONS.has(detail.reason));
+    if (named2 || typeof errorCode === "number" && NONE_CODES.has(errorCode)) {
+      return typeof said === "string" ? said : "no extended card";
+    }
+    return void 0;
+  }
+  if (typeof code === "number" && NONE_CODES.has(code) && typeof message === "string") {
+    return message;
+  }
+  return void 0;
+}
+function isObject4(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+async function takeExtendedCard(answer, { cardUrl, signal, timeoutMs, fetchImpl }) {
+  switch (answer.kind) {
+    case "unanswered":
+      return { outcome: "unanswered" };
+    case "refused":
+      return { outcome: "refused" };
+    case "none":
+      return { outcome: "none", reason: answer.answer };
+    case "failed":
+      return { outcome: "failed", reason: answer.reason };
+    case "read":
+      return { outcome: "taken", card: answer.card };
+    case "served": {
+      let card;
+      try {
+        card = readCard(answer.served);
+      } catch (err) {
+        return { outcome: "unread", reason: err.message };
+      }
+      try {
+        const signature = await checkSignatures(answer.served, {
+          cardUrl,
+          signal,
+          timeoutMs,
+          ...fetchImpl ? { fetchImpl } : {}
+        });
+        return { outcome: "taken", card, ...signature ? { signature } : {} };
+      } catch (err) {
+        const reason = err.message;
+        return err instanceof UnconfirmedCardError ? { outcome: "unconfirmed", reason } : { outcome: "unanswered", reason };
+      }
+    }
+  }
 }
 
 // ../smoke-transport/dist/opening.js
@@ -2246,6 +2411,59 @@ var Dialer = class {
     throw new NoInterfaceReachedError(notReached);
   }
   /**
+   * Asks for the extended card an agent serves the account (task-20.8 decisions 7, 9, 10): the
+   * public card's spoken interfaces walked as a dispatch walks them, moving on only from one
+   * never reached, the credential carried as a dispatch carries it on each binding. Never
+   * rejects: an answer that is no card says why.
+   */
+  async fetchExtendedCard({ card, first, credential, signal }) {
+    const notReached = [];
+    try {
+      for (const agentInterface of walkOrder(card, first)) {
+        const passed = (why2, header) => notReached.push({ interface: agentInterface, why: why2, ...header ? { header } : {} });
+        const carried = credentialOn(agentInterface, credential);
+        if (carried.kind === "cannot") {
+          passed("credential", carried.header);
+          continue;
+        }
+        const address = addressOf(agentInterface);
+        if (!address || !await this.#open(agentInterface, address, signal)) {
+          passed("connection");
+          continue;
+        }
+        const client = await this.#client(card, agentInterface);
+        const asked = await keepingAnswer(() => client.transport.getExtendedAgentCard({ tenant: "" }, {
+          ...signal ? { signal } : {},
+          serviceParameters: ServiceParameters.createFrom(carried.serviceParameters, withA2AVersion(client.protocolVersion))
+        }));
+        if ("error" in asked) {
+          const none = noneAnswered(asked.error, asked.kept) !== void 0;
+          if (!none && readAnswerError(asked.error) instanceof NotServedError) {
+            passed("unserved");
+            continue;
+          }
+          if (signal?.aborted)
+            return { notReached, answer: { kind: "unanswered" } };
+          return {
+            taken: agentInterface,
+            notReached,
+            answer: answerOf(asked.error, agentInterface, asked)
+          };
+        }
+        return {
+          taken: agentInterface,
+          notReached,
+          answer: cardOf(asked.result, agentInterface, asked.kept)
+        };
+      }
+      return { notReached, answer: { kind: "unanswered" } };
+    } catch (err) {
+      if (signal?.aborted)
+        return { notReached, answer: { kind: "unanswered" } };
+      return { notReached, answer: { kind: "failed", reason: err.message } };
+    }
+  }
+  /**
    * One request to an interface already taken, with no walk: a resend after a refresh, a repair
    * sent back in the same dispatch.
    */
@@ -2294,7 +2512,7 @@ var Dialer = class {
       const address = addressOf(taken);
       if (!address)
         return Promise.reject(new Error(`no address in ${taken.url}`));
-      const fetchImpl = answeringFetch(this.#options.fetchImpl ?? fetch);
+      const fetchImpl = answeringFetch(keepingFetch(this.#options.fetchImpl ?? fetch));
       const legacyCompat = { enabled: true };
       const factory = new ClientFactory({
         transports: [
@@ -2316,6 +2534,37 @@ var Dialer = class {
     return pending;
   }
 };
+function atA2a0_3(agentInterface) {
+  return a2aVersionOf(agentInterface).startsWith("0.");
+}
+function cardOf(result, taken, kept) {
+  const legacy = atA2a0_3(taken);
+  if (isGrpc(taken)) {
+    return legacy ? { kind: "read", card: atCardVersion(result) } : { kind: "served", served: servedFromMessage(result) };
+  }
+  const served = servedIn(kept, taken.protocolBinding === "JSONRPC" ? "JSONRPC" : "HTTP+JSON");
+  if (!served)
+    return { kind: "failed", reason: "the answer held no card" };
+  const named2 = typeof served.name === "string";
+  if (legacy && named2 && cardReadError(served) !== void 0) {
+    return { kind: "read", card: atCardVersion(result) };
+  }
+  return { kind: "served", served };
+}
+function answerOf(raw, taken, asked) {
+  const none = noneAnswered(raw, asked.kept);
+  if (none !== void 0)
+    return { kind: "none", answer: none };
+  const err = readAnswerError(raw);
+  if (err instanceof UnauthorizedError)
+    return { kind: "refused" };
+  if (!isGrpc(taken)) {
+    const served = servedIn(asked.kept, taken.protocolBinding === "JSONRPC" ? "JSONRPC" : "HTTP+JSON");
+    if (served)
+      return { kind: "served", served };
+  }
+  return { kind: "failed", reason: err instanceof Error ? err.message : String(err) };
+}
 function walkOrder(card, first) {
   const spoken = spokenInterfaces(card);
   const remembered = first && spoken.find((listed) => sameInterface(listed, first));
@@ -2359,7 +2608,7 @@ function why(entry) {
 // ../smoke-transport/dist/smokeRunner.js
 import { randomUUID } from "node:crypto";
 import { Role, TaskState as TaskState2 } from "@a2a-js/sdk";
-import { ServiceParameters, withA2AExtensions } from "@a2a-js/sdk/client";
+import { ServiceParameters as ServiceParameters2, withA2AExtensions } from "@a2a-js/sdk/client";
 
 // ../smoke-transport/dist/taskStateWord.js
 import { TaskState } from "@a2a-js/sdk";
@@ -2425,7 +2674,7 @@ function a2aSmokeRunner(options = {}) {
         card,
         params: { tenant: "", message, configuration: void 0, metadata: void 0 },
         ...headers ? { credential: headers } : {},
-        serviceParameters: ServiceParameters.create(withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS))),
+        serviceParameters: ServiceParameters2.create(withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS))),
         signal
       });
       reached = { taken: dialed.taken, notReached: dialed.notReached };
@@ -2641,6 +2890,44 @@ var DEFAULT_SMOKE_TIMEOUT_MS = 6e4;
 var CREDENTIAL_NEEDED = "the card requires sign-in: set STELLIFY_CREDENTIAL to a credential of your own for this agent";
 var CREDENTIAL_NOT_SENT = "the card requires no sign-in: the credential is not sent, and the marketplace captures this app’s preview itself at publish";
 var neverFinished = (state) => state === void 0 ? "the agent never finished: the stream ended before any answer" : `the agent never finished: the stream ended with its task still ${state}`;
+var ACCOUNT_CARD_READ = "the agent serves your account a card of its own: the request walks its interfaces, as a dispatch to your account will";
+function noAccountCardNote(taken, timeoutMs) {
+  return `the agent served your account no card of its own (${whyNone(taken, timeoutMs)}): the preview went ahead on the public card`;
+}
+function whyNone({ outcome, reason }, timeoutMs) {
+  switch (outcome) {
+    case "none":
+      return "it has none";
+    case "refused":
+      return "it refused your credential";
+    case "unanswered":
+      return reason ?? `it did not answer within ${timeoutMs / 1e3} s`;
+    case "unread":
+      return `it could not be read: ${reason ?? ""}`;
+    case "unconfirmed":
+      return `it could not be confirmed: ${reason ?? ""}`;
+    default:
+      return reason ?? "it answered no card";
+  }
+}
+function unusedOnAccountCard(publicCard, accountCard) {
+  const { schemes, scopes } = signInBeyond(publicCard, accountCard);
+  const named2 = readSupportedCatalogIds(publicCard);
+  const own = readSupportedCatalogIds(accountCard);
+  const held = new Set(named2.ok ? named2.value : []);
+  const catalogs = (own.ok ? own.value : []).filter((id) => !held.has(id));
+  return [
+    ...schemes.map(
+      (scheme) => `your account's card names the sign-in scheme "${scheme}", which the public card does not declare: A2UIVerse never signs in from an account's card`
+    ),
+    ...scopes.map(
+      ({ scheme, scope }) => `your account's card asks the scope "${scope}" of "${scheme}", which the public card does not ask: A2UIVerse asks only what the card as installed asks`
+    ),
+    ...catalogs.map(
+      (id) => `your account's card names the catalog id "${id}", which the public card does not: A2UIVerse paints your app in the catalogs the public card names`
+    )
+  ];
+}
 function preview(options) {
   return previewWith(options, {});
 }
@@ -2658,11 +2945,10 @@ async function previewWith(options, deps) {
     notes
   });
   let served;
+  const cardTimeoutMs = options.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS;
+  const began = Date.now();
   try {
-    const live = await fetchLiveCard(options.cardUrl, {
-      timeoutMs: options.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS,
-      fetchImpl
-    });
+    const live = await fetchLiveCard(options.cardUrl, { timeoutMs: cardTimeoutMs, fetchImpl });
     served = live.served;
     if (live.signature) notes.push(passedNote(live.signature));
   } catch (err) {
@@ -2753,10 +3039,41 @@ async function previewWith(options, deps) {
       notes.push(`${err.message}; a catalog the marketplace holds is not resolved`);
     }
   }
+  let dialed = card;
+  if (headers && servesExtendedCard(card)) {
+    const timeoutMs = Math.max(cardTimeoutMs - (Date.now() - began), 0);
+    const signal = AbortSignal.timeout(timeoutMs);
+    const ask = deps.extendedCard ?? ((asked) => new Dialer({ connectTimeoutMs: SMOKE_CONNECT_TIMEOUT_MS, fetchImpl }).fetchExtendedCard(
+      asked
+    ));
+    const fetched = await ask({ card, credential: headers, signal });
+    const taken = await takeExtendedCard(fetched.answer, {
+      cardUrl: options.cardUrl,
+      signal,
+      timeoutMs,
+      fetchImpl
+    });
+    if (taken.card) {
+      notes.push(ACCOUNT_CARD_READ);
+      if (taken.signature) {
+        notes.push(passedNote(taken.signature).replace(/^the card's/, "your account's card's"));
+      }
+      notes.push(...unusedOnAccountCard(card, taken.card));
+      if (spokenInterfaces(taken.card).length === 0) {
+        findings.push(
+          `your account's card ${noInterfaceFinding(taken.card).replace(/^the card /, "")}`
+        );
+        return result(null, signIn);
+      }
+      dialed = taken.card;
+    } else {
+      notes.push(noAccountCardNote(taken, timeoutMs));
+    }
+  }
   const entitlement = entitlementByVersionOf(declaredByVersion);
   const words = smokeWords(card);
   const seen = await smoke({
-    card,
+    card: dialed,
     entitlement,
     words,
     timeoutMs: options.smokeTimeoutMs ?? DEFAULT_SMOKE_TIMEOUT_MS,

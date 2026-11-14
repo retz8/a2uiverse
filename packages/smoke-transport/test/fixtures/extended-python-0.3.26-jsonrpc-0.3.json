@@ -1,0 +1,34 @@
+{
+  "additionalInterfaces": [
+    {
+      "transport": "GRPC",
+      "url": "127.0.0.1:18762"
+    }
+  ],
+  "capabilities": {
+    "streaming": true
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "description": "A scratch shop on a2a-sdk 0.3",
+  "name": "Scratch Shop",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3.0",
+  "skills": [
+    {
+      "description": "The front page",
+      "id": "shop",
+      "name": "Shop",
+      "tags": ["shop"]
+    },
+    {
+      "description": "Your lantern repairs",
+      "id": "lanterns",
+      "name": "Lantern repairs",
+      "tags": ["lanterns"]
+    }
+  ],
+  "supportsAuthenticatedExtendedCard": true,
+  "url": "http://127.0.0.1:18761/",
+  "version": "0.1.0"
+}

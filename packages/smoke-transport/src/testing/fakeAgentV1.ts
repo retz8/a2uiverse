@@ -14,6 +14,7 @@ import {createServer, type Server} from 'node:http';
 import express, {type NextFunction, type Request, type Response} from 'express';
 import * as grpc from '@grpc/grpc-js';
 import {AgentCard, Message, Role, TaskState, type Part, type Task} from '@a2a-js/sdk';
+import {ExtendedAgentCardNotConfiguredError} from '@a2a-js/sdk/errors';
 import {
   DefaultRequestHandler,
   InMemoryTaskStore,
@@ -22,7 +23,7 @@ import {
   type ExecutionEventBus,
   type RequestContext,
 } from '@a2a-js/sdk/server';
-import {jsonRpcHandler, restHandler, UserBuilder} from '@a2a-js/sdk/server/express';
+import {jsonRpcHandler, restHandler} from '@a2a-js/sdk/server/express';
 import {A2AService, grpcService} from '@a2a-js/sdk/server/grpc';
 import {LegacyA2AService, legacyGrpcService} from '@a2a-js/sdk/compat/v0_3/server/grpc';
 import {A2UI_EXTENSION_URIS} from '@a2uiverse/sdk';
@@ -103,6 +104,8 @@ export interface FakeAgentV1 {
   serveCard(served: unknown): void;
   /** What the key set's URL answers from now on; `hang` answers nothing. */
   serveKeySet(keySet: unknown): void;
+  /** What a request for the extended card answers from now on (task-20.8); none configured when undefined. */
+  serveExtendedCard(extended: FakeExtendedCard | undefined): void;
   requests: ReceivedRequestV1[];
   /** How many HTTP connections to the agent are open: a stream a caller left counts none. */
   connections(): Promise<number>;
@@ -125,11 +128,72 @@ export interface FakeAgentV1Options {
    * or the gRPC status `UNAUTHENTICATED`.
    */
   admit?: (request: AdmitRequest) => boolean;
+  /**
+   * What a request for the extended card answers (task-20.8); none configured when omitted, and the
+   * fake answers `ExtendedAgentCardNotConfiguredError` — `UnsupportedOperationError` when its
+   * card's flag is off.
+   */
+  extendedCard?: FakeExtendedCard;
 }
+
+/**
+ * What the fake answers a request for its extended card: the card it serves the caller, judged
+ * from the request's headers or gRPC metadata, in the A2A SDK's in-memory shape — the public card
+ * when it gives none; `hang`, nothing at all; or, on JSON-RPC and HTTP+JSON, `{raw}` written as the
+ * answer's result or body in place of a card.
+ */
+export type FakeExtendedCard =
+  ((request: AdmitRequest) => AgentCard | undefined) | 'hang' | {raw: unknown};
+
+/** A caller as the fake's server knows it: signed in, carrying its headers or gRPC metadata. */
+class CallerWithHeaders {
+  constructor(readonly headers: Record<string, string>) {}
+  get isAuthenticated(): boolean {
+    return true;
+  }
+  get userName(): string {
+    return '';
+  }
+}
+
+/** The methods a request for the extended card calls: A2A 1.0's and A2A 0.3's, on each binding. */
+const EXTENDED_CARD_METHODS: ReadonlySet<string> = new Set([
+  'GetExtendedAgentCard',
+  'agent/getAuthenticatedExtendedCard',
+  'extendedAgentCard',
+  'card',
+  'getExtendedAgentCard',
+  'getAgentCard',
+]);
 
 const PATHS: Record<FakeA2aVersion, string> = {'1.0': '/a2a/v1', '0.3': '/a2a/v0_3'};
 const KEY_SET_PATH = '/.well-known/jwks.json';
 const REST_PATH = '/rest';
+
+/**
+ * The method an HTTP request calls: JSON-RPC's, or the HTTP+JSON path's last segment for a send
+ * and for a request for the extended card.
+ */
+function methodOf(binding: FakeBinding, req: Request): string | undefined {
+  if (binding === 'JSONRPC') {
+    const method = (req.body as {method?: unknown} | undefined)?.method;
+    return typeof method === 'string' ? method : undefined;
+  }
+  const last = req.path.split('/').pop();
+  if (req.method === 'POST') return last;
+  return req.method === 'GET' && (last === 'extendedAgentCard' || last === 'card')
+    ? last
+    : undefined;
+}
+
+/** gRPC metadata as headers: each plain entry, its key lower-cased. */
+function metadataOf(metadata: grpc.Metadata): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(metadata.getMap())) {
+    if (typeof value === 'string') out[key.toLowerCase()] = value;
+  }
+  return out;
+}
 
 /** Where the fake answers `path`. */
 export function urlOf(urls: FakeBindingUrls, {binding, version}: FakePath): string {
@@ -147,6 +211,8 @@ export interface CardV1Options {
   /** The catalog ids the card declares under the A2UI extension; none declares nothing. */
   catalogs?: string[];
   skills?: {id: string; name: string; description: string; tags: string[]; examples?: string[]}[];
+  /** Whether the card says its agent serves an extended card (task-20.8): its flag. */
+  extendedCard?: boolean;
   /** Card fields beyond the defaults, in A2A 1.0's JSON — `securitySchemes`, `securityRequirements`. */
   card?: Record<string, unknown>;
 }
@@ -168,6 +234,7 @@ export function cardForV1(urls: FakeBindingUrls, options: CardV1Options = {}): A
     })),
     capabilities: {
       streaming: true,
+      ...(options.extendedCard ? {extendedAgentCard: true} : {}),
       extensions: [
         {
           uri: A2UI_EXTENSION_URIS['v0.9.1'],
@@ -352,7 +419,39 @@ export async function startFakeAgentV1(options: FakeAgentV1Options): Promise<Fak
   let served = options.serve ? await options.serve(card, {keySetUrl}) : AgentCard.toJSON(card);
   let keySet: unknown = options.keySet;
 
-  const requestHandler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
+  let extended: FakeExtendedCard | undefined = options.extendedCard;
+  const callerOf = (user: unknown): AdmitRequest => {
+    const headers = user instanceof CallerWithHeaders ? user.headers : {};
+    return {header: name => headers[name.toLowerCase()]};
+  };
+  const requestHandler = new DefaultRequestHandler(
+    card,
+    new InMemoryTaskStore(),
+    executor,
+    undefined,
+    undefined,
+    undefined,
+    async context => {
+      const serving = extended;
+      if (serving === undefined) throw new ExtendedAgentCardNotConfiguredError();
+      if (serving === 'hang') return new Promise<never>(() => {});
+      if (typeof serving !== 'function') return card;
+      return serving(callerOf(context.user)) ?? card;
+    },
+  );
+  /** The extended card's request on an HTTP binding, answered here when it is to hang or be raw. */
+  const extendedOverHttp =
+    (binding: FakeBinding) => (req: Request, res: Response, next: NextFunction) => {
+      const method = methodOf(binding, req);
+      if (method === undefined || !EXTENDED_CARD_METHODS.has(method)) return next();
+      const serving = extended;
+      if (serving === 'hang') return;
+      if (serving === undefined || typeof serving === 'function') return next();
+      const id = (req.body as {id?: unknown} | undefined)?.id ?? null;
+      res.json(binding === 'JSONRPC' ? {jsonrpc: '2.0', id, result: serving.raw} : serving.raw);
+    };
+  const userOfHttp = (req: Request) =>
+    Promise.resolve(new CallerWithHeaders(headersOf(req.headers)));
   app.get('/.well-known/agent-card.json', (_req: Request, res: Response) => {
     res.json(served);
   });
@@ -368,12 +467,7 @@ export async function startFakeAgentV1(options: FakeAgentV1Options): Promise<Fak
       const body = req.body as
         | {method?: string; params?: {message?: Record<string, unknown>}; message?: unknown}
         | undefined;
-      const method =
-        binding === 'JSONRPC'
-          ? body?.method
-          : req.method === 'POST'
-            ? req.path.split('/').pop()
-            : undefined;
+      const method = methodOf(binding, req);
       if (typeof method !== 'string') return next();
       if (admit && !admit(req)) {
         res.status(401).set('WWW-Authenticate', 'Bearer error="invalid_token"').json({});
@@ -397,12 +491,13 @@ export async function startFakeAgentV1(options: FakeAgentV1Options): Promise<Fak
     app.use(
       PATHS[version],
       gate('JSONRPC', () => version),
+      extendedOverHttp('JSONRPC'),
     );
     app.use(
       PATHS[version],
       jsonRpcHandler({
         requestHandler,
-        userBuilder: UserBuilder.noAuthentication,
+        userBuilder: userOfHttp,
         legacyCompat: {enabled: true},
       }),
     );
@@ -411,16 +506,18 @@ export async function startFakeAgentV1(options: FakeAgentV1Options): Promise<Fak
   app.use(
     REST_PATH,
     gate('HTTP+JSON', req => (req.path.startsWith('/v1/') ? '0.3' : '1.0')),
+    extendedOverHttp('HTTP+JSON'),
     restHandler({
       requestHandler,
-      userBuilder: UserBuilder.noAuthentication,
+      userBuilder: userOfHttp,
       legacyCompat: {enabled: true},
     }),
   );
   server.on('request', app);
   // A gRPC call's method and metadata, then its message as the server decoded it, written in
   // A2A 1.0's JSON whichever version the call reached.
-  const userBuilder = UserBuilder.noAuthentication;
+  const userBuilder = (call: {metadata: grpc.Metadata}) =>
+    Promise.resolve(new CallerWithHeaders(metadataOf(call.metadata)));
   for (const version of ['1.0', '0.3'] as const) {
     let called = {method: '', metadata: {} as Record<string, string>};
     const handler = recordingHandler(requestHandler, message =>
@@ -435,7 +532,19 @@ export async function startFakeAgentV1(options: FakeAgentV1Options): Promise<Fak
     );
     const guard = {
       ...(admit ? {admit} : {}),
-      onCall: (method: string, metadata: Record<string, string>) => (called = {method, metadata}),
+      onCall: (method: string, metadata: Record<string, string>) => {
+        called = {method, metadata};
+        if (EXTENDED_CARD_METHODS.has(method)) {
+          requests.push({
+            binding: 'GRPC',
+            reached: version,
+            a2aVersion: metadata['a2a-version'],
+            method,
+            message: undefined,
+            headers: metadata,
+          });
+        }
+      },
     };
     if (version === '1.0') {
       grpcServer.addService(
@@ -465,6 +574,9 @@ export async function startFakeAgentV1(options: FakeAgentV1Options): Promise<Fak
     },
     serveKeySet: next => {
       keySet = next;
+    },
+    serveExtendedCard: next => {
+      extended = next;
     },
     requests,
     connections: () =>

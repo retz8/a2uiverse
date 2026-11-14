@@ -12,10 +12,19 @@ export {
   type Dialed,
   type DialerOptions,
   type DialOptions,
+  type ExtendedCardOptions,
+  type FetchedExtendedCard,
   type NotReached,
   type NotReachedCase,
   type SendOptions,
 } from './dial.js';
+export {
+  takeExtendedCard,
+  type ExtendedCardAnswer,
+  type ExtendedCardOutcome,
+  type TakeExtendedCardOptions,
+  type TakenExtendedCard,
+} from './extendedCard.js';
 export {noneReachedFinding, passedOverNote} from './notReachedWords.js';
 export type {OpenConnection, OpenConnectionOptions} from './opening.js';
 export {

@@ -1,5 +1,5 @@
 import type {AgentCard} from '@a2a-js/sdk';
-import {asksSignIn} from '@a2uiverse/card';
+import {asksSignIn, type AccountCardAdds} from '@a2uiverse/card';
 import {parseSourceId, sourceId, sourceName} from '@a2uiverse/sdk';
 import type {Registry} from '../registry/registry.js';
 
@@ -34,6 +34,13 @@ export interface AppSource {
   source: string;
   label?: string;
   notSignedIn?: true;
+  /** What the account's own card says that the app's card does not (task-20.8 decision 3). */
+  adds?: AccountCardAdds;
+}
+
+/** What each account's own card adds, against the app's card a reader is shown (task 20.8). */
+export interface AccountCardReader {
+  adds(source: string, publicCard: AgentCard | undefined): AccountCardAdds | undefined;
 }
 
 /**
@@ -43,21 +50,33 @@ export interface AppSource {
 export class Sources {
   readonly #registry: Registry;
   readonly #accounts: AccountStore;
+  readonly #accountCards: AccountCardReader | undefined;
 
-  constructor(registry: Registry, accounts: AccountStore = NO_ACCOUNTS) {
+  constructor(
+    registry: Registry,
+    accounts: AccountStore = NO_ACCOUNTS,
+    accountCards?: AccountCardReader,
+  ) {
     this.#registry = registry;
     this.#accounts = accounts;
+    this.#accountCards = accountCards;
   }
 
   /**
-   * An app's sources: one per account the vault holds; the bare app id when its card as installed
-   * asks no sign-in (task-15.5 decision 3); otherwise the one named for the account its sign-in
-   * will create (task-12.2 decision 4).
+   * An app's sources: one per account the vault holds, each with what its own card adds, where it
+   * has one (task-20.8 decision 3); the bare app id when its card as installed asks no sign-in
+   * (task-15.5 decision 3); otherwise the one named for the account its sign-in will create
+   * (task-12.2 decision 4).
    */
   of(appId: string): AppSource[] {
     const held = this.#accounts.accountsOf(appId);
     if (held.length > 0) {
-      return held.map(({n, label}) => ({source: sourceId(appId, n), label}));
+      const shown = this.#registry.dialCard(appId);
+      return held.map(({n, label}) => {
+        const source = sourceId(appId, n);
+        const adds = this.#accountCards?.adds(source, shown);
+        return {source, label, ...(adds ? {adds} : {})};
+      });
     }
     const card = this.#registry.storedCard(appId);
     if (!card || !asksSignIn(card)) return [{source: appId}];

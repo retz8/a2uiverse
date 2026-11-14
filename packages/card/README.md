@@ -36,6 +36,10 @@ Keep `served` at rest, as the agent wrote it. Hand `card` to every reader.
 14. `asksSignIn(card)` is true when every alternative names a scheme. No requirement, or an empty alternative, asks nothing.
 15. `signInFlow(scheme)` says how a scheme signs a person in: `redirect` for OAuth's authorization-code flow and OpenID Connect, `deviceCode` for OAuth's device-code flow.
 16. `redirectFirst(alternatives, flowOf)` is the order the vault, Stellify and the trusted page follow a card's alternatives in: the card's, a sign-in by redirect ahead of the device-code flow.
+17. `servesExtendedCard(card)` is the card's flag, `capabilities.extendedAgentCard`: its agent serves a signed-in caller a card of its own. The reading carries A2A 0.3's `supportsAuthenticatedExtendedCard` into it.
+18. `accountCardAdds(publicCard, accountCard)` is what an account's own card says that the public card does not: its name and its description where they differ, and each skill the public card does not hold the same; `undefined` when it says nothing more. The Planner is shown it under the account.
+19. `signInBeyond(publicCard, accountCard)` is the sign-in an account's card names that the public card does not, each scheme it does not declare and each scope it does not ask, which the platform never reads from an account's card. Stellify notes each one at `preview`.
+20. `atCardVersion(card)` puts every interface of a card written for A2A 0.3 at the version its first one names, as the reading does, for a 0.3 card only the A2A SDK could read.
 
 ## Things worth knowing
 

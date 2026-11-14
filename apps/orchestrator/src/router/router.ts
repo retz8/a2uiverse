@@ -18,23 +18,45 @@ export interface ShortlistEntry {
  * (phase-9 decision 12): "add GitHub to this", "compare these" name nothing of
  * what is on screen, and the Planner plans the child from those sources.
  */
+export interface RouterOptions {
+  shortlistCap: number;
+  /**
+   * The corpus vectors of the app's accounts' own cards (task-20.8 decision 3); none, and an app is
+   * ranked by its public card alone.
+   */
+  accountVectors?: (appId: string) => readonly number[][];
+}
+
 export class Router {
   #registry: Registry;
   #embedder: Embedder;
-  #shortlistCap: number;
+  #options: RouterOptions;
 
-  constructor(registry: Registry, embedder: Embedder, options: {shortlistCap: number}) {
+  constructor(registry: Registry, embedder: Embedder, options: RouterOptions) {
     this.#registry = registry;
     this.#embedder = embedder;
-    this.#shortlistCap = options.shortlistCap;
+    this.#options = options;
   }
 
-  /** The ranked shortlist for `text`, with every routable agent in `keep` past the cap. */
+  /**
+   * The ranked shortlist for `text`, with every routable agent in `keep` past the cap. An app is
+   * ranked by its best-matching card: the public one, or any of its accounts' own (task-20.8
+   * decision 3); its entry carries the public card.
+   */
   async shortlist(text: string, keep: readonly string[] = []): Promise<ShortlistEntry[]> {
     const routable = this.#registry.routable();
     if (routable.length === 0) return [];
     const [query] = await this.#embedder.embed([text]);
-    const ranked = rank(query, routable).map(({record, card, score}) => ({record, card, score}));
-    return ranked.filter((entry, i) => i < this.#shortlistCap || keep.includes(entry.record.id));
+    const vectors = routable.flatMap(app => [
+      app,
+      ...(this.#options.accountVectors?.(app.record.id) ?? []).map(vector => ({...app, vector})),
+    ]);
+    const best = new Map<string, ShortlistEntry>();
+    for (const {record, card, score} of rank(query, vectors)) {
+      if (!best.has(record.id)) best.set(record.id, {record, card, score});
+    }
+    return [...best.values()].filter(
+      (entry, i) => i < this.#options.shortlistCap || keep.includes(entry.record.id),
+    );
   }
 }

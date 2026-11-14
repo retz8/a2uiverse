@@ -1,0 +1,62 @@
+{
+  "name": "Scratch Shop",
+  "description": "an agent for tests",
+  "supportedInterfaces": [
+    {
+      "url": "http://127.0.0.1:53423/a2a/v0_3",
+      "protocolBinding": "JSONRPC",
+      "protocolVersion": "0.3"
+    },
+    {
+      "url": "http://127.0.0.1:53423/rest",
+      "protocolBinding": "HTTP+JSON",
+      "protocolVersion": "0.3"
+    },
+    {
+      "url": "127.0.0.1:53424",
+      "protocolBinding": "GRPC",
+      "protocolVersion": "0.3"
+    }
+  ],
+  "version": "0.1.0",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false,
+    "extensions": [
+      {
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1"
+      }
+    ],
+    "extendedAgentCard": true
+  },
+  "securitySchemes": {
+    "key": {
+      "apiKeySecurityScheme": {
+        "location": "header",
+        "name": "X-Scratch-Key"
+      }
+    }
+  },
+  "securityRequirements": [
+    {
+      "schemes": {
+        "key": {}
+      }
+    }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "skills": [
+    {
+      "id": "shop",
+      "name": "Shop",
+      "description": "The front page",
+      "tags": ["shop"]
+    },
+    {
+      "id": "lanterns",
+      "name": "Lantern repairs",
+      "description": "Your lantern repairs"
+    }
+  ]
+}

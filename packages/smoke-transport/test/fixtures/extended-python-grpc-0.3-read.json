@@ -1,0 +1,59 @@
+{
+  "name": "Scratch Shop",
+  "description": "A scratch shop that serves each signed-in account a card of its own",
+  "supportedInterfaces": [
+    {
+      "url": "http://127.0.0.1:18751/rest",
+      "protocolBinding": "HTTP+JSON",
+      "protocolVersion": "0.3"
+    }
+  ],
+  "version": "0.1.0",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false,
+    "extensions": [
+      {
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+        "params": {
+          "supportedCatalogIds": ["https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"]
+        }
+      }
+    ],
+    "extendedAgentCard": true
+  },
+  "securitySchemes": {
+    "key": {
+      "apiKeySecurityScheme": {
+        "description": "Paste alice or bob.",
+        "location": "header",
+        "name": "X-Scratch-Key"
+      }
+    }
+  },
+  "securityRequirements": [
+    {
+      "schemes": {
+        "key": {}
+      }
+    }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "skills": [
+    {
+      "id": "shop",
+      "name": "Shop",
+      "description": "The scratch shop’s front page",
+      "tags": ["shop"],
+      "examples": ["what is new at the shop"]
+    },
+    {
+      "id": "lanterns",
+      "name": "Lantern repairs",
+      "description": "The lantern repairs this account has booked with the shop, and their state",
+      "tags": ["lanterns"],
+      "examples": ["how are my lantern repairs"]
+    }
+  ]
+}

@@ -15,6 +15,8 @@ import {
   noInterfaceFinding,
   passedNote,
   readCard,
+  servesExtendedCard,
+  signInBeyond,
   spokenInterfaces,
   UnconfirmedCardError,
   type ServedCard,
@@ -38,12 +40,18 @@ import {
 } from '@a2uiverse/sdk';
 import {
   a2aSmokeRunner,
+  Dialer,
   FAILED_STATES,
   noneReachedFinding,
   passedOverNote,
   signInSignalOf,
+  SMOKE_CONNECT_TIMEOUT_MS,
+  takeExtendedCard,
+  type ExtendedCardOptions,
+  type FetchedExtendedCard,
   type SmokeObservation,
   type SmokeRunner,
+  type TakenExtendedCard,
 } from '@a2uiverse/smoke-transport';
 import {credentialHeaders} from './credential.js';
 import {fetchArtifactFile, fetchIndex} from './marketplace.js';
@@ -71,6 +79,60 @@ const neverFinished = (state: string | undefined) =>
 export interface PreviewDeps {
   smoke?: SmokeRunner;
   fetchImpl?: typeof fetch;
+  /** A2A's Get Extended Agent Card over the walk; the dial's own when omitted. */
+  extendedCard?: (options: ExtendedCardOptions) => Promise<FetchedExtendedCard>;
+}
+
+/** What the publisher reads of the card the agent serves their account (task-20.8 decision 14). */
+export const ACCOUNT_CARD_READ =
+  'the agent serves your account a card of its own: the request walks its interfaces, as a dispatch to your account will';
+
+/** The note when the agent served the publisher's account no card of its own. */
+export function noAccountCardNote(taken: TakenExtendedCard, timeoutMs: number): string {
+  return `the agent served your account no card of its own (${whyNone(taken, timeoutMs)}): the preview went ahead on the public card`;
+}
+
+function whyNone({outcome, reason}: TakenExtendedCard, timeoutMs: number): string {
+  switch (outcome) {
+    case 'none':
+      return 'it has none';
+    case 'refused':
+      return 'it refused your credential';
+    case 'unanswered':
+      return reason ?? `it did not answer within ${timeoutMs / 1000} s`;
+    case 'unread':
+      return `it could not be read: ${reason ?? ''}`;
+    case 'unconfirmed':
+      return `it could not be confirmed: ${reason ?? ''}`;
+    default:
+      return reason ?? 'it answered no card';
+  }
+}
+
+/**
+ * The notes on what the account's card names that the platform will not use (task-20.8 decision
+ * 5): a sign-in scheme or a scope the public card does not ask, and a catalog id it does not name.
+ */
+export function unusedOnAccountCard(publicCard: AgentCard, accountCard: AgentCard): string[] {
+  const {schemes, scopes} = signInBeyond(publicCard, accountCard);
+  const named = readSupportedCatalogIds(publicCard);
+  const own = readSupportedCatalogIds(accountCard);
+  const held = new Set(named.ok ? named.value : []);
+  const catalogs = (own.ok ? own.value : []).filter(id => !held.has(id));
+  return [
+    ...schemes.map(
+      scheme =>
+        `your account's card names the sign-in scheme "${scheme}", which the public card does not declare: A2UIVerse never signs in from an account's card`,
+    ),
+    ...scopes.map(
+      ({scheme, scope}) =>
+        `your account's card asks the scope "${scope}" of "${scheme}", which the public card does not ask: A2UIVerse asks only what the card as installed asks`,
+    ),
+    ...catalogs.map(
+      id =>
+        `your account's card names the catalog id "${id}", which the public card does not: A2UIVerse paints your app in the catalogs the public card names`,
+    ),
+  ];
 }
 
 /** The public verb: no transport in its signature, so nothing of the A2A SDK's client reaches the API's types. */
@@ -99,11 +161,10 @@ export async function previewWith(
   // check it, then read as the marketplace will read it (task-20.3 decisions 3, 8; task-20.7
   // decisions 9, 12). Nothing runs after a card that does not pass or does not read.
   let served: ServedCard;
+  const cardTimeoutMs = options.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS;
+  const began = Date.now();
   try {
-    const live = await fetchLiveCard(options.cardUrl, {
-      timeoutMs: options.cardTimeoutMs ?? DEFAULT_CARD_TIMEOUT_MS,
-      fetchImpl,
-    });
+    const live = await fetchLiveCard(options.cardUrl, {timeoutMs: cardTimeoutMs, fetchImpl});
     served = live.served;
     if (live.signature) notes.push(passedNote(live.signature));
   } catch (err) {
@@ -204,12 +265,50 @@ export async function previewWith(
     }
   }
 
+  // The card the agent serves the publisher's account, as the orchestrator fetches a person's
+  // (task-20.8 decision 14): behind the public card's fetch, within what remains of its limit; the
+  // request then walks it. A card listing no interface the platform speaks is a finding.
+  let dialed = card;
+  if (headers && servesExtendedCard(card)) {
+    const timeoutMs = Math.max(cardTimeoutMs - (Date.now() - began), 0);
+    const signal = AbortSignal.timeout(timeoutMs);
+    const ask =
+      deps.extendedCard ??
+      ((asked: ExtendedCardOptions) =>
+        new Dialer({connectTimeoutMs: SMOKE_CONNECT_TIMEOUT_MS, fetchImpl}).fetchExtendedCard(
+          asked,
+        ));
+    const fetched = await ask({card, credential: headers, signal});
+    const taken = await takeExtendedCard(fetched.answer, {
+      cardUrl: options.cardUrl,
+      signal,
+      timeoutMs,
+      fetchImpl,
+    });
+    if (taken.card) {
+      notes.push(ACCOUNT_CARD_READ);
+      if (taken.signature) {
+        notes.push(passedNote(taken.signature).replace(/^the card's/, "your account's card's"));
+      }
+      notes.push(...unusedOnAccountCard(card, taken.card));
+      if (spokenInterfaces(taken.card).length === 0) {
+        findings.push(
+          `your account's card ${noInterfaceFinding(taken.card).replace(/^the card /, '')}`,
+        );
+        return result(null, signIn);
+      }
+      dialed = taken.card;
+    } else {
+      notes.push(noAccountCardNote(taken, timeoutMs));
+    }
+  }
+
   // One request, judged as the marketplace judges a live paint, the paint through the sdk: the
   // entitlement per version as the hub advertises it, each surface judged by its stamp.
   const entitlement = entitlementByVersionOf(declaredByVersion);
   const words = smokeWords(card);
   const seen = await smoke({
-    card,
+    card: dialed,
     entitlement,
     words,
     timeoutMs: options.smokeTimeoutMs ?? DEFAULT_SMOKE_TIMEOUT_MS,
