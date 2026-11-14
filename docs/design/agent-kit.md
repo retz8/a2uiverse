@@ -55,7 +55,8 @@ CONFIG = AgentAppConfig(
     name=APP_NAME,                       # the agent card
     skills=SKILLS,
     a2ui_versions=["v0.9"],              # the A2UI versions it speaks; both when left out
-    default_port=11005,
+    default_port=11005,                  # JSON-RPC and HTTP+JSON
+    default_grpc_port=11105,             # gRPC
     catalog_path=_AGENT_DIR.parent / "linear-catalog" / "catalogs" / "v0.9.1" / "catalog.json",
     catalog_kind="custom",               # Linear's own catalog, in its design language
     role_description=prose.ROLE_DESCRIPTION,
@@ -85,7 +86,7 @@ run(CONFIG)
 
 The config carries two kinds of thing: **data** (names, ports, paths, prose) and **callables** (the canned-response pair, the tools, the question policy). Passing behavior in as functions, instead of subclassing a base agent, keeps every app's differences in one readable place.
 
-### 2. Three run modes on one port, with one agent card
+### 2. Three run modes on the same ports, with one agent card
 
 Every agent runs in one of three modes, chosen by `--mode`:
 
@@ -95,7 +96,7 @@ Every agent runs in one of three modes, chosen by `--mode`:
 | `stub`          | the model, over canned tool data        | the model's key                          |
 | `live`          | the model, over the vendor's MCP server | the model's key and the vendor's credential |
 
-The modes differ in exactly one place. `deterministic` uses a different executor (no model at all). `stub` and `live` use the same model executor and differ only in **which tools** the model is handed: the config's `stub_tools`, or what `live_toolset_factory()` returns. Everything else, the server, the card, the port, the catalog, is identical.
+The modes differ in exactly one place. `deterministic` uses a different executor (no model at all). `stub` and `live` use the same model executor and differ only in **which tools** the model is handed: the config's `stub_tools`, or what `live_toolset_factory()` returns. Everything else, the server, the card, the ports, the catalog, is identical.
 
 That includes the **agent card**. One card describes the agent in every mode, because the mode is a launch detail. A card describing "the no-model demo harness" would describe something no user asks for, and A2UIVerse's Router, which ranks agents by their cards, would rank it against nothing.
 
@@ -160,7 +161,7 @@ Here's the Linear agent in `live` mode, answering the Planner's request:
 
 ```mermaid
 flowchart TD
-    IN["A2A message/send arrives<br/>(streaming)"] --> P["Resolve the prompt<br/>text, or an action framed as text,<br/>plus the client's data model"]
+    IN["A streaming A2A request arrives<br/>on any of the six paths"] --> P["Resolve the prompt<br/>text, or an action framed as text,<br/>plus the client's data model"]
     P --> M["Model streams tokens<br/>calling Linear's MCP tools on the way"]
     M --> PARSE["Streaming parser<br/>pulls out A2UI messages"]
     M --> TAGS["Tag filter<br/>pulls out paint titles"]
@@ -173,7 +174,7 @@ flowchart TD
     V -->|"invalid again"| TD["Delete what was painted,<br/>apologize in text"]
 ```
 
-**1. The request arrives.** The kit's server is the A2A SDK's Starlette app with the kit's executor behind it. A streaming `message/send` reaches `LlmAgentExecutor.execute`, which opens an A2A task for the answer.
+**1. The request arrives.** The kit's server is the Python A2A SDK's request handler with the kit's executor behind it, served on six paths: JSON-RPC, HTTP+JSON and gRPC, each at A2A 1.0 and 0.3 ([Six paths, one handler](#six-paths-one-handler)). A2UIVerse sends a streaming request on the first path Linear's card lists that it speaks, JSON-RPC at A2A 1.0 by default. It reaches `LlmAgentExecutor.execute`, which opens an A2A task for the answer.
 
 **2. The prompt is resolved.** Usually the message carries text: the Planner's request. When it carries a click instead (an A2UI action, like opening an issue), there's no text, so the kit frames one: _"The user activated the "open-issue" action on the current surface. Compose the next surface…"_, with the action's values listed. Either way, if the client sent its current data model (surfaces created with `sendDataModel: true` report it with every message, under `a2uiClientDataModel`), that's appended too, so the model sees edits the user made locally, like a checked box.
 
@@ -365,35 +366,76 @@ Beside it, `tool_shaping.py` gives apps a walker for annotating results with not
 
 When a client cancels (A2A's `tasks/cancel`), the SDK calls the executor's `cancel`, which answers with a bare `canceled` status, and then cancels the running `execute`. The `CancelledError` lands wherever the attempt was waiting, usually on the model stream. The attempt's `finally` closes the stream, which stops ADK's run, and no further attempt starts. An MCP call already sent is abandoned: the server finishes it, and the reply goes nowhere.
 
-A2A says a task that reached a terminal state (`completed`, `canceled`, `rejected`, `failed`) can't be restarted. The A2A SDK's in-memory store didn't hold that line: it handed every reader the same object, the readers updated it in place, and a `working` update still queued could land after `canceled`, leaving the task reading `working`. The kit's `TerminalGuardedTaskStore` keeps **its own copy** of each task, hands out **copies**, and **refuses to overwrite** a task that already ended.
+A2A says a task that reached a terminal state (`completed`, `canceled`, `rejected`, `failed`) can't be restarted. Nothing in the A2A SDK's in-memory store holds that line: after a client closes its stream the SDK can keep reading the task in the background while the cancel reads it again, and a `working` update still queued could land after `canceled`, leaving the task reading `working`. On its 0.3 line the store also handed every reader the same object to update in place; the 1.x store keeps and hands out copies. The kit's `TerminalGuardedTaskStore` is the SDK's in-memory store that **refuses to overwrite** a task that already ended.
 
 ### Sign-in: the agent's own front door
 
 Sign-in is explained end to end in [`authority.md`](authority.md). The kit's part in brief: an app that needs its user signed in puts a `SignIn` on its config, its scopes in its customer's words, the scopes the first sign-in asks, which actions and tools need which scopes, its made-up accounts, and its live **upstream**, the vendor's own sign-in. The agent then becomes its own sign-in front door:
 
-- the card declares one `oauth2` scheme, `signIn`, with its `scopes` map, and `security` asks for the first sign-in's scopes;
+- the card declares one `oauth2` scheme, `signIn`, with its `scopes` map and no `pkceRequired`, and `securityRequirements` asks for the first sign-in's scopes;
 - `sign_in_server.py` serves an OAuth authorization server beside A2A, on Authlib: metadata, `/oauth/authorize` with S256 PKCE, a token endpoint whose refresh tokens rotate, registration by a client ID metadata document or dynamically, revocation, and an ID token signed ES256 with the account's `sub` and display claims;
-- an A2A request without a live token the agent issued is answered 401, and inside a request `current_account()` is the signed-in account;
-- an action or tool needing a scope the token lacks raises `AuthRequired`, which ends the run in A2A's `auth-required` naming the missing scope keys, in A2A 0.3's requirement shape, `{"security": [{"signIn": [...]}]}`. A2UIVerse reads that shape and A2A 1.0's.
+- an A2A call on any of the six paths without a live token the agent issued is refused for sign-in, and inside a request `current_account()` is the signed-in account ([One check over every call](#one-check-over-every-call));
+- an action or tool needing a scope the token lacks raises `AuthRequired`, which ends the run in A2A's `auth-required` naming the missing scope keys, in A2A 1.0's requirement shape, `{"securityRequirements": [{"schemes": {"signIn": {"list": [...]}}}]}`, to a caller on either A2A version. The answer ends there, on all six paths.
 
-The account comes from the upstream. In deterministic and stub mode that's a chooser over the made-up accounts, and `fake_account=<id>` on the sign-in address skips it, for recordings and tests. In live mode it's `VendorOAuth`, the vendor's OAuth: the agent keeps the vendor's token, refreshes it, and hands each MCP connection its account's token; the client only ever holds the token the agent issued. An app signed in with a key uses `ApiKeySignIn` instead. Each agent keeps its accounts, tokens and signing key in an owner-only store, `<app>/agent/.state/sign-in.json`, or under `--state-dir`.
+The account comes from the upstream. In deterministic and stub mode that's a chooser over the made-up accounts, and `fake_account=<id>` on the sign-in address skips it, for recordings and tests. In live mode it's `VendorOAuth`, the vendor's OAuth: the agent keeps the vendor's token, refreshes it, and hands each MCP connection its account's token; the client only ever holds the token the agent issued. An app signed in with a key uses `ApiKeySignIn` instead. Each agent keeps its accounts, tokens and ID-token signing key in an owner-only store, `<app>/agent/.state/sign-in.json`, or under `--state-dir`. The kit's own sign-in offers the authorization-code flow alone; the device-code flow A2UIVerse signs in by is the hand-written A2A 1.0 agent's.
 
 ### One card, every mode: the server
 
-`server.py` builds the agent card from the config. Its A2UI entries follow the app's version set: upstream's card helper, `get_a2ui_agent_extension`, once per version the app speaks, oldest first, each naming the catalog ids the app supports. A card takes one of three shapes:
+`server.py` builds the agent card from the config. Its A2UI entries follow the app's version set, written as upstream's card helper `get_a2ui_agent_extension` writes them: once per version the app speaks, oldest first, each naming the catalog ids the app supports. A card takes one of three shapes:
 
 | `a2ui_versions` | The card's A2UI entries |
 | --- | --- |
 | `["v0.9"]` | one entry under `…/a2ui/v0.9`, its params flat, as upstream's helper writes them |
-| `["v0.9.1"]` | one entry under `…/a2ui/v0.9.1`, the helper's params keyed under `v0.9.1` by the kit |
+| `["v0.9.1"]` | one entry under `…/a2ui/v0.9.1`, its params keyed under `v0.9.1` by the kit |
 | both | the v0.9 entry, then the v0.9.1 entry, both flat |
+
+The card is served by the Python A2A SDK's own card route, at `/.well-known/agent-card.json`: in A2A 1.0's shape, with A2A 0.3's fields merged in, since the card lists paths at A2A 0.3. Before the move to A2A 1.0 and after it, every app's card reads as the same card, how the agent is reached set aside: the platform's card package's `sameCard` says so of all seven.
 
 `cli.py` runs the app with uvicorn. Two details come from running agents through a dev tunnel:
 
 - **CORS** allows `localhost` on any port and `*.devtunnels.ms`.
 - **Keep-alive is 300 seconds**, not uvicorn's 5. With 5, an idle connection between turns was closed by the server while a tunnel kept reusing it, and the next request hung.
 
-`--base-url` sets the address the card advertises, for when the client reaches the agent through a tunnel or proxy. With sign-in on, `--public-url` sets where the browser reaches the sign-in pages (the sign-in page, the account chooser's form and the finish address a vendor returns to) while the card's endpoint, the metadata and the token endpoint stay on `--base-url`.
+`--base-url` sets the address the card advertises for JSON-RPC and HTTP+JSON, for when the client reaches the agent through a tunnel or proxy. With sign-in on, `--public-url` sets where the browser reaches the sign-in pages (the sign-in page, the account chooser's form and the finish address a vendor returns to) while the card's endpoints, the metadata and the token endpoint stay on `--base-url`.
+
+### Six paths, one handler
+
+A path is one binding at one A2A version. A kit agent answers all six, from one request handler of the Python A2A SDK:
+
+| Binding | Where it answers | A2A versions |
+| --- | --- | --- |
+| JSON-RPC | the base URL itself, `http://localhost:11005` for Linear | 1.0 and 0.3, one route |
+| HTTP+JSON | under the base URL's `/rest`, `http://localhost:11005/rest` | 1.0 and 0.3, one route set |
+| gRPC | the gRPC port, `localhost:11105` | 1.0 and 0.3, the two services side by side on one server |
+
+The four HTTP paths share the app's HTTP port, and gRPC has a port of its own, from `default_grpc_port` on the config and `--grpc-port` at launch, as the HTTP port comes from `default_port` and `--port`. The gRPC server starts and stops with the HTTP app, in its lifespan, with gRPC's port reuse turned off, so a gRPC port another process holds stops the app as a taken HTTP port does. The card lists each gRPC interface as a bare `host:port`, the launch host and the gRPC port. HTTP+JSON's routes come last among the app's routes, since they end with a catch-all for a tenant prefix.
+
+The card lists the six in the order `interfaces` on the config gives, A2A 1.0's three first by default (`bindings.py`). A client takes the first one it speaks, so the order is the publisher's way to put an app on one path. The list names all six, each once: a list that repeats a path, names another or leaves one out stops the app at startup.
+
+What rides each path is the same. An A2UI part is one A2UI message, marked by upstream's mapping, `application/json+a2ui` for a message stamped v0.9 and `application/a2ui+json` for one stamped v0.9.1, in the part's metadata `mimeType` and in its `media_type`, as upstream's pull request 3162 writes it on `a2a-sdk` 1.x. `paintMeta` is marked `application/a2ui-shell+json` in both fields, the string A2UIVerse writes for its own. The auth-required request is unmarked. On A2A 0.3 the SDK's 0.3 layer writes `media_type` nowhere, and toward an agent on A2A 0.3 over HTTP+JSON and gRPC the A2A SDK A2UIVerse dispatches with drops a part's metadata altogether (finding 9 in the [A2A findings file](../../_dev/a2a-findings.md)): a press from A2UIVerse reaches Shop B on gRPC at A2A 0.3 with no mark at all. So the kit reads a press by what its `data` holds and reads no mark ([A2UI versions, per request](#a2ui-versions-per-request)).
+
+`wire.py` holds the kit's reading and writing of A2A parts and messages on the SDK's protobuf types. A part's `data` is a protobuf `Value`, which holds every number as a double; the kit reads a whole double back as an `int`, so an app's answer code and the model see a press's values as the client sent them.
+
+### One check over every call
+
+An app with sign-in has every A2A call carry its credential, the bearer token the kit's sign-in issued or one of the app's keys (`gates.py`). The SDK checks none itself: not on gRPC, and not for the extended card's call on any path.
+
+| Path | Where the credential is read | A refusal |
+| --- | --- | --- |
+| JSON-RPC, HTTP+JSON | the HTTP header the card's scheme names: `Authorization`, or the key's header | HTTP 401 |
+| gRPC | the metadata entry under that header's name in lowercase: `authorization`, `x-northlight-key` for Shop B | `UNAUTHENTICATED` |
+
+The check covers JSON-RPC's `POST` at the base URL and every route under `/rest` on the HTTP side, as an ASGI middleware, and every method of both gRPC services, as a gRPC server interceptor. The card, the sign-in routes and the card's key set stay open. The signed-in account rides the call context the executor reads, under `auth`, and names the call's owner, so a task is the same account's on every path. A key whose header name gRPC can't carry as a plain metadata entry (a name of `0-9`, `a-z`, `_`, `-` and `.` once lowercased, not starting `grpc-` or ending `-bin`) stops the app at startup.
+
+### Signing the card
+
+`sign_card=True` on the config signs the card (`card_signing.py`). At its first run the kit makes a P-256 key and keeps it in `card-signing-key.json`, an owner-only file in the state directory, apart from the sign-in store's ID-token key, which an app with no sign-in or a key sign-in doesn't have. The kit signs every card it serves with it, the public card and each account's own, under ES256, with the Python A2A SDK's own signer, and serves the key set at `/.well-known/jwks.json` under the base URL. Each signature's protected header names `alg`, `typ` (`JOSE`), `kid` and the key set's URL as `jku`, on the card URL's own origin, where A2UIVerse looks for it. A signed Shop B card passes the card package's own check, the one the orchestrator, the marketplace and Stellify run. Off by default.
+
+The SDK serves the card with A2A 0.3's fields merged into the 1.0 form the signature covers, and A2UIVerse's check passes it. An account's card on the three A2A 0.3 paths comes back in A2A 0.3's shape with the signature over its 1.0 form still on it, which no verifier passes; A2UIVerse takes a card in A2A 0.3's shape as an unsigned card is.
+
+### An account's own card
+
+`account_skills` on the config is a function from the signed-in account to that account's skills. Set, the card says it serves an extended card, `capabilities.extendedAgentCard`, and A2A's Get Extended Agent Card brings the account its own: the public card with those skills in place of the card's own, signed when signing is on. The call is an A2A call like any other, refused without the account's credential, on all six paths. An app that sets the function and has no sign-in stops at startup. Off by default.
 
 ### A2UI versions, per request
 
@@ -403,16 +445,16 @@ Every app runs the same path on every request; a single-version app's choice alw
 
 ```mermaid
 flowchart LR
-    REQ["A request<br/>the A2UI extensions it names"] --> CH["The choice<br/>a2ui-a2a's activation helper,<br/>against the app's card"]
+    REQ["A request<br/>the A2UI extensions it names"] --> CH["The choice<br/>as upstream's helper chooses,<br/>against the app's card"]
     CH --> ACT["The actions taken<br/>stamps the version's schema admits"]
     CH --> ENT["The entitlement<br/>read under the version's key first"]
     CH --> ST["The stamp<br/>on every A2UI part sent"]
 ```
 
-1. **The choice.** Both executors call a2ui-a2a's `try_activate_a2ui_extension` once per request with the card the app serves. It returns the newest version the request names in its A2A extensions that the card advertises, and registers its URI as activated, which A2A names back in the response's `X-A2A-Extensions` header. A request naming none of the app's versions takes the app's newest. The header goes back on a `message/send`; on a `message/stream`, A2A's SDK writes the response's headers before the agent runs, so a streamed answer carries its version in the stamp alone. It's finding 1 in the [A2A findings file](../../_dev/a2a-findings.md).
-2. **The actions.** One extractor takes an action whose stamp the chosen version's client-to-server schema admits: v0.9's requires `v0.9`, and v0.9.1's admits `v0.9` and `v0.9.1`. The extractor reads one message per part, which is how A2UIVerse writes a press. A data part stamped otherwise isn't an action, and the message falls through as one carrying nothing: the "Unhandled event" paint in deterministic mode, the apology with no model call in the model modes.
+1. **The choice.** Both executors choose once per request against the card the app serves, as upstream's helper `try_activate_a2ui_extension` chooses: the newest version the request names in its A2A extensions, in the extensions header or on the message, that the card advertises. A request naming none of the app's versions takes the app's newest. No response names the choice: `a2a-sdk` 1.x gives an executor no way to mark an extension activated, on any of the six paths, so the stamp on each A2UI message carries it.
+2. **The actions.** One extractor takes an action whose stamp the chosen version's client-to-server schema admits: v0.9's requires `v0.9`, and v0.9.1's admits `v0.9` and `v0.9.1`. It reads a part by what its `data` holds, one message or a bare list of messages, each entry judged on its own, and reads no mark. A list still wrapped as `{value: [...]}` isn't read. A data part stamped otherwise isn't an action, and the message falls through as one carrying nothing: the "Unhandled event" paint in deterministic mode, the apology with no model call in the model modes.
 3. **The entitlement.** The catalog ids the client renders are read from its `a2uiClientCapabilities` under the chosen version's key first, then under the other version's, then flat. The catalog line a turn is painted in is chosen from them ([below](#an-old-catalog-line-beside-the-new-one)).
-4. **The stamp.** `stamped_part` is the one place a message becomes an A2A part. It writes the chosen version over whatever the message carried: a fixture's `v0.9`, the model's own writing, and the kit's own deletes and unhandled-event paint, which carry none. It hands the version to upstream's part helper, so the part's MIME type follows upstream's mapping: `application/json+a2ui` for v0.9, `application/a2ui+json` for v0.9.1. A2UIVerse reads no mark, so either is read. `paintMeta` parts are left as they are.
+4. **The stamp.** `stamped_part` is the one place a message becomes an A2A part. It writes the chosen version over whatever the message carried: a fixture's `v0.9`, the model's own writing, and the kit's own deletes and unhandled-event paint, which carry none. The part is marked by upstream's mapping, in its metadata's `mimeType` and in its `media_type`: `application/json+a2ui` for v0.9, `application/a2ui+json` for v0.9.1. A2UIVerse reads no mark, so either is read. `paintMeta` parts are left as they are.
 
 Fixtures and recordings stay written in `v0.9`, the kit's `FIXTURE_VERSION`, and the recorder keeps a part in either version the kit speaks as it went out. The version a catalog is read at, and the protocol schemas the prompt shows the model, stay v0.9's.
 
@@ -425,7 +467,6 @@ Two requests to a both app, like Calendar:
 | Its actions | stamped `v0.9`, which v0.9.1's schema admits | stamped `v0.9` |
 | The entitlement | read under its `v0.9.1` key; the hub writes each version's set under its key | under `v0.9` when it keys them, flat otherwise |
 | The answer | stamped `v0.9.1`, as `application/a2ui+json` | stamped `v0.9`, as `application/json+a2ui` |
-| The activation header | none: the hub streams | the v0.9 URI on a `message/send`, none on a stream |
 
 A v0.9-only app answers the hub in v0.9, the one version of the two it speaks. A v0.9.1-only app asked by a client naming v0.9 alone still answers in v0.9.1: the request names nothing it speaks.
 
@@ -482,9 +523,9 @@ The apps in the repo don't pin: they take the kit as an **editable path dependen
 
 The kit knows nothing about A2UIVerse. The connection is made from A2UIVerse's side:
 
-- **The launcher** in the `a2uiverse` repo names each app in its roster — its folder, its tier and its port — and starts its agent through the kit's own entrypoint on that port: `uv run python -m app --mode <mode> --host localhost --port <port>`. It packs the app's catalog package with Stellify and installs the app into the orchestrator from the agent's card URL; [app-install.md](app-install.md) follows an install from the pack to the first paint.
-- **The orchestrator's AuthVault** signs in to the agent through its front door, as the card declares, and sends the token it issued as a header on every request; see [authority.md](authority.md).
-- **The orchestrator** talks A2A to the agent like any client. It renames the agent's surfaces (`assigned-issues` becomes `linear:assigned-issues`) and places them in the app's slot; see [orchestrator.md](orchestrator.md).
+- **The launcher** in the `a2uiverse` repo names each app in its roster — its folder, its tier and its port — and starts its agent through the kit's own entrypoint on that port: `uv run python -m app --mode <mode> --host localhost --port <port>`. gRPC answers on the config's `default_grpc_port`; under `--mode live --publish` the deterministic copy a sign-in app is previewed from takes a free HTTP port and a free `--grpc-port`, apart from the live agent's. It packs the app's catalog package with Stellify and installs the app into the orchestrator from the agent's card URL; [app-install.md](app-install.md) follows an install from the pack to the first paint.
+- **The orchestrator's AuthVault** signs in to the agent through its front door, as the card declares, and sends the token it issued on every request, as a header or, on gRPC, as metadata; see [authority.md](authority.md).
+- **The orchestrator** talks A2A to the agent like any client, on the first path the card lists that it speaks, and asks for each account's own card when the card says the agent serves one; see [card.md](card.md). It renames the agent's surfaces (`assigned-issues` becomes `linear:assigned-issues`) and places them in the app's slot; see [orchestrator.md](orchestrator.md).
 - **The canvas** reads `paintMeta`, and draws the answer with the app's catalog; see [client.md](client.md).
 - **The Store** reads the card as published: the Planner's search shows a published app's name, publisher, description and skills, and the slot that needs it offers the app; an app whose card names no catalog id it's installed with takes the update tile; see [store-loop.md](store-loop.md). When the answer is joined with other apps' answers, [synthesis.md](synthesis.md) takes over.
 
@@ -493,7 +534,7 @@ The kit knows nothing about A2UIVerse. The connection is made from A2UIVerse's s
 | Decision | What it buys | What it costs |
 | --- | --- | --- |
 | **An app is one config object** | Every app's differences in one place; the kit never guesses | Adding a new kind of per-app behavior means a new config field |
-| **Three modes, one port, one card** | Any mode drops in for any other; the card always describes the product | The card says nothing about which mode is running; the log does |
+| **Three modes, the same ports, one card** | Any mode drops in for any other; the card always describes the product | The card says nothing about which mode is running; the log does |
 | **A model named by its provider, Claude through ADK's own Anthropic class** | Any Gemini model as ADK takes it, and a Claude model by one variable, with no generic road to keep | A third provider is a road the kit doesn't have; Claude on the kit has three limits |
 | **`gemini-3.8-flash` at `low` by default** | An answer's first token at a median 3.2 s, against 48.5 s when the model thought as long as it liked | Less thought behind each answer, and Gemini's `low` still thinks on GitHub |
 | **Each model request measured at ADK's model hooks** | Every request's first token, generation and usage, in the log and the recorded turn, with the responder protocol and every test's fake untouched | It leans on ADK's callbacks and usage shape; a request is closed by the next, not by its own last response |
@@ -505,9 +546,15 @@ The kit knows nothing about A2UIVerse. The connection is made from A2UIVerse's s
 | **Canned data derived from one live run** | Stub and deterministic data are real-shaped, never invented | Refreshing them means a new live run, with real credentials |
 | **Titles and questions as tags beside A2UI** | A2UI stays standard; any client ignores what it doesn't know | The model must write the tags; the prose teaches it, and the question policy checks it |
 | **Tool hooks at the lowest boundary** | One payload each way, never a second copy for the model to read | Re-classing ADK's tool objects relies on ADK's internals |
-| **Terminal tasks can't move** | A cancelled task stays cancelled | A store of the kit's own, until the A2A SDK's next major line reads each task once |
+| **Terminal tasks can't move** | A cancelled task stays cancelled | A store of the kit's own over the SDK's, refusing a write the SDK would make |
 | **An old catalog line beside the new one** | A breaking catalog change ships as a suggested update; installs on the old id keep getting answers in it | Two lines to keep until the old one retires: its catalog, examples, brand doc and deterministic answers |
-| **A version set per app, each request's version chosen by a2ui-a2a's activation helper and stamped at send** | An app speaks v0.9, v0.9.1 or both from one field; a both app answers each client in the version it asked for, with no choosing code of the kit's own | Fixtures, the prompt and the catalog stay written to v0.9's schemas whatever the set, a v0.9.1 answer being that content restamped; the activation header misses a streamed answer |
+| **A version set per app, each request's version chosen as upstream's helper chooses and stamped at send** | An app speaks v0.9, v0.9.1 or both from one field; a both app answers each client in the version it asked for | Fixtures, the prompt and the catalog stay written to v0.9's schemas whatever the set, a v0.9.1 answer being that content restamped; no response names the choice |
+| **The kit's own part-building in place of `a2ui-a2a`** | The kit on `a2a-sdk` 1.x ahead of upstream, writing what upstream's helper writes there | A few dozen lines of the kit's own to keep in step with upstream's mapping, until `a2ui-a2a` allows `a2a-sdk` 1.x |
+| **Six paths, in an order the publisher sets** | Any client of either A2A version reaches the agent on any standard binding, and the roster can put each path first on a real agent | Two ports per app, and a gRPC server beside the HTTP app |
+| **One credential check over every call** | A credential means the same on every path, the extended card's call among them | The kit's own middleware and gRPC interceptor, since the SDK checks none |
+| **A press read by its content** | A press reaches the agent whatever mark survives the path, one message or a list | A part holding an A2UI-shaped object is read whatever its mark says |
+| **The card signed with a key the kit makes** | One field turns signing on, with nothing to provision | One key per state directory; rotating it means deleting the file, and the next run makes a new one |
+| **An account's card from one function** | An app says what each account can do in code it already has | The account's card differs from the public one in its skills alone |
 | **Apps pin the kit by commit when outside the repo** | A scaffolded app keeps working as the kit moves | Taking a kit change means re-pinning |
 
 ## Trying it without a model
@@ -528,26 +575,30 @@ In `a2uiverse-apps/agent-kit/src/a2ui_agent_kit/`:
 
 | Module                         | What it does                                                                                   |
 | ------------------------------ | ---------------------------------------------------------------------------------------------- |
-| `config.py`                    | `AgentAppConfig`, `CatalogLine`, and the default model and thinking tier                        |
+| `config.py`                    | `AgentAppConfig`, `CatalogLine`, and the default model and thinking tier; the startup refusals  |
+| `bindings.py`                  | The six paths and their default order; the metadata key a credential rides under on gRPC        |
 | `catalog_lines.py`             | The current and the old catalog line: the ids the card names, the line a turn is painted in     |
 | `cli.py`                       | The entrypoint: flags, `.env` loading, logging, uvicorn                                         |
-| `server.py`, `task_store.py`   | The A2A app, the one agent card, CORS; the terminal-guarded task store                          |
+| `server.py`, `task_store.py`   | The six paths, the one agent card, the gRPC server in the HTTP app's lifespan, an account's card, CORS; the terminal-guarded task store |
+| `gates.py`                     | The one credential check over every A2A call, on the HTTP paths and on gRPC                     |
+| `card_signing.py`              | The card's signing key, its signer and its key set                                              |
+| `wire.py`                      | The A2A parts and messages the kit reads and writes, on the SDK's protobuf types               |
 | `modes.py`                     | Mode to executor; the ADK agent with the mode's tools, its model and its thinking tier          |
 | `measurement.py`               | Each model request's time to first token, generation and usage, at ADK's model hooks           |
 | `executor_llm.py`              | Streaming through the SDK's parser and the stream filter, validation at the end, the retry, cancel |
 | `executor_deterministic.py`, `responses.py` | The no-model executor; the fixture responder and stub fixture loader                |
 | `responder.py`                 | The responder protocol, and the ADK-backed implementation with a session per context          |
-| `catalog.py`, `versions.py`    | Catalog loading through the SDK's `CatalogConfig`, `validate_surface` and `validate_update` around its `validate_payload`; the versions the kit speaks and their extension URIs, an app's version set checked, each request's version chosen through a2ui-a2a's activation helper, the stamp at send, the actions each version admits, the version fixtures are written in and the one a catalog is read at |
+| `catalog.py`, `versions.py`    | Catalog loading through the SDK's `CatalogConfig`, `validate_surface` and `validate_update` around its `validate_payload`; the versions the kit speaks and their extension URIs, an app's version set checked, each request's version chosen as upstream's helper chooses, the card's A2UI entries, the A2UI part and its mark, a press read by content, the stamp at send, the actions each version admits, the version fixtures are written in and the one a catalog is read at |
 | `upstream_patches.py`          | The local fix over `a2ui-core`'s child-reference fallback, applied at import (finding 16)      |
 | `prompt.py`, `knowledge.py`    | System prompt assembly around the SDK's base rules, schema block and examples: the three rules every app gets, the config's prose, domain doc and brand guide |
 | `paint_meta.py`                | The tag filter, the `paintMeta` part, the two question policies                                 |
 | `toolset.py`, `tool_shaping.py`| The MCP tool hooks; the annotation walker                                                       |
 | `recorder.py`, `corpus.py`, `beats.py` | Recording what was painted and what was read; the beat driver                           |
-| `sign_in.py`, `sign_in_server.py`, `sign_in_store.py`, `sign_in_fake.py`, `sign_in_vendor.py` | Sign-in: the config, the authorization server and the 401, the store, the made-up accounts' chooser, the vendor's OAuth |
+| `sign_in.py`, `sign_in_server.py`, `sign_in_store.py`, `sign_in_fake.py`, `sign_in_vendor.py` | Sign-in: the config, the authorization server, the store, the made-up accounts' chooser, the vendor's OAuth |
 | `preview_credential.py`        | A token from the running agent for Stellify's preview, signed in as one of its made-up accounts |
-| `testing.py`                   | Run an executor in-process, for tests                                                           |
+| `testing.py`                   | Run an executor in-process, or the agent on its ports signed in as a vault would, for tests     |
 
-The kit pins upstream's A2UI packages exactly, in `pyproject.toml`: `a2ui-agent-sdk` 0.9.0, `a2ui-core` 0.4.0 beneath it, and the A2A toolkit `a2ui-a2a` 0.1.0.
+The kit pins upstream's A2UI packages exactly, in `pyproject.toml`: `a2ui-agent-sdk` 0.9.0 and `a2ui-core` 0.4.0 beneath it, and the Python A2A SDK at `a2a-sdk[http-server,grpc,signing]>=1.3.0,<2.0.0`. Upstream's A2A toolkit `a2ui-a2a` requires `a2a-sdk` below 0.4.0, so the kit writes its own part in its place. The kit's tests drive an agent over real sockets on each of the six paths with the Python A2A SDK's own client (`tests/test_six_paths.py`).
 
 The scaffolder is `a2uiverse-apps/create-a2ui-agent/`: `src/cli.ts` (flags and the flow), `src/prompts.ts` (the walkthrough), `src/scaffold.ts` (composing templates), `src/generate.ts` (the three generated files), `src/kit.ts` (the pin), `src/ports.ts`, and `templates/`. Its drift gate is `test/scaffold-run.test.ts`.
 
@@ -566,6 +617,12 @@ The scaffolder is `a2uiverse-apps/create-a2ui-agent/`: `src/cli.ts` (flags and t
 | **Thinking tier** | `MODEL_EFFORT`: `low`, the least thinking the model's provider offers, or `default`, the provider's own |
 | **Request record** | One model request's instants, how it ended and its usage, kept in the recorded turn |
 | **Mode** | `deterministic`, `stub` or `live`: who answers |
+| **Path** | One binding at one A2A version: JSON-RPC, HTTP+JSON or gRPC, at A2A 1.0 or 0.3; an agent answers six |
+| **gRPC port** | The port gRPC answers on, beside the HTTP port JSON-RPC and HTTP+JSON share; 100 above it in this repo |
+| **Press** | The A2UI `action` message a client sends when the person presses something inside a fragment |
+| **Mark** | The MIME type a data part carries, in its metadata's `mimeType` or its own `media_type` |
+| **Key set** | The public half of the card's signing key, served at `/.well-known/jwks.json` |
+| **Account's card** | The extended card an agent serves one signed-in account: the public card with that account's skills |
 | **Version set** | `a2ui_versions`: the A2UI versions an app speaks, `v0.9`, `v0.9.1` or both; it decides the card's entries, each request's version, its stamp and the actions taken |
 | **Executor** | The A2A SDK's name for the object that answers a request |
 | **Responder** | The kit's wrapper that streams the model's text |

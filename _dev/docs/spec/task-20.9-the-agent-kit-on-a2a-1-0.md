@@ -139,6 +139,8 @@ The kit, each app's own `a2a-sdk` pin, and the scaffolder's generated pin and ki
 
 20.9 changes no code in `a2uiverse`: no release of a platform package, and the Stellify pin in `a2uiverse-apps` does not move. The contract is untouched. What a kit agent writes is described in the agent kit's design record.
 
+*Amended on 2026-11-14, in 20.9's implementation.* The launcher in `a2uiverse/scripts` gives the deterministic copy it previews a sign-in app from under `--mode live --publish` a free `--grpc-port` beside its free HTTP port, and the kit turns gRPC's port reuse off, so a taken gRPC port stops an agent. No platform package is released.
+
 ### 20. 20.9's implementation starts after 20.8 lands
 
 The proof of an account's card against the platform (decision 21, item 4) needs 20.8 (the extended card read for a signed-in account) on `main`.

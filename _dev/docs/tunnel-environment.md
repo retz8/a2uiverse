@@ -41,7 +41,7 @@ working with this repo.
 
 ## Ports
 
-Platform processes are `1000x`; vendor agents are `11001+` and mock agents `12001+`, one port per app regardless of run mode. The browser talks to the orchestrator, and opens the vendor agents' sign-in pages; the orchestrator reaches the agents on `localhost`. The mock agents need no tunnel: shop-b's key is entered on the orchestrator's own page.
+Platform processes are `1000x`; vendor agents are `11001+` and mock agents `12001+`, one port per app regardless of run mode, for JSON-RPC and HTTP+JSON. Each agent answers gRPC on a second port, 100 above it: `11101+` and `12101+`, never through the tunnel. The browser talks to the orchestrator, and opens the vendor agents' sign-in pages; the orchestrator reaches the agents on `localhost`. The mock agents need no tunnel: shop-b's key is entered on the orchestrator's own page.
 
 | Process | Port | Tunnel | Repo |
 |---|---|---|---|
@@ -50,7 +50,9 @@ Platform processes are `1000x`; vendor agents are `11001+` and mock agents `1200
 | marketplace | 10002 | yes | `a2uiverse` |
 | shell-catalog fixture (dev-only) | 5174 locally; 5173 through the tunnel, while the client is down | on 5173 | `a2uiverse` |
 | vendor agents | 11001–11005 | sign-in pages | `a2uiverse-apps` (table there) |
+| vendor agents' gRPC | 11101–11105 | no | `a2uiverse-apps` |
 | mock agents | 12001+ | no | `a2uiverse-apps` (`mocks/`, the launcher's mock tier) |
+| mock agents' gRPC | 12101+ | no | `a2uiverse-apps` |
 | upstream restaurant finder | 11006 | no | `../a2ui-upstream/`, a worktree of the A2UI fork at `upstream/main` |
 
 ## Run commands

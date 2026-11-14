@@ -30,6 +30,8 @@ Every app runs the per-request choice from its list on every request. A single-v
 
 The choice is a2ui-a2a's activation helper, called once per request in both executors with the app's card: the newest version the request names that the card advertises, registered as activated — so the A2A activation header goes back on the response — and `None` when the request names nothing the app speaks, which falls to the app's newest.
 
+*Amended by task 20.9 decision 5.* The kit chooses as the helper chooses, with no call to it: `a2a-sdk` 1.x gives an executor no way to mark an extension activated, so no response names the choice, and the version stamp on each A2UI message carries it.
+
 ### 4. Actions are admitted by the chosen version's schema
 
 One extractor, replacing the two copies, takes an action whose stamp the chosen version's schema admits: `v0.9` admits `v0.9`; `v0.9.1` admits `v0.9` and `v0.9.1`. A stamp outside that set is not an action and falls through as it does today — the "Unhandled event" paint in deterministic mode, the apology with no model call in LLM mode.
@@ -38,6 +40,8 @@ One extractor, replacing the two copies, takes an action whose stamp the chosen 
 
 One stamping function at the boundary where a message dict becomes an A2A part writes the request's chosen version over whatever the message carried — a fixture's literal, the model's own writing, the kit's own messages alike — on every site: the deterministic send, the LLM stream's parts, its end-of-turn flush, the teardown delete and the fallback. The chosen version is handed to upstream's part helper, so the part's MIME type follows upstream's own mapping. `paintMeta` parts are untouched.
 
+*Amended by task 20.9 decision 1.* The kit writes the part itself, to upstream's mapping, the string in `metadata.mimeType` and in the part's `media_type`.
+
 ### 6. The entitlement read prefers the chosen version's key
 
 The kit reads the hub's advertised catalog ids under the chosen version's key first, then the other version's key, then the flat shape.
@@ -45,6 +49,8 @@ The kit reads the hub's advertised catalog ids under the chosen version's key fi
 ### 7. The card: upstream's helper once per version, the keyed case nested by the kit
 
 Each entry is built by upstream's card helper, once per version in the app's list, in the list's canonical order — the v0.9 entry before the v0.9.1 one on a both card — with the app's catalog ids. A v0.9.1-only app's params are the helper's flat params nested under the `v0.9.1` key by the kit; a v0.9-only app's and a both app's stay flat.
+
+*Amended by task 20.9, under decision 13 of the phase-20 spec.* The kit writes each entry as upstream's card helper writes it, with no call to it.
 
 ### 8. The card tests assert against copies of the sdk's three fixtures
 

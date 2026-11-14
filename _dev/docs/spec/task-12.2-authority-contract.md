@@ -65,6 +65,8 @@ An agent asking for authority mid-task moves the task to `auth-required` with a 
 
 *Amended by task 20.4 decision 9.* The data part is a request when it holds `securityRequirements` in A2A 1.0's requirement shape or `security` in A2A 0.3's, from an agent on either A2A version. A part holding both is read by `securityRequirements`. Once read, a request has A2A 1.0's shape, and its keys are checked against the installed card through the card's one reading.
 
+*Amended by task 20.9 decision 3.* An agent built on the agent kit writes the request as `securityRequirements` in A2A 1.0's requirement shape, `{securityRequirements: [{schemes: {"<scheme key>": {list: ["<scope key>", …]}}}]}`, to a caller on either A2A version, the part unmarked.
+
 ### 13. Relations join two different sources
 
 A match claim's relation runs over two refs in two different sources, so two accounts of one app can be joined; a source is never joined to itself.

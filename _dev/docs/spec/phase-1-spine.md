@@ -76,9 +76,13 @@ The client's own UI (palette, history strip, status strip, surface container) us
 
 client 5173 · orchestrator **10001** · marketplace **10002** (reserved) · vendor agents **11001+** sequential, one port per app regardless of run mode (GitHub 11001 once copied; 10003 from `a2ui-github` until then; Gmail 11002; Calendar 11003). Only client, orchestrator, and marketplace get tunnel rows; vendor agents are localhost-only. The orchestrator takes a base-URL setting for the advertised card URL and allows `localhost` + `*.devtunnels.ms`.
 
+*Amended by task 20.9 decision 7.* A vendor agent answers JSON-RPC and HTTP+JSON on its one port and gRPC on a second, 100 above it in `a2uiverse-apps`, both regardless of run mode.
+
 ### 17. Vendor agent run modes
 
 Every vendor agent supports three modes on one port: `deterministic` (no model), `llm` (model + MCP), `llm` with no MCP (model + stub backend). `a2ui-github` already has all three; the kit phase makes the flag convention uniform. The Phase 1 copy keeps `a2ui-github`'s two agent packages as-is.
+
+*Amended by task 20.9 decision 7.* The three modes share the agent's two ports.
 
 ### 18. `packages/sdk` unchanged
 

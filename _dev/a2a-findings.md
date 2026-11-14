@@ -354,6 +354,8 @@ Settle whether a response names what was activated, in one of two directions:
 
 A2UIVerse stands on A2A 0.3 (`SPEC.md` §14), so neither direction reaches it before its move to 1.0.
 
+On `a2a-sdk` 1.3.0 an executor has no way to mark an extension activated, and no response names one on any of the six paths, JSON-RPC, HTTP+JSON and gRPC at A2A 1.0 and 0.3 (run on 2026-11-14). The agent kit on it chooses each request's A2UI version as `a2ui-a2a`'s helper chooses and names the choice in each A2UI message's version stamp alone (`agent-kit/src/a2ui_agent_kit/versions.py` in `retz8/a2uiverse-apps`).
+
 ### Prior art
 
 PR [#984](https://github.com/a2aproject/a2a-python/pull/984) on `a2a-python` ("fix(extensions): support both header names and remove "activation" concept", merged into `1.0-dev` on 2026-04-17) removed activation: "It also doesn't have "activation" concept - used extensions are not propagated back via headers and should be put into message.extensions or artifact.extensions instead."
@@ -684,6 +686,8 @@ The same holds against the servers of `@a2a-js/sdk` 1.3.0 and 0.3.14: a part's m
 Carry `metadata = 4` on the 0.3 layer's `Part`, as Python's `a2a-sdk` does, so A2A 0.3 over HTTP+JSON and gRPC carries what JSON-RPC carries.
 
 A2UIVerse carries no patch for it: its readers read an A2UI part by what it holds, its one reading takes an object holding `value` and nothing else, `value` a list, as that list, and the agents it composes read a press by its content.
+
+Seen from the server on 2026-11-14: a press the platform's dial sent to an agent on Python's `a2a-sdk` 1.3.0 over gRPC at A2A 0.3, marked `application/a2ui+json` in `metadata.mimeType` and in `mediaType`, reached the agent's executor with no metadata and an empty `media_type`, and was read by its content (`agent-kit/tests/test_six_paths.py` in `retz8/a2uiverse-apps` drives the same paths with the Python SDK's own client).
 
 ### Prior art
 
@@ -1171,7 +1175,7 @@ only-0.3: a2a-js, read by parseLegacyAgentCard: verified
 
 Leave the signatures off the card `to_compat_agent_card` returns unless `to_core_agent_card` of that card gives back the signed card without its signatures, since in every other case they cannot pass on it. A 0.3 client then holds an unsigned card rather than a signature that fails. Even kept, a signature over the 1.0 form never passes a 0.3.26 verifier, which canonicalizes the 0.3 shape.
 
-A2UIVerse keeps the signatures of a card read as written for A2A 0.3 and does not check them (`checkSignatures` in `packages/card/src/signatures.ts` in `retz8/a2uiverse`).
+A2UIVerse keeps the signatures of a card read as written for A2A 0.3 and does not check them (`checkSignatures` in `packages/card/src/signatures.ts` in `retz8/a2uiverse`). The agent kit leaves an account's card on the three A2A 0.3 paths as the SDK writes it, with the signature over its 1.0 form.
 
 ### Prior art
 
@@ -1553,6 +1557,8 @@ Run on 2026-11-14 by `scripts/capture-extended-cards.mjs` in `packages/smoke-tra
 Refuse the request when `context.user.is_authenticated` is false, with the binding's refusal for sign-in, unless the agent's modifier says otherwise, as `@a2a-js/sdk` does for a configured card.
 
 A2UIVerse sends the account's credential with every such request and makes no use of a card served to a caller that sent none.
+
+The agent kit checks the credential in front of the SDK on every A2A call of all six paths, the extended card's included: an ASGI middleware on JSON-RPC and HTTP+JSON, refusing with HTTP 401, and a gRPC server interceptor on both A2A services, refusing with `UNAUTHENTICATED` (`agent-kit/src/a2ui_agent_kit/gates.py` in `retz8/a2uiverse-apps`).
 
 ### Prior art
 

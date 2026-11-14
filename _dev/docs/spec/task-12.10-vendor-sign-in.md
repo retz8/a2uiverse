@@ -21,6 +21,8 @@ The kit ships a vendor OAuth upstream on the 12.9 upstream seam, built on Authli
 
 A second, smaller kind of sign-in: the app declares the header name, the scheme's `description` in its customer's words, and its valid keys, each mapped to an account. The kit writes the card's `apiKey` scheme, answers a request without a valid key with 401, and makes the account available through `current_account()`. No OAuth routes, no ID token, no escalation.
 
+*Amended by task 20.9 decisions 10 and 11.* A call without a valid key is refused on all six paths: HTTP 401 on JSON-RPC and HTTP+JSON, `UNAUTHENTICATED` on gRPC, where the key is read from the metadata entry under the header's name in lowercase. An app whose header name gRPC cannot carry as a plain metadata entry does not start.
+
 ### 3. `shop-b` on the API key
 
 `shop-b` signs in with an API key; its README carries one demo key. `shop-a` stays open, with no sign-in.

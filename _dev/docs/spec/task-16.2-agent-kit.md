@@ -16,6 +16,8 @@ The agent kit in `../a2uiverse-apps/` brought onto the upstream releases Phase 1
 
 The kit pins `a2ui-agent-sdk` 0.9.0, `a2ui-a2a` 0.1.0 and `a2ui-core` 0.4.0, each exactly; `a2ui-core` is a direct dependency, since the kit imports from it. `a2ui-adk` is not a dependency: nothing in either repo uses it. Phase decision 1 is amended to the same.
 
+*Amended by task 20.9 decision 18.* The kit pins `a2ui-agent-sdk` 0.9.0 and `a2ui-core` 0.4.0 exactly and `a2a-sdk` at `>=1.3.0,<2.0.0`; `a2ui-a2a` is not a dependency, the kit writing its own part in its place.
+
 ### 2. The prompt
 
 The kit assembles the prompt itself, in today's order: the role; the workflow slot — upstream's base rules, then the kit's and the app's prose; the UI description; the schema block; the examples header, the app's framing, then the examples. The base rules and the schema block are upstream's generator's; the examples are upstream's `load_examples`, each example file whole, its `intent` included.

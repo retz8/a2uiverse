@@ -30,6 +30,8 @@ The three in-repo agents take the SDK as a path dependency. The CLI writes a ver
 
 The rule becomes: **the agent half depends on the protocols and the agent kit; the kit depends on the protocols alone.** The wire constraint stands untouched. `paintMeta` (`application/json+a2ui-shell`) is the kit's one shell convention — optional and degradable: an agent that never emits it still composes (cause-derived titles; question surfaces render as ordinary paints). Riders: add `paintMeta` to the §14 protocol delta register; reconcile §13's stale claim that the catalog half builds against `@a2uiverse/sdk` (unrealized in code).
 
+*Amended by task 20.9 decision 2.* `paintMeta` is marked `application/a2ui-shell+json`.
+
 ### 5. Uniform run-mode flag
 
 Each agent gets one entrypoint with `--mode deterministic|stub|live` — the launcher's established vocabulary, kept (code over doc). The mode→behavior mapping moves inside the kit; the two-module-plus-`TOOL_BACKEND` arrangement retires; the deterministic/llm server version-constant divergence (`VERSION_0_9` vs `VERSION_0_9_1`) collapses into one place.

@@ -42,6 +42,8 @@ The run ends at `auth-required`; the agent keeps nothing pending. The hub's rese
 
 A request with no token gets HTTP 401 with `WWW-Authenticate: Bearer`; an unknown, expired or revoked one gets HTTP 401 with `WWW-Authenticate: Bearer error="invalid_token"` (RFC 6750 §3, §3.1). The card stays publicly readable.
 
+*Amended by task 20.9 decision 10.* The check covers every A2A call on all six paths, JSON-RPC, HTTP+JSON and gRPC at A2A 1.0 and 0.3, the extended card's call included. A refusal is HTTP 401 as above on the four HTTP paths and the gRPC status `UNAUTHENTICATED` on the two gRPC paths, where the token is read from the `authorization` metadata entry. The card, the sign-in routes and the card's key set stay open.
+
 ### 8. Lifetimes and refresh
 
 Access tokens live 1 hour and carry `expires_in`. Refresh tokens rotate on every use with no fixed expiry while in use; reuse of an old refresh token ends that sign-in (RFC 9700 §4.14.2). A dev-only setting shortens the access token's lifetime.
