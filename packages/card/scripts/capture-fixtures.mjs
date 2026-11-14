@@ -153,4 +153,5 @@ await write(
 await write('python-1.0.json', await fromPythonServer('jsonrpc'));
 await write('python-1.0-then-0.3.json', await fromPythonServer('both'));
 await write('python-1.0-grpc-and-rest.json', await fromPythonServer('grpc'));
+await write('python-1.0-custom-binding.json', await fromPythonServer('custom'));
 await write('python-as-0.3.json', await fromPythonServer('as-0.3'));

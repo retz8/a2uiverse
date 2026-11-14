@@ -2,10 +2,11 @@
 
 Usage: serve_card.py <port> <variant>
 
-Variants, one card told four ways:
+Variants, one card told five ways:
   jsonrpc   one JSON-RPC interface at A2A 1.0
   both      JSON-RPC at A2A 1.0, then JSON-RPC at A2A 0.3
   grpc      gRPC and HTTP+JSON at A2A 1.0, no JSON-RPC
+  custom    one interface on a binding of the agent's own, ACME-RPC at A2A 1.0
   as-0.3    the `both` card in A2A 0.3's shape, by a2a-sdk's own conversion
 """
 
@@ -52,6 +53,7 @@ INTERFACES = {
         interface('GRPC', '1.0', f'127.0.0.1:{port + 1}'),
         interface('HTTP+JSON', '1.0', f'{base}/rest'),
     ],
+    'custom': [interface('ACME-RPC', '1.0', f'{base}/acme')],
 }
 
 params = Struct()

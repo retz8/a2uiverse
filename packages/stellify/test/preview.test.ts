@@ -22,7 +22,9 @@ import {
   startFakeAgentV1,
   type CardV1Options,
   type FakeAgentV1,
+  type FakePath,
 } from '@a2uiverse/smoke-transport/testing/v1';
+import {createServer as createNetServer} from 'node:net';
 import {afterEach, beforeAll, describe, expect, test} from 'vitest';
 import {UNSUPPORTED_SCHEME} from '../src/credential.js';
 import {artifactFiles, preview, stellify} from '../src/index.js';
@@ -234,6 +236,138 @@ describe('preview of an agent on A2A 1.0 (task-20.3 decisions 11, 20)', () => {
   );
 });
 
+describe('preview over the card’s interfaces (task-20.5 decisions 1, 2, 7, 8, 9)', () => {
+  const KEY_CARD = {
+    securitySchemes: {key: {apiKeySecurityScheme: {location: 'header', name: 'X-Star~Key'}}},
+    securityRequirements: [{schemes: {key: {list: []}}}],
+  };
+
+  /** A port nothing listens on. */
+  async function closedPort(): Promise<number> {
+    const server = createNetServer();
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const {port} = server.address() as {port: number};
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    return port;
+  }
+
+  const startPaths = async (paths: FakePath[], options: Partial<CardV1Options> = {}) => {
+    agentV1 = await startFakeAgentV1({
+      script: completingScriptV1(paintPartsV1(STAR_CATALOG_ID, {component: 'StarText'})),
+      card: urls => cardForV1(urls, {catalogs: [STAR_CATALOG_ID], paths, ...options}),
+      admit: request => request.header('X-Star-Key') !== 'wrong',
+    });
+    return agentV1;
+  };
+
+  /** The preview of `fake`, its card URL listing `ahead` before the agent's own interfaces. */
+  const previewAhead = (fake: FakeAgentV1, ahead: object[], credential?: string) => {
+    const served = fake.served as {supportedInterfaces?: object[]};
+    const listing = {
+      ...served,
+      supportedInterfaces: [...ahead, ...(served.supportedInterfaces ?? [])],
+    };
+    return previewWith(
+      {appId: 'star', cardUrl: fake.cardUrl, catalogs: [star], ...(credential ? {credential} : {})},
+      {
+        fetchImpl: async (input, init) =>
+          String(input) === fake.cardUrl ? Response.json(listing) : fetch(input, init),
+      },
+    );
+  };
+
+  test.each<FakePath>(
+    (['JSONRPC', 'HTTP+JSON', 'GRPC'] as const).flatMap(binding =>
+      (['1.0', '0.3'] as const).map(version => ({binding, version})),
+    ),
+  )('$binding at A2A $version: the paint is the document', async path => {
+    const fake = await startPaths([path]);
+    const result = await preview({appId: 'star', cardUrl: fake.cardUrl, catalogs: [star]});
+    expect(result.findings).toEqual([]);
+    expect(result.document?.messages.map(m => Object.keys(m)[1])).toEqual([
+      'createSurface',
+      'updateComponents',
+    ]);
+    expect(fake.requests.map(r => [r.binding, r.reached])).toEqual([[path.binding, path.version]]);
+  });
+
+  test('an interface no connection could be opened to is a note, the paint captured at the next', async () => {
+    const fake = await startPaths([{binding: 'JSONRPC', version: '0.3'}]);
+    const grpc = `127.0.0.1:${await closedPort()}`;
+    const result = await previewAhead(fake, [
+      {url: grpc, protocolBinding: 'GRPC', protocolVersion: '1.0'},
+    ]);
+    expect(result.findings).toEqual([]);
+    expect(result.document).not.toBeNull();
+    expect(result.notes).toEqual([
+      `GRPC at A2A 1.0 (${grpc}) was not reached: no connection could be opened; the request went to JSONRPC at A2A 0.3`,
+    ]);
+  });
+
+  test('an interface that does not serve it is a note', async () => {
+    const fake = await startPaths([{binding: 'HTTP+JSON', version: '1.0'}]);
+    const absent = `${fake.url}/nowhere`;
+    const result = await previewAhead(fake, [
+      {url: absent, protocolBinding: 'JSONRPC', protocolVersion: '1.0'},
+    ]);
+    expect(result.findings).toEqual([]);
+    expect(result.notes).toEqual([
+      `JSONRPC at A2A 1.0 (${absent}) was not reached: what answered there does not serve it; the request went to HTTP+JSON at A2A 1.0`,
+    ]);
+  });
+
+  test('a gRPC interface the credential’s header cannot ride is passed over, and said so', async () => {
+    const fake = await startPaths(
+      [
+        {binding: 'GRPC', version: '1.0'},
+        {binding: 'JSONRPC', version: '1.0'},
+      ],
+      {card: KEY_CARD},
+    );
+    const result = await preview({
+      appId: 'star',
+      cardUrl: fake.cardUrl,
+      catalogs: [star],
+      credential: 'k-1',
+    });
+    expect(result.findings).toEqual([]);
+    expect(result.notes).toEqual([
+      `GRPC at A2A 1.0 (${fake.urls.GRPC}) was passed over: the credential's header "X-Star~Key" is not a name gRPC can carry; the request went to JSONRPC at A2A 1.0`,
+    ]);
+    expect(fake.requests.map(r => [r.binding, r.headers['x-star~key']])).toEqual([
+      ['JSONRPC', 'k-1'],
+    ]);
+  });
+
+  test('a credential gRPC refuses: the finding names UNAUTHENTICATED', async () => {
+    const fake = await startPaths([{binding: 'GRPC', version: '0.3'}], {
+      card: {
+        securitySchemes: {key: {apiKeySecurityScheme: {location: 'header', name: 'X-Star-Key'}}},
+        securityRequirements: [{schemes: {key: {list: []}}}],
+      },
+    });
+    const result = await preview({
+      appId: 'star',
+      cardUrl: fake.cardUrl,
+      catalogs: [star],
+      credential: 'wrong',
+    });
+    expect(result.findings).toEqual(['the agent refused the credential: UNAUTHENTICATED']);
+  });
+
+  test('no interface reached: nothing captured, one finding', async () => {
+    const fake = await startPaths([]);
+    const grpc = `127.0.0.1:${await closedPort()}`;
+    const result = await previewAhead(fake, [
+      {url: grpc, protocolBinding: 'GRPC', protocolVersion: '1.0'},
+    ]);
+    expect(result.document).toBeNull();
+    expect(result.findings).toEqual([
+      `no interface the card lists was reached: GRPC at A2A 1.0 (${grpc}): no connection could be opened`,
+    ]);
+  });
+});
+
 describe('preview of an app whose card requires sign-in', () => {
   test('the credential rides as the header the card names; the document is the paint', async () => {
     agent = await startFakeAgent({signIn: 'apiKey'});
@@ -383,14 +517,13 @@ describe('what refuses a preview', () => {
     const served = {
       ...(agentV1.served as object),
       supportedInterfaces: [
-        {url: '127.0.0.1:1', protocolBinding: 'GRPC', protocolVersion: '1.0'},
-        {url: `${agentV1.url}/rest`, protocolBinding: 'HTTP+JSON', protocolVersion: '1.0'},
+        {url: `${agentV1.url}/acme`, protocolBinding: 'ACME-RPC', protocolVersion: '1.0'},
       ],
     };
     const result = await previewOf(served, agentV1.cardUrl);
     expect(result.document).toBeNull();
     expect(result.findings).toEqual([
-      'the card lists no interface A2UIVerse speaks: it lists GRPC at A2A 1.0 and HTTP+JSON at A2A 1.0; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x',
+      'the card lists no interface A2UIVerse speaks: it lists ACME-RPC at A2A 1.0; A2UIVerse speaks JSONRPC, HTTP+JSON and GRPC at A2A 0.3 and 1.x',
     ]);
     expect(agentV1.requests).toEqual([]);
   });
@@ -496,7 +629,14 @@ describe('what refuses a preview', () => {
     agent = await startFakeAgent();
     const result = await previewWith(
       {appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]},
-      {smoke: async () => ({kind: 'unfinished', messages: []})},
+      {
+        smoke: async ({card}) => ({
+          kind: 'unfinished',
+          messages: [],
+          taken: card.supportedInterfaces[0]!,
+          notReached: [],
+        }),
+      },
     );
     expect(result.findings).toEqual([
       'the agent never finished: the stream ended before any answer',

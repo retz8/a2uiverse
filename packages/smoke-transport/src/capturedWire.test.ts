@@ -1,7 +1,8 @@
 /**
  * The smoke request's transport over wires captured from a scratch agent on Python's `a2a-sdk`
- * 1.3.0 (task-20.4 decision 15): what it answers on A2A 1.0 and through its 0.3 layer, read by
- * the A2A SDK's client and the platform sdk's one reading, and what the A2A SDK wrote to it.
+ * 1.3.0 (task-20.4 decision 15; task-20.5 decision 15): what it answers on A2A 1.0 and through its
+ * 0.3 layer, over JSON-RPC and HTTP+JSON, read by the A2A SDK's client and the platform sdk's one
+ * reading, and what the A2A SDK wrote to it.
  */
 import {describe, expect, test} from 'vitest';
 import {readCard, spokenInterfaces} from '@a2uiverse/card';
@@ -17,14 +18,23 @@ const UPDATE = {
 };
 const ASKED_WRITE = {securityRequirements: [{schemes: {signIn: {list: ['things.write']}}}]};
 
-/** The smoke runner's answer to the request of `wire`, the agent's answer replayed as captured. */
-const smoke = (wire: CapturedWire) =>
-  a2aSmokeRunner({fetchImpl: capturedFetch(wire)})({
-    card: readCard(wire.card),
-    entitlement: [CATALOG],
-    words: wire.asked,
-    timeoutMs: 5000,
-  });
+/**
+ * The smoke runner's answer to the request of `wire`, the agent's answer replayed as captured: no
+ * connection is opened, the replay standing in for the agent, and the request goes to the card's
+ * first interface, which is the one captured.
+ */
+async function smoke(wire: CapturedWire): Promise<Record<string, unknown>> {
+  const card = readCard(wire.card);
+  const seen = await a2aSmokeRunner({
+    fetchImpl: capturedFetch(wire),
+    openConnection: () => Promise.resolve(true),
+  })({card, entitlement: [CATALOG], words: wire.asked, timeoutMs: 5000});
+  if (!('taken' in seen)) return seen;
+  const {taken, notReached, ...observed} = seen;
+  expect(taken).toEqual(spokenInterfaces(card)[0]);
+  expect(notReached).toEqual([]);
+  return observed;
+}
 
 /** The `data:` lines of a captured answer, each as the JSON it carries. */
 const eventsOf = (wire: CapturedWire): Array<{result: Record<string, unknown>}> =>
@@ -38,6 +48,7 @@ describe.each(['1.0', '0.3'])("an agent on Python's a2a-sdk 1.3.0, reached at A2
 
   test('the wire is the one captured: the interface the platform takes, and the headers of its A2A version', () => {
     const one = wire('one');
+    expect(one.binding).toBe('JSONRPC');
     expect(one.a2aVersion).toBe(version);
     expect(spokenInterfaces(readCard(one.card))[0]!.protocolVersion).toBe(version);
     expect(one.request.headers['a2a-version']).toBe(version);
@@ -146,3 +157,110 @@ describe.each(['1.0', '0.3'])("an agent on Python's a2a-sdk 1.3.0, reached at A2
     }
   });
 });
+
+/** The `data:` lines of a captured HTTP+JSON answer, each the stream response it carries. */
+const restEventsOf = (wire: CapturedWire): Array<Record<string, unknown>> =>
+  wire.response.body
+    .split('\n')
+    .filter(line => line.startsWith('data:'))
+    .map(line => JSON.parse(line.slice('data:'.length)));
+
+/** The parts of the status message the last event of a captured HTTP+JSON answer carries. */
+function lastStatusParts(wire: CapturedWire): Array<Record<string, unknown>> {
+  const update = restEventsOf(wire).at(-1)!.statusUpdate as {
+    status: {message: Record<string, Array<Record<string, unknown>>>};
+  };
+  const message = update.status.message;
+  // A2A 1.0 names a message's parts `parts`; A2A 0.3's proto names them `content`.
+  return message.parts ?? message.content ?? [];
+}
+
+describe.each(['1.0', '0.3'])(
+  "an agent on Python's a2a-sdk 1.3.0, reached over HTTP+JSON at A2A %s (task-20.5 decision 15)",
+  version => {
+    const wire = (asked: string) => capturedWire(`python-http+json-${version}-${asked}.json`);
+
+    test('the wire is the one captured: HTTP+JSON at the path of its A2A version, and its headers', () => {
+      const one = wire('one');
+      expect(one.binding).toBe('HTTP+JSON');
+      expect(one.a2aVersion).toBe(version);
+      expect(spokenInterfaces(readCard(one.card))[0]).toMatchObject({
+        protocolBinding: 'HTTP+JSON',
+        protocolVersion: version,
+      });
+      expect(new URL(one.request.url).pathname).toBe(
+        version === '1.0' ? '/rest/message:stream' : '/rest/v1/message:stream',
+      );
+      expect(one.request.headers['a2a-version']).toBe(version);
+      const header = version === '1.0' ? 'a2a-extensions' : 'x-a2a-extensions';
+      expect(one.request.headers[header]).toContain('https://a2ui.org/a2a-extension/a2ui/v0.9.1');
+    });
+
+    test.each([['one'], ['media-type']])('%s: one message per part is read', async asked => {
+      const seen = await smoke(wire(asked));
+      expect(seen).toEqual({kind: 'ended', state: 'completed', messages: [CREATE, UPDATE]});
+    });
+
+    test('A2UI in an artifact is not read', async () => {
+      const captured = wire('artifact');
+      expect(captured.response.body).toContain('createSurface');
+      expect(await smoke(captured)).toEqual({kind: 'ended', state: 'completed', messages: []});
+    });
+
+    test.each([['auth-1.0'], ['auth-0.3'], ['auth-held']])(
+      '%s: the auth-required request is read to the one shape, the answer ended at the state',
+      async asked => {
+        const captured = wire(asked);
+        expect(captured.response.closedByAgent).toBe(asked !== 'auth-held');
+        const started = Date.now();
+        const seen = await smoke(captured);
+        expect(Date.now() - started).toBeLessThan(3000);
+        expect(seen.kind).toBe('ended');
+        if (seen.kind !== 'ended') return;
+        expect(seen.state).toBe('auth-required');
+        expect(readAuthRequired(seen.data)).toEqual(ASKED_WRITE);
+        expect(seen.text).toBe('Please sign in.');
+      },
+    );
+
+    test('a part’s marks ride the A2A 1.0 wire, and are dropped toward A2A 0.3 both ways (task-20.5 decision 13)', () => {
+      const captured = wire('echo');
+      const sentMessage = captured.request.body.message as Record<
+        string,
+        Array<Record<string, unknown>>
+      >;
+      const sent = (sentMessage.parts ?? sentMessage.content)![1]!;
+      const held = (
+        JSON.parse(lastStatusParts(captured)[0]!.text as string) as Array<Record<string, unknown>>
+      )[1]!;
+      if (version === '1.0') {
+        expect(sent.metadata).toEqual({mimeType: 'application/a2ui+json'});
+        expect(sent.mediaType).toBe('application/a2ui+json');
+        expect(held.metadata).toEqual({mimeType: 'application/a2ui+json'});
+      } else {
+        // The A2A SDK writes the 0.3 wire with A2A 0.3.0's codec, whose part holds no metadata.
+        expect(sent).toEqual({data: {data: expect.objectContaining({version: 'v0.9'})}});
+        expect(sent.metadata).toBeUndefined();
+        expect(held.metadata).toBeUndefined();
+      }
+    });
+
+    test('a list in one part: bare on the A2A 1.0 wire; wrapped on the 0.3 wire, its flag in the metadata the A2A SDK drops, and read still wrapped (task-20.5 decision 13)', async () => {
+      const captured = wire('list');
+      const [part] = lastStatusParts(captured);
+      if (version === '1.0') {
+        expect(part!.metadata).toEqual({mimeType: 'application/a2ui+json'});
+      } else {
+        expect(part).toEqual({
+          data: {data: {value: [CREATE, UPDATE]}},
+          metadata: {data_part_compat: true, mimeType: 'application/a2ui+json'},
+        });
+      }
+      expect(await smoke(captured)).toEqual({
+        kind: 'ended',
+        state: 'completed',
+        messages: [CREATE, UPDATE],
+      });
+    });
+  },
+);

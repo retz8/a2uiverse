@@ -50,7 +50,7 @@ importers:
     dependencies:
       '@a2a-js/sdk':
         specifier: 1.3.0
-        version: 1.3.0(express@5.2.1(supports-color@7.2.0))
+        version: 1.3.0(@bufbuild/protobuf@2.16.0)(@grpc/grpc-js@1.14.7)(express@5.2.1(supports-color@7.2.0))
       '@a2ui/react':
         specifier: 0.14.0
         version: 0.14.0(patch_hash=c6371f25887ca1ab41a5ef8b0378b9243ff9949a443f05ead5eec1c4911b94cf)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
@@ -138,7 +138,7 @@ importers:
     dependencies:
       '@a2a-js/sdk':
         specifier: 1.3.0
-        version: 1.3.0(express@5.2.1(supports-color@7.2.0))
+        version: 1.3.0(@bufbuild/protobuf@2.16.0)(@grpc/grpc-js@1.14.7)(express@5.2.1(supports-color@7.2.0))
       '@a2uiverse/card':
         specifier: workspace:*
         version: link:../../packages/card
@@ -184,7 +184,7 @@ importers:
     dependencies:
       '@a2a-js/sdk':
         specifier: 1.3.0
-        version: 1.3.0(express@5.2.1(supports-color@7.2.0))
+        version: 1.3.0(@bufbuild/protobuf@2.16.0)(@grpc/grpc-js@1.14.7)(express@5.2.1(supports-color@7.2.0))
       '@a2ui/web_core':
         specifier: 0.14.0
         version: 0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc)
@@ -200,12 +200,21 @@ importers:
       '@a2uiverse/shell-catalog':
         specifier: workspace:*
         version: link:../../packages/shell-catalog
+      '@a2uiverse/smoke-transport':
+        specifier: workspace:*
+        version: link:../../packages/smoke-transport
       '@ai-sdk/anthropic':
         specifier: ^4.0.89
         version: 4.0.89(zod@4.4.3)
       '@ai-sdk/google':
         specifier: ^4.0.106
         version: 4.0.106(zod@4.4.3)
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+      '@grpc/grpc-js':
+        specifier: 1.14.7
+        version: 1.14.7
       ai:
         specifier: ^7.0.154
         version: 7.0.154(zod@4.4.3)
@@ -221,10 +230,7 @@ importers:
     devDependencies:
       '@a2a-js/sdk-v0_3':
         specifier: npm:@a2a-js/sdk@0.3.14
-        version: '@a2a-js/sdk@0.3.14(express@5.2.1(supports-color@7.2.0))'
-      '@a2uiverse/smoke-transport':
-        specifier: workspace:*
-        version: link:../../packages/smoke-transport
+        version: '@a2a-js/sdk@0.3.14(@bufbuild/protobuf@2.16.0)(@grpc/grpc-js@1.14.7)(express@5.2.1(supports-color@7.2.0))'
       '@ai-sdk/provider-utils':
         specifier: ^5.0.69
         version: 5.0.69(zod@4.4.3)
@@ -251,7 +257,7 @@ importers:
     dependencies:
       '@a2a-js/sdk':
         specifier: 1.3.0
-        version: 1.3.0(express@5.2.1(supports-color@7.2.0))
+        version: 1.3.0(@bufbuild/protobuf@2.16.0)(@grpc/grpc-js@1.14.7)(express@5.2.1(supports-color@7.2.0))
     devDependencies:
       '@types/node':
         specifier: ^22.15.0
@@ -406,17 +412,23 @@ importers:
     dependencies:
       '@a2a-js/sdk':
         specifier: 1.3.0
-        version: 1.3.0(express@5.2.1(supports-color@7.2.0))
+        version: 1.3.0(@bufbuild/protobuf@2.16.0)(@grpc/grpc-js@1.14.7)(express@5.2.1(supports-color@7.2.0))
       '@a2uiverse/card':
         specifier: workspace:*
         version: link:../card
       '@a2uiverse/sdk':
         specifier: workspace:*
         version: link:../sdk/js
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+      '@grpc/grpc-js':
+        specifier: 1.14.7
+        version: 1.14.7
     devDependencies:
       '@a2a-js/sdk-v0_3':
         specifier: npm:@a2a-js/sdk@0.3.14
-        version: '@a2a-js/sdk@0.3.14(express@5.2.1(supports-color@7.2.0))'
+        version: '@a2a-js/sdk@0.3.14(@bufbuild/protobuf@2.16.0)(@grpc/grpc-js@1.14.7)(express@5.2.1(supports-color@7.2.0))'
       '@types/express':
         specifier: ^5.0.6
         version: 5.0.6
@@ -437,10 +449,16 @@ importers:
     dependencies:
       '@a2a-js/sdk':
         specifier: 1.3.0
-        version: 1.3.0(express@5.2.1(supports-color@7.2.0))
+        version: 1.3.0(@bufbuild/protobuf@2.16.0)(@grpc/grpc-js@1.14.7)(express@5.2.1(supports-color@7.2.0))
       '@a2ui/web_core':
         specifier: 0.14.0
         version: 0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc)
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+      '@grpc/grpc-js':
+        specifier: 1.14.7
+        version: 1.14.7
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
@@ -660,6 +678,9 @@ packages:
   '@bramus/specificity@2.4.2':
     resolution: {integrity: sha512-ctxtJ/eA+t+6q2++vj5j7FYX3nRu311q1wfYH3xjlLOsczhlhxAg2FWNUXhpGvAw3BWo1xBcvOV6/YLc2r5FJw==}
     hasBin: true
+
+  '@bufbuild/protobuf@2.16.0':
+    resolution: {integrity: sha512-FWa0sPlqYGJgpTs6OxBRcL/AW4JT0OIO+W1ajerluoTVh8CV0B7XM1qsNCRgnkSCkRCgOICKHRQlY17jrsm0+Q==}
 
   '@csstools/color-helpers@6.1.1':
     resolution: {integrity: sha512-gLNsunvwf3mCi5u5o46/Z/JcJMnhbHSaZ69rkgPzNM3J4s8hWwpPUQB6/tt0EDFyCiWzxANlx+2LJwpYj4zS1w==}
@@ -924,6 +945,15 @@ packages:
   '@github/relative-time-element@5.3.1':
     resolution: {integrity: sha512-f++QCIXxGH7rMbpTASRfLyCyPydd4HqwOmATBb/sAUCq72HEZN0MX9znmJSp7NKYxuQxF8j0Mv3ez9P32c70vw==}
 
+  '@grpc/grpc-js@1.14.7':
+    resolution: {integrity: sha512-W4W/fcBMGRVtG6dW2c7cw2mnpS3hvbBd+oQXjh2iYFTZDk1JJmcNqkM5KSaPubQpamlUUurrlb7G1s9NJeERmQ==}
+    engines: {node: '>=12.10.0'}
+
+  '@grpc/proto-loader@0.8.1':
+    resolution: {integrity: sha512-wtF6h+DY6M3YaDBPAmvuuA6jV8Sif9MjtOI5euKFWRgCDl5PeDpPsHR9u2l6St5ceY8AZgoNDww5+HvEsXFsGg==}
+    engines: {node: '>=6'}
+    hasBin: true
+
   '@huggingface/jinja@0.5.9':
     resolution: {integrity: sha512-uWTG+l3VJRsl7EXxYizuL3P+cCPoc3cRqbWWRcQN0FhejRfbdq0RNhCmbY/YDtnTcz9icdLYuLDjsnz4d8JMuw==}
     engines: {node: '>=18'}
@@ -1122,6 +1152,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@js-sdsl/ordered-map@4.4.2':
+    resolution: {integrity: sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==}
 
   '@lit-labs/react@1.2.1':
     resolution: {integrity: sha512-DiZdJYFU0tBbdQkfwwRSwYyI/mcWkg3sWesKRsHUd4G+NekTmmeq9fzsurvcKTNVa0comNljwtg4Hvi1ds3V+A==}
@@ -2417,6 +2450,10 @@ packages:
   classnames@2.5.1:
     resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
 
+  cliui@8.0.1:
+    resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
+    engines: {node: '>=12'}
+
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
@@ -2542,6 +2579,9 @@ packages:
 
   electron-to-chromium@1.5.412:
     resolution: {integrity: sha512-z4rMe3esBzlzovKHj4gxJnsCGZRK5l4baUvm+gCGJBPE+gsyUMKsuU9tnEUtI1dOebXz1ytAPGjvXhmQ7rIPwA==}
+
+  emoji-regex@8.0.0:
+    resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
 
   encodeurl@2.0.0:
     resolution: {integrity: sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==}
@@ -2737,6 +2777,10 @@ packages:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
 
+  get-caller-file@2.0.5:
+    resolution: {integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==}
+    engines: {node: 6.* || 8.* || >= 10.*}
+
   get-intrinsic@1.3.0:
     resolution: {integrity: sha512-9fSjSaos/fRIVIp+xSJlE6lfwhES7LNtKaCBIamHsjr2na1BiABJPo0mOjjz8GJDURarmCPGqaiVg5mfjb98CQ==}
     engines: {node: '>= 0.4'}
@@ -2865,6 +2909,10 @@ packages:
   is-extglob@2.1.1:
     resolution: {integrity: sha512-SbKbANkN603Vi4jEZv49LeVJMn4yGwsbzZworEoyEiutsN3nJYdbO36zfhGJ6QEDpOZIFkDtnq5JRxmvl3jsoQ==}
     engines: {node: '>=0.10.0'}
+
+  is-fullwidth-code-point@3.0.0:
+    resolution: {integrity: sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==}
+    engines: {node: '>=8'}
 
   is-glob@4.0.3:
     resolution: {integrity: sha512-xelSayHH36ZgE7ZWhli7pW34hNbNl8Ojv5KVmkJD4hBdD3th8Tfk9vYasLM+mXWOZhFkgZfxhLSnrwRr4elSSg==}
@@ -3036,6 +3084,9 @@ packages:
   locate-path@6.0.0:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
     engines: {node: '>=10'}
+
+  lodash.camelcase@4.3.0:
+    resolution: {integrity: sha512-TwuEnCnxbc3rAvhf/LbG7tJUDzhqXyFnv3dtzLOPgCG/hODL7WFnsbwktkD7yUV0RrreP/l1PALq/YSg6VvjlA==}
 
   lodash.isempty@4.4.0:
     resolution: {integrity: sha512-oKMuF3xEeqDltrGMfDxAPGIVMSSRv8tbRSODbrs4KGsRRLEhrW8N8Rd4DRgB2+621hY8A8XwwrTVhXWpxFvMzg==}
@@ -3350,6 +3401,10 @@ packages:
     resolution: {integrity: sha512-NZQZdC5wOE/H3UT28fVGL+ikOZcEzfMGk/c3iN9UGxzWHMa1op7274oyiUVrAG4B2EuFhus8SvkaYnhvW92p9Q==}
     hasBin: true
 
+  require-directory@2.1.1:
+    resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
+    engines: {node: '>=0.10.0'}
+
   require-from-string@2.0.2:
     resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
     engines: {node: '>=0.10.0'}
@@ -3475,6 +3530,14 @@ packages:
 
   std-env@4.2.0:
     resolution: {integrity: sha512-oCUKSupKTHX53EyjDtuZQ64pjLJ6yYCtpmEw0goYxtjG9KpbRe8KAsl2tBUGU9DyMcJ0RwJ8GqJAFzMXcXW1Rw==}
+
+  string-width@4.2.3:
+    resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
+    engines: {node: '>=8'}
+
+  strip-ansi@6.0.1:
+    resolution: {integrity: sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==}
+    engines: {node: '>=8'}
 
   strip-indent@3.0.0:
     resolution: {integrity: sha512-laJTa3Jb+VQpaC6DseHhF7dXVqHTfJPCRDaEbid/drOhgitgYku/letMUqOXFoWV0zIIUbjpdH2t+tYj4bQMRQ==}
@@ -3738,6 +3801,10 @@ packages:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
 
+  wrap-ansi@7.0.0:
+    resolution: {integrity: sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==}
+    engines: {node: '>=10'}
+
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
@@ -3748,6 +3815,10 @@ packages:
   xmlchars@2.2.0:
     resolution: {integrity: sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==}
 
+  y18n@5.0.8:
+    resolution: {integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==}
+    engines: {node: '>=10'}
+
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
@@ -3755,6 +3826,14 @@ packages:
     resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
     engines: {node: '>= 14.6'}
     hasBin: true
+
+  yargs-parser@21.1.1:
+    resolution: {integrity: sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==}
+    engines: {node: '>=12'}
+
+  yargs@17.7.3:
+    resolution: {integrity: sha512-GZtjxm/J/4TSxuL3FNYjCmLktBTnIw/rVmKSIyKeYAZpmJB2ig9VauCC5xsa82GNKVKDAqpOn3KVzNt0zmrU0g==}
+    engines: {node: '>=12'}
 
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
@@ -3779,16 +3858,20 @@ packages:
 
 snapshots:
 
-  '@a2a-js/sdk@0.3.14(express@5.2.1(supports-color@7.2.0))':
+  '@a2a-js/sdk@0.3.14(@bufbuild/protobuf@2.16.0)(@grpc/grpc-js@1.14.7)(express@5.2.1(supports-color@7.2.0))':
     dependencies:
       uuid: 11.1.1
     optionalDependencies:
+      '@bufbuild/protobuf': 2.16.0
+      '@grpc/grpc-js': 1.14.7
       express: 5.2.1(supports-color@7.2.0)
 
-  '@a2a-js/sdk@1.3.0(express@5.2.1(supports-color@7.2.0))':
+  '@a2a-js/sdk@1.3.0(@bufbuild/protobuf@2.16.0)(@grpc/grpc-js@1.14.7)(express@5.2.1(supports-color@7.2.0))':
     dependencies:
       jose: 6.2.17
     optionalDependencies:
+      '@bufbuild/protobuf': 2.16.0
+      '@grpc/grpc-js': 1.14.7
       express: 5.2.1(supports-color@7.2.0)
 
   '@a2ui/markdown-it@0.2.2(@a2ui/web_core@0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc))':
@@ -3977,6 +4060,8 @@ snapshots:
     dependencies:
       css-tree: 3.2.1
 
+  '@bufbuild/protobuf@2.16.0': {}
+
   '@csstools/color-helpers@6.1.1': {}
 
   '@csstools/css-calc@3.3.0(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)':
@@ -4153,6 +4238,18 @@ snapshots:
 
   '@github/relative-time-element@5.3.1': {}
 
+  '@grpc/grpc-js@1.14.7':
+    dependencies:
+      '@grpc/proto-loader': 0.8.1
+      '@js-sdsl/ordered-map': 4.4.2
+
+  '@grpc/proto-loader@0.8.1':
+    dependencies:
+      lodash.camelcase: 4.3.0
+      long: 5.3.2
+      protobufjs: 7.6.6
+      yargs: 17.7.3
+
   '@huggingface/jinja@0.5.9': {}
 
   '@huggingface/tokenizers@0.1.3': {}
@@ -4295,6 +4392,8 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@js-sdsl/ordered-map@4.4.2': {}
 
   '@lit-labs/react@1.2.1': {}
 
@@ -5611,6 +5710,12 @@ snapshots:
 
   classnames@2.5.1: {}
 
+  cliui@8.0.1:
+    dependencies:
+      string-width: 4.2.3
+      strip-ansi: 6.0.1
+      wrap-ansi: 7.0.0
+
   clsx@2.1.1: {}
 
   color-convert@2.0.1:
@@ -5713,6 +5818,8 @@ snapshots:
   ee-first@1.1.1: {}
 
   electron-to-chromium@1.5.412: {}
+
+  emoji-regex@8.0.0: {}
 
   encodeurl@2.0.0: {}
 
@@ -5950,6 +6057,8 @@ snapshots:
 
   gensync@1.0.0-beta.2: {}
 
+  get-caller-file@2.0.5: {}
+
   get-intrinsic@1.3.0:
     dependencies:
       call-bind-apply-helpers: 1.0.2
@@ -6080,6 +6189,8 @@ snapshots:
   ipaddr.js@1.9.1: {}
 
   is-extglob@2.1.1: {}
+
+  is-fullwidth-code-point@3.0.0: {}
 
   is-glob@4.0.3:
     dependencies:
@@ -6236,6 +6347,8 @@ snapshots:
   locate-path@6.0.0:
     dependencies:
       p-locate: 5.0.0
+
+  lodash.camelcase@4.3.0: {}
 
   lodash.isempty@4.4.0: {}
 
@@ -6569,6 +6682,8 @@ snapshots:
     dependencies:
       jsesc: 3.1.0
 
+  require-directory@2.1.1: {}
+
   require-from-string@2.0.2: {}
 
   resolve-from@4.0.0: {}
@@ -6750,6 +6865,16 @@ snapshots:
   statuses@2.0.2: {}
 
   std-env@4.2.0: {}
+
+  string-width@4.2.3:
+    dependencies:
+      emoji-regex: 8.0.0
+      is-fullwidth-code-point: 3.0.0
+      strip-ansi: 6.0.1
+
+  strip-ansi@6.0.1:
+    dependencies:
+      ansi-regex: 5.0.1
 
   strip-indent@3.0.0:
     dependencies:
@@ -6946,15 +7071,35 @@ snapshots:
 
   word-wrap@1.2.5: {}
 
+  wrap-ansi@7.0.0:
+    dependencies:
+      ansi-styles: 4.3.0
+      string-width: 4.2.3
+      strip-ansi: 6.0.1
+
   wrappy@1.0.2: {}
 
   xml-name-validator@5.0.0: {}
 
   xmlchars@2.2.0: {}
 
+  y18n@5.0.8: {}
+
   yallist@3.1.1: {}
 
   yaml@2.9.1: {}
+
+  yargs-parser@21.1.1: {}
+
+  yargs@17.7.3:
+    dependencies:
+      cliui: 8.0.1
+      escalade: 3.2.0
+      get-caller-file: 2.0.5
+      require-directory: 2.1.1
+      string-width: 4.2.3
+      y18n: 5.0.8
+      yargs-parser: 21.1.1
 
   yocto-queue@0.1.0: {}
 

@@ -1,9 +1,10 @@
 /**
- * An in-process A2A 1.0 agent for tests (task-20.3 decision 20): the server of `@a2a-js/sdk`
- * 1.x, with its A2A 0.3 layer on, so one agent answers both A2A versions over JSON-RPC, each at a
- * path of its own. Scripted: the test supplies the events each turn emits, in the A2A SDK's
- * in-memory shapes. Records what it received so tests assert on the wire — which interface a
- * request reached, the words, the capabilities, the credential.
+ * An in-process A2A 1.0 agent for tests (task-20.3 decision 20; task-20.5 decision 15): the
+ * server of `@a2a-js/sdk` 1.x, with its A2A 0.3 layer on, so one agent answers both A2A versions
+ * on all three bindings — JSON-RPC at a path for each version, HTTP+JSON at one path, gRPC on a
+ * port of its own — the six paths. Scripted: the test supplies the events each turn emits, in the
+ * A2A SDK's in-memory shapes. Records what it received so tests assert on the wire — which
+ * binding and which A2A version a request reached, the words, the capabilities, the credential.
  *
  * It serves its card in A2A 1.0's JSON, as Python's `a2a-sdk` server does. The A2A SDK's own card
  * handler serves the in-memory form, whose sign-in schemes its own reader drops.
@@ -11,7 +12,8 @@
 import {randomUUID} from 'node:crypto';
 import {createServer, type Server} from 'node:http';
 import express, {type NextFunction, type Request, type Response} from 'express';
-import {AgentCard, Role, TaskState, type Message, type Part, type Task} from '@a2a-js/sdk';
+import * as grpc from '@grpc/grpc-js';
+import {AgentCard, Message, Role, TaskState, type Part, type Task} from '@a2a-js/sdk';
 import {
   DefaultRequestHandler,
   InMemoryTaskStore,
@@ -20,9 +22,20 @@ import {
   type ExecutionEventBus,
   type RequestContext,
 } from '@a2a-js/sdk/server';
-import {jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
+import {jsonRpcHandler, restHandler, UserBuilder} from '@a2a-js/sdk/server/express';
+import {A2AService, grpcService} from '@a2a-js/sdk/server/grpc';
+import {LegacyA2AService, legacyGrpcService} from '@a2a-js/sdk/compat/v0_3/server/grpc';
 import {A2UI_EXTENSION_URIS} from '@a2uiverse/sdk';
-import {authRequiredBody, cardUrlOf, type RequirementShape} from './fakeAgent.js';
+import {
+  authRequiredBody,
+  cardUrlOf,
+  guardedGrpcService,
+  headersOf,
+  recordingHandler,
+  type AdmitRequest,
+  type FakeBinding,
+  type RequirementShape,
+} from './fakeAgent.js';
 
 export type {AgentExecutionEvent, RequestContext};
 
@@ -42,44 +55,74 @@ export type FakeA2aVersion = '1.0' | '0.3';
 /** Where the fake answers each A2A version over JSON-RPC. */
 export type FakeInterfaceUrls = Record<FakeA2aVersion, string>;
 
+/** One of the six paths: a binding at an A2A version. */
+export interface FakePath {
+  binding: FakeBinding;
+  version: FakeA2aVersion;
+}
+
+/** Where the fake answers on each binding: JSON-RPC at a URL for each version. */
+export interface FakeBindingUrls {
+  JSONRPC: FakeInterfaceUrls;
+  'HTTP+JSON': string;
+  /** A bare `host:port`, as the A2A SDK's own sample agent writes it. */
+  GRPC: string;
+}
+
 export interface ReceivedRequestV1 {
-  /** The A2A version of the interface the request reached, by the path it came in on. */
+  /** The binding of the interface the request reached. */
+  binding: FakeBinding;
+  /** The A2A version of the interface the request reached. */
   reached: FakeA2aVersion;
-  /** The `A2A-Version` header the caller sent. */
+  /** The `A2A-Version` header the caller sent, or its gRPC metadata entry. */
   a2aVersion: string | undefined;
-  /** The JSON-RPC method called. */
+  /** The method called: JSON-RPC's, the HTTP+JSON path's last segment, or gRPC's. */
   method: string;
-  /** The message as the wire carried it, when the request carried one. */
+  /**
+   * The message the request carried: as the wire carried it on JSON-RPC and HTTP+JSON; on gRPC as
+   * the server decoded it, in the A2A SDK's shape for the version reached.
+   */
   message: Record<string, unknown> | undefined;
-  /** Every request header, lower-cased, so a test sees the credential as it rode. */
+  /** Every request header or gRPC metadata entry, lower-cased, so a test sees the credential. */
   headers: Record<string, string>;
 }
 
 export interface FakeAgentV1 {
   url: string;
   cardUrl: string;
+  /** JSON-RPC's two interfaces. */
   interfaces: FakeInterfaceUrls;
+  urls: FakeBindingUrls;
   /** The card the agent runs on, as the A2A SDK holds it. */
   card: AgentCard;
   /** The card as the card URL answers it. */
   served: unknown;
   requests: ReceivedRequestV1[];
-  /** How many connections to the agent are open: a stream a caller left counts none. */
+  /** How many HTTP connections to the agent are open: a stream a caller left counts none. */
   connections(): Promise<number>;
   close(): Promise<void>;
 }
 
 export interface FakeAgentV1Options {
   /** The card it runs on, for the addresses it listens on. */
-  card: (interfaces: FakeInterfaceUrls) => AgentCard;
+  card: (urls: FakeBindingUrls) => AgentCard;
   script: ScriptV1;
   /** What the card URL answers, in place of the card in A2A 1.0's JSON. */
   serve?: (card: AgentCard) => unknown;
-  /** Whether a JSON-RPC request is let in; refused, it is answered 401. */
-  admit?: (request: Request) => boolean;
+  /**
+   * Whether a request is let in; refused, it is answered as the binding asks sign-in — HTTP 401,
+   * or the gRPC status `UNAUTHENTICATED`.
+   */
+  admit?: (request: AdmitRequest) => boolean;
 }
 
 const PATHS: Record<FakeA2aVersion, string> = {'1.0': '/a2a/v1', '0.3': '/a2a/v0_3'};
+const REST_PATH = '/rest';
+
+/** Where the fake answers `path`. */
+export function urlOf(urls: FakeBindingUrls, {binding, version}: FakePath): string {
+  return binding === 'JSONRPC' ? urls.JSONRPC[version] : urls[binding];
+}
 
 export interface CardV1Options {
   name?: string;
@@ -87,6 +130,8 @@ export interface CardV1Options {
   version?: string;
   /** The A2A versions its JSON-RPC interfaces are listed at, in the card's order. */
   order?: FakeA2aVersion[];
+  /** The paths it lists, in the card's order, in place of `order`. */
+  paths?: FakePath[];
   /** The catalog ids the card declares under the A2UI extension; none declares nothing. */
   catalogs?: string[];
   skills?: {id: string; name: string; description: string; tags: string[]; examples?: string[]}[];
@@ -94,17 +139,20 @@ export interface CardV1Options {
   card?: Record<string, unknown>;
 }
 
-/** A card as an A2A 1.0 agent holds it: JSON-RPC at the A2A versions `order` lists. */
-export function cardForV1(interfaces: FakeInterfaceUrls, options: CardV1Options = {}): AgentCard {
+/** A card as an A2A 1.0 agent holds it: the paths `paths` lists, else JSON-RPC at `order`. */
+export function cardForV1(urls: FakeBindingUrls, options: CardV1Options = {}): AgentCard {
   const {catalogs} = options;
+  const paths =
+    options.paths ??
+    (options.order ?? ['1.0']).map((version): FakePath => ({binding: 'JSONRPC', version}));
   return AgentCard.fromJSON({
     name: options.name ?? 'Fake Agent',
     description: options.description ?? 'an agent for tests',
     version: options.version ?? '0.1.0',
-    supportedInterfaces: (options.order ?? ['1.0']).map(version => ({
-      url: interfaces[version],
-      protocolBinding: 'JSONRPC',
-      protocolVersion: version,
+    supportedInterfaces: paths.map(path => ({
+      url: urlOf(urls, path),
+      protocolBinding: path.binding,
+      protocolVersion: path.version,
     })),
     capabilities: {
       streaming: true,
@@ -245,8 +293,14 @@ export const completingScriptV1 =
     statusUpdateV1(ctx, TaskState.TASK_STATE_COMPLETED, parts),
   ];
 
+/** Answers with the parts of the message it received, as the executor holds them. */
+export const echoScriptV1: ScriptV1 = ({ctx, firstTurn}) => [
+  ...(firstTurn ? [firstTurnTaskV1(ctx)] : []),
+  statusUpdateV1(ctx, TaskState.TASK_STATE_COMPLETED, ctx.userMessage.parts),
+];
+
 export async function startFakeAgentV1(options: FakeAgentV1Options): Promise<FakeAgentV1> {
-  const {script} = options;
+  const {script, admit} = options;
   const requests: ReceivedRequestV1[] = [];
   const seen = new Set<string>();
 
@@ -270,39 +324,61 @@ export async function startFakeAgentV1(options: FakeAgentV1Options): Promise<Fak
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('fake agent: no port');
   const url = `http://127.0.0.1:${address.port}`;
-  const interfaces: FakeInterfaceUrls = {
-    '1.0': `${url}${PATHS['1.0']}`,
-    '0.3': `${url}${PATHS['0.3']}`,
+  const grpcServer = new grpc.Server();
+  const grpcPort = await new Promise<number>((resolve, reject) =>
+    grpcServer.bindAsync('127.0.0.1:0', grpc.ServerCredentials.createInsecure(), (err, port) =>
+      err ? reject(err) : resolve(port),
+    ),
+  );
+  const urls: FakeBindingUrls = {
+    JSONRPC: {'1.0': `${url}${PATHS['1.0']}`, '0.3': `${url}${PATHS['0.3']}`},
+    'HTTP+JSON': `${url}${REST_PATH}`,
+    GRPC: `127.0.0.1:${grpcPort}`,
   };
-  const card = options.card(interfaces);
+  const card = options.card(urls);
   const served = options.serve ? options.serve(card) : AgentCard.toJSON(card);
 
   const requestHandler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
   app.get('/.well-known/agent-card.json', (_req: Request, res: Response) => {
     res.json(served);
   });
-  for (const version of ['1.0', '0.3'] as const) {
-    app.use(PATHS[version], (req: Request, res: Response, next: NextFunction) => {
+  /** Records a request on an HTTP binding, and answers 401 to one `admit` refuses. */
+  const gate =
+    (binding: FakeBinding, reachedOf: (req: Request) => FakeA2aVersion) =>
+    (req: Request, res: Response, next: NextFunction) => {
       const body = req.body as
-        {method?: string; params?: {message?: Record<string, unknown>}} | undefined;
-      if (typeof body?.method !== 'string') return next();
-      if (options.admit && !options.admit(req)) {
+        | {method?: string; params?: {message?: Record<string, unknown>}; message?: unknown}
+        | undefined;
+      const method =
+        binding === 'JSONRPC'
+          ? body?.method
+          : req.method === 'POST'
+            ? req.path.split('/').pop()
+            : undefined;
+      if (typeof method !== 'string') return next();
+      if (admit && !admit(req)) {
         res.status(401).set('WWW-Authenticate', 'Bearer error="invalid_token"').json({});
         return;
       }
-      const headers: Record<string, string> = {};
-      for (const [key, value] of Object.entries(req.headers)) {
-        if (typeof value === 'string') headers[key] = value;
-      }
+      const message = binding === 'JSONRPC' ? body?.params?.message : body?.message;
       requests.push({
-        reached: version,
+        binding,
+        reached: reachedOf(req),
         a2aVersion: req.header('A2A-Version'),
-        method: body.method,
-        message: body.params?.message,
-        headers,
+        method,
+        message:
+          typeof message === 'object' && message !== null
+            ? (message as Record<string, unknown>)
+            : undefined,
+        headers: headersOf(req.headers),
       });
       next();
-    });
+    };
+  for (const version of ['1.0', '0.3'] as const) {
+    app.use(
+      PATHS[version],
+      gate('JSONRPC', () => version),
+    );
     app.use(
       PATHS[version],
       jsonRpcHandler({
@@ -312,12 +388,54 @@ export async function startFakeAgentV1(options: FakeAgentV1Options): Promise<Fak
       }),
     );
   }
+  // The A2A 0.3 layer answers HTTP+JSON under `/v1`, the paths A2A 0.3 names.
+  app.use(
+    REST_PATH,
+    gate('HTTP+JSON', req => (req.path.startsWith('/v1/') ? '0.3' : '1.0')),
+    restHandler({
+      requestHandler,
+      userBuilder: UserBuilder.noAuthentication,
+      legacyCompat: {enabled: true},
+    }),
+  );
   server.on('request', app);
+  // A gRPC call's method and metadata, then its message as the server decoded it, written in
+  // A2A 1.0's JSON whichever version the call reached.
+  const userBuilder = UserBuilder.noAuthentication;
+  for (const version of ['1.0', '0.3'] as const) {
+    let called = {method: '', metadata: {} as Record<string, string>};
+    const handler = recordingHandler(requestHandler, message =>
+      requests.push({
+        binding: 'GRPC',
+        reached: version,
+        a2aVersion: called.metadata['a2a-version'],
+        method: called.method,
+        message: Message.toJSON(message as Message) as Record<string, unknown>,
+        headers: called.metadata,
+      }),
+    );
+    const guard = {
+      ...(admit ? {admit} : {}),
+      onCall: (method: string, metadata: Record<string, string>) => (called = {method, metadata}),
+    };
+    if (version === '1.0') {
+      grpcServer.addService(
+        A2AService,
+        guardedGrpcService(grpcService({requestHandler: handler, userBuilder}), guard),
+      );
+    } else {
+      grpcServer.addService(
+        LegacyA2AService,
+        guardedGrpcService(legacyGrpcService({requestHandler: handler, userBuilder}), guard),
+      );
+    }
+  }
 
   return {
     url,
     cardUrl: cardUrlOf(url),
-    interfaces,
+    interfaces: urls.JSONRPC,
+    urls,
     card,
     served,
     requests,
@@ -325,10 +443,12 @@ export async function startFakeAgentV1(options: FakeAgentV1Options): Promise<Fak
       new Promise<number>((resolve, reject) =>
         server.getConnections((err, count) => (err ? reject(err) : resolve(count))),
       ),
-    close: () =>
-      new Promise<void>((resolve, reject) => {
-        server.closeAllConnections();
-        server.close(err => (err ? reject(err) : resolve()));
-      }),
+    close: async () => {
+      server.closeAllConnections();
+      await new Promise<void>((resolve, reject) =>
+        server.close(err => (err ? reject(err) : resolve())),
+      );
+      grpcServer.forceShutdown();
+    },
   };
 }

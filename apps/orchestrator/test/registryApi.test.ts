@@ -145,7 +145,7 @@ describe('the read routes', () => {
       )[0]!;
     expect(await listed()).toMatchObject({reachable: true, noInterface: false, card});
 
-    cards.serveAt(cardUrl, {...card, preferredTransport: 'GRPC'});
+    cards.serveAt(cardUrl, {...card, preferredTransport: 'ACME-RPC'});
     await registry.refetchLiveCards();
     expect(await listed()).toMatchObject({reachable: true, noInterface: true, card});
 

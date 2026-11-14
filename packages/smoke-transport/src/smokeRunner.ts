@@ -1,31 +1,28 @@
 /**
- * The smoke request's transport (SPEC §9.3; task-20.2 decisions 1, 3, 5): one A2A client, the
- * A2A SDK's, sends the agent one streaming message carrying the A2UI extension and the app's
- * entitlement as its client capabilities, with the credential's header when one is given, and
- * reports what came back — the state the answer ended on with every A2UI message its messages
- * carried, an HTTP 401, a stream that closed on an unfinished task, or an error. A2UI is read
- * from a bare message and from a status message, never from an artifact, through the platform
- * sdk's one reading (task-20.4 decisions 1, 4). The judgement over it stays with its two callers,
- * the marketplace and Stellify, each in its own words.
+ * The smoke request's transport (SPEC §9.3; task-20.2 decisions 1, 3, 5; task-20.5 decision 7):
+ * one streaming message carrying the A2UI extension and the app's entitlement as its client
+ * capabilities, with the credential when one is given, sent through the dial, which walks the
+ * card's spoken interfaces as a dispatch does; and a report of what came back — the state the
+ * answer ended on with every A2UI message its messages carried, a refusal for sign-in, a stream
+ * that closed on an unfinished task, no interface reached, or an error — beside the interface the
+ * request went to and each one passed over before it. A2UI is read from a bare message and from a
+ * status message, never from an artifact, through the platform sdk's one reading (task-20.4
+ * decisions 1, 4). The judgement over it stays with its two callers, the marketplace and
+ * Stellify, each in its own words.
  */
 import {randomUUID} from 'node:crypto';
 import {
   Role,
   TaskState,
   type AgentCard,
+  type AgentInterface,
   type Message,
   type Part,
   type StreamResponse,
   type TaskStatus,
 } from '@a2a-js/sdk';
-import {
-  ClientFactory,
-  JsonRpcTransportFactory,
-  ServiceParameters,
-  withA2AExtensions,
-  type AgentCardResolver,
-} from '@a2a-js/sdk/client';
-import {cardToDial, noInterfaceFinding, spokenInterfaces} from '@a2uiverse/card';
+import {ServiceParameters, withA2AExtensions} from '@a2a-js/sdk/client';
+import {noInterfaceFinding, spokenInterfaces} from '@a2uiverse/card';
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
   A2UI_EXTENSION_URIS,
@@ -35,7 +32,13 @@ import {
   type A2uiMessage,
   type CatalogIdsByVersion,
 } from '@a2uiverse/sdk';
+import {UnauthorizedError} from './answers.js';
+import {Dialer, NoInterfaceReachedError, type NotReached} from './dial.js';
+import type {OpenConnection} from './opening.js';
 import {taskStateWord} from './taskStateWord.js';
+
+/** How long opening a connection may take at publish and at `preview` (task-20.5 decision 4). */
+export const SMOKE_CONNECT_TIMEOUT_MS = 10_000;
 
 /** The states that end a task as a failure the agent declared itself, as a finding spells them. */
 export const FAILED_STATES: ReadonlySet<string> = new Set(['failed', 'canceled', 'rejected']);
@@ -55,8 +58,8 @@ const ENDED_STATES: ReadonlySet<TaskState> = new Set([
 
 export interface SmokeRequest {
   /**
-   * The live card, read. The request goes to the first interface in the card's order that the
-   * platform speaks (task-20.3 decisions 10, 11).
+   * The live card, read. The request goes to the first interface in the card's order the platform
+   * speaks and reaches (task-20.5 decision 2).
    */
   card: AgentCard;
   /**
@@ -70,10 +73,18 @@ export interface SmokeRequest {
   headers?: Readonly<Record<string, string>>;
 }
 
+/** Where the request went: the interface taken, and each one passed over before it. */
+export interface SmokeReached {
+  /** The interface the request went to, as the card lists it. */
+  taken: AgentInterface;
+  /** Each interface tried before it and not reached, in the order tried. */
+  notReached: NotReached[];
+}
+
 /** What the transport saw. A task state is spelled in lowercase, as A2A 0.3 names it. */
 export type SmokeObservation =
-  /** The agent answered HTTP 401. */
-  | {kind: 'unauthorized'}
+  /** The agent refused the request for sign-in: HTTP 401, or `UNAUTHENTICATED` on gRPC. */
+  | ({kind: 'unauthorized'} & SmokeReached)
   /**
    * The answer ended: the task reached auth-required, whether or not the agent closed its stream
    * (task-20.4 decision 10), or the stream closed after a message, or with its task's last state
@@ -81,61 +92,51 @@ export type SmokeObservation =
    * auth-required data part of the message it ended on when it carried one, and the agent's own
    * words.
    */
-  | {kind: 'ended'; state: string; messages: A2uiMessage[]; data?: unknown; text?: string}
+  | ({
+      kind: 'ended';
+      state: string;
+      messages: A2uiMessage[];
+      data?: unknown;
+      text?: string;
+    } & SmokeReached)
   /**
    * The stream closed on a task that had not ended: the last state it carried, absent when it
    * carried none.
    */
-  | {kind: 'unfinished'; state?: string; messages: A2uiMessage[]}
+  | ({kind: 'unfinished'; state?: string; messages: A2uiMessage[]} & SmokeReached)
+  /** The walk reached no interface the card lists: each one tried, in the order tried. */
+  | {kind: 'unreached'; notReached: NotReached[]}
   /**
-   * The request could not be made: the agent was not reached, the timeout passed, or the card
-   * lists no interface the platform speaks.
+   * The request failed once sent, the timeout passed, or the card lists no interface the platform
+   * speaks.
    */
   | {kind: 'error'; message: string};
 
 export type SmokeRunner = (request: SmokeRequest) => Promise<SmokeObservation>;
 
-class UnauthorizedError extends Error {
-  constructor() {
-    super('the agent refused the request: 401');
-  }
+export interface SmokeRunnerOptions {
+  fetchImpl?: typeof fetch;
+  /** How long opening a connection may take, for each interface the walk tries. */
+  connectTimeoutMs?: number;
+  /** How a connection is opened; a test replaying a captured wire opens none. */
+  openConnection?: OpenConnection;
 }
 
-/**
- * The platform reads a card itself and hands the A2A SDK one already read, so the A2A SDK
- * resolves none and normalizes none: its own normalizing reads an in-memory card with sign-in
- * schemes over again as JSON and drops them.
- */
-const NO_RESOLVER: AgentCardResolver = {
-  resolve: () => Promise.reject(new Error('the smoke runner fetches no card')),
-};
-
-/**
- * The transport over the A2A SDK's client, a client built per request from the read card listing
- * the one interface the platform takes.
- */
-export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeRunner {
+/** The transport over the dial, which hands the A2A SDK one interface at a time. */
+export function a2aSmokeRunner(options: SmokeRunnerOptions = {}): SmokeRunner {
   const base = options.fetchImpl ?? fetch;
   return async ({card, entitlement, words, timeoutMs, headers}) => {
+    if (spokenInterfaces(card).length === 0) {
+      return {kind: 'error', message: noInterfaceFinding(card)};
+    }
     const timeout = AbortSignal.timeout(timeoutMs);
     // The runner leaves a stream its agent holds open once the answer has ended.
     const left = new AbortController();
     const signal = AbortSignal.any([timeout, left.signal]);
-    // A 401 becomes an error of its own, thrown out through the A2A client, which the A2A SDK's
-    // own error would only name in its message.
-    const fetchImpl: typeof fetch = async (input, init) => {
-      const response = await base(input, {...init, signal});
-      if (response.status === 401) {
-        await response.body?.cancel().catch(() => {});
-        throw new UnauthorizedError();
-      }
-      return response;
-    };
-    const [taken] = spokenInterfaces(card);
-    if (!taken) return {kind: 'error', message: noInterfaceFinding(card)};
-    const factory = new ClientFactory({
-      transports: [new JsonRpcTransportFactory({fetchImpl, legacyCompat: {enabled: true}})],
-      cardResolver: NO_RESOLVER,
+    const dialer = new Dialer({
+      connectTimeoutMs: options.connectTimeoutMs ?? SMOKE_CONNECT_TIMEOUT_MS,
+      fetchImpl: (input, init) => base(input, {...init, signal}),
+      ...(options.openConnection ? {openConnection: options.openConnection} : {}),
     });
     const message: Message = {
       messageId: randomUUID(),
@@ -155,19 +156,19 @@ export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeR
     // not read.
     let last: TaskStatus | undefined;
     let answered: Part[] | undefined;
+    let reached: SmokeReached | undefined;
     try {
-      const client = await factory.createFromAgentCard(cardToDial(card, taken));
-      const stream = client.sendMessageStream(
-        {tenant: '', message, configuration: undefined, metadata: undefined},
-        {
-          signal,
-          serviceParameters: {
-            ...ServiceParameters.create(withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS))),
-            ...headers,
-          },
-        },
-      );
-      for await (const event of stream) {
+      const dialed = await dialer.dial({
+        card,
+        params: {tenant: '', message, configuration: undefined, metadata: undefined},
+        ...(headers ? {credential: headers} : {}),
+        serviceParameters: ServiceParameters.create(
+          withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS)),
+        ),
+        signal,
+      });
+      reached = {taken: dialed.taken, notReached: dialed.notReached};
+      for await (const event of dialed.events) {
         const parts = partsOf(event);
         for (const part of parts) messages.push(...a2uiMessagesIn(dataOf(part)));
         const status = statusOf(event);
@@ -178,7 +179,10 @@ export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeR
         if (status?.state === TaskState.TASK_STATE_AUTH_REQUIRED) break;
       }
     } catch (err) {
-      if (err instanceof UnauthorizedError) return {kind: 'unauthorized'};
+      if (err instanceof NoInterfaceReachedError) {
+        return {kind: 'unreached', notReached: err.notReached};
+      }
+      if (err instanceof UnauthorizedError && reached) return {kind: 'unauthorized', ...reached};
       if (timeout.aborted) {
         return {kind: 'error', message: `the agent did not answer within ${timeoutMs / 1000} s`};
       }
@@ -192,6 +196,7 @@ export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeR
         messages,
         state: taskStateWord(last.state),
         ...wordsOf(last.message?.parts),
+        ...reached!,
       };
     }
     if (answered) {
@@ -200,9 +205,15 @@ export function a2aSmokeRunner(options: {fetchImpl?: typeof fetch} = {}): SmokeR
         messages,
         state: taskStateWord(TaskState.TASK_STATE_COMPLETED),
         ...wordsOf(answered),
+        ...reached!,
       };
     }
-    return {kind: 'unfinished', messages, ...(last ? {state: taskStateWord(last.state)} : {})};
+    return {
+      kind: 'unfinished',
+      messages,
+      ...(last ? {state: taskStateWord(last.state)} : {}),
+      ...reached!,
+    };
   };
 }
 

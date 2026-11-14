@@ -37,6 +37,9 @@ import {
 import {
   a2aSmokeRunner,
   FAILED_STATES,
+  noneReachedFinding,
+  passedOverNote,
+  signInSignalOf,
   type SmokeObservation,
   type SmokeRunner,
 } from '@a2uiverse/smoke-transport';
@@ -206,6 +209,9 @@ export async function previewWith(
     timeoutMs: options.smokeTimeoutMs ?? DEFAULT_SMOKE_TIMEOUT_MS,
     ...(headers ? {headers} : {}),
   });
+  // Each interface the request passed over is the publisher's to know (task-20.5 decision 7).
+  if ('taken' in seen)
+    notes.push(...seen.notReached.map(entry => passedOverNote(entry, seen.taken)));
   const judged = judge(seen, headers !== undefined);
   if ('findings' in judged) {
     findings.push(...judged.findings);
@@ -237,10 +243,12 @@ function judge(
       return {
         findings: [
           credentialSent
-            ? 'the agent refused the credential: 401'
-            : 'the agent answered 401, but its card requires no sign-in',
+            ? `the agent refused the credential: ${signInSignalOf(seen.taken)}`
+            : `the agent answered ${signInSignalOf(seen.taken)}, but its card requires no sign-in`,
         ],
       };
+    case 'unreached':
+      return {findings: [noneReachedFinding(seen.notReached)]};
     case 'error':
       return {findings: [`the smoke request failed: ${seen.message}`]};
     case 'unfinished':

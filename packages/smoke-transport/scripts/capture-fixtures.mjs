@@ -1,10 +1,13 @@
 /**
  * Captures the wires under `test/fixtures/` from a scratch agent on Python's `a2a-sdk` 1.x,
- * `serve_a2ui.py` (task-20.4 decision 15): each request is sent by the A2A SDK's client, as the
- * platform sends one, to the agent's A2A 1.0 interface and to its 0.3 layer, and saved with the
- * answer as the server wrote it. Run from the package, after a build of the workspace:
+ * `serve_a2ui.py` (task-20.4 decision 15; task-20.5 decision 15): each request is sent through the
+ * platform's dial, by the A2A SDK's client, over JSON-RPC and HTTP+JSON, to the agent's A2A 1.0
+ * interface and to its 0.3 layer, and saved with the answer as the server wrote it. Its answers
+ * over gRPC are then asked again on both A2A versions, through the smoke runner, and printed: a
+ * gRPC stream is not replayed in the suites. Run from the package, after a build of the
+ * workspace, naming the bindings to run, or none for all three:
  *
- *   node scripts/capture-fixtures.mjs
+ *   node scripts/capture-fixtures.mjs [JSONRPC] [HTTP+JSON] [GRPC]
  *
  * It needs `uv` on the PATH.
  */
@@ -14,25 +17,28 @@ import {mkdir, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {Role} from '@a2a-js/sdk';
-import {
-  ClientFactory,
-  JsonRpcTransportFactory,
-  ServiceParameters,
-  withA2AExtensions,
-} from '@a2a-js/sdk/client';
-import {cardToDial, fetchLiveCard, readCard, spokenInterfaces} from '@a2uiverse/card';
+import {ServiceParameters, withA2AExtensions} from '@a2a-js/sdk/client';
+import {fetchLiveCard, readCard} from '@a2uiverse/card';
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
   A2UI_EXTENSION_URIS,
   a2uiPart,
   clientCapabilities,
 } from '@a2uiverse/sdk';
+import {a2aSmokeRunner, Dialer} from '../dist/index.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixtures = join(here, '..', 'test', 'fixtures');
 const PORT = 18741;
+const GRPC_PORT = 18742;
 const cardUrl = `http://127.0.0.1:${PORT}/.well-known/agent-card.json`;
-const PYTHON_SDK = 'a2a-sdk[http-server]==1.3.0';
+const PYTHON_SDK = 'a2a-sdk[http-server,grpc]==1.3.0';
+/** The six paths, as the scratch agent's card lists them. */
+const PATHS = ['JSONRPC', 'HTTP+JSON', 'GRPC'].flatMap(binding =>
+  ['1.0', '0.3'].map(version => `${binding}@${version}`),
+);
+const RUN =
+  process.argv.slice(2).length > 0 ? process.argv.slice(2) : ['JSONRPC', 'HTTP+JSON', 'GRPC'];
 const CATALOG = 'https://example.com/catalogs/fake/v1/catalog.json';
 /** How long a stream may stay silent before the capture leaves it as held open. */
 const HELD_AFTER_MS = 3000;
@@ -71,15 +77,15 @@ const text = value => ({
   mediaType: '',
 });
 
-/** One request to the agent's first interface, sent by the A2A SDK's client; what rode the wire. */
+/** One request to the agent's first interface, sent through the dial; what rode the wire. */
 async function capture(served, asked) {
   const card = readCard(served);
-  const [taken] = spokenInterfaces(card);
   let request;
   let recording;
   const fetchImpl = async (input, init) => {
     const headers = new Headers(init.headers);
     request = {
+      url: String(input),
       headers: Object.fromEntries(NAMED.filter(n => headers.has(n)).map(n => [n, headers.get(n)])),
       body: JSON.parse(init.body),
     };
@@ -97,16 +103,13 @@ async function capture(served, asked) {
     })();
     return new Response(forClient, {status: response.status, headers: response.headers});
   };
-  const factory = new ClientFactory({
-    transports: [new JsonRpcTransportFactory({fetchImpl, legacyCompat: {enabled: true}})],
-    cardResolver: {resolve: () => Promise.reject(new Error('the capture fetches no card'))},
-  });
-  const client = await factory.createFromAgentCard(cardToDial(card, taken));
   const left = new AbortController();
   let silence = setTimeout(() => left.abort(), HELD_AFTER_MS);
+  let taken;
   try {
-    const stream = client.sendMessageStream(
-      {
+    const dialed = await new Dialer({connectTimeoutMs: 5000, fetchImpl}).dial({
+      card,
+      params: {
         tenant: '',
         message: {
           messageId: randomUUID(),
@@ -121,14 +124,14 @@ async function capture(served, asked) {
         configuration: undefined,
         metadata: undefined,
       },
-      {
-        signal: left.signal,
-        serviceParameters: ServiceParameters.create(
-          withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS)),
-        ),
-      },
-    );
-    for await (const _event of stream) {
+      serviceParameters: ServiceParameters.create(
+        withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS)),
+      ),
+      signal: left.signal,
+    });
+    taken = dialed.taken;
+    if (dialed.notReached.length > 0) throw new Error('the capture passed an interface over');
+    for await (const _event of dialed.events) {
       clearTimeout(silence);
       silence = setTimeout(() => left.abort(), HELD_AFTER_MS);
     }
@@ -141,6 +144,7 @@ async function capture(served, asked) {
   return {
     agent: `Python ${PYTHON_SDK}`,
     asked,
+    binding: taken.protocolBinding,
     a2aVersion: taken.protocolVersion,
     card: served,
     request,
@@ -148,8 +152,9 @@ async function capture(served, asked) {
   };
 }
 
-/** The scratch agent listing JSON-RPC at the A2A versions of `order`, for as long as `use` runs. */
-async function withScratchAgent(order, use) {
+/** The scratch agent listing the six paths, `first` ahead of the rest, for as long as `use` runs. */
+async function withScratchAgent(first, use) {
+  const order = [first, ...PATHS.filter(path => path !== first)].join(',');
   const child = spawn(
     'uv',
     [
@@ -161,6 +166,7 @@ async function withScratchAgent(order, use) {
       'uvicorn',
       join(here, 'serve_a2ui.py'),
       String(PORT),
+      String(GRPC_PORT),
       order,
     ],
     {stdio: ['ignore', 'inherit', 'inherit']},
@@ -182,15 +188,88 @@ async function withScratchAgent(order, use) {
   }
 }
 
+/** A fixture's name: JSON-RPC's as 20.4 named them, the binding ahead of the version otherwise. */
+const fixtureName = (binding, version, asked) =>
+  binding === 'JSONRPC'
+    ? `python-${version}-${asked}.json`
+    : `python-${binding.toLowerCase()}-${version}-${asked}.json`;
+
 await mkdir(fixtures, {recursive: true});
-for (const order of ['1.0,0.3', '0.3,1.0']) {
-  await withScratchAgent(order, async served => {
+for (const binding of RUN.filter(named => named !== 'GRPC')) {
+  for (const version of ['1.0', '0.3']) {
+    await withScratchAgent(`${binding}@${version}`, async served => {
+      for (const asked of ASKED) {
+        const wire = await capture(served, asked);
+        const name = fixtureName(binding, version, asked);
+        await writeFile(join(fixtures, name), `${JSON.stringify(wire, null, 2)}\n`);
+        console.log(
+          `captured ${name}${wire.response.closedByAgent ? '' : ' (the agent held its stream open)'}`,
+        );
+      }
+    });
+  }
+}
+
+/** The parts the agent held of a press sent over gRPC, as the `echo` answer gives them back. */
+async function echoedOverGrpc(card) {
+  const dialed = await new Dialer({connectTimeoutMs: 5000}).dial({
+    card,
+    params: {
+      tenant: '',
+      message: {
+        messageId: randomUUID(),
+        contextId: '',
+        taskId: '',
+        role: Role.ROLE_USER,
+        parts: [text('echo'), PRESS],
+        metadata: undefined,
+        extensions: [],
+        referenceTaskIds: [],
+      },
+      configuration: undefined,
+      metadata: undefined,
+    },
+  });
+  let echoed = '';
+  for await (const event of dialed.events) {
+    const message = event.payload?.value?.status?.message;
+    const part = message?.parts?.[0]?.content;
+    if (part?.$case === 'text') echoed = part.value;
+  }
+  return echoed;
+}
+
+// gRPC, asked live on both A2A versions through the smoke runner: what each answer ended on, and
+// what the agent held of a press.
+for (const version of RUN.includes('GRPC') ? ['1.0', '0.3'] : []) {
+  await withScratchAgent(`GRPC@${version}`, async served => {
+    const card = readCard(served);
     for (const asked of ASKED) {
-      const wire = await capture(served, asked);
-      const name = `python-${wire.a2aVersion}-${asked}.json`;
-      await writeFile(join(fixtures, name), `${JSON.stringify(wire, null, 2)}\n`);
+      if (asked === 'echo') {
+        console.log(`GRPC at A2A ${version} · echo · the agent held ${await echoedOverGrpc(card)}`);
+        continue;
+      }
+      const seen = await a2aSmokeRunner()({
+        card,
+        entitlement: [CATALOG],
+        words: asked,
+        timeoutMs: 10_000,
+      });
+      const painted = (seen.messages ?? []).map(m => Object.keys(m).find(k => k !== 'version'));
       console.log(
-        `captured ${name}${wire.response.closedByAgent ? '' : ' (the agent held its stream open)'}`,
+        [
+          `GRPC at A2A ${version}`,
+          asked,
+          seen.kind,
+          seen.state ?? '',
+          painted.join('+') || 'no A2UI',
+          seen.taken
+            ? `took ${seen.taken.protocolBinding} at A2A ${seen.taken.protocolVersion}`
+            : '',
+          seen.data ? JSON.stringify(seen.data) : '',
+        ]
+          .filter(Boolean)
+          .join(' · '),
       );
     }
   });

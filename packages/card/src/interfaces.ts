@@ -1,15 +1,13 @@
 /**
- * How an agent is reached (task-20.3 decisions 10, 11, 15): which of a card's interfaces the
- * platform speaks, which one it takes, and what a publisher reads when it speaks none. The
- * platform chooses by the card's own order and the A2A SDK dials the one interface it is handed.
+ * How an agent is reached (task-20.3 decisions 10, 11, 15; task-20.5 decision 1): which of a
+ * card's interfaces the platform speaks, in the card's own order, and what a publisher reads when
+ * it speaks none. The dial walks the spoken interfaces from the first, and the A2A SDK dials the
+ * one interface it is handed.
  */
 import type {AgentCard, AgentInterface} from '@a2a-js/sdk';
 
-/**
- * The bindings the platform speaks, as A2A names them. 20.5 adds HTTP+JSON and gRPC; until then
- * an agent serving only those is turned away at the doors.
- */
-export const SPOKEN_BINDINGS: readonly string[] = ['JSONRPC'];
+/** The bindings the platform speaks, as A2A names them: the three standard bindings. */
+export const SPOKEN_BINDINGS: readonly string[] = ['JSONRPC', 'HTTP+JSON', 'GRPC'];
 
 /** The A2A version an interface naming none is on, as the A2A SDK reads it. */
 const ABSENT_A2A_VERSION = '0.3';
@@ -39,8 +37,8 @@ function isSpokenBinding(binding: string): boolean {
 
 /**
  * The interfaces of a read card the platform speaks, in the card's order. An agent is reachable
- * when the list is not empty, and the first entry is the interface taken. An interface naming no
- * URL is spoken by nobody: a card written for A2A 0.3 with no `url` reads to one.
+ * when the list is not empty, and a dial walks it from the first entry. An interface naming no URL
+ * is spoken by nobody: a card written for A2A 0.3 with no `url` reads to one.
  */
 export function spokenInterfaces(card: AgentCard): AgentInterface[] {
   return (card.supportedInterfaces ?? []).filter(
@@ -54,7 +52,7 @@ export function spokenInterfaces(card: AgentCard): AgentInterface[] {
 /**
  * The card the A2A SDK is handed to dial from: the read card listing the one interface taken, so
  * the card's order holds inside one binding too, where the A2A SDK alone takes an A2A 1.0
- * interface over a 0.3 one.
+ * interface over a 0.3 one. The dial hands it a gRPC interface at the address it reads.
  */
 export function cardToDial(card: AgentCard, taken: AgentInterface): AgentCard {
   return {...card, supportedInterfaces: [taken]};
@@ -73,5 +71,12 @@ export function noInterfaceFinding(card: AgentCard): string {
     const at = version === '' ? `${binding} with no A2A version` : `${binding} at A2A ${version}`;
     return agentInterface.url ? at : `${at} with no URL`;
   });
-  return `the card lists no interface A2UIVerse speaks: it lists ${lists.join(' and ')}; A2UIVerse speaks ${SPOKEN_BINDINGS.join(', ')} at ${SPOKEN_VERSIONS_WORDS}`;
+  return `the card lists no interface A2UIVerse speaks: it lists ${lists.join(' and ')}; A2UIVerse speaks ${listWords(SPOKEN_BINDINGS)} at ${SPOKEN_VERSIONS_WORDS}`;
+}
+
+/** `a`, `a and b`, `a, b and c`. */
+function listWords(items: readonly string[]): string {
+  return items.length < 2
+    ? (items[0] ?? '')
+    : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }

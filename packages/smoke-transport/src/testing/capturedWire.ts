@@ -1,6 +1,7 @@
 /**
- * A wire captured from a real agent, replayed for tests (task-20.4 decision 15): one request the
- * A2A SDK's client sent and the answer as the agent's server wrote it, saved by
+ * A wire captured from a real agent, replayed for tests (task-20.4 decision 15; task-20.5 decision
+ * 15): one request the A2A SDK's client sent through the platform's dial, over JSON-RPC or
+ * HTTP+JSON, and the answer as the agent's server wrote it, saved by
  * `scripts/capture-fixtures.mjs` under `test/fixtures/`. None is written by hand.
  */
 import {readFileSync} from 'node:fs';
@@ -10,12 +11,17 @@ export interface CapturedWire {
   agent: string;
   /** What the agent was asked for: the first text part of the request. */
   asked: string;
+  /** The binding of the interface the request reached: `JSONRPC` or `HTTP+JSON`. */
+  binding: string;
   /** The A2A version of the interface the request reached. */
   a2aVersion: string;
   /** The card as the agent served it, that interface the first it lists. */
   card: object;
-  /** What the A2A SDK's client sent: the headers that name the protocol, and the JSON-RPC body. */
-  request: {headers: Record<string, string>; body: Record<string, unknown>};
+  /**
+   * What the A2A SDK's client sent: the URL, the headers that name the protocol, and the body —
+   * a JSON-RPC request, or HTTP+JSON's.
+   */
+  request: {url: string; headers: Record<string, string>; body: Record<string, unknown>};
   /**
    * What came back: the response's status and content type, its body as written, and whether the
    * agent closed the stream itself; a stream it held open was left by the capture after three

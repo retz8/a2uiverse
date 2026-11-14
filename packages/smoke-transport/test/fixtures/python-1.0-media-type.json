@@ -1,6 +1,7 @@
 {
-  "agent": "Python a2a-sdk[http-server]==1.3.0",
+  "agent": "Python a2a-sdk[http-server,grpc]==1.3.0",
   "asked": "media-type",
+  "binding": "JSONRPC",
   "a2aVersion": "1.0",
   "card": {
     "name": "Scratch Agent",
@@ -14,6 +15,26 @@
       {
         "url": "http://127.0.0.1:18741/",
         "protocolBinding": "JSONRPC",
+        "protocolVersion": "0.3"
+      },
+      {
+        "url": "http://127.0.0.1:18741/rest",
+        "protocolBinding": "HTTP+JSON",
+        "protocolVersion": "1.0"
+      },
+      {
+        "url": "http://127.0.0.1:18741/rest",
+        "protocolBinding": "HTTP+JSON",
+        "protocolVersion": "0.3"
+      },
+      {
+        "url": "127.0.0.1:18742",
+        "protocolBinding": "GRPC",
+        "protocolVersion": "1.0"
+      },
+      {
+        "url": "127.0.0.1:18742",
+        "protocolBinding": "GRPC",
         "protocolVersion": "0.3"
       }
     ],
@@ -38,8 +59,8 @@
               "authorizationUrl": "http://127.0.0.1:18741/authorize",
               "tokenUrl": "http://127.0.0.1:18741/token",
               "scopes": {
-                "things.write": "Change your things",
-                "things.read": "Read your things"
+                "things.read": "Read your things",
+                "things.write": "Change your things"
               }
             }
           }
@@ -48,8 +69,8 @@
           "authorizationCode": {
             "authorizationUrl": "http://127.0.0.1:18741/authorize",
             "scopes": {
-              "things.write": "Change your things",
-              "things.read": "Read your things"
+              "things.read": "Read your things",
+              "things.write": "Change your things"
             },
             "tokenUrl": "http://127.0.0.1:18741/token"
           }
@@ -68,11 +89,22 @@
         "examples": ["one"]
       }
     ],
+    "additionalInterfaces": [
+      {
+        "transport": "HTTP+JSON",
+        "url": "http://127.0.0.1:18741/rest"
+      },
+      {
+        "transport": "GRPC",
+        "url": "127.0.0.1:18742"
+      }
+    ],
     "preferredTransport": "JSONRPC",
     "protocolVersion": "0.3",
     "url": "http://127.0.0.1:18741/"
   },
   "request": {
+    "url": "http://127.0.0.1:18741/",
     "headers": {
       "a2a-version": "1.0",
       "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
@@ -84,7 +116,7 @@
       "method": "SendStreamingMessage",
       "params": {
         "message": {
-          "messageId": "5e383d74-5c59-4eb4-ae04-993ee03d8bf5",
+          "messageId": "008fe807-1c54-476e-afa2-d141e2eaf83d",
           "role": "ROLE_USER",
           "parts": [
             {
@@ -110,7 +142,7 @@
   "response": {
     "status": 200,
     "contentType": "text/event-stream",
-    "body": "data: {\"result\": {\"task\": {\"id\": \"401d64de-56fe-465f-943e-6a442a706a7d\", \"contextId\": \"9c74bd6b-1411-4c5a-ac5d-e8bbe8996be2\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"5e383d74-5c59-4eb4-ae04-993ee03d8bf5\", \"contextId\": \"9c74bd6b-1411-4c5a-ac5d-e8bbe8996be2\", \"taskId\": \"401d64de-56fe-465f-943e-6a442a706a7d\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"media-type\"}], \"metadata\": {\"a2uiClientCapabilities\": {\"v0.9.1\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}, \"v0.9\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\ndata: {\"result\": {\"statusUpdate\": {\"taskId\": \"401d64de-56fe-465f-943e-6a442a706a7d\", \"contextId\": \"9c74bd6b-1411-4c5a-ac5d-e8bbe8996be2\", \"status\": {\"state\": \"TASK_STATE_COMPLETED\", \"message\": {\"messageId\": \"8015f28d-efb5-483f-9e97-3229bc17c403\", \"contextId\": \"9c74bd6b-1411-4c5a-ac5d-e8bbe8996be2\", \"taskId\": \"401d64de-56fe-465f-943e-6a442a706a7d\", \"role\": \"ROLE_AGENT\", \"parts\": [{\"data\": {\"createSurface\": {\"surfaceId\": \"s1\", \"catalogId\": \"https://example.com/catalogs/fake/v1/catalog.json\"}, \"version\": \"v0.9\"}, \"mediaType\": \"application/a2ui+json\"}, {\"data\": {\"updateComponents\": {\"surfaceId\": \"s1\", \"components\": [{\"id\": \"root\", \"component\": \"Text\", \"text\": \"hi\"}]}, \"version\": \"v0.9\"}, \"mediaType\": \"application/a2ui+json\"}]}, \"timestamp\": \"2026-11-13T13:44:47.679476Z\"}}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\n",
+    "body": "data: {\"result\": {\"task\": {\"id\": \"bf65aee0-8f8b-42dd-82cd-96cf27ab5f0f\", \"contextId\": \"19d7c81f-3a57-4480-ac38-679b97906445\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"008fe807-1c54-476e-afa2-d141e2eaf83d\", \"contextId\": \"19d7c81f-3a57-4480-ac38-679b97906445\", \"taskId\": \"bf65aee0-8f8b-42dd-82cd-96cf27ab5f0f\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"media-type\"}], \"metadata\": {\"a2uiClientCapabilities\": {\"v0.9\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}, \"v0.9.1\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\ndata: {\"result\": {\"statusUpdate\": {\"taskId\": \"bf65aee0-8f8b-42dd-82cd-96cf27ab5f0f\", \"contextId\": \"19d7c81f-3a57-4480-ac38-679b97906445\", \"status\": {\"state\": \"TASK_STATE_COMPLETED\", \"message\": {\"messageId\": \"f6bf48b2-03ff-4585-95b6-8f1bba38ab5b\", \"contextId\": \"19d7c81f-3a57-4480-ac38-679b97906445\", \"taskId\": \"bf65aee0-8f8b-42dd-82cd-96cf27ab5f0f\", \"role\": \"ROLE_AGENT\", \"parts\": [{\"data\": {\"createSurface\": {\"catalogId\": \"https://example.com/catalogs/fake/v1/catalog.json\", \"surfaceId\": \"s1\"}, \"version\": \"v0.9\"}, \"mediaType\": \"application/a2ui+json\"}, {\"data\": {\"updateComponents\": {\"components\": [{\"text\": \"hi\", \"id\": \"root\", \"component\": \"Text\"}], \"surfaceId\": \"s1\"}, \"version\": \"v0.9\"}, \"mediaType\": \"application/a2ui+json\"}]}, \"timestamp\": \"2026-11-14T00:23:58.037673Z\"}}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\n",
     "closedByAgent": true
   }
 }

@@ -7,9 +7,14 @@
 import {randomUUID} from 'node:crypto';
 import {createServer, type Server} from 'node:http';
 import {afterEach, describe, expect, test, vi} from 'vitest';
-import {noInterfaceFinding, readCard} from '@a2uiverse/card';
+import {noInterfaceFinding, readCard, spokenInterfaces} from '@a2uiverse/card';
 import {A2UI_CLIENT_CAPABILITIES_KEY, clientCapabilities, readAuthRequired} from '@a2uiverse/sdk';
-import {a2aSmokeRunner} from './smokeRunner.js';
+import {
+  a2aSmokeRunner,
+  SMOKE_CONNECT_TIMEOUT_MS,
+  type SmokeObservation,
+  type SmokeRunner,
+} from './smokeRunner.js';
 import {
   artifactUpdate,
   authRequiredBody,
@@ -41,6 +46,7 @@ import {
   statusUpdateV1,
   type FakeA2aVersion,
   type FakeAgentV1,
+  type FakePath,
   type PartMarksV1,
   type ScriptV1,
 } from './testing/fakeAgentV1.js';
@@ -75,7 +81,26 @@ async function start(script: Script = completingScript(PAINT), card: Partial<Age
 /** The card as the marketplace and Stellify hand it to the runner: served by its agent, then read. */
 const served = (card: AgentCard) => readCard(card);
 
-const run = a2aSmokeRunner();
+/**
+ * The runner, each observation of a request sent to the card's first spoken interface with no
+ * interface passed over, as tests before the walk read it: `taken` checked and set aside.
+ */
+type Observed = SmokeObservation extends infer T
+  ? T extends {taken: unknown}
+    ? Omit<T, 'taken' | 'notReached'>
+    : T
+  : never;
+const firstTaken =
+  (runner: SmokeRunner) =>
+  async (request: Parameters<SmokeRunner>[0]): Promise<Observed> => {
+    const seen: SmokeObservation = await runner(request);
+    if (!('taken' in seen)) return seen;
+    const {taken, notReached, ...observed} = seen;
+    expect(taken).toEqual(spokenInterfaces(request.card)[0]);
+    expect(notReached).toEqual([]);
+    return observed;
+  };
+const run = firstTaken(a2aSmokeRunner());
 const smoke = (
   card: AgentCard,
   extra: {timeoutMs?: number; headers?: Record<string, string>} = {},
@@ -278,9 +303,12 @@ describe('a2aSmokeRunner, a request that could not be made', () => {
     });
   });
 
-  test('an agent that cannot be reached', async () => {
-    const seen = await smoke(cardFor('http://127.0.0.1:1', {catalogs: [CATALOG_ID]}));
-    expect(seen.kind).toBe('error');
+  test('an agent that cannot be reached: no interface reached, each one tried', async () => {
+    const card = served(cardFor('http://127.0.0.1:1', {catalogs: [CATALOG_ID]}));
+    expect(await run({card, entitlement: ENTITLEMENT, words: 'x', timeoutMs: 5000})).toEqual({
+      kind: 'unreached',
+      notReached: [{interface: card.supportedInterfaces[0], why: 'connection'}],
+    });
   });
 
   test('a card listing no interface the platform speaks: an error saying so, nothing sent', async () => {
@@ -288,7 +316,7 @@ describe('a2aSmokeRunner, a request that could not be made', () => {
     const read = {
       ...served(card),
       supportedInterfaces: [
-        {url: card.url, protocolBinding: 'GRPC', protocolVersion: '1.0', tenant: ''},
+        {url: card.url, protocolBinding: 'ACME-RPC', protocolVersion: '1.0', tenant: ''},
       ],
     };
     const seen = await run({card: read, entitlement: ENTITLEMENT, words: 'x', timeoutMs: 5000});
@@ -536,5 +564,86 @@ describe('a2aSmokeRunner, an agent on A2A 1.0 asking to sign in (task-20.4 decis
       timeout: 10_000,
       interval: 100,
     });
+  });
+});
+
+describe('a2aSmokeRunner, the walk (task-20.5 decisions 2, 7)', () => {
+  const runner = a2aSmokeRunner();
+  const SIX: FakePath[] = (['JSONRPC', 'HTTP+JSON', 'GRPC'] as const).flatMap(binding =>
+    (['1.0', '0.3'] as const).map(version => ({binding, version})),
+  );
+
+  async function startPaths(paths: FakePath[], options: {admit?: () => boolean} = {}) {
+    agentV1 = await startFakeAgentV1({
+      script: completingScriptV1(paintPartsV1(CATALOG_ID)),
+      card: urls => cardForV1(urls, {catalogs: [CATALOG_ID], paths}),
+      ...options,
+    });
+    return readCard(agentV1.served);
+  }
+
+  test.each(SIX)('$binding at A2A $version: the paint comes back', async path => {
+    const card = await startPaths([path]);
+    const seen = await runner({card, entitlement: ENTITLEMENT, words: 'x', timeoutMs: 5000});
+    expect(seen.kind).toBe('ended');
+    if (seen.kind !== 'ended') return;
+    expect(seen.state).toBe('completed');
+    expect(operationsOf(seen.messages)).toEqual(OPERATIONS);
+    expect(seen.taken).toEqual(card.supportedInterfaces[0]);
+  });
+
+  test('an interface passed over is reported beside the one the request went to', async () => {
+    const card = await startPaths([{binding: 'JSONRPC', version: '0.3'}]);
+    const unopened = {
+      url: '127.0.0.1:1',
+      protocolBinding: 'GRPC',
+      protocolVersion: '1.0',
+      tenant: '',
+    };
+    const seen = await runner({
+      card: {...card, supportedInterfaces: [unopened, ...card.supportedInterfaces]},
+      entitlement: ENTITLEMENT,
+      words: 'x',
+      timeoutMs: 5000,
+    });
+    expect(seen).toMatchObject({
+      kind: 'ended',
+      taken: card.supportedInterfaces[0],
+      notReached: [{interface: unopened, why: 'connection'}],
+    });
+  });
+
+  test('a gRPC interface the credential’s header cannot ride is passed over', async () => {
+    const card = await startPaths([
+      {binding: 'GRPC', version: '1.0'},
+      {binding: 'JSONRPC', version: '1.0'},
+    ]);
+    const seen = await runner({
+      card,
+      entitlement: ENTITLEMENT,
+      words: 'x',
+      timeoutMs: 5000,
+      headers: {'X-Api~Key': 'k-1'},
+    });
+    expect(seen).toMatchObject({
+      kind: 'ended',
+      taken: card.supportedInterfaces[1],
+      notReached: [
+        {interface: card.supportedInterfaces[0], why: 'credential', header: 'X-Api~Key'},
+      ],
+    });
+  });
+
+  test('a gRPC agent that asks sign-in with UNAUTHENTICATED is refused for sign-in', async () => {
+    const card = await startPaths([{binding: 'GRPC', version: '1.0'}], {admit: () => false});
+    expect(await runner({card, entitlement: ENTITLEMENT, words: 'x', timeoutMs: 5000})).toEqual({
+      kind: 'unauthorized',
+      taken: card.supportedInterfaces[0],
+      notReached: [],
+    });
+  });
+
+  test('the time limit on opening a connection at publish and preview is 10 s', () => {
+    expect(SMOKE_CONNECT_TIMEOUT_MS).toBe(10_000);
   });
 });

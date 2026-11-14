@@ -7,16 +7,18 @@ import {
   type AgentInterface,
   type Message,
   type Part,
+  type SendMessageRequest,
 } from '@a2a-js/sdk';
+import {ServiceParameters, withA2AExtensions} from '@a2a-js/sdk/client';
+import {a2aVersionOf, noInterfaceFinding, spokenInterfaces} from '@a2uiverse/card';
 import {
-  ClientFactory,
-  JsonRpcTransportFactory,
-  ServiceParameters,
-  withA2AExtensions,
-  type AgentCardResolver,
-  type Client,
-} from '@a2a-js/sdk/client';
-import {a2aVersionOf, cardToDial, noInterfaceFinding, spokenInterfaces} from '@a2uiverse/card';
+  Dialer,
+  NoInterfaceReachedError,
+  noneReachedFinding,
+  UnauthorizedError,
+  type NotReached,
+  type OpenConnection,
+} from '@a2uiverse/smoke-transport';
 import type {FailureCause} from '@a2uiverse/shell-catalog/schema';
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
@@ -59,7 +61,19 @@ import {
   withParts,
   type VendorEvent,
 } from './relay.js';
-import type {DispatchHandle, DispatchOutcome, DispatchRecord, DispatchTurn} from './types.js';
+import type {
+  DispatchHandle,
+  DispatchOutcome,
+  DispatchRecord,
+  DispatchTurn,
+  NotReachedEntry,
+} from './types.js';
+
+/**
+ * How long opening a connection may take at a dispatch, for each interface the walk tries
+ * (task-20.5 decision 4): a person waits on the canvas, as for a fetch of the live card there.
+ */
+export const DISPATCH_CONNECT_TIMEOUT_MS = 5000;
 
 export interface AgentsPoolOptions {
   /** The hard cap (task-8.3 decision 2): from dispatch to `capped`; the dispatch runs on past it. */
@@ -69,6 +83,10 @@ export interface AgentsPoolOptions {
   faults?: FaultMap;
   contexts?: VendorContextMap;
   fetchImpl?: typeof fetch;
+  /** How a connection is opened; a test replaying a captured wire opens none. */
+  openConnection?: OpenConnection;
+  /** How long opening a connection may take, for each interface the walk tries. */
+  connectTimeoutMs?: number;
   /** The vault (task 12.5): the header a dispatch carries, and what a refusal asks. */
   credentials?: Credentials;
   /** The update check (task 15.5): whether the app can paint in what it is installed with. */
@@ -91,19 +109,12 @@ export interface UpdateGate {
 export interface Credentials {
   /** The header a dispatch to the source carries; undefined when its card asks nothing. */
   prepare(source: string): Promise<Prepared | undefined>;
-  /** A 401 to `sent`: renewed headers to send again once, or the authority needed. */
+  /** A refusal for sign-in to `sent`: renewed headers to send again once, or the authority needed. */
   unauthorized(source: string, sent: Record<string, string>): Promise<Prepared>;
   /** A second refusal: the account signs in again. */
   markAgain(source: string, reason: string): Promise<void>;
   /** An in-task `auth-required`, read against the installed card. */
   requested(source: string, request: AuthRequired | undefined): AuthorityRequest;
-}
-
-/** A vendor answered 401: thrown from inside the A2A client's fetch, so it reaches the dispatch. */
-export class UnauthorizedError extends Error {
-  constructor() {
-    super('the agent refused the request: 401');
-  }
 }
 
 /** The states that end a vendor's task as a failure it declared itself. */
@@ -134,7 +145,13 @@ export class AgentsPool {
   readonly #registry: Registry;
   readonly #options: AgentsPoolOptions;
   readonly #contexts: VendorContextMap;
-  readonly #clients = new Map<string, Promise<Client>>();
+  readonly #dialer: Dialer;
+  /**
+   * The interface that last answered for each app, beside the card it was read from and the
+   * registry's count of the app's live card fetches then (task-20.5 decision 5): a dispatch starts
+   * there until the live card is fetched again.
+   */
+  readonly #answered = new Map<string, {card: AgentCard; fetches: number; taken: AgentInterface}>();
   /** The app each dispatch was sent to, as the registry held it then. */
   readonly #sentTo = new WeakMap<DispatchRecord, AppRecord>();
   /** The card and the interface each dispatch dialed: what its cancel reaches. */
@@ -151,6 +168,11 @@ export class AgentsPool {
     this.#registry = registry;
     this.#options = options;
     this.#contexts = options.contexts ?? new InMemoryVendorContextMap();
+    this.#dialer = new Dialer({
+      connectTimeoutMs: options.connectTimeoutMs ?? DISPATCH_CONNECT_TIMEOUT_MS,
+      ...(options.fetchImpl ? {fetchImpl: options.fetchImpl} : {}),
+      ...(options.openConnection ? {openConnection: options.openConnection} : {}),
+    });
   }
 
   /** A composition closed (task-9.3 decision 5): its vendor conversations are let go. */
@@ -299,11 +321,10 @@ export class AgentsPool {
         yield relayEvent(event, relayCtx);
       } else {
         // Reachability, judged before the agent is called, ahead of the update check and of any
-        // sign-in (task-20.3 decision 13): on the card the dispatch would dial from, the first
-        // interface in its order that the platform speaks.
+        // sign-in (task-20.3 decision 13): the card the dispatch would dial from lists an
+        // interface the platform speaks.
         const dial = this.#registry.dialCard(app.id);
-        const taken = dial ? spokenInterfaces(dial)[0] : undefined;
-        if (!dial || !taken) {
+        if (!dial || spokenInterfaces(dial).length === 0) {
           finish('failed', {
             error: dial ? noInterfaceFinding(dial) : `app ${appId} has no card`,
             cause: 'interface',
@@ -333,12 +354,36 @@ export class AgentsPool {
         // A live card asking more than the account meets, once the installed card is met.
         if (updates?.permissionChanged(source) && (await stopped('permission'))) return;
         let headers = prepared?.headers ?? {};
-        const client = await this.#connect(dial, taken);
-        // The interface the platform took from the card (task-20.1 decision 5; task-20.3
-        // decision 11).
-        record.a2aVersion = a2aVersionOf(taken);
-        record.binding = taken.protocolBinding;
-        this.#dialed.set(record, {card: dial, taken});
+        // The first send walks the card's spoken interfaces from the one that last answered
+        // (task-20.5 decisions 2, 5); a resend and a repair go to the interface it took.
+        let taken: AgentInterface | undefined;
+        const sendTo = async (params: SendMessageRequest) => {
+          const request = {
+            params,
+            credential: headers,
+            serviceParameters: EXTENSIONS,
+            signal: controller.signal,
+          };
+          if (taken) return this.#dialer.send(dial, taken, request);
+          const dialed = await this.#dialer.dial({
+            card: dial,
+            ...this.#remembered(app.id, dial),
+            ...request,
+          });
+          taken = dialed.taken;
+          this.#answered.set(app.id, {
+            card: dial,
+            fetches: this.#registry.liveCardFetches(app.id),
+            taken: dialed.taken,
+          });
+          // The interface the dispatch used, and each one passed over before it (task-20.1
+          // decision 5; task-20.5 decision 6).
+          record.a2aVersion = a2aVersionOf(dialed.taken);
+          record.binding = dialed.taken.protocolBinding;
+          if (dialed.notReached.length > 0) record.notReached = journaled(dialed.notReached);
+          this.#dialed.set(record, {card: dial, taken: dialed.taken});
+          return dialed.events;
+        };
         // The catalog each of the source's surfaces was created in: its options are what a
         // painted value is matched by.
         const catalogs = this.#surfaceCatalogs(turn.clientContextId, source);
@@ -360,25 +405,16 @@ export class AgentsPool {
           let foundOnTerminal = false;
           let sendTaskId: string | undefined;
           const shown: CreatedSurface[] = [];
-          // At most two sends: a refusal — 401, or an `auth-required` naming nothing — is answered
-          // once by a refresh and a resend; a second makes the account sign in again (task-12.5
-          // decisions 1, 8).
+          // At most two sends: a refusal — HTTP 401 or gRPC's UNAUTHENTICATED, or an
+          // `auth-required` naming nothing — is answered once by a refresh and a resend; a second
+          // makes the account sign in again (task-12.5 decisions 1, 8; task-20.5 decision 8).
           for (;;) {
-            const options = {
-              signal: controller.signal,
-              serviceParameters: {
-                ...ServiceParameters.create(
-                  withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS)),
-                ),
-                ...headers,
-              },
-            };
             let refused = false;
             lastState = undefined;
             answered = false;
             unmet = false;
             try {
-              for await (const event of client.sendMessageStream(params, options)) {
+              for await (const event of await sendTo(params)) {
                 this.#learnIds(event, source, turn, record);
                 sendTaskId ??= idsOf(event).taskId;
                 // A paint outside the app's entitlement — the set of its stamp — is refused at
@@ -467,7 +503,7 @@ export class AgentsPool {
           logLine(
             `✗ ${source} task=${turn.clientTaskId} painted a credential input: ${found.component}, matching ${JSON.stringify(found.term)}`,
           );
-          if (sendTaskId !== undefined && !foundOnTerminal) {
+          if (sendTaskId !== undefined && !foundOnTerminal && taken) {
             this.#cancelTask(source, {card: dial, taken}, record, sendTaskId);
           }
           if (shown.length > 0) yield relayEvent(takeDown(shown), relayCtx);
@@ -539,13 +575,31 @@ export class AgentsPool {
         finish('completed');
       }
     } catch (err) {
-      if (controller.signal.aborted) finish('cancelled');
-      else
+      if (controller.signal.aborted) {
+        finish('cancelled');
+      } else if (err instanceof NoInterfaceReachedError) {
+        // The walk reached none: the slot fails as an agent that could not be reached, with
+        // Retry, and the journal lists what was tried (task-20.5 decisions 2, 6).
+        record.notReached = journaled(err.notReached);
+        finish('failed', {error: noneReachedFinding(err.notReached), cause: 'unreachable'});
+      } else {
         finish('failed', {
           error: err instanceof Error ? err.message : String(err),
           cause: 'unreachable',
         });
+      }
     }
+  }
+
+  /**
+   * Where the app's walk starts: the interface that last answered, until its live card is fetched
+   * again.
+   */
+  #remembered(appId: string, card: AgentCard): {first?: AgentInterface} {
+    const answered = this.#answered.get(appId);
+    return answered?.card === card && answered.fetches === this.#registry.liveCardFetches(appId)
+      ? {first: answered.taken}
+      : {};
   }
 
   /**
@@ -593,22 +647,20 @@ export class AgentsPool {
     this.#cancelTask(source, dialed, record, id);
   }
 
-  /** A2A's cancel for one vendor task, fire and forget. */
+  /** A2A's cancel for one vendor task, fire and forget, to the interface its request went to. */
   #cancelTask(
     source: string,
     dialed: {card: AgentCard; taken: AgentInterface},
     record: DispatchRecord,
     id: string,
   ): void {
-    void this.#connect(dialed.card, dialed.taken)
-      .then(client => client.cancelTask({tenant: '', id, metadata: undefined}))
-      .then(
-        () => logLine(`✗ ${source} task=${record.clientTaskId} cancel sent`),
-        err =>
-          logLine(
-            `✗ ${source} task=${record.clientTaskId} cancel refused (${err instanceof Error ? err.message : String(err)})`,
-          ),
-      );
+    void this.#dialer.cancelTask(dialed.card, dialed.taken, id).then(
+      () => logLine(`✗ ${source} task=${record.clientTaskId} cancel sent`),
+      err =>
+        logLine(
+          `✗ ${source} task=${record.clientTaskId} cancel refused (${err instanceof Error ? err.message : String(err)})`,
+        ),
+    );
   }
 
   #learnIds(event: VendorEvent, source: string, turn: DispatchTurn, record: DispatchRecord): void {
@@ -619,55 +671,21 @@ export class AgentsPool {
     }
     if (taskId && !record.vendorTaskId) record.vendorTaskId = taskId;
   }
-
-  /**
-   * A client for the app's agent at the one interface the platform took from its card (task-20.3
-   * decision 11): the read card listing that interface alone is handed to the A2A SDK, which
-   * dials it — its 0.3 layer for an interface on A2A 0.3 — so the card's order holds inside one
-   * binding too. A dispatch fetches no card of its own (task-11.4 decision 8).
-   */
-  #connect(card: AgentCard, taken: AgentInterface): Promise<Client> {
-    const key = JSON.stringify([
-      taken.url,
-      taken.protocolBinding,
-      taken.protocolVersion,
-      taken.tenant,
-    ]);
-    let pending = this.#clients.get(key);
-    if (!pending) {
-      const base = this.#options.fetchImpl ?? fetch;
-      // A 401 becomes an error of its own, thrown out through the A2A client to the dispatch
-      // that sent it, which the SDK's own error would only name in its message.
-      const fetchImpl: typeof fetch = async (input, init) => {
-        const response = await base(input, init);
-        if (response.status === 401) {
-          await response.body?.cancel().catch(() => {});
-          throw new UnauthorizedError();
-        }
-        return response;
-      };
-      const factory = new ClientFactory({
-        transports: [new JsonRpcTransportFactory({fetchImpl, legacyCompat: {enabled: true}})],
-        cardResolver: NO_RESOLVER,
-      });
-      pending = factory.createFromAgentCard(cardToDial(card, taken)).catch(err => {
-        this.#clients.delete(key);
-        throw err;
-      });
-      this.#clients.set(key, pending);
-    }
-    return pending;
-  }
 }
 
-/**
- * The platform reads a card itself and hands the A2A SDK one already read, so the A2A SDK
- * resolves none and normalizes none: its own normalizing reads an in-memory card with sign-in
- * schemes over again as JSON and drops them.
- */
-const NO_RESOLVER: AgentCardResolver = {
-  resolve: () => Promise.reject(new Error('the dispatch fetches no card')),
-};
+/** What every request to an agent carries beside the credential: the A2UI extensions it asks for. */
+const EXTENSIONS = ServiceParameters.create(
+  withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS)),
+);
+
+/** The interfaces a walk did not reach, as the journal records them. */
+function journaled(notReached: readonly NotReached[]): NotReachedEntry[] {
+  return notReached.map(entry => ({
+    binding: entry.interface.protocolBinding,
+    a2aVersion: a2aVersionOf(entry.interface),
+    why: entry.why,
+  }));
+}
 
 /**
  * The vendor-bound message with the app's own entitlement as its A2UI client capabilities

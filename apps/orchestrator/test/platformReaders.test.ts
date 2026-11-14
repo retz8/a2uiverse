@@ -58,11 +58,11 @@ const platformCard = readCard(
 
 /**
  * A registry with each card installed through the operation; `down` ones unreachable at startup,
- * `grpcOnly` ones serving a live card that lists gRPC alone.
+ * `unspoken` ones serving a live card that lists a binding of their own alone.
  */
 async function registryWith(
   cards: Record<string, LegacyCard>,
-  options: {down?: string[]; grpcOnly?: string[]; handed?: Record<string, string>} = {},
+  options: {down?: string[]; unspoken?: string[]; handed?: Record<string, string>} = {},
 ): Promise<Registry> {
   const apps = await Promise.all(
     Object.entries(cards).map(async ([id, card]) => ({
@@ -73,8 +73,8 @@ async function registryWith(
   );
   const made = await testRegistry(apps, {platformCard, embedder: new FakeEmbedder()});
   for (const id of options.down ?? []) made.cards.cards.delete(cardUrlOf(cards[id].url));
-  for (const id of options.grpcOnly ?? []) {
-    made.cards.serveAt(cardUrlOf(cards[id].url), {...cards[id], preferredTransport: 'GRPC'});
+  for (const id of options.unspoken ?? []) {
+    made.cards.serveAt(cardUrlOf(cards[id].url), {...cards[id], preferredTransport: 'ACME-RPC'});
   }
   await made.registry.refreshCards();
   return made.registry;
@@ -215,7 +215,7 @@ describe('installed apps', () => {
   test('an app whose live card lists no interface the platform speaks reads so, in place of its update state (task-20.3 decision 14)', async () => {
     const registry = await registryWith(
       {github: named('github', 'GitHub'), gmail: named('gmail', 'Gmail')},
-      {grpcOnly: ['github']},
+      {unspoken: ['github']},
     );
     const checkedAt = Date.parse('2026-10-11T09:00:00Z');
     const state = (appId: string): UpdateState => ({

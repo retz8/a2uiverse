@@ -2,7 +2,6 @@
  * The marketplace's in-process A2A 0.3 agent for tests: the shared package's fake agent, with the
  * cards and the paints the marketplace's suite publishes.
  */
-import type {Request} from 'express';
 import {BASIC_CATALOG_ID} from '@a2uiverse/sdk';
 import {
   authRequiredScript as sharedAuthRequiredScript,
@@ -16,6 +15,7 @@ import {
   type FakeAgent,
   type Script,
   type TaskState,
+  type AdmitRequest,
 } from '@a2uiverse/smoke-transport/testing';
 import {cardFor, signInCardFor, type CardOptions} from './fixture.js';
 
@@ -26,8 +26,8 @@ export interface FakeAgentOptions extends CardOptions {
   script?: Script;
   /** The card requires sign-in (an OAuth scheme on every request). */
   signIn?: boolean;
-  /** Whether a JSON-RPC request is let in; refused, it is answered 401. */
-  admit?: (request: Request) => boolean;
+  /** Whether a request is let in; refused, it is answered 401. */
+  admit?: (request: AdmitRequest) => boolean;
   /** Serve no card: the well-known path answers 404. */
   noCard?: boolean;
 }

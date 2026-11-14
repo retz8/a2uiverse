@@ -49,7 +49,14 @@ import {
   type SearchResponse,
 } from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
-import {FAILED_STATES, type SmokeObservation, type SmokeRunner} from '@a2uiverse/smoke-transport';
+import {
+  FAILED_STATES,
+  noneReachedFinding,
+  passedOverNote,
+  signInSignalOf,
+  type SmokeObservation,
+  type SmokeRunner,
+} from '@a2uiverse/smoke-transport';
 import {MarketplaceStore, type PublisherRecord} from './store.js';
 
 /**
@@ -591,8 +598,9 @@ export class Marketplace {
     }
     if (findings.length > 0 || !stored) return {ok: false, kind: 'refused', findings};
 
-    // The commit.
-    const notes: string[] = [];
+    // The commit. Each interface the smoke request passed over is the publisher's to know
+    // (task-20.5 decision 7).
+    const notes: string[] = passedOver(seen);
     const [vector] = await this.#deps.embedder.embed([corpusDoc(card)]);
     for (const {artifact} of gated) await this.#store.writeArtifact(artifact.id, artifact.files);
     const next = new Map(this.#publishers);
@@ -785,16 +793,29 @@ function judgeSignIn(seen: SmokeObservation, card: AgentCard): string[] {
       return checkSignInAnswer({taskState: seen.state, data: seen.data}, card);
     case 'unfinished':
       return [neverFinished(seen.state)];
+    case 'unreached':
+      return [noneReachedFinding(seen.notReached)];
     case 'error':
       return [`the smoke request failed: ${seen.message}`];
   }
+}
+
+/** A note for each interface the smoke request passed over before the one it went to. */
+function passedOver(seen: SmokeObservation): string[] {
+  return 'taken' in seen ? seen.notReached.map(entry => passedOverNote(entry, seen.taken)) : [];
 }
 
 /** The judgement over an open agent's answer: its paint, or why there is none. */
 function judgePaint(seen: SmokeObservation): {findings: string[]} | {messages: A2uiMessage[]} {
   switch (seen.kind) {
     case 'unauthorized':
-      return {findings: ['the agent answered 401, but its card requires no sign-in']};
+      return {
+        findings: [
+          `the agent answered ${signInSignalOf(seen.taken)}, but its card requires no sign-in`,
+        ],
+      };
+    case 'unreached':
+      return {findings: [noneReachedFinding(seen.notReached)]};
     case 'error':
       return {findings: [`the smoke request failed: ${seen.message}`]};
     case 'unfinished':

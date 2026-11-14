@@ -1,6 +1,7 @@
 {
-  "agent": "Python a2a-sdk[http-server]==1.3.0",
+  "agent": "Python a2a-sdk[http-server,grpc]==1.3.0",
   "asked": "auth-held",
+  "binding": "JSONRPC",
   "a2aVersion": "0.3",
   "card": {
     "name": "Scratch Agent",
@@ -15,6 +16,26 @@
         "url": "http://127.0.0.1:18741/",
         "protocolBinding": "JSONRPC",
         "protocolVersion": "1.0"
+      },
+      {
+        "url": "http://127.0.0.1:18741/rest",
+        "protocolBinding": "HTTP+JSON",
+        "protocolVersion": "1.0"
+      },
+      {
+        "url": "http://127.0.0.1:18741/rest",
+        "protocolBinding": "HTTP+JSON",
+        "protocolVersion": "0.3"
+      },
+      {
+        "url": "127.0.0.1:18742",
+        "protocolBinding": "GRPC",
+        "protocolVersion": "1.0"
+      },
+      {
+        "url": "127.0.0.1:18742",
+        "protocolBinding": "GRPC",
+        "protocolVersion": "0.3"
       }
     ],
     "version": "0.1.0",
@@ -38,8 +59,8 @@
               "authorizationUrl": "http://127.0.0.1:18741/authorize",
               "tokenUrl": "http://127.0.0.1:18741/token",
               "scopes": {
-                "things.read": "Read your things",
-                "things.write": "Change your things"
+                "things.write": "Change your things",
+                "things.read": "Read your things"
               }
             }
           }
@@ -48,8 +69,8 @@
           "authorizationCode": {
             "authorizationUrl": "http://127.0.0.1:18741/authorize",
             "scopes": {
-              "things.read": "Read your things",
-              "things.write": "Change your things"
+              "things.write": "Change your things",
+              "things.read": "Read your things"
             },
             "tokenUrl": "http://127.0.0.1:18741/token"
           }
@@ -68,11 +89,22 @@
         "examples": ["one"]
       }
     ],
+    "additionalInterfaces": [
+      {
+        "transport": "HTTP+JSON",
+        "url": "http://127.0.0.1:18741/rest"
+      },
+      {
+        "transport": "GRPC",
+        "url": "127.0.0.1:18742"
+      }
+    ],
     "preferredTransport": "JSONRPC",
     "protocolVersion": "0.3",
     "url": "http://127.0.0.1:18741/"
   },
   "request": {
+    "url": "http://127.0.0.1:18741/",
     "headers": {
       "a2a-version": "0.3",
       "x-a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
@@ -86,7 +118,7 @@
       "params": {
         "message": {
           "kind": "message",
-          "messageId": "369794c0-482e-4e11-a076-b61a2e8c1e8b",
+          "messageId": "784dd422-d1a9-424f-a72a-5320f45bf3f3",
           "role": "user",
           "parts": [
             {
@@ -115,7 +147,7 @@
   "response": {
     "status": 200,
     "contentType": "text/event-stream",
-    "body": "data: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"48fe283a-5cb9-46be-9aea-516378db57d5\",\"history\":[{\"contextId\":\"48fe283a-5cb9-46be-9aea-516378db57d5\",\"kind\":\"message\",\"messageId\":\"369794c0-482e-4e11-a076-b61a2e8c1e8b\",\"metadata\":{\"a2uiClientCapabilities\":{\"v0.9.1\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]},\"v0.9\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]}}},\"parts\":[{\"kind\":\"text\",\"text\":\"auth-held\"}],\"role\":\"user\",\"taskId\":\"49239aa5-dbfe-40a7-b872-a7475777314f\"}],\"id\":\"49239aa5-dbfe-40a7-b872-a7475777314f\",\"kind\":\"task\",\"status\":{\"state\":\"submitted\"}}}\r\n\r\ndata: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"48fe283a-5cb9-46be-9aea-516378db57d5\",\"final\":false,\"kind\":\"status-update\",\"status\":{\"message\":{\"contextId\":\"48fe283a-5cb9-46be-9aea-516378db57d5\",\"kind\":\"message\",\"messageId\":\"8fbf431c-5176-4398-b7e6-bd73669d8f2a\",\"parts\":[{\"kind\":\"text\",\"text\":\"Please sign in.\"},{\"data\":{\"securityRequirements\":[{\"schemes\":{\"signIn\":{\"list\":[\"things.write\"]}}}]},\"kind\":\"data\"}],\"role\":\"agent\",\"taskId\":\"49239aa5-dbfe-40a7-b872-a7475777314f\"},\"state\":\"auth-required\",\"timestamp\":\"2026-11-13T13:44:51.449632Z\"},\"taskId\":\"49239aa5-dbfe-40a7-b872-a7475777314f\"}}\r\n\r\n",
+    "body": "data: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"5aa3e0e9-b031-4baf-b97a-dac7aca3faf0\",\"history\":[{\"contextId\":\"5aa3e0e9-b031-4baf-b97a-dac7aca3faf0\",\"kind\":\"message\",\"messageId\":\"784dd422-d1a9-424f-a72a-5320f45bf3f3\",\"metadata\":{\"a2uiClientCapabilities\":{\"v0.9\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]},\"v0.9.1\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]}}},\"parts\":[{\"kind\":\"text\",\"text\":\"auth-held\"}],\"role\":\"user\",\"taskId\":\"de9adeb2-f607-44ea-a93f-4c75c9dde9de\"}],\"id\":\"de9adeb2-f607-44ea-a93f-4c75c9dde9de\",\"kind\":\"task\",\"status\":{\"state\":\"submitted\"}}}\r\n\r\ndata: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"5aa3e0e9-b031-4baf-b97a-dac7aca3faf0\",\"final\":false,\"kind\":\"status-update\",\"status\":{\"message\":{\"contextId\":\"5aa3e0e9-b031-4baf-b97a-dac7aca3faf0\",\"kind\":\"message\",\"messageId\":\"49702cc0-21fd-4cef-8dbc-137d9fbcc7f5\",\"parts\":[{\"kind\":\"text\",\"text\":\"Please sign in.\"},{\"data\":{\"securityRequirements\":[{\"schemes\":{\"signIn\":{\"list\":[\"things.write\"]}}}]},\"kind\":\"data\"}],\"role\":\"agent\",\"taskId\":\"de9adeb2-f607-44ea-a93f-4c75c9dde9de\"},\"state\":\"auth-required\",\"timestamp\":\"2026-11-14T00:24:01.793401Z\"},\"taskId\":\"de9adeb2-f607-44ea-a93f-4c75c9dde9de\"}}\r\n\r\n",
     "closedByAgent": false
   }
 }

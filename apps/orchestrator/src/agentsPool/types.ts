@@ -1,4 +1,5 @@
 import type {Message} from '@a2a-js/sdk';
+import type {NotReachedCase} from '@a2uiverse/smoke-transport';
 import type {FailureCause} from '@a2uiverse/shell-catalog/schema';
 import type {Refetched, UpdateFinding} from '../registry/updateTile.js';
 import type {AuthorityNeed} from '../vault/vault.js';
@@ -39,6 +40,12 @@ export interface DispatchRecord {
   a2aVersion?: string;
   /** The binding of the interface the dispatch used; absent when the agent was not called. */
   binding?: string;
+  /**
+   * Each interface the walk tried before the one used and did not reach, in the order tried
+   * (task-20.5 decision 6); when it reached none, every one it tried, and no version or binding
+   * above.
+   */
+  notReached?: NotReachedEntry[];
   /** The hard cap (SPEC §5.3): from dispatch to the slot failing with `timeout`. */
   deadlineMs: number;
   /** When its first paint arrived. */
@@ -96,4 +103,17 @@ export interface DispatchHandle {
   capped: Promise<void>;
   /** Aborts the dispatch and asks the vendor, over A2A, to cancel its task. */
   cancel(): void;
+}
+
+/** An interface a dispatch's walk tried and did not reach, as the journal records it. */
+export interface NotReachedEntry {
+  /** Its binding, as the card spells it. */
+  binding: string;
+  /** Its A2A version, as the card names it; 0.3 when it names none. */
+  a2aVersion: string;
+  /**
+   * Why: no connection could be opened, what answered there does not serve it, or it cannot carry
+   * the account's credential (task-20.5 decision 3).
+   */
+  why: NotReachedCase;
 }

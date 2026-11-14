@@ -1,6 +1,7 @@
 {
-  "agent": "Python a2a-sdk[http-server]==1.3.0",
+  "agent": "Python a2a-sdk[http-server,grpc]==1.3.0",
   "asked": "one",
+  "binding": "JSONRPC",
   "a2aVersion": "0.3",
   "card": {
     "name": "Scratch Agent",
@@ -15,6 +16,26 @@
         "url": "http://127.0.0.1:18741/",
         "protocolBinding": "JSONRPC",
         "protocolVersion": "1.0"
+      },
+      {
+        "url": "http://127.0.0.1:18741/rest",
+        "protocolBinding": "HTTP+JSON",
+        "protocolVersion": "1.0"
+      },
+      {
+        "url": "http://127.0.0.1:18741/rest",
+        "protocolBinding": "HTTP+JSON",
+        "protocolVersion": "0.3"
+      },
+      {
+        "url": "127.0.0.1:18742",
+        "protocolBinding": "GRPC",
+        "protocolVersion": "1.0"
+      },
+      {
+        "url": "127.0.0.1:18742",
+        "protocolBinding": "GRPC",
+        "protocolVersion": "0.3"
       }
     ],
     "version": "0.1.0",
@@ -38,8 +59,8 @@
               "authorizationUrl": "http://127.0.0.1:18741/authorize",
               "tokenUrl": "http://127.0.0.1:18741/token",
               "scopes": {
-                "things.read": "Read your things",
-                "things.write": "Change your things"
+                "things.write": "Change your things",
+                "things.read": "Read your things"
               }
             }
           }
@@ -48,8 +69,8 @@
           "authorizationCode": {
             "authorizationUrl": "http://127.0.0.1:18741/authorize",
             "scopes": {
-              "things.read": "Read your things",
-              "things.write": "Change your things"
+              "things.write": "Change your things",
+              "things.read": "Read your things"
             },
             "tokenUrl": "http://127.0.0.1:18741/token"
           }
@@ -68,11 +89,22 @@
         "examples": ["one"]
       }
     ],
+    "additionalInterfaces": [
+      {
+        "transport": "HTTP+JSON",
+        "url": "http://127.0.0.1:18741/rest"
+      },
+      {
+        "transport": "GRPC",
+        "url": "127.0.0.1:18742"
+      }
+    ],
     "preferredTransport": "JSONRPC",
     "protocolVersion": "0.3",
     "url": "http://127.0.0.1:18741/"
   },
   "request": {
+    "url": "http://127.0.0.1:18741/",
     "headers": {
       "a2a-version": "0.3",
       "x-a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
@@ -86,7 +118,7 @@
       "params": {
         "message": {
           "kind": "message",
-          "messageId": "4e0546ae-a562-4360-86ba-5651cf533613",
+          "messageId": "022fa765-a324-4677-b39b-6d9f5a89018e",
           "role": "user",
           "parts": [
             {
@@ -115,7 +147,7 @@
   "response": {
     "status": 200,
     "contentType": "text/event-stream",
-    "body": "data: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"b6da98bb-3173-4ebd-b2a3-bebea47498d9\",\"history\":[{\"contextId\":\"b6da98bb-3173-4ebd-b2a3-bebea47498d9\",\"kind\":\"message\",\"messageId\":\"4e0546ae-a562-4360-86ba-5651cf533613\",\"metadata\":{\"a2uiClientCapabilities\":{\"v0.9.1\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]},\"v0.9\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]}}},\"parts\":[{\"kind\":\"text\",\"text\":\"one\"}],\"role\":\"user\",\"taskId\":\"c27403c7-8b71-424b-b9c3-dbeeab75f109\"}],\"id\":\"c27403c7-8b71-424b-b9c3-dbeeab75f109\",\"kind\":\"task\",\"status\":{\"state\":\"submitted\"}}}\r\n\r\ndata: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"b6da98bb-3173-4ebd-b2a3-bebea47498d9\",\"final\":true,\"kind\":\"status-update\",\"status\":{\"message\":{\"contextId\":\"b6da98bb-3173-4ebd-b2a3-bebea47498d9\",\"kind\":\"message\",\"messageId\":\"3866edb1-2dc8-4de9-a217-c3b83ed87030\",\"parts\":[{\"data\":{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"s1\",\"catalogId\":\"https://example.com/catalogs/fake/v1/catalog.json\"}},\"kind\":\"data\",\"metadata\":{\"mimeType\":\"application/a2ui+json\"}},{\"data\":{\"version\":\"v0.9\",\"updateComponents\":{\"components\":[{\"text\":\"hi\",\"id\":\"root\",\"component\":\"Text\"}],\"surfaceId\":\"s1\"}},\"kind\":\"data\",\"metadata\":{\"mimeType\":\"application/a2ui+json\"}}],\"role\":\"agent\",\"taskId\":\"c27403c7-8b71-424b-b9c3-dbeeab75f109\"},\"state\":\"completed\",\"timestamp\":\"2026-11-13T13:44:51.427612Z\"},\"taskId\":\"c27403c7-8b71-424b-b9c3-dbeeab75f109\"}}\r\n\r\n",
+    "body": "data: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"18a136bc-f65f-4e15-abf0-9c6ede8350aa\",\"history\":[{\"contextId\":\"18a136bc-f65f-4e15-abf0-9c6ede8350aa\",\"kind\":\"message\",\"messageId\":\"022fa765-a324-4677-b39b-6d9f5a89018e\",\"metadata\":{\"a2uiClientCapabilities\":{\"v0.9\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]},\"v0.9.1\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]}}},\"parts\":[{\"kind\":\"text\",\"text\":\"one\"}],\"role\":\"user\",\"taskId\":\"00cd67c3-1926-409e-8744-921e945c1962\"}],\"id\":\"00cd67c3-1926-409e-8744-921e945c1962\",\"kind\":\"task\",\"status\":{\"state\":\"submitted\"}}}\r\n\r\ndata: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"18a136bc-f65f-4e15-abf0-9c6ede8350aa\",\"final\":true,\"kind\":\"status-update\",\"status\":{\"message\":{\"contextId\":\"18a136bc-f65f-4e15-abf0-9c6ede8350aa\",\"kind\":\"message\",\"messageId\":\"712b2e91-b331-45f0-b71b-eedc237db09a\",\"parts\":[{\"data\":{\"createSurface\":{\"surfaceId\":\"s1\",\"catalogId\":\"https://example.com/catalogs/fake/v1/catalog.json\"},\"version\":\"v0.9\"},\"kind\":\"data\",\"metadata\":{\"mimeType\":\"application/a2ui+json\"}},{\"data\":{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"s1\",\"components\":[{\"id\":\"root\",\"text\":\"hi\",\"component\":\"Text\"}]}},\"kind\":\"data\",\"metadata\":{\"mimeType\":\"application/a2ui+json\"}}],\"role\":\"agent\",\"taskId\":\"00cd67c3-1926-409e-8744-921e945c1962\"},\"state\":\"completed\",\"timestamp\":\"2026-11-14T00:24:01.763886Z\"},\"taskId\":\"00cd67c3-1926-409e-8744-921e945c1962\"}}\r\n\r\n",
     "closedByAgent": true
   }
 }

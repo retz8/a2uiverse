@@ -111,9 +111,17 @@ function readAuthRequired(data) {
 
 // ../sdk/js/dist/a2uiPart.js
 var isMessage = (value) => typeof value === "object" && value !== null && !Array.isArray(value) && typeof value.version === "string";
+function wrappedList(data) {
+  if (typeof data !== "object" || data === null || Array.isArray(data))
+    return void 0;
+  const keys = Object.keys(data);
+  const value = data.value;
+  return keys.length === 1 && keys[0] === "value" && Array.isArray(value) ? value : void 0;
+}
 function a2uiMessagesIn(data) {
-  if (Array.isArray(data))
-    return data.filter(isMessage);
+  const list = Array.isArray(data) ? data : wrappedList(data);
+  if (list)
+    return list.filter(isMessage);
   return isMessage(data) ? [data] : [];
 }
 
@@ -1674,7 +1682,19 @@ function readCard(served) {
   if (typeof served.name !== "string") {
     throw new Error("not an agent card: no name");
   }
-  return isLegacyAgentCard(served) ? parseLegacyAgentCard(served) : AgentCard.fromJSON(served);
+  return isLegacyAgentCard(served) ? atCardVersion(parseLegacyAgentCard(served)) : AgentCard.fromJSON(served);
+}
+function atCardVersion(card) {
+  const version = card.supportedInterfaces[0]?.protocolVersion;
+  if (version === void 0)
+    return card;
+  return {
+    ...card,
+    supportedInterfaces: card.supportedInterfaces.map((listed) => ({
+      ...listed,
+      protocolVersion: version
+    }))
+  };
 }
 
 // ../card/dist/liveCard.js
@@ -1709,7 +1729,7 @@ async function fetchLiveCard(cardUrl, { timeoutMs, fetchImpl = fetch }) {
 }
 
 // ../card/dist/interfaces.js
-var SPOKEN_BINDINGS = ["JSONRPC"];
+var SPOKEN_BINDINGS = ["JSONRPC", "HTTP+JSON", "GRPC"];
 var ABSENT_A2A_VERSION = "0.3";
 var SPOKEN_VERSIONS_WORDS = "A2A 0.3 and 1.x";
 function a2aVersionOf(agentInterface) {
@@ -1743,7 +1763,10 @@ function noInterfaceFinding(card) {
     const at = version === "" ? `${binding} with no A2A version` : `${binding} at A2A ${version}`;
     return agentInterface.url ? at : `${at} with no URL`;
   });
-  return `the card lists no interface A2UIVerse speaks: it lists ${lists.join(" and ")}; A2UIVerse speaks ${SPOKEN_BINDINGS.join(", ")} at ${SPOKEN_VERSIONS_WORDS}`;
+  return `the card lists no interface A2UIVerse speaks: it lists ${lists.join(" and ")}; A2UIVerse speaks ${listWords(SPOKEN_BINDINGS)} at ${SPOKEN_VERSIONS_WORDS}`;
+}
+function listWords(items) {
+  return items.length < 2 ? items[0] ?? "" : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
 
 // ../card/dist/requirements.js
@@ -1758,10 +1781,334 @@ function asksSignIn(card) {
   return alternatives.length > 0 && alternatives.every((alternative) => Object.keys(alternative).length > 0);
 }
 
+// ../smoke-transport/dist/answers.js
+import { A2A_ERROR_CODE, isJsonRpcError, VersionNotSupportedError } from "@a2a-js/sdk/errors";
+import { GRPC_STATUS_CODE, isGrpcError } from "@a2a-js/sdk/errors/grpc";
+
+// ../smoke-transport/dist/address.js
+var LOCAL_HOSTS = /* @__PURE__ */ new Set(["localhost", "127.0.0.1", "::1"]);
+var DEFAULT_PORTS = { "http:": 80, "https:": 443 };
+var GRPC_DEFAULT_PORT = 443;
+function isGrpc(agentInterface) {
+  return agentInterface.protocolBinding.toUpperCase() === "GRPC";
+}
+function addressOf(agentInterface) {
+  const url = agentInterface.url.trim();
+  if (!isGrpc(agentInterface))
+    return fromUrl(url, { keepUrl: true });
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(url))
+    return fromUrl(url, { keepUrl: false });
+  return fromBareHostPort(url);
+}
+function fromUrl(url, { keepUrl }) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return void 0;
+  }
+  const defaultPort = DEFAULT_PORTS[parsed.protocol];
+  if (defaultPort === void 0 || parsed.hostname === "")
+    return void 0;
+  const port = parsed.port === "" ? defaultPort : Number(parsed.port);
+  return {
+    host: unbracketed(parsed.hostname),
+    port,
+    tls: parsed.protocol === "https:",
+    dialUrl: keepUrl ? url : `${parsed.hostname}:${port}`
+  };
+}
+function fromBareHostPort(hostPort) {
+  let parsed;
+  try {
+    parsed = new URL(`placeholder://${hostPort}`);
+  } catch {
+    return void 0;
+  }
+  if (parsed.hostname === "" || parsed.host !== hostPort)
+    return void 0;
+  const host = unbracketed(parsed.hostname);
+  const port = parsed.port === "" ? GRPC_DEFAULT_PORT : Number(parsed.port);
+  return { host, port, tls: !LOCAL_HOSTS.has(host), dialUrl: `${parsed.hostname}:${port}` };
+}
+function unbracketed(hostname) {
+  return hostname.startsWith("[") && hostname.endsWith("]") ? hostname.slice(1, -1) : hostname;
+}
+
+// ../smoke-transport/dist/answers.js
+var UnauthorizedError = class extends Error {
+  constructor() {
+    super("the agent refused the request for sign-in");
+  }
+};
+function signInSignalOf(agentInterface) {
+  return isGrpc(agentInterface) ? "UNAUTHENTICATED" : "401";
+}
+var NotServedError = class extends Error {
+  constructor(answer) {
+    super(`what answered there does not serve it: ${answer}`);
+  }
+};
+function answeringFetch(base) {
+  return async (input, init) => {
+    const response = await base(input, init);
+    if (response.status === 401) {
+      await response.body?.cancel().catch(() => {
+      });
+      throw new UnauthorizedError();
+    }
+    if ((response.status === 404 || response.status === 405) && !await carriesA2aError(response.clone())) {
+      await response.body?.cancel().catch(() => {
+      });
+      throw new NotServedError(`HTTP ${response.status}`);
+    }
+    return response;
+  };
+}
+function readAnswerError(err) {
+  if (err instanceof UnauthorizedError || err instanceof NotServedError)
+    return err;
+  if (err instanceof VersionNotSupportedError)
+    return new NotServedError(err.message);
+  if (isJsonRpcError(err) && err.envelopeCode === A2A_ERROR_CODE.METHOD_NOT_FOUND) {
+    return new NotServedError(err.message);
+  }
+  if (isGrpcError(err)) {
+    if (err.status === GRPC_STATUS_CODE.UNAUTHENTICATED)
+      return new UnauthorizedError();
+    if (err.status === GRPC_STATUS_CODE.UNIMPLEMENTED)
+      return new NotServedError(err.message);
+  }
+  return err;
+}
+async function carriesA2aError(response) {
+  let body;
+  try {
+    body = JSON.parse(await response.text());
+  } catch {
+    return false;
+  }
+  if (typeof body !== "object" || body === null)
+    return false;
+  const { error, code, message } = body;
+  return typeof error === "object" && error !== null || typeof code === "number" && typeof message === "string";
+}
+
+// ../smoke-transport/dist/dial.js
+import * as grpc from "@grpc/grpc-js";
+import { ClientFactory, JsonRpcTransportFactory, RestTransportFactory } from "@a2a-js/sdk/client";
+import { GrpcTransportFactory } from "@a2a-js/sdk/client/grpc";
+
+// ../smoke-transport/dist/credentialOnBinding.js
+function credentialOn(agentInterface, credential = {}) {
+  if (!isGrpc(agentInterface))
+    return { kind: "rides", serviceParameters: { ...credential } };
+  const serviceParameters = {};
+  for (const [header, value] of Object.entries(credential)) {
+    const key = header.toLowerCase();
+    if (!isPlainGrpcKey(key))
+      return { kind: "cannot", header };
+    serviceParameters[key] = value;
+  }
+  return { kind: "rides", serviceParameters };
+}
+function isPlainGrpcKey(key) {
+  return /^[0-9a-z_.-]+$/.test(key) && !key.startsWith("grpc-") && !key.endsWith("-bin");
+}
+
+// ../smoke-transport/dist/opening.js
+import { connect as connectTcp, isIP } from "node:net";
+import { connect as connectTls } from "node:tls";
+var openConnection = (address, { timeoutMs, alpn, signal }) => new Promise((resolve3, reject) => {
+  if (signal?.aborted)
+    return reject(signal.reason);
+  const socket = address.tls ? connectTls({
+    host: address.host,
+    port: address.port,
+    ALPNProtocols: [alpn],
+    ...isIP(address.host) === 0 ? { servername: address.host } : {}
+  }) : connectTcp({ host: address.host, port: address.port });
+  const settle = (outcome) => {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
+    socket.removeAllListeners();
+    socket.on("error", () => {
+    });
+    socket.destroy();
+    outcome();
+  };
+  const onAbort = () => settle(() => reject(signal?.reason));
+  const timer = setTimeout(() => settle(() => resolve3(false)), timeoutMs);
+  signal?.addEventListener("abort", onAbort, { once: true });
+  socket.once(address.tls ? "secureConnect" : "connect", () => settle(() => resolve3(true)));
+  socket.once("error", () => settle(() => resolve3(false)));
+});
+
+// ../smoke-transport/dist/dial.js
+var NoInterfaceReachedError = class extends Error {
+  notReached;
+  constructor(notReached) {
+    super("no interface the card lists was reached");
+    this.notReached = notReached;
+  }
+};
+var NO_RESOLVER = {
+  resolve: () => Promise.reject(new Error("the dial fetches no card"))
+};
+var Dialer = class {
+  #options;
+  #clients = /* @__PURE__ */ new Map();
+  constructor(options) {
+    this.#options = options;
+  }
+  /**
+   * Walks the card's spoken interfaces and sends the request to the first one reached. Rejects
+   * with `NoInterfaceReachedError` when none is, and with the signal's reason once it is aborted.
+   */
+  async dial({ card, first, ...send }) {
+    const notReached = [];
+    for (const agentInterface of walkOrder(card, first)) {
+      const passed = (why2, header) => notReached.push({ interface: agentInterface, why: why2, ...header ? { header } : {} });
+      const credential = credentialOn(agentInterface, send.credential);
+      if (credential.kind === "cannot") {
+        passed("credential", credential.header);
+        continue;
+      }
+      const address = addressOf(agentInterface);
+      if (!address || !await this.#open(agentInterface, address, send.signal)) {
+        passed("connection");
+        continue;
+      }
+      const events = this.send(card, agentInterface, send);
+      let head;
+      try {
+        head = await events.next();
+      } catch (error) {
+        if (error instanceof NotServedError) {
+          passed("unserved");
+          continue;
+        }
+        head = { error };
+      }
+      return { taken: agentInterface, notReached, events: fromHead(head, events) };
+    }
+    throw new NoInterfaceReachedError(notReached);
+  }
+  /**
+   * One request to an interface already taken, with no walk: a resend after a refresh, a repair
+   * sent back in the same dispatch.
+   */
+  async *send(card, taken, { params, credential, serviceParameters, signal }) {
+    const carried = credentialOn(taken, credential);
+    if (carried.kind === "cannot") {
+      throw new Error(`the credential's header "${carried.header}" is not a name gRPC can carry`);
+    }
+    try {
+      const client = await this.#client(card, taken);
+      yield* client.sendMessageStream(params, {
+        ...signal ? { signal } : {},
+        serviceParameters: { ...serviceParameters, ...carried.serviceParameters }
+      });
+    } catch (err) {
+      throw readAnswerError(err);
+    }
+  }
+  /** A2A's cancel for one task, sent to the interface its request went to. */
+  async cancelTask(card, taken, id) {
+    const client = await this.#client(card, taken);
+    try {
+      await client.cancelTask({ tenant: "", id, metadata: void 0 });
+    } catch (err) {
+      throw readAnswerError(err);
+    }
+  }
+  async #open(agentInterface, address, signal) {
+    const open = this.#options.openConnection ?? openConnection;
+    return open(address, {
+      timeoutMs: this.#options.connectTimeoutMs,
+      alpn: isGrpc(agentInterface) ? "h2" : "http/1.1",
+      ...signal ? { signal } : {}
+    });
+  }
+  /** The A2A SDK's client for one interface, made once and kept. */
+  #client(card, taken) {
+    const key = JSON.stringify([
+      taken.url,
+      taken.protocolBinding,
+      taken.protocolVersion,
+      taken.tenant
+    ]);
+    let pending = this.#clients.get(key);
+    if (!pending) {
+      const address = addressOf(taken);
+      if (!address)
+        return Promise.reject(new Error(`no address in ${taken.url}`));
+      const fetchImpl = answeringFetch(this.#options.fetchImpl ?? fetch);
+      const legacyCompat = { enabled: true };
+      const factory = new ClientFactory({
+        transports: [
+          new JsonRpcTransportFactory({ fetchImpl, legacyCompat }),
+          new RestTransportFactory({ fetchImpl, legacyCompat }),
+          new GrpcTransportFactory({
+            legacyCompat,
+            grpcChannelCredentials: address.tls ? grpc.credentials.createSsl() : grpc.credentials.createInsecure()
+          })
+        ],
+        cardResolver: NO_RESOLVER
+      });
+      pending = factory.createFromAgentCard(cardToDial(card, { ...taken, url: address.dialUrl })).catch((err) => {
+        this.#clients.delete(key);
+        throw err;
+      });
+      this.#clients.set(key, pending);
+    }
+    return pending;
+  }
+};
+function walkOrder(card, first) {
+  const spoken = spokenInterfaces(card);
+  const remembered = first && spoken.find((listed) => sameInterface(listed, first));
+  return remembered ? [remembered, ...spoken.filter((listed) => listed !== remembered)] : spoken;
+}
+function sameInterface(a, b) {
+  return a.url === b.url && a.protocolBinding === b.protocolBinding && a.protocolVersion === b.protocolVersion && a.tenant === b.tenant;
+}
+async function* fromHead(head, rest) {
+  if ("error" in head)
+    throw head.error;
+  if (head.done)
+    return;
+  yield head.value;
+  yield* rest;
+}
+
+// ../smoke-transport/dist/notReachedWords.js
+function passedOverNote(entry, taken) {
+  const passed = entry.why === "credential" ? "was passed over" : "was not reached";
+  return `${named(entry.interface)} (${entry.interface.url}) ${passed}: ${why(entry)}; the request went to ${named(taken)}`;
+}
+function noneReachedFinding(notReached) {
+  const tried = notReached.map((entry) => `${named(entry.interface)} (${entry.interface.url}): ${why(entry)}`);
+  return `no interface the card lists was reached: ${tried.join("; ")}`;
+}
+function named(agentInterface) {
+  return `${agentInterface.protocolBinding} at A2A ${a2aVersionOf(agentInterface)}`;
+}
+function why(entry) {
+  switch (entry.why) {
+    case "connection":
+      return "no connection could be opened";
+    case "unserved":
+      return "what answered there does not serve it";
+    case "credential":
+      return `the credential's header "${entry.header ?? ""}" is not a name gRPC can carry`;
+  }
+}
+
 // ../smoke-transport/dist/smokeRunner.js
 import { randomUUID } from "node:crypto";
 import { Role, TaskState as TaskState2 } from "@a2a-js/sdk";
-import { ClientFactory, JsonRpcTransportFactory, ServiceParameters, withA2AExtensions } from "@a2a-js/sdk/client";
+import { ServiceParameters, withA2AExtensions } from "@a2a-js/sdk/client";
 
 // ../smoke-transport/dist/taskStateWord.js
 import { TaskState } from "@a2a-js/sdk";
@@ -1782,6 +2129,7 @@ function taskStateWord(state) {
 }
 
 // ../smoke-transport/dist/smokeRunner.js
+var SMOKE_CONNECT_TIMEOUT_MS = 1e4;
 var FAILED_STATES = /* @__PURE__ */ new Set(["failed", "canceled", "rejected"]);
 var ENDED_STATES = /* @__PURE__ */ new Set([
   TaskState2.TASK_STATE_COMPLETED,
@@ -1791,35 +2139,19 @@ var ENDED_STATES = /* @__PURE__ */ new Set([
   TaskState2.TASK_STATE_INPUT_REQUIRED,
   TaskState2.TASK_STATE_AUTH_REQUIRED
 ]);
-var UnauthorizedError = class extends Error {
-  constructor() {
-    super("the agent refused the request: 401");
-  }
-};
-var NO_RESOLVER = {
-  resolve: () => Promise.reject(new Error("the smoke runner fetches no card"))
-};
 function a2aSmokeRunner(options = {}) {
   const base = options.fetchImpl ?? fetch;
   return async ({ card, entitlement, words, timeoutMs, headers }) => {
+    if (spokenInterfaces(card).length === 0) {
+      return { kind: "error", message: noInterfaceFinding(card) };
+    }
     const timeout = AbortSignal.timeout(timeoutMs);
     const left = new AbortController();
     const signal = AbortSignal.any([timeout, left.signal]);
-    const fetchImpl = async (input, init) => {
-      const response = await base(input, { ...init, signal });
-      if (response.status === 401) {
-        await response.body?.cancel().catch(() => {
-        });
-        throw new UnauthorizedError();
-      }
-      return response;
-    };
-    const [taken] = spokenInterfaces(card);
-    if (!taken)
-      return { kind: "error", message: noInterfaceFinding(card) };
-    const factory = new ClientFactory({
-      transports: [new JsonRpcTransportFactory({ fetchImpl, legacyCompat: { enabled: true } })],
-      cardResolver: NO_RESOLVER
+    const dialer = new Dialer({
+      connectTimeoutMs: options.connectTimeoutMs ?? SMOKE_CONNECT_TIMEOUT_MS,
+      fetchImpl: (input, init) => base(input, { ...init, signal }),
+      ...options.openConnection ? { openConnection: options.openConnection } : {}
     });
     const message = {
       messageId: randomUUID(),
@@ -1836,16 +2168,17 @@ function a2aSmokeRunner(options = {}) {
     const messages = [];
     let last;
     let answered;
+    let reached;
     try {
-      const client = await factory.createFromAgentCard(cardToDial(card, taken));
-      const stream = client.sendMessageStream({ tenant: "", message, configuration: void 0, metadata: void 0 }, {
-        signal,
-        serviceParameters: {
-          ...ServiceParameters.create(withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS))),
-          ...headers
-        }
+      const dialed = await dialer.dial({
+        card,
+        params: { tenant: "", message, configuration: void 0, metadata: void 0 },
+        ...headers ? { credential: headers } : {},
+        serviceParameters: ServiceParameters.create(withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS))),
+        signal
       });
-      for await (const event of stream) {
+      reached = { taken: dialed.taken, notReached: dialed.notReached };
+      for await (const event of dialed.events) {
         const parts = partsOf(event);
         for (const part of parts)
           messages.push(...a2uiMessagesIn(dataOf(part)));
@@ -1858,8 +2191,11 @@ function a2aSmokeRunner(options = {}) {
           break;
       }
     } catch (err) {
-      if (err instanceof UnauthorizedError)
-        return { kind: "unauthorized" };
+      if (err instanceof NoInterfaceReachedError) {
+        return { kind: "unreached", notReached: err.notReached };
+      }
+      if (err instanceof UnauthorizedError && reached)
+        return { kind: "unauthorized", ...reached };
       if (timeout.aborted) {
         return { kind: "error", message: `the agent did not answer within ${timeoutMs / 1e3} s` };
       }
@@ -1872,7 +2208,8 @@ function a2aSmokeRunner(options = {}) {
         kind: "ended",
         messages,
         state: taskStateWord(last.state),
-        ...wordsOf2(last.message?.parts)
+        ...wordsOf2(last.message?.parts),
+        ...reached
       };
     }
     if (answered) {
@@ -1880,10 +2217,16 @@ function a2aSmokeRunner(options = {}) {
         kind: "ended",
         messages,
         state: taskStateWord(TaskState2.TASK_STATE_COMPLETED),
-        ...wordsOf2(answered)
+        ...wordsOf2(answered),
+        ...reached
       };
     }
-    return { kind: "unfinished", messages, ...last ? { state: taskStateWord(last.state) } : {} };
+    return {
+      kind: "unfinished",
+      messages,
+      ...last ? { state: taskStateWord(last.state) } : {},
+      ...reached
+    };
   };
 }
 function partsOf(event) {
@@ -2163,6 +2506,8 @@ async function previewWith(options, deps) {
     timeoutMs: options.smokeTimeoutMs ?? DEFAULT_SMOKE_TIMEOUT_MS,
     ...headers ? { headers } : {}
   });
+  if ("taken" in seen)
+    notes.push(...seen.notReached.map((entry) => passedOverNote(entry, seen.taken)));
   const judged = judge(seen, headers !== void 0);
   if ("findings" in judged) {
     findings.push(...judged.findings);
@@ -2188,9 +2533,11 @@ function judge(seen, credentialSent) {
     case "unauthorized":
       return {
         findings: [
-          credentialSent ? "the agent refused the credential: 401" : "the agent answered 401, but its card requires no sign-in"
+          credentialSent ? `the agent refused the credential: ${signInSignalOf(seen.taken)}` : `the agent answered ${signInSignalOf(seen.taken)}, but its card requires no sign-in`
         ]
       };
+    case "unreached":
+      return { findings: [noneReachedFinding(seen.notReached)] };
     case "error":
       return { findings: [`the smoke request failed: ${seen.message}`] };
     case "unfinished":

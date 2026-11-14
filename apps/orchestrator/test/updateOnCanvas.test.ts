@@ -530,9 +530,9 @@ describe('the update tile in the merge (task-15.5 decision 10)', () => {
 });
 
 describe('an installed app the platform cannot reach (task-20.3 decision 13)', () => {
-  /** The agent's live card listing gRPC alone, in place; `back` restores JSON-RPC. */
-  const onlyGrpc = (vendor: FakeVendor) => {
-    vendor.card.preferredTransport = 'GRPC';
+  /** The agent's live card listing a binding of its own alone, in place; `back` restores JSON-RPC. */
+  const onlyUnspoken = (vendor: FakeVendor) => {
+    vendor.card.preferredTransport = 'ACME-RPC';
   };
   const back = (vendor: FakeVendor) => {
     vendor.card.preferredTransport = 'JSONRPC';
@@ -540,7 +540,7 @@ describe('an installed app the platform cannot reach (task-20.3 decision 13)', (
 
   test('its slot takes the failure tile under a cause of its own, the agent never called, the dispatch journaled', async () => {
     const {client, orchestrator} = await boot({apps: {shop: {}}, plan: shopOnly});
-    onlyGrpc(vendors.shop!);
+    onlyUnspoken(vendors.shop!);
     await orchestrator.registry.refreshCards();
 
     const events = await collect(client, utterance('camera prices'));
@@ -554,7 +554,7 @@ describe('an installed app the platform cannot reach (task-20.3 decision 13)', (
       outcome: 'failed',
       cause: 'interface',
       error:
-        'the card lists no interface A2UIVerse speaks: it lists GRPC at A2A 0.3.0; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x',
+        'the card lists no interface A2UIVerse speaks: it lists ACME-RPC at A2A 0.3.0; A2UIVerse speaks JSONRPC, HTTP+JSON and GRPC at A2A 0.3 and 1.x',
     });
     expect(record).not.toHaveProperty('a2aVersion');
     // The app stays installed and routed: the Router ranks it and the plan dispatched it.
@@ -574,7 +574,7 @@ describe('an installed app the platform cannot reach (task-20.3 decision 13)', (
       },
       plan: () => layoutFor(['shop.1']),
     });
-    onlyGrpc(vendors.shop!);
+    onlyUnspoken(vendors.shop!);
     await orchestrator.registry.refreshCards();
 
     const events = await collect(client, utterance('camera prices'));
@@ -590,7 +590,7 @@ describe('an installed app the platform cannot reach (task-20.3 decision 13)', (
   test('its update is not judged either: an app that also cannot paint in what it is installed with takes the failure tile', async () => {
     const {client, orchestrator} = await boot({apps: {shop: {}}, plan: shopOnly});
     move(vendors.shop!, [CAT_2], '1.1.0');
-    onlyGrpc(vendors.shop!);
+    onlyUnspoken(vendors.shop!);
     await orchestrator.registry.refreshCards();
     const events = await collect(client, utterance('camera prices'));
     expect(lastSlot(events, 'shop')).toMatchObject({
@@ -601,7 +601,7 @@ describe('an installed app the platform cannot reach (task-20.3 decision 13)', (
 
   test('Retry fetches the live card again first: an agent listing an interface the platform speaks again is called, and paints', async () => {
     const {client, orchestrator} = await boot({apps: {shop: {}}, plan: shopOnly});
-    onlyGrpc(vendors.shop!);
+    onlyUnspoken(vendors.shop!);
     await orchestrator.registry.refreshCards();
     const turn = await collect(client, utterance('camera prices'));
     expect(lastSlot(turn, 'shop')).toMatchObject({failure: {cause: 'interface'}});
@@ -617,7 +617,7 @@ describe('an installed app the platform cannot reach (task-20.3 decision 13)', (
 
   test('a Retry while the card still lists nothing the platform speaks fails the same way, the agent still not called', async () => {
     const {client, orchestrator} = await boot({apps: {shop: {}}, plan: shopOnly});
-    onlyGrpc(vendors.shop!);
+    onlyUnspoken(vendors.shop!);
     await orchestrator.registry.refreshCards();
     const turn = await collect(client, utterance('camera prices'));
     const pressed = await collect(client, retry('shop', contextOf(turn)));

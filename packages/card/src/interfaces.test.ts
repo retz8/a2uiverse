@@ -1,4 +1,7 @@
-/** Which interface the platform takes, and what a publisher reads (task-20.3 decisions 10, 15). */
+/**
+ * Which interfaces the platform speaks, and what a publisher reads (task-20.3 decisions 10, 15;
+ * task-20.5 decision 1).
+ */
 import type {AgentCard, AgentInterface} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
 import {
@@ -23,17 +26,19 @@ const cardListing = (...supportedInterfaces: AgentInterface[]): AgentCard => ({
 });
 
 describe('spokenInterfaces', () => {
-  test('JSON-RPC is the one binding spoken', () => {
-    expect(SPOKEN_BINDINGS).toEqual(['JSONRPC']);
+  test('the three standard bindings are spoken', () => {
+    expect(SPOKEN_BINDINGS).toEqual(['JSONRPC', 'HTTP+JSON', 'GRPC']);
   });
 
   test('a custom binding alone is not spoken', () => {
     expect(spokenInterfaces(cardListing(at('ACME-RPC', '1.0')))).toEqual([]);
   });
 
-  test.each(['HTTP+JSON', 'GRPC'])('%s alone is not spoken', binding => {
-    expect(spokenInterfaces(cardListing(at(binding, '1.0')))).toEqual([]);
-    expect(spokenInterfaces(cardListing(at(binding, '0.3')))).toEqual([]);
+  test.each(['JSONRPC', 'HTTP+JSON', 'GRPC'])('%s is spoken on both A2A versions', binding => {
+    for (const version of ['1.0', '0.3']) {
+      const listed = at(binding, version);
+      expect(spokenInterfaces(cardListing(listed))).toEqual([listed]);
+    }
   });
 
   test.each(['2.0', '0.2', '0.2.9', '10', 'one', '1.x'])(
@@ -58,10 +63,13 @@ describe('spokenInterfaces', () => {
     expect(a2aVersionOf(at('JSONRPC', '0.3.0'))).toBe('0.3.0');
   });
 
-  test('a binding is matched whatever its case, as the A2A SDK matches it', () => {
-    const listed = at('jsonrpc', '1.0');
-    expect(spokenInterfaces(cardListing(listed))).toEqual([listed]);
-  });
+  test.each(['jsonrpc', 'http+json', 'Grpc'])(
+    'a binding is matched whatever its case, as the A2A SDK matches it: %s',
+    binding => {
+      const listed = at(binding, '1.0');
+      expect(spokenInterfaces(cardListing(listed))).toEqual([listed]);
+    },
+  );
 
   test('two interfaces on JSON-RPC are taken in the card’s order, each way', () => {
     const legacy = at('JSONRPC', '0.3');
@@ -72,7 +80,15 @@ describe('spokenInterfaces', () => {
 
   test('an interface the platform does not speak ahead of one it does is passed over', () => {
     const current = at('JSONRPC', '1.0');
-    expect(spokenInterfaces(cardListing(at('GRPC', '1.0'), current))).toEqual([current]);
+    expect(spokenInterfaces(cardListing(at('ACME-RPC', '1.0'), current))).toEqual([current]);
+  });
+
+  test('interfaces on the three bindings are listed in the card’s order', () => {
+    const grpc = at('GRPC', '1.0', '127.0.0.1:50051');
+    const rest = at('HTTP+JSON', '0.3');
+    const jsonrpc = at('JSONRPC', '1.0');
+    expect(spokenInterfaces(cardListing(grpc, rest, jsonrpc))).toEqual([grpc, rest, jsonrpc]);
+    expect(spokenInterfaces(cardListing(jsonrpc, grpc, rest))).toEqual([jsonrpc, grpc, rest]);
   });
 
   test('an interface naming no URL is not spoken: a card written for A2A 0.3 with no `url`', () => {
@@ -82,7 +98,7 @@ describe('spokenInterfaces', () => {
     expect(card.supportedInterfaces).toHaveLength(1);
     expect(spokenInterfaces(card)).toEqual([]);
     expect(noInterfaceFinding(card)).toBe(
-      'the card lists no interface A2UIVerse speaks: it lists JSONRPC at A2A 0.3 with no URL; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x',
+      'the card lists no interface A2UIVerse speaks: it lists JSONRPC at A2A 0.3 with no URL; A2UIVerse speaks JSONRPC, HTTP+JSON and GRPC at A2A 0.3 and 1.x',
     );
   });
 
@@ -93,6 +109,14 @@ describe('spokenInterfaces', () => {
   test('a card from Python’s a2a-sdk listing JSON-RPC at 1.0 then 0.3 takes 1.0', () => {
     const [taken] = spokenInterfaces(readCard(fixture('python-1.0-then-0.3.json')));
     expect(taken?.protocolVersion).toBe('1.0');
+  });
+
+  test('a card from Python’s a2a-sdk listing gRPC then HTTP+JSON speaks both, in that order', () => {
+    const spoken = spokenInterfaces(readCard(fixture('python-1.0-grpc-and-rest.json')));
+    expect(spoken.map(listed => [listed.protocolBinding, listed.url])).toEqual([
+      ['GRPC', '127.0.0.1:18732'],
+      ['HTTP+JSON', 'http://127.0.0.1:18731/rest'],
+    ]);
   });
 });
 
@@ -109,14 +133,14 @@ describe('cardToDial', () => {
 
 describe('noInterfaceFinding', () => {
   test('names what the card lists, as it spells it, and what the platform speaks', () => {
-    expect(noInterfaceFinding(readCard(fixture('python-1.0-grpc-and-rest.json')))).toBe(
-      'the card lists no interface A2UIVerse speaks: it lists GRPC at A2A 1.0 and HTTP+JSON at A2A 1.0; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x',
+    expect(noInterfaceFinding(readCard(fixture('python-1.0-custom-binding.json')))).toBe(
+      'the card lists no interface A2UIVerse speaks: it lists ACME-RPC at A2A 1.0; A2UIVerse speaks JSONRPC, HTTP+JSON and GRPC at A2A 0.3 and 1.x',
     );
   });
 
   test('an interface with no A2A version says so', () => {
-    expect(noInterfaceFinding(cardListing(at('grpc', ''), at('JSONRPC', '2.0')))).toBe(
-      'the card lists no interface A2UIVerse speaks: it lists grpc with no A2A version and JSONRPC at A2A 2.0; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x',
+    expect(noInterfaceFinding(cardListing(at('acme-rpc', ''), at('GRPC', '2.0')))).toBe(
+      'the card lists no interface A2UIVerse speaks: it lists acme-rpc with no A2A version and GRPC at A2A 2.0; A2UIVerse speaks JSONRPC, HTTP+JSON and GRPC at A2A 0.3 and 1.x',
     );
   });
 

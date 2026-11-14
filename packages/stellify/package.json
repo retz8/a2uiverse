@@ -1,7 +1,7 @@
 {
   "name": "@a2uiverse/stellify",
-  "version": "0.7.0",
-  "description": "Stellify \u2014 turns a catalog package into the A2UIVerse catalog artifact and takes it to the marketplace: pack and check, claim, preview, publish, unpublish and list, with the host and stylesheet imports rewritten so the vendor's source is untouched.",
+  "version": "0.8.0",
+  "description": "Stellify — turns a catalog package into the A2UIVerse catalog artifact and takes it to the marketplace: pack and check, claim, preview, publish, unpublish and list, with the host and stylesheet imports rewritten so the vendor's source is untouched.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -39,6 +39,8 @@
   "dependencies": {
     "@a2a-js/sdk": "1.3.0",
     "@a2ui/web_core": "0.14.0",
+    "@bufbuild/protobuf": "2.16.0",
+    "@grpc/grpc-js": "1.14.7",
     "ajv": "^8.20.0",
     "esbuild": "^0.28.2",
     "zod": "^3.25.76"

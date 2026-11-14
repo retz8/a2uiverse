@@ -29,6 +29,26 @@ describe('a card written for A2A 0.3', () => {
     },
   );
 
+  test('its further interfaces are at the A2A version the card spells, as its first is', () => {
+    const served = {
+      ...(fixture('python-as-0.3.json') as object),
+      protocolVersion: '0.3.0',
+      url: 'grpc.shop-b.example:443',
+      preferredTransport: 'GRPC',
+      additionalInterfaces: [
+        {url: 'http://127.0.0.1:18731/', transport: 'JSONRPC'},
+        {url: 'http://127.0.0.1:18731/rest', transport: 'HTTP+JSON'},
+      ],
+    };
+    expect(
+      readCard(served).supportedInterfaces.map(i => [i.protocolBinding, i.protocolVersion]),
+    ).toEqual([
+      ['GRPC', '0.3.0'],
+      ['JSONRPC', '0.3.0'],
+      ['HTTP+JSON', '0.3.0'],
+    ]);
+  });
+
   test('its sign-in is read into A2A 1.0’s shape', () => {
     const card = readCard(fixture('python-as-0.3.json'));
     expect(signInAlternatives(card)).toEqual([{signIn: ['things.read']}]);

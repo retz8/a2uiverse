@@ -3,6 +3,7 @@
  * search, the refresh and the report, the boot from a populated directory.
  */
 import {mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
+import {createServer as createNetServer} from 'node:net';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, describe, expect, test} from 'vitest';
@@ -34,6 +35,7 @@ import {
   type CardV1Options,
   type FakeA2aVersion,
   type FakeAgentV1,
+  type FakePath,
   type ScriptV1,
 } from '@a2uiverse/smoke-transport/testing/v1';
 import {
@@ -670,7 +672,7 @@ describe('publish, the smoke test', () => {
     );
   });
 
-  test('an agent that cannot be reached, named with the words that were sent', async () => {
+  test('an agent that cannot be reached: no interface the card lists was reached (task-20.5 decision 7)', async () => {
     const {marketplace, cards} = await made();
     await claimed(marketplace);
     const agent = await agentOf();
@@ -680,7 +682,9 @@ describe('publish, the smoke test', () => {
     const answer = refused(
       await marketplace.publish('acme', body('shop', url, [await fixtureArtifact(CAT)])),
     );
-    expect(answer.findings).toEqual([expect.stringMatching(/^the smoke request failed: /)]);
+    expect(answer.findings).toEqual([
+      `no interface the card lists was reached: JSONRPC at A2A 0.3.0 (${agent.url}): no connection could be opened`,
+    ]);
   });
 
   test('a sign-in agent whose stream closes on auth-required, set by an update not marked final, has asked to sign in (task-20.2 decision 6)', async () => {
@@ -854,8 +858,8 @@ describe('publish, the card read (task-20.3 decisions 8, 15)', () => {
     const served = {
       ...(agent.served as object),
       supportedInterfaces: [
-        {url: '127.0.0.1:1', protocolBinding: 'GRPC', protocolVersion: '1.0'},
-        {url: `${agent.url}/rest`, protocolBinding: 'HTTP+JSON', protocolVersion: '1.0'},
+        {url: `${agent.url}/acme`, protocolBinding: 'ACME-RPC', protocolVersion: '1.0'},
+        {url: agent.interfaces['1.0'], protocolBinding: 'JSONRPC', protocolVersion: '2.0'},
       ],
     };
     const answer = refused(
@@ -865,7 +869,7 @@ describe('publish, the card read (task-20.3 decisions 8, 15)', () => {
       ),
     );
     expect(answer.findings).toEqual([
-      'the card lists no interface A2UIVerse speaks: it lists GRPC at A2A 1.0 and HTTP+JSON at A2A 1.0; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x',
+      'the card lists no interface A2UIVerse speaks: it lists ACME-RPC at A2A 1.0 and JSONRPC at A2A 2.0; A2UIVerse speaks JSONRPC, HTTP+JSON and GRPC at A2A 0.3 and 1.x',
     ]);
     expect(agent.requests).toHaveLength(0);
     expect(marketplace.entries()).toEqual([]);
@@ -884,6 +888,87 @@ describe('publish, the card read (task-20.3 decisions 8, 15)', () => {
     );
     expect(answer.findings).toEqual(['the card lists no interface']);
     expect(agent.requests).toHaveLength(0);
+  });
+});
+
+describe('publish, the walk over the card’s interfaces (task-20.5 decisions 1, 2, 7)', () => {
+  /** A port nothing listens on. */
+  async function closedPort(): Promise<number> {
+    const server = createNetServer();
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+    const {port} = server.address() as {port: number};
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    return port;
+  }
+
+  test.each<FakePath>(
+    (['JSONRPC', 'HTTP+JSON', 'GRPC'] as const).flatMap(binding =>
+      (['1.0', '0.3'] as const).map(version => ({binding, version})),
+    ),
+  )('$binding at A2A $version is published, its paint captured there', async path => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentV1Of({paths: [path]});
+    const answer = ok(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serveAt(agent.cardUrl, agent.served as object), [
+          await fixtureArtifact(CAT),
+        ]),
+      ),
+    );
+    expect(answer.notes.filter(note => note.includes('reached'))).toEqual([]);
+    expect(agent.requests.map(r => [r.binding, r.reached])).toEqual([[path.binding, path.version]]);
+  });
+
+  test('an interface passed over is a note on the accepted publish', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentV1Of({paths: [{binding: 'JSONRPC', version: '0.3'}]});
+    const grpc = `127.0.0.1:${await closedPort()}`;
+    const served = agent.served as {supportedInterfaces: object[]};
+    const listing = {
+      ...served,
+      supportedInterfaces: [
+        {url: grpc, protocolBinding: 'GRPC', protocolVersion: '1.0'},
+        ...served.supportedInterfaces,
+      ],
+    };
+    const answer = ok(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serveAt(agent.cardUrl, listing), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    expect(answer.notes).toContain(
+      `GRPC at A2A 1.0 (${grpc}) was not reached: no connection could be opened; the request went to JSONRPC at A2A 0.3`,
+    );
+    expect(agent.requests).toHaveLength(1);
+  });
+
+  test('no interface reached: refused with one finding in place of the smoke request’s', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentV1Of();
+    const grpc = `127.0.0.1:${await closedPort()}`;
+    const jsonrpc = `http://127.0.0.1:${await closedPort()}/`;
+    const listing = {
+      ...(agent.served as object),
+      supportedInterfaces: [
+        {url: grpc, protocolBinding: 'GRPC', protocolVersion: '1.0'},
+        {url: jsonrpc, protocolBinding: 'JSONRPC', protocolVersion: '0.3'},
+      ],
+    };
+    const answer = refused(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serveAt(agent.cardUrl, listing), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    expect(answer.findings).toEqual([
+      `no interface the card lists was reached: GRPC at A2A 1.0 (${grpc}): no connection could be opened; JSONRPC at A2A 0.3 (${jsonrpc}): no connection could be opened`,
+    ]);
+    expect(marketplace.entries()).toEqual([]);
   });
 });
 
@@ -1391,11 +1476,13 @@ describe('ahead of the Store', () => {
     expect(await marketplace.report('shop')).toBe('unchanged');
     expect(marketplace.entry('shop')?.aheadOfStore?.version).toBe('0.3.0');
 
-    const grpcOnly = {
+    const unspoken = {
       ...(current.served as object),
-      supportedInterfaces: [{url: '127.0.0.1:1', protocolBinding: 'GRPC', protocolVersion: '1.0'}],
+      supportedInterfaces: [
+        {url: 'http://127.0.0.1:1/acme', protocolBinding: 'ACME-RPC', protocolVersion: '1.0'},
+      ],
     };
-    cards.serveAt(url, grpcOnly);
+    cards.serveAt(url, unspoken);
     expect(await marketplace.report('shop')).toBe('cleared');
     expect(marketplace.entry('shop')?.card).toEqual(legacy.card);
   });

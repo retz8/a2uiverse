@@ -207,6 +207,11 @@ export class Registry {
   readonly #stored = new Map<string, AgentCard>();
   /** This run's cards: null when the startup fetch failed; absent before it ran. */
   readonly #cards = new Map<string, FetchedCard | null>();
+  /**
+   * How many fetches of each app's live card this run has had answered, the card changed or not:
+   * a dispatch's walk starts over once the count moves (task-20.5 decision 5).
+   */
+  readonly #liveFetches = new Map<string, number>();
   readonly #vectors = new Map<string, number[]>();
   readonly #platform: {record: AppRecord; card: AgentCard} | undefined;
   #queue: Promise<unknown> = Promise.resolve();
@@ -334,7 +339,10 @@ export class Registry {
     records.forEach((record, i) => {
       const fetched = cards[i]!;
       this.#cards.set(record.id, fetched);
-      if (fetched) carded.push({id: record.id, card: fetched.card});
+      if (fetched) {
+        this.#fetchedLive(record.id);
+        carded.push({id: record.id, card: fetched.card});
+      }
     });
     if (this.#platform) carded.push({id: SHELL_SOURCE_ID, card: this.#platform.card});
     if (carded.length === 0) return;
@@ -356,6 +364,7 @@ export class Registry {
     records.forEach((record, i) => {
       const live = fetched[i];
       if (!live || !this.#records.has(record.id)) return;
+      this.#fetchedLive(record.id);
       if (this.#holds(record.id, live)) return;
       this.#cards.set(record.id, live);
       changed.push({id: record.id, card: live.card});
@@ -385,6 +394,7 @@ export class Registry {
       return undefined;
     }
     if (!this.#records.has(appId)) return undefined;
+    this.#fetchedLive(appId);
     if (this.#holds(appId, live)) return live.card;
     this.#cards.set(appId, live);
     try {
@@ -394,6 +404,18 @@ export class Registry {
       console.error('registry: embedding the refetched card failed:', (err as Error).message);
     }
     return live.card;
+  }
+
+  /**
+   * How many fetches of the app's live card this run has had answered, the card changed or not
+   * (task-20.5 decision 5): the interface a dispatch remembers holds while the count does.
+   */
+  liveCardFetches(appId: string): number {
+    return this.#liveFetches.get(appId) ?? 0;
+  }
+
+  #fetchedLive(appId: string): void {
+    this.#liveFetches.set(appId, this.liveCardFetches(appId) + 1);
   }
 
   /** Whether the run already holds this card for the app, as served. */
@@ -454,10 +476,11 @@ export class Registry {
   }
 
   /**
-   * The interface the platform takes to reach the app, from the card it would dial from: the
-   * first the card lists that the platform speaks; none for an app the platform cannot reach.
+   * The interface a dispatch's walk starts from (task-20.5 decision 2), on the card it would dial
+   * from: the first the card lists that the platform speaks; none for an app the platform cannot
+   * reach.
    */
-  takenInterface(appId: string): AgentInterface | undefined {
+  firstSpokenInterface(appId: string): AgentInterface | undefined {
     const card = this.dialCard(appId);
     return card ? spokenInterfaces(card)[0] : undefined;
   }
@@ -834,6 +857,7 @@ export class Registry {
     await this.#commit(next);
     this.#stored.set(appId, card);
     this.#cards.set(appId, live);
+    this.#fetchedLive(appId);
     this.#vectors.set(appId, vector);
     this.#notifyChanged({appIds: [appId, ...followed], automatic});
     await this.#journal({

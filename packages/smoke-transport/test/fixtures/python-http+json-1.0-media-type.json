@@ -1,0 +1,143 @@
+{
+  "agent": "Python a2a-sdk[http-server,grpc]==1.3.0",
+  "asked": "media-type",
+  "binding": "HTTP+JSON",
+  "a2aVersion": "1.0",
+  "card": {
+    "name": "Scratch Agent",
+    "description": "a scratch agent that answers with A2UI",
+    "supportedInterfaces": [
+      {
+        "url": "http://127.0.0.1:18741/rest",
+        "protocolBinding": "HTTP+JSON",
+        "protocolVersion": "1.0"
+      },
+      {
+        "url": "http://127.0.0.1:18741/",
+        "protocolBinding": "JSONRPC",
+        "protocolVersion": "1.0"
+      },
+      {
+        "url": "http://127.0.0.1:18741/",
+        "protocolBinding": "JSONRPC",
+        "protocolVersion": "0.3"
+      },
+      {
+        "url": "http://127.0.0.1:18741/rest",
+        "protocolBinding": "HTTP+JSON",
+        "protocolVersion": "0.3"
+      },
+      {
+        "url": "127.0.0.1:18742",
+        "protocolBinding": "GRPC",
+        "protocolVersion": "1.0"
+      },
+      {
+        "url": "127.0.0.1:18742",
+        "protocolBinding": "GRPC",
+        "protocolVersion": "0.3"
+      }
+    ],
+    "version": "0.1.0",
+    "capabilities": {
+      "streaming": true,
+      "extensions": [
+        {
+          "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+          "params": {
+            "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+          },
+          "required": false
+        }
+      ]
+    },
+    "securitySchemes": {
+      "signIn": {
+        "oauth2SecurityScheme": {
+          "flows": {
+            "authorizationCode": {
+              "authorizationUrl": "http://127.0.0.1:18741/authorize",
+              "tokenUrl": "http://127.0.0.1:18741/token",
+              "scopes": {
+                "things.write": "Change your things",
+                "things.read": "Read your things"
+              }
+            }
+          }
+        },
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "http://127.0.0.1:18741/authorize",
+            "scopes": {
+              "things.write": "Change your things",
+              "things.read": "Read your things"
+            },
+            "tokenUrl": "http://127.0.0.1:18741/token"
+          }
+        },
+        "type": "oauth2"
+      }
+    },
+    "defaultInputModes": ["text"],
+    "defaultOutputModes": ["text"],
+    "skills": [
+      {
+        "id": "scratch",
+        "name": "Scratch",
+        "description": "Answers with A2UI in the spelling asked for",
+        "tags": ["scratch"],
+        "examples": ["one"]
+      }
+    ],
+    "additionalInterfaces": [
+      {
+        "transport": "HTTP+JSON",
+        "url": "http://127.0.0.1:18741/rest"
+      },
+      {
+        "transport": "GRPC",
+        "url": "127.0.0.1:18742"
+      }
+    ],
+    "preferredTransport": "JSONRPC",
+    "protocolVersion": "0.3",
+    "url": "http://127.0.0.1:18741/"
+  },
+  "request": {
+    "url": "http://127.0.0.1:18741/rest/message:stream",
+    "headers": {
+      "a2a-version": "1.0",
+      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+      "accept": "text/event-stream",
+      "content-type": "application/json"
+    },
+    "body": {
+      "message": {
+        "messageId": "918879e5-1b4e-4d6b-a67b-dd5d35424efa",
+        "role": "ROLE_USER",
+        "parts": [
+          {
+            "text": "media-type"
+          }
+        ],
+        "metadata": {
+          "a2uiClientCapabilities": {
+            "v0.9": {
+              "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+            },
+            "v0.9.1": {
+              "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
+            }
+          }
+        }
+      },
+      "configuration": {}
+    }
+  },
+  "response": {
+    "status": 200,
+    "contentType": "text/event-stream",
+    "body": "data: {\"task\": {\"id\": \"b47aa161-95ec-4d10-80f7-98e1e612d9f0\", \"contextId\": \"0545a9a0-3c2f-4c11-90d4-2aa9bb6962dd\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"918879e5-1b4e-4d6b-a67b-dd5d35424efa\", \"contextId\": \"0545a9a0-3c2f-4c11-90d4-2aa9bb6962dd\", \"taskId\": \"b47aa161-95ec-4d10-80f7-98e1e612d9f0\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"media-type\"}], \"metadata\": {\"a2uiClientCapabilities\": {\"v0.9\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}, \"v0.9.1\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}\r\n\r\ndata: {\"statusUpdate\": {\"taskId\": \"b47aa161-95ec-4d10-80f7-98e1e612d9f0\", \"contextId\": \"0545a9a0-3c2f-4c11-90d4-2aa9bb6962dd\", \"status\": {\"state\": \"TASK_STATE_COMPLETED\", \"message\": {\"messageId\": \"908ae150-2228-4bea-a9cc-b06134fa2aaa\", \"contextId\": \"0545a9a0-3c2f-4c11-90d4-2aa9bb6962dd\", \"taskId\": \"b47aa161-95ec-4d10-80f7-98e1e612d9f0\", \"role\": \"ROLE_AGENT\", \"parts\": [{\"data\": {\"createSurface\": {\"catalogId\": \"https://example.com/catalogs/fake/v1/catalog.json\", \"surfaceId\": \"s1\"}, \"version\": \"v0.9\"}, \"mediaType\": \"application/a2ui+json\"}, {\"data\": {\"updateComponents\": {\"components\": [{\"id\": \"root\", \"text\": \"hi\", \"component\": \"Text\"}], \"surfaceId\": \"s1\"}, \"version\": \"v0.9\"}, \"mediaType\": \"application/a2ui+json\"}]}, \"timestamp\": \"2026-11-14T00:24:05.471489Z\"}}}\r\n\r\n",
+    "closedByAgent": true
+  }
+}

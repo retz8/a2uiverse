@@ -1,10 +1,11 @@
 """A scratch agent on Python's a2a-sdk 1.x that answers with A2UI, for `capture-fixtures.mjs`.
 
-Usage: serve_a2ui.py <port> <order>
+Usage: serve_a2ui.py <port> <grpc port> <interfaces>
 
-`order` is the A2A versions its card lists JSON-RPC at, in the card's order: `1.0,0.3` or
-`0.3,1.0`. It answers both at `/`, A2A 0.3 through a2a-sdk's own 0.3 layer. The first text part
-of a request names what it answers:
+`interfaces` is what its card lists, in the card's order, each a binding and an A2A version:
+`JSONRPC@1.0,HTTP+JSON@0.3,GRPC@1.0`. It answers all six paths, A2A 0.3 through a2a-sdk's own
+0.3 layer: JSON-RPC at `/`, HTTP+JSON under `/rest`, gRPC on its gRPC port, listed as a bare
+`host:port`. The first text part of a request names what it answers:
 
   one         two A2UI messages, one per data part, marked in metadata.mimeType
   list        one data part holding the two messages as a list, marked in metadata.mimeType
@@ -20,14 +21,22 @@ import asyncio
 import json
 import sys
 
+import grpc
 import uvicorn
 
+from a2a.compat.v0_3 import a2a_v0_3_pb2_grpc
+from a2a.compat.v0_3.grpc_handler import CompatGrpcHandler
 from a2a.helpers.proto_helpers import new_data_part, new_task, new_text_part
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
-from a2a.server.request_handlers import DefaultRequestHandler
-from a2a.server.routes import create_agent_card_routes, create_jsonrpc_routes
+from a2a.server.request_handlers import DefaultRequestHandler, GrpcHandler
+from a2a.server.routes import (
+    create_agent_card_routes,
+    create_jsonrpc_routes,
+    create_rest_routes,
+)
 from a2a.server.tasks import InMemoryTaskStore, TaskUpdater
+from a2a.types import a2a_pb2_grpc
 from a2a.types.a2a_pb2 import (
     AgentCapabilities,
     AgentCard,
@@ -46,8 +55,10 @@ from google.protobuf.struct_pb2 import Struct
 from starlette.applications import Starlette
 
 port = int(sys.argv[1])
-order = sys.argv[2].split(',')
+grpc_port = int(sys.argv[2])
+listed = [entry.split('@') for entry in sys.argv[3].split(',')]
 base = f'http://127.0.0.1:{port}'
+URLS = {'JSONRPC': f'{base}/', 'HTTP+JSON': f'{base}/rest', 'GRPC': f'127.0.0.1:{grpc_port}'}
 
 CATALOG = 'https://example.com/catalogs/fake/v1/catalog.json'
 A2UI = 'application/a2ui+json'
@@ -131,8 +142,8 @@ card = AgentCard(
     description='a scratch agent that answers with A2UI',
     version='0.1.0',
     supported_interfaces=[
-        AgentInterface(url=f'{base}/', protocol_binding='JSONRPC', protocol_version=version)
-        for version in order
+        AgentInterface(url=URLS[binding], protocol_binding=binding, protocol_version=version)
+        for binding, version in listed
     ],
     capabilities=AgentCapabilities(
         streaming=True,
@@ -175,5 +186,20 @@ handler = DefaultRequestHandler(
 routes = [
     *create_agent_card_routes(card),
     *create_jsonrpc_routes(handler, '/', enable_v0_3_compat=True),
+    *create_rest_routes(handler, enable_v0_3_compat=True, path_prefix='/rest'),
 ]
-uvicorn.run(Starlette(routes=routes), host='127.0.0.1', port=port, log_level='warning')
+
+
+async def main() -> None:
+    server = grpc.aio.server()
+    a2a_pb2_grpc.add_A2AServiceServicer_to_server(GrpcHandler(handler), server)
+    a2a_v0_3_pb2_grpc.add_A2AServiceServicer_to_server(CompatGrpcHandler(handler), server)
+    server.add_insecure_port(f'127.0.0.1:{grpc_port}')
+    await server.start()
+    config = uvicorn.Config(
+        Starlette(routes=routes), host='127.0.0.1', port=port, log_level='warning'
+    )
+    await uvicorn.Server(config).serve()
+
+
+asyncio.run(main())

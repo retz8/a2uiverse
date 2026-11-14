@@ -26,6 +26,16 @@ describe('a2uiMessagesIn', () => {
     expect(a2uiMessagesIn([])).toEqual([]);
   });
 
+  test('a list an A2A 0.3 layer wrapped as {value: [...]}, arriving still wrapped, is read (task-20.5 decision 13)', () => {
+    expect(a2uiMessagesIn({value: [create, {noVersion: true}, remove]})).toEqual([create, remove]);
+  });
+
+  test('an object with more than its value, or a value that is no list, is not a wrapped list', () => {
+    expect(a2uiMessagesIn({value: [create], other: 1})).toEqual([]);
+    expect(a2uiMessagesIn({value: create})).toEqual([]);
+    expect(a2uiMessagesIn({value: 'text'})).toEqual([]);
+  });
+
   test('an object holding a messages list is not read', () => {
     expect(a2uiMessagesIn({messages: [create, remove]})).toEqual([]);
   });
@@ -52,6 +62,13 @@ describe('withA2uiMessages', () => {
     ]);
   });
 
+  test('a wrapped list is rewritten entry by entry and stays wrapped', () => {
+    const other = {note: 1};
+    expect(withA2uiMessages({value: [create, other]}, renamed)).toEqual({
+      value: [{...create, renamed: true}, other],
+    });
+  });
+
   test('data carrying no message, or left as it was, is handed back itself', () => {
     const meta = {paintMeta: {surfaceId: 's'}};
     const wrapped = {messages: [create]};
@@ -61,6 +78,8 @@ describe('withA2uiMessages', () => {
     expect(withA2uiMessages('text', renamed)).toBe('text');
     expect(withA2uiMessages(list, message => message)).toBe(list);
     expect(withA2uiMessages(create, message => message)).toBe(create);
+    const wrappedList = {value: [create]};
+    expect(withA2uiMessages(wrappedList, message => message)).toBe(wrappedList);
   });
 });
 

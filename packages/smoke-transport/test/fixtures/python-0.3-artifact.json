@@ -1,6 +1,7 @@
 {
-  "agent": "Python a2a-sdk[http-server]==1.3.0",
+  "agent": "Python a2a-sdk[http-server,grpc]==1.3.0",
   "asked": "artifact",
+  "binding": "JSONRPC",
   "a2aVersion": "0.3",
   "card": {
     "name": "Scratch Agent",
@@ -15,6 +16,26 @@
         "url": "http://127.0.0.1:18741/",
         "protocolBinding": "JSONRPC",
         "protocolVersion": "1.0"
+      },
+      {
+        "url": "http://127.0.0.1:18741/rest",
+        "protocolBinding": "HTTP+JSON",
+        "protocolVersion": "1.0"
+      },
+      {
+        "url": "http://127.0.0.1:18741/rest",
+        "protocolBinding": "HTTP+JSON",
+        "protocolVersion": "0.3"
+      },
+      {
+        "url": "127.0.0.1:18742",
+        "protocolBinding": "GRPC",
+        "protocolVersion": "1.0"
+      },
+      {
+        "url": "127.0.0.1:18742",
+        "protocolBinding": "GRPC",
+        "protocolVersion": "0.3"
       }
     ],
     "version": "0.1.0",
@@ -38,8 +59,8 @@
               "authorizationUrl": "http://127.0.0.1:18741/authorize",
               "tokenUrl": "http://127.0.0.1:18741/token",
               "scopes": {
-                "things.read": "Read your things",
-                "things.write": "Change your things"
+                "things.write": "Change your things",
+                "things.read": "Read your things"
               }
             }
           }
@@ -48,8 +69,8 @@
           "authorizationCode": {
             "authorizationUrl": "http://127.0.0.1:18741/authorize",
             "scopes": {
-              "things.read": "Read your things",
-              "things.write": "Change your things"
+              "things.write": "Change your things",
+              "things.read": "Read your things"
             },
             "tokenUrl": "http://127.0.0.1:18741/token"
           }
@@ -68,11 +89,22 @@
         "examples": ["one"]
       }
     ],
+    "additionalInterfaces": [
+      {
+        "transport": "HTTP+JSON",
+        "url": "http://127.0.0.1:18741/rest"
+      },
+      {
+        "transport": "GRPC",
+        "url": "127.0.0.1:18742"
+      }
+    ],
     "preferredTransport": "JSONRPC",
     "protocolVersion": "0.3",
     "url": "http://127.0.0.1:18741/"
   },
   "request": {
+    "url": "http://127.0.0.1:18741/",
     "headers": {
       "a2a-version": "0.3",
       "x-a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
@@ -86,7 +118,7 @@
       "params": {
         "message": {
           "kind": "message",
-          "messageId": "9b1efdb7-3328-4a2e-884a-9c54ed01cef1",
+          "messageId": "9343c30e-bf21-40de-9758-9dc26afafc3d",
           "role": "user",
           "parts": [
             {
@@ -115,7 +147,7 @@
   "response": {
     "status": 200,
     "contentType": "text/event-stream",
-    "body": "data: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"69ab646d-591d-4b2d-b0ad-4624bb948292\",\"history\":[{\"contextId\":\"69ab646d-591d-4b2d-b0ad-4624bb948292\",\"kind\":\"message\",\"messageId\":\"9b1efdb7-3328-4a2e-884a-9c54ed01cef1\",\"metadata\":{\"a2uiClientCapabilities\":{\"v0.9.1\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]},\"v0.9\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]}}},\"parts\":[{\"kind\":\"text\",\"text\":\"artifact\"}],\"role\":\"user\",\"taskId\":\"af27a675-3a17-421f-8e0a-f3e32b2d07fe\"}],\"id\":\"af27a675-3a17-421f-8e0a-f3e32b2d07fe\",\"kind\":\"task\",\"status\":{\"state\":\"submitted\"}}}\r\n\r\ndata: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"append\":false,\"artifact\":{\"artifactId\":\"7b6fdfbc-3dfd-4bb2-a2af-82ddb3e1e77e\",\"name\":\"paint\",\"parts\":[{\"data\":{\"version\":\"v0.9\",\"createSurface\":{\"surfaceId\":\"s1\",\"catalogId\":\"https://example.com/catalogs/fake/v1/catalog.json\"}},\"kind\":\"data\"},{\"data\":{\"version\":\"v0.9\",\"updateComponents\":{\"components\":[{\"text\":\"hi\",\"id\":\"root\",\"component\":\"Text\"}],\"surfaceId\":\"s1\"}},\"kind\":\"data\"}]},\"contextId\":\"69ab646d-591d-4b2d-b0ad-4624bb948292\",\"kind\":\"artifact-update\",\"lastChunk\":false,\"taskId\":\"af27a675-3a17-421f-8e0a-f3e32b2d07fe\"}}\r\n\r\ndata: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"69ab646d-591d-4b2d-b0ad-4624bb948292\",\"final\":true,\"kind\":\"status-update\",\"status\":{\"state\":\"completed\",\"timestamp\":\"2026-11-13T13:44:51.440574Z\"},\"taskId\":\"af27a675-3a17-421f-8e0a-f3e32b2d07fe\"}}\r\n\r\n",
+    "body": "data: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"c27030e7-f7f7-4fae-8e2c-8fe65d28c982\",\"history\":[{\"contextId\":\"c27030e7-f7f7-4fae-8e2c-8fe65d28c982\",\"kind\":\"message\",\"messageId\":\"9343c30e-bf21-40de-9758-9dc26afafc3d\",\"metadata\":{\"a2uiClientCapabilities\":{\"v0.9\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]},\"v0.9.1\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]}}},\"parts\":[{\"kind\":\"text\",\"text\":\"artifact\"}],\"role\":\"user\",\"taskId\":\"406a43f8-51aa-4bdc-9397-72eb4af202db\"}],\"id\":\"406a43f8-51aa-4bdc-9397-72eb4af202db\",\"kind\":\"task\",\"status\":{\"state\":\"submitted\"}}}\r\n\r\ndata: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"append\":false,\"artifact\":{\"artifactId\":\"840157b0-013a-4530-9a23-35c5adb1bd26\",\"name\":\"paint\",\"parts\":[{\"data\":{\"createSurface\":{\"surfaceId\":\"s1\",\"catalogId\":\"https://example.com/catalogs/fake/v1/catalog.json\"},\"version\":\"v0.9\"},\"kind\":\"data\"},{\"data\":{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"s1\",\"components\":[{\"id\":\"root\",\"text\":\"hi\",\"component\":\"Text\"}]}},\"kind\":\"data\"}]},\"contextId\":\"c27030e7-f7f7-4fae-8e2c-8fe65d28c982\",\"kind\":\"artifact-update\",\"lastChunk\":false,\"taskId\":\"406a43f8-51aa-4bdc-9397-72eb4af202db\"}}\r\n\r\ndata: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"c27030e7-f7f7-4fae-8e2c-8fe65d28c982\",\"final\":true,\"kind\":\"status-update\",\"status\":{\"state\":\"completed\",\"timestamp\":\"2026-11-14T00:24:01.780191Z\"},\"taskId\":\"406a43f8-51aa-4bdc-9397-72eb4af202db\"}}\r\n\r\n",
     "closedByAgent": true
   }
 }

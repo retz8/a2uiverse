@@ -35,13 +35,16 @@ const fixture = (name: string): ServedCard & {version: string} =>
 
 /** The catalog the card package's Python fixtures declare. */
 const FIXTURE_CATALOG = 'https://example.com/catalogs/fake/v1/catalog.json';
-/** One card in A2A 0.3's shape and in 1.0's, from Python's a2a-sdk; and its gRPC-and-REST telling. */
+/**
+ * One card in A2A 0.3's shape and in 1.0's, from Python's a2a-sdk; and its telling on a binding of
+ * the agent's own, which the platform does not speak.
+ */
 const AS_LEGACY = fixture('python-as-0.3.json');
 const AS_CURRENT = fixture('python-1.0-then-0.3.json');
-const GRPC_ONLY = fixture('python-1.0-grpc-and-rest.json');
+const UNSPOKEN = fixture('python-1.0-custom-binding.json');
 const CARD_URL = 'http://127.0.0.1:18731/.well-known/agent-card.json';
 const NO_INTERFACE =
-  'the card lists no interface A2UIVerse speaks: it lists GRPC at A2A 1.0 and HTTP+JSON at A2A 1.0; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x';
+  'the card lists no interface A2UIVerse speaks: it lists ACME-RPC at A2A 1.0; A2UIVerse speaks JSONRPC, HTTP+JSON and GRPC at A2A 0.3 and 1.x';
 
 const CAT = 'cat';
 const agents: FakeAgentV1[] = [];
@@ -96,7 +99,7 @@ describe('a card at rest and as read (task-20.3 decisions 1, 7, 9)', () => {
       agentUrl: 'http://127.0.0.1:18731/',
       catalogs: [FIXTURE_CATALOG],
     });
-    expect(registry.takenInterface('fake')).toMatchObject({
+    expect(registry.firstSpokenInterface('fake')).toMatchObject({
       protocolBinding: 'JSONRPC',
       protocolVersion: '1.0',
     });
@@ -253,7 +256,7 @@ describe('a change of A2A version or bindings alone is no update (phase-20 decis
     expect(registry.card('fake')).toEqual(readCard(AS_CURRENT));
     expect(registry.installed()[0]!.card).toEqual(AS_LEGACY);
     // Dispatch follows the live card.
-    expect(registry.takenInterface('fake')?.protocolVersion).toBe('1.0');
+    expect(registry.firstSpokenInterface('fake')?.protocolVersion).toBe('1.0');
   });
 
   test('the Store’s copy in A2A 1.0’s shape beside an installed one in 0.3’s: up to date, no consent to ask', async () => {
@@ -298,7 +301,7 @@ describe('an agent the platform cannot reach, at install (task-20.3 decision 16)
     const {registry, cards, journal} = await fresh();
     const result = await registry.install({
       appId: 'fake',
-      cardUrl: cards.serveAt(CARD_URL, GRPC_ONLY),
+      cardUrl: cards.serveAt(CARD_URL, UNSPOKEN),
       catalogs: [await fixtureArtifact(FIXTURE_CATALOG)],
     });
     expect(result).toEqual({ok: false, cause: 'no-interface', findings: [NO_INTERFACE]});
@@ -314,7 +317,7 @@ describe('an agent the platform cannot reach, at install (task-20.3 decision 16)
     marketplace = await startFakeMarketplace();
     const client = new MarketplaceClient({url: marketplace.url, timeoutMs: 2_000});
     const {registry, cards} = await fresh({marketplace: client});
-    cards.serveAt(CARD_URL, {...GRPC_ONLY, version: '9.9.9'});
+    cards.serveAt(CARD_URL, {...UNSPOKEN, version: '9.9.9'});
     await marketplace.publish('fake', {
       card: AS_CURRENT,
       cardUrl: CARD_URL,
@@ -329,7 +332,7 @@ describe('an agent the platform cannot reach, at install (task-20.3 decision 16)
     const {registry, cards} = await installed(AS_LEGACY);
     const result = await registry.install({
       appId: 'fake',
-      cardUrl: cards.serveAt(CARD_URL, GRPC_ONLY),
+      cardUrl: cards.serveAt(CARD_URL, UNSPOKEN),
       catalogs: [await fixtureArtifact(FIXTURE_CATALOG)],
     });
     expect(result).toEqual({ok: false, cause: 'no-interface', findings: [NO_INTERFACE]});
@@ -358,10 +361,10 @@ describe('an installed app the platform cannot reach (task-20.3 decisions 13, 14
   test('its live card listing nothing the platform speaks: it stays installed and routed, and is said so', async () => {
     const {registry, cards} = await installed(AS_LEGACY);
     expect(registry.liveUnreachable('fake')).toBe(false);
-    cards.serveAt(CARD_URL, GRPC_ONLY);
+    cards.serveAt(CARD_URL, UNSPOKEN);
     await registry.refetchLiveCards();
     expect(registry.liveUnreachable('fake')).toBe(true);
-    expect(registry.takenInterface('fake')).toBeUndefined();
+    expect(registry.firstSpokenInterface('fake')).toBeUndefined();
     expect(registry.get('fake').agentUrl).toBe('');
     expect(registry.routable().map(app => app.record.id)).toEqual(['fake']);
   });
@@ -373,12 +376,12 @@ describe('an installed app the platform cannot reach (task-20.3 decisions 13, 14
     await next.load();
     await next.refreshCards();
     expect(next.liveUnreachable('fake')).toBe(false);
-    expect(next.takenInterface('fake')?.protocolVersion).toBe('0.3');
+    expect(next.firstSpokenInterface('fake')?.protocolVersion).toBe('0.3');
   });
 
   test('its dispatch fails under the cause of its own before the agent is called, ahead of the update check and of any sign-in', async () => {
     const {registry, cards} = await installed(AS_LEGACY);
-    cards.serveAt(CARD_URL, GRPC_ONLY);
+    cards.serveAt(CARD_URL, UNSPOKEN);
     await registry.refetchLiveCards();
     const updates: UpdateGate = {
       catalogsChanged: vi.fn(() => true),

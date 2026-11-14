@@ -105,6 +105,6 @@ export class Sources {
    * from lists an interface the platform speaks. An app that is not installed is not judged here.
    */
   reachable(appId: string): boolean {
-    return !this.#registry.find(appId) || this.#registry.takenInterface(appId) !== undefined;
+    return !this.#registry.find(appId) || this.#registry.firstSpokenInterface(appId) !== undefined;
   }
 }

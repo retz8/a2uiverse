@@ -456,6 +456,8 @@ describe.each(['1.0', '0.3'])(
         hardCapMs: 30_000,
         debugIds: false,
         fetchImpl: capturedFetch(wire),
+        // The replay stands in for the agent: no connection is opened.
+        openConnection: () => Promise.resolve(true),
         ...(credentials ? {credentials} : {}),
       });
     }
