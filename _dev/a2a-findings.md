@@ -495,7 +495,7 @@ A2UIVerse carries nothing for it (task-20.3 decisions 1, 8): what the SDK's read
 
 ### Prior art
 
-Issue [#663](https://github.com/a2aproject/a2a-js/issues/663) reports that canonicalizing a card for signing drops `securitySchemes` when given an in-memory card, the same two forms meeting in another place. No issue reports the served form, searched in `a2aproject/a2a-js` on 2026-11-13.
+Issue [#663](https://github.com/a2aproject/a2a-js/issues/663) reports that canonicalizing a card for signing drops `securitySchemes` when given an in-memory card, the same two forms meeting in another place, and names the served form in one sentence: "`JSON.stringify`-ing that return value — e.g. via `agentCardHandler` — serves the internal `{$case, value}` form to clients, which is not the v1.0 external form." Pull request [#664](https://github.com/a2aproject/a2a-js/pull/664) (open) changes the `fromJSON` codecs to take the in-memory form and does not touch the card handler. No issue is about the served form itself, searched in `a2aproject/a2a-js` on 2026-11-15.
 
 ---
 
@@ -619,7 +619,7 @@ A2UIVerse's dispatch and its smoke runner give the client factory a card resolve
 
 ### Prior art
 
-Pull request [#344](https://github.com/a2aproject/a2a-js/pull/344) ("fix: support proto-based AgentCard in AgentCardResolver", merged) added the detection. No issue reports the in-memory case, searched in `a2aproject/a2a-js` on 2026-11-13.
+Pull request [#344](https://github.com/a2aproject/a2a-js/pull/344) ("fix: support proto-based AgentCard in AgentCardResolver", merged) added the detection. Issue [#663](https://github.com/a2aproject/a2a-js/issues/663) (open) reports the same cause, `AgentCard.fromJSON` dropping `securitySchemes` from an in-memory card, for the signature check, and pull request [#664](https://github.com/a2aproject/a2a-js/pull/664) (open) changes the `fromJSON` codecs to take that form. Neither names the client's path, searched in `a2aproject/a2a-js` on 2026-11-15.
 
 ---
 
@@ -664,7 +664,7 @@ A2UIVerse's dispatch and its smoke request end an answer at auth-required when t
 
 ### Prior art
 
-No issue or pull request on `a2aproject/A2A` reports the three sentences disagreeing, searched on 2026-11-13.
+Pull request [#2270](https://github.com/a2aproject/A2A/pull/2270) on `a2aproject/A2A`, merged on 2026-10-13 into the `dev-1.1` branch, takes "or interrupted" out of section 11.7's close rule and points it at section 3.1.2. `main` has the sentence as quoted here, and the pull request does not name section 7.6.1. No issue reports the three sentences disagreeing, searched on 2026-11-15.
 
 ## 9. Toward an agent on A2A 0.3 over HTTP+JSON and gRPC, the client drops every part's metadata, both ways (a2a-js 1.3.0)
 
@@ -762,7 +762,7 @@ A2UIVerse reads both spellings: it hands the A2A SDK `host:port`, the path left 
 
 ### Prior art
 
-No issue or pull request on `a2aproject/A2A` or `a2aproject/a2a-js` reports it, searched on 2026-11-14.
+Issue [#1388](https://github.com/a2aproject/A2A/issues/1388) on `a2aproject/A2A`, closed, reported the `https://` URL in the proto's comment on `AgentInterface`. Pull request [#1997](https://github.com/a2aproject/A2A/pull/1997) there, merged on 2026-07-21, changed that comment on `main` to name the form `hostname:port` for gRPC, with `grpc.example.com:443` as its example. The example card in `docs/specification.md` on `main` still lists `https://georoute-agent.example.com/a2a/grpc`, and tags `v0.3.0` and `v1.0.0` have the comment as it was. Nothing on `a2aproject/a2a-js` reports the SDK handing the URL to `@grpc/grpc-js` untouched, searched on 2026-11-15.
 
 ## 12. A card written for A2A 0.3 is read with its further interfaces at a version it never names (a2a-js 1.3.0)
 
@@ -927,7 +927,7 @@ A2UIVerse checks a signature with its own code around `canonicalizeAgentCard`, u
 
 ### Prior art
 
-No issue or pull request on `a2aproject/a2a-js` reports it, searched on 2026-11-14 ("signature", "signature algorithms"). Issue 663 (open) reports `canonicalizeAgentCard` dropping sign-in schemes from a card already read into memory, and issue 627 (open) its dropping of required fields with default values.
+No issue or pull request on `a2aproject/a2a-js` reports the missing list of algorithms, searched on 2026-11-15 ("signature", "signature algorithms", "HS256", "RFC 8725"). Issue [#663](https://github.com/a2aproject/a2a-js/issues/663) (open) reports `canonicalizeAgentCard` dropping sign-in schemes from a card already read into memory, and issue [#627](https://github.com/a2aproject/a2a-js/issues/627) (open) its dropping of required fields with default values. Issue 627 also asks, as a question, about the verifier refusing a protected header with no `typ` where section 8.4.2 says `typ` "SHOULD be set", and issue [#2122](https://github.com/a2aproject/A2A/issues/2122) on `a2aproject/A2A` (open) raises the same wording of the section.
 
 ## 16. The client reads a card's sign-in schemes from the A2A 0.3 copy served beside them, and checks the signature against that copy (a2a-python 1.3.0)
 
@@ -1635,7 +1635,7 @@ A2UIVerse reads an answer that the agent has no extended card by the `ErrorInfo`
 
 ### Prior art
 
-Issue 1166 on `a2aproject/a2a-python`, "grpc_handler maps 3 A2A errors to FAILED_PRECONDITION instead of UNIMPLEMENTED", closed on 2026-09-16; its fix, pull request 1167, is open, and 1.3.0 still answers `FAILED_PRECONDITION`. Nothing on `a2aproject/a2a-js` reports it, searched on 2026-11-14 ("FAILED_PRECONDITION", "UNIMPLEMENTED", "grpc status").
+Issue 1166 on `a2aproject/a2a-python`, "grpc_handler maps 3 A2A errors to FAILED_PRECONDITION instead of UNIMPLEMENTED", closed as not planned on 2026-09-16; its fix, pull request 1167, is open, and 1.3.0 still answers `FAILED_PRECONDITION`. The specification's table changed under the issue: pull request [#1627](https://github.com/a2aproject/A2A/pull/1627) on `a2aproject/A2A`, merged on 2026-04-14, maps `UnsupportedOperationError` to `FAILED_PRECONDITION`, which tag `v1.0.1` has, where tag `v1.0.0`, quoted here, has `UNIMPLEMENTED`. Issue [#2200](https://github.com/a2aproject/A2A/issues/2200) there, open, reports that tag `v1.0.1` changed the mappings of section 5.4. Nothing on `a2aproject/a2a-js` reports it, searched on 2026-11-15 ("FAILED_PRECONDITION", "UNIMPLEMENTED", "grpc status").
 
 ## 26. A JSON-RPC call refused as unauthenticated is answered HTTP 200 with error code -31401 (a2a-go 2.8.0)
 
@@ -1698,7 +1698,7 @@ Shop C hands its gRPC binding each member's card with the flow by pointer, throu
 
 ### Prior art
 
-Nothing reports it on `a2aproject/a2a-go`, searched on 2026-11-14 ("OAuthFlows", "unsupported OAuthFlows type", "DeviceCodeOAuthFlow"). Issue 347 there, closed, was another card failing to convert.
+Pull request [#541](https://github.com/a2aproject/a2a-go/pull/541) on `a2aproject/a2a-go`, open since 2026-11-05, reports the same thing, "two codecs that disagree on which Go type holds the flow", and fixes it. No issue reports it, searched on 2026-11-15 ("OAuthFlows", "unsupported OAuthFlows type", "DeviceCodeOAuthFlow"). Issue 347 there, closed, was another card failing to convert.
 
 ## 28. a2a-go and @a2a-js/sdk each refuse the other's signature on a card holding an empty value (a2a-go 2.8.0, a2a-js 1.3.0)
 
@@ -1731,4 +1731,4 @@ A2UIVerse checks a signature over @a2a-js/sdk's form (task-20.7 decision 5), so 
 
 ### Prior art
 
-Issue 445 on `a2aproject/a2a-go`, open, reports that the two SDKs' signatures do not cross-verify and reads rule 1 as backing @a2a-js/sdk's projection. Issue 627 on `a2aproject/a2a-js`, open, reports that `canonicalizeAgentCard` drops required fields at their default. Issue 2122 on `a2aproject/A2A`, open, calls section 8.4.1 under-determined; pull request 2319 there, merged, rewrote the section's worked example, which now separates the two SDKs on `"extensions": []` alone. Nothing reports a skill's `"tags": null`, searched on 2026-11-14.
+Issue 445 on `a2aproject/a2a-go`, open, reports that the two SDKs' signatures do not cross-verify and reads rule 1 as backing @a2a-js/sdk's projection. Issue 627 on `a2aproject/a2a-js`, open, reports that `canonicalizeAgentCard` drops required fields at their default. Issue 2122 on `a2aproject/A2A`, open, calls section 8.4.1 under-determined; pull request 2319 there, merged, rewrote the section's worked example, which now separates the two SDKs on `"extensions": []` alone. Nothing ties a skill's `"tags": null` to a signature, searched on 2026-11-15. Issue [#369](https://github.com/a2aproject/a2a-go/issues/369) on `a2aproject/a2a-go`, closed, reported a card's `skills`, `defaultInputModes` and `defaultOutputModes` served as `null`, fixed for those three by pull request [#372](https://github.com/a2aproject/a2a-go/pull/372), merged on 2026-07-16.
