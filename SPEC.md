@@ -365,7 +365,7 @@ A **catalog** has two faces — the **catalog schema** (`catalog.json`) and the 
 A vendor's catalog implementation is a binding layer between A2UI's flat component model and a design-system library. It cannot be data. Install footprint is the binding layer, not an application; N apps on one design system share one copy of that library.
 
 - **A vendor catalog is its own component vocabulary in its vendor's design language**, as GitHub's is Primer (`primer-a2ui-adapter`), GitHub's real design system — not the A2UI basic catalog themed. Gmail and Google Calendar are in Material 3's design language. Each is very similar to its vendor's product without imitating it: no exact colors unless the vendor discloses them publicly, no product icons, no logos.
-- **The themed basic catalog** — the A2UI basic catalog under its `--a2ui-*` tokens, its basic components never re-mapped — is what the mock stores and the scaffolder's `basic` template carry. A themed basic catalog may **append product components** for what the basic vocabulary cannot express — a status drawn per row in its own color, where no basic property varies a row's look by data.
+- **The themed basic catalog** — the A2UI basic catalog under its `--a2ui-*` tokens, its basic components never re-mapped — is what Shop A, Shop B and the scaffolder's `basic` template carry. Shop C, the mock store written by hand, carries no catalog and paints in the public basic catalog. A themed basic catalog may **append product components** for what the basic vocabulary cannot express — a status drawn per row in its own color, where no basic property varies a row's look by data.
 - **First-party catalog implementations only**, for the whole project.
 - **Per-app isolation** is the stated target architecture. Same-context execution of third-party catalog implementations is rejected.
 - Whether identical implementations across artifacts are deduplicated at install is an install-time detail.
@@ -624,7 +624,7 @@ Every future deviation is added here, tagged _local convention_ or _upstream can
 | Catalog authoring skills, GitHub agent                             | Catalog export and artifact contracts (`sdk`) · Stellify · Registry · Marketplace · the trusted page (Store · App Library · Publish) · AuthVault · IntentJournal |
 | Primer as GitHub's catalog                                         | Vendor catalogs for Gmail, Google Calendar, Linear and CircleCI, each its own vocabulary |
 | Material 3's design language for Gmail and Google Calendar         | Agent building kit (`a2uiverse-apps`)                                                    |
-| A2UI basic catalog + `--a2ui-*` tokens as the mock stores' catalog |                                                                                          |
+| A2UI basic catalog + `--a2ui-*` tokens as Shop A's and Shop B's catalog |                                                                                          |
 | Radix Themes, the client shell's own design system                 | Shell catalog as a Radix Themes mapping of the basic catalog                             |
 
 ---

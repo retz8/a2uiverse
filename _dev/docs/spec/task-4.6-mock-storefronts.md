@@ -29,6 +29,8 @@ A partial cell at rest is impossible by construction: the orchestrator rejects a
 
 The dataset is a single file in the tier holding the whole picture — the five cameras and both stores' listings over them — which each agent reads and slices for its own store. A clean-room bed's value is that the correct merge is knowable by inspecting the fixture, and one artifact showing both listings is what gives that. It is also the only arrangement in which the two stores cannot disagree about what a given camera is. Per-app self-containment is given up, which is a vendor-app property mocks already do not have.
 
+*Amended by task 20.10 decision 2.* The file holds a third store's listing too: Shop C's, all five cameras, each with a trade price beside its price.
+
 ### 4. No fixture files
 
 Deterministic responses and the stub and live tools are all built from the dataset. The scaffold's generated stub fixture is dropped. Fixture files would reintroduce one layer down exactly the drift decision 3 exists to prevent, where a deterministic reorder response could disagree with what the live tool returns for the same action. Building everything from the dataset is also what makes the modes agree by construction, which is what lets deterministic stand in for live in beats and tests.
@@ -39,13 +41,19 @@ The two mocks live at `mocks/shop-a/` and `mocks/shop-b/`, each mirroring the ve
 
 Display names are "Shop A" and "Shop B". The app id is user-visible: `DerivedValue` renders the app id rather than the display name, both for an `argmin`/`argmax` winner and for an absent source.
 
+*Amended by task 20.10 decisions 2, 3 and 18.* A third mock, Shop C, lives at `mocks/shop-c/`, its agent in `mocks/shop-c/agent/` and no catalog folder. It is written by hand in Go, not scaffolded, and the launcher does not run it.
+
 ### 6. Basic-themed catalogs, one accent per store
 
 Each mock gets its own catalog package in the scaffold's basic variant, with its own token theme. Authoring components would spend real effort on the half of the system this phase is not testing. A different accent per store is one file each and buys what acceptance needs: a screen where the merged view is visibly merging two distinct sources rather than reformatting one. It also keeps the tier useful as a regression bed for scoping between two themed basic catalogs.
 
+*Amended by task 20.10 decision 8.* Shop C has no catalog package: it paints in the public basic catalog, drawn in the client's own basic look.
+
 ### 7. Ports 12001 and 12002
 
 The mocks take a band of their own rather than continuing the vendor sequence. The scaffold suggests a port one above the highest found in *sibling* manifests, so continuing the sequence would set a trap: the next vendor scaffolded at the repo root sees only the vendor ports and would suggest one already taken by a mock, and duplicate ports are fatal to the launcher. A separate band makes the quarantine hold mechanically and keeps sibling-based suggestion correct inside both the tier and the repo root. Mocks need no tunnel row, since the browser only ever talks to the orchestrator.
+
+*Amended by task 20.10 decision 2.* Shop C takes port 12003 and gRPC on 12103. Its sign-in page is opened by the browser, so port 12003 has a tunnel row.
 
 ### 8. Differentiated AgentCards
 

@@ -1,7 +1,8 @@
 # A2A upstream findings
 
 Issues found in the A2A specification and its reference implementations, recorded for
-upstream contribution (`a2aproject/A2A`, `a2aproject/a2a-python`, `a2aproject/a2a-js`). Each
+upstream contribution (`a2aproject/A2A`, `a2aproject/a2a-python`, `a2aproject/a2a-js`,
+`a2aproject/a2a-go`). Each
 finding is self-contained and reproducible against upstream artifacts only.
 
 ---
@@ -1587,3 +1588,93 @@ A2UIVerse reads an answer that the agent has no extended card by the `ErrorInfo`
 ### Prior art
 
 Issue 1166 on `a2aproject/a2a-python`, "grpc_handler maps 3 A2A errors to FAILED_PRECONDITION instead of UNIMPLEMENTED", closed on 2026-09-16; its fix, pull request 1167, is open, and 1.3.0 still answers `FAILED_PRECONDITION`. Nothing on `a2aproject/a2a-js` reports it, searched on 2026-11-14 ("FAILED_PRECONDITION", "UNIMPLEMENTED", "grpc status").
+
+## 26. A JSON-RPC call refused as unauthenticated is answered HTTP 200 with error code -31401 (a2a-go 2.8.0)
+
+**Component:** `a2a-go` v2.8.0. A call interceptor's `a2a.ErrUnauthenticated` is written on JSON-RPC as an error object under the code -31401 (`internal/jsonrpc/jsonrpc.go`) in an HTTP 200 answer (`a2asrv/jsonrpc.go`). On HTTP+JSON the same error is HTTP 401 (`internal/rest/rest.go`), and on gRPC `UNAUTHENTICATED`.
+
+**Severity:** interoperability. A client that reads HTTP 401 on JSON-RPC as the refusal for sign-in takes the answer for an ordinary failure, so it neither signs in nor refreshes.
+
+### Issue
+
+Section 3.3.2 of the A2A 1.0 specification lists "HTTP `401 Unauthorized`, gRPC `UNAUTHENTICATED`, JSON-RPC custom error" as example codes for an authentication error, and section 7.4 asks a server to "use appropriate binding-specific error codes". Section 5.4 maps A2A's own errors to the JSON-RPC codes -32001 to -32009 and names no authentication error, and section 9.5 puts A2A-specific errors in -32001 to -32099. The code -31401 is a2a-go's own, outside that range, and the HTTP status of the JSON-RPC answer stays 200.
+
+### Reproduction
+
+Run on 2026-11-14: an a2a-go v2.8.0 server whose call interceptor returns `a2a.ErrUnauthenticated` for a call with no `authorization` service parameter, sent `SendMessage` on JSON-RPC with `A2A-Version: 1.0` and no credential, answers:
+
+```
+HTTP 200 {"jsonrpc":"2.0","id":1,"error":{"code":-31401,"message":"unauthenticated","data":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"a2a-protocol.org","reason":"UNAUTHENTICATED",…}]}}
+```
+
+### Fix
+
+Answer the refusal on JSON-RPC with HTTP 401, as on HTTP+JSON, the JSON-RPC binding riding HTTP, keeping the error object in the body. A2A could also name the JSON-RPC code of an authentication error in section 5.4.
+
+A2UIVerse reads HTTP 401 as the refusal for sign-in on JSON-RPC and HTTP+JSON (task-20.5 decision 8). Shop C, the hand-written agent of `retz8/a2uiverse-apps`, refuses in front of a2a-go's JSON-RPC and HTTP+JSON handlers with HTTP 401 and a `WWW-Authenticate: Bearer` challenge, as RFC 6750 has it, and through a2a-go's call interceptor on gRPC (`requireToken` and `credentialCheck` in `mocks/shop-c/agent/internal/agent/agent.go`).
+
+### Prior art
+
+Nothing reports it on `a2aproject/a2a-go`, searched on 2026-11-14 ("31401", "unauthenticated jsonrpc"). Issue 557 there, closed, fixed its JSON-RPC client dropping the body of an answer other than 200.
+
+## 27. An OAuth flow is written as JSON only by value and converted for gRPC only by pointer (a2a-go 2.8.0)
+
+**Component:** `a2a-go` v2.8.0. `OAuth2SecurityScheme.MarshalJSON` in `a2a/auth.go` takes the five flow types by value and fails on a pointer, and its `UnmarshalJSON` sets a value. `toProtoOAuthFlows` in `a2apb/v1/pbconv/to_proto.go` takes them by pointer and fails on a value, and `fromProtoOAuthFlows` in `from_proto.go` returns a pointer.
+
+**Severity:** bug. A card whose sign-in is OAuth cannot be served both as JSON and over gRPC: an agent serving its card at the well-known address cannot serve the same card as its extended card on gRPC, and a client cannot write as JSON a card it read over gRPC.
+
+### Issue
+
+Both types satisfy the `OAuthFlows` interface, so the compiler takes either, and each converter refuses the other at run time.
+
+### Reproduction
+
+Run on 2026-11-14 against one a2a-go v2.8.0 server and its own client, the extended card carrying one OAuth scheme with a device-code flow:
+
+```
+gRPC, the extended card with its flow by value: failed to convert agent card: … failed to convert OAuth flows: unsupported OAuthFlows type: a2a.DeviceCodeOAuthFlow
+JSON, the same card with its flow by pointer: json: error calling MarshalJSON for type *a2a.OAuth2SecurityScheme: unknown OAuth flow type *a2a.DeviceCodeOAuthFlow
+gRPC, the extended card with its flow by pointer: <nil>
+JSON, the card the client read over gRPC (its flow a *a2a.DeviceCodeOAuthFlow): json: error calling MarshalJSON for type *a2a.OAuth2SecurityScheme: unknown OAuth flow type *a2a.DeviceCodeOAuthFlow
+```
+
+### Fix
+
+Take each flow type by value and by pointer in both switches.
+
+Shop C hands its gRPC binding each member's card with the flow by pointer, through a request handler that wraps the one the other bindings use (`pointerFlows` in `mocks/shop-c/agent/internal/agent/agent.go` in `retz8/a2uiverse-apps`), and its tests turn a card read over gRPC back to a value before writing it (`valueFlows` in `agent_test.go` beside it).
+
+### Prior art
+
+Nothing reports it on `a2aproject/a2a-go`, searched on 2026-11-14 ("OAuthFlows", "unsupported OAuthFlows type", "DeviceCodeOAuthFlow"). Issue 347 there, closed, was another card failing to convert.
+
+## 28. a2a-go and @a2a-js/sdk each refuse the other's signature on a card holding an empty value (a2a-go 2.8.0, a2a-js 1.3.0)
+
+**Component:** `a2a-go` v2.8.0, `canonicalizeJSON` in `a2acrypto/canonical.go`: RFC 8785 over the card's JSON as given, `signatures` dropped. `@a2a-js/sdk` 1.3.0, `canonicalizeAgentCard`: the card through its protobuf model and back, every empty string, list and object removed, then RFC 8785.
+
+**Severity:** interoperability. A signed card holding an empty value passes the verifier of the SDK that signed it and fails the other's.
+
+### Issue
+
+Rule 1 of section 8.4.1 of the A2A 1.0 specification asks for protobuf field presence before RFC 8785: "Required fields MUST always be present, even if the field value matches the default", and "Default values MUST be omitted unless the field is marked as REQUIRED or has the optional keyword". Section 8.4.3 asks a verifier to "Remove properties with default values". The proto at `v1.0.0` marks `AgentCard.description` and `AgentSkill.tags` REQUIRED and leaves `AgentCapabilities.extensions` unmarked. So for an empty required field the rule backs a2a-go's form, and for an empty field that is not required it backs @a2a-js/sdk's. Go's `encoding/json` writes a skill with no tags as `"tags": null`, which neither rule names.
+
+### Reproduction
+
+Run on 2026-11-14 with one P-256 key, `ES256`, each card signed by `a2acrypto.Signer` over its JSON as given and by `generateAgentCardSignature`, then checked by `a2acrypto.Verifier` and by `verifyAgentCardSignature`:
+
+| Card | a2a-go's signature in @a2a-js/sdk | @a2a-js/sdk's signature in a2a-go | Section 8.4.1 keeps |
+| --- | --- | --- | --- |
+| `"description": ""`, required | refused | refused | the field, a2a-go's form |
+| `"capabilities": {"extensions": []}`, not required | refused | refused | nothing, @a2a-js/sdk's form |
+| a skill's `"tags": null` | refused | refused | names no form |
+| every field set and none empty | passes | passes | both forms, which agree |
+
+### Fix
+
+The specification is to settle the treatment of empty values first. a2a-go then projects the card through the protobuf model before RFC 8785, as its issue 445 asks, and @a2a-js/sdk keeps a required field at its default if the rule stands.
+
+A2UIVerse checks a signature over @a2a-js/sdk's form (task-20.7 decision 5), so a card a2a-go signs with an empty required field is refused at publish, install and preview though rule 1 backs a2a-go's form for it. The platform keeps that form until A2A issue 2122 settles the treatment of empty values (task-20.10 decision 17). Shop C's cards pass both SDKs, since every field it writes is set and none is empty.
+
+### Prior art
+
+Issue 445 on `a2aproject/a2a-go`, open, reports that the two SDKs' signatures do not cross-verify and reads rule 1 as backing @a2a-js/sdk's projection. Issue 627 on `a2aproject/a2a-js`, open, reports that `canonicalizeAgentCard` drops required fields at their default. Issue 2122 on `a2aproject/A2A`, open, calls section 8.4.1 under-determined; pull request 2319 there, merged, rewrote the section's worked example, which now separates the two SDKs on `"extensions": []` alone. Nothing reports a skill's `"tags": null`, searched on 2026-11-14.

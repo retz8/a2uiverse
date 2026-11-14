@@ -41,7 +41,7 @@ working with this repo.
 
 ## Ports
 
-Platform processes are `1000x`; vendor agents are `11001+` and mock agents `12001+`, one port per app regardless of run mode, for JSON-RPC and HTTP+JSON. Each agent answers gRPC on a second port, 100 above it: `11101+` and `12101+`, never through the tunnel. The browser talks to the orchestrator, and opens the vendor agents' sign-in pages; the orchestrator reaches the agents on `localhost`. The mock agents need no tunnel: shop-b's key is entered on the orchestrator's own page.
+Platform processes are `1000x`; vendor agents are `11001+` and mock agents `12001+`, one port per app regardless of run mode, for JSON-RPC and HTTP+JSON. Each agent answers gRPC on a second port, 100 above it: `11101+` and `12101+`, never through the tunnel. The browser talks to the orchestrator, and opens the vendor agents' sign-in pages; the orchestrator reaches the agents on `localhost`. Shop A and Shop B need no tunnel: shop-b's key is entered on the orchestrator's own page. Shop C, the mock store written by hand in Go, signs in by device code on a sign-in page of its own, which the browser opens, so that page needs a tunnel address; its gRPC port, 12103, needs none. The tunnel's eight ports are held by the client, the orchestrator, the marketplace and the five vendor agents, so the page rides a vendor agent's port the mock tier leaves idle, 11005: a proxy on the Mac passes that port's `/device` alone to Shop C's 12003, and Shop C runs with `--public-url` on 11005's tunnel address.
 
 | Process | Port | Tunnel | Repo |
 |---|---|---|---|
@@ -51,7 +51,8 @@ Platform processes are `1000x`; vendor agents are `11001+` and mock agents `1200
 | shell-catalog fixture (dev-only) | 5174 locally; 5173 through the tunnel, while the client is down | on 5173 | `a2uiverse` |
 | vendor agents | 11001–11005 | sign-in pages | `a2uiverse-apps` (table there) |
 | vendor agents' gRPC | 11101–11105 | no | `a2uiverse-apps` |
-| mock agents | 12001+ | no | `a2uiverse-apps` (`mocks/`, the launcher's mock tier) |
+| mock agents | 12001–12002 | no | `a2uiverse-apps` (`mocks/`, the launcher's mock tier) |
+| Shop C, started by hand | 12003 | its sign-in page, through 11005 | `a2uiverse-apps` (`mocks/shop-c/`) |
 | mock agents' gRPC | 12101+ | no | `a2uiverse-apps` |
 | upstream restaurant finder | 11006 | no | `../a2ui-upstream/`, a worktree of the A2UI fork at `upstream/main` |
 
@@ -124,6 +125,15 @@ The mock tier (synthesis acceptance) runs in place of the real roster:
 pnpm dev:all --tier mocks              # shop-a 12001 · shop-b 12002, deterministic
 pnpm dev:all --tier mocks --mode live  # the same, live
 pnpm dev:all --tier default,mocks      # the five apps and the two stores in one launch
+```
+
+Shop C is not in the launcher's roster. It is started by hand beside the mock tier, its sign-in page on the tunnel through port 11005 and everything else on `localhost`, then installed from its card URL alone or published with Stellify by hand (its agent's README in `a2uiverse-apps`). The proxy on 11005 is any reverse proxy that passes `/device` to `http://localhost:12003`, `httputil.NewSingleHostReverseProxy` in a few lines of Go:
+
+```bash
+# in ../a2uiverse-apps/mocks/shop-c/agent, with the proxy on 11005 running
+go run . --public-url https://<tunnel-id>-11005.asse.devtunnels.ms --state-dir <scratch dir>
+# here, once it answers
+pnpm --filter @a2uiverse/orchestrator registry install shop-c http://localhost:12003/.well-known/agent-card.json
 ```
 
 Live sign-in returns to each agent's finish address, so GitHub's OAuth App and the Google client register the tunnel finish address beside the `localhost` one (each agent's README). CircleCI's sign-in server takes only a loopback return address, so CircleCI runs with `A2UIVERSE_PUBLIC_URL` unset — a launcher of its own, `--only circleci --no-install`, beside one for the other apps, and the orchestrator restarted after to read its card — and a return the remote browser cannot reach is carried by hand: in the sign-in window, `http://localhost:<port>` is replaced by the port's tunnel URL, the rest kept, once for the agent's sign-in page and once for CircleCI's return to it. The beat driver's return to its `127.0.0.1` address is delivered on the Mac: the address the window ends on, run as `curl '<address>'` in a terminal there.
