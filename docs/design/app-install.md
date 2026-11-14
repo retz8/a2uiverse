@@ -43,7 +43,11 @@ An A2A agent describes itself in an **agent card**, a JSON document it serves at
 {
   "name": "GitHub",
   "description": "Reads and acts on your GitHub: finds the pull requests that need you, …",
-  "url": "http://localhost:11001",
+  "supportedInterfaces": [
+    {"url": "localhost:11101", "protocolBinding": "GRPC", "protocolVersion": "1.0"},
+    {"url": "http://localhost:11001", "protocolBinding": "JSONRPC", "protocolVersion": "1.0"}
+    // …HTTP+JSON at A2A 1.0, then the same three at A2A 0.3
+  ],
   "version": "0.2.0",
   "capabilities": {
     "streaming": true,
@@ -54,7 +58,7 @@ An A2A agent describes itself in an **agent card**, a JSON document it serves at
   },
   "skills": [
     {"id": "pr_triage", "name": "Pull request triage",
-     "examples": ["What needs my attention today?", "What pull requests need my review?", "…"]}
+     "examples": ["What needs my attention today?", "What's on my plate?", "…"]}
     // …Reading a pull request, Composing a review, Acting on GitHub
   ]
 }
@@ -66,13 +70,13 @@ Everything the platform needs is in it:
 | --- | --- |
 | `name` | the app's name above its slot, and in the Planner's view of the platform |
 | `description`, `skills` | routing: the Router ranks a question against them |
-| `url`, or `supportedInterfaces` on a card written for A2A 1.0 | where a question to the app is sent: the first interface in the card's order that the platform speaks |
+| `supportedInterfaces`, or `url` on a card written for A2A 0.3 | where a question to the app is sent: the first interface in the card's order that the platform speaks |
 | `supportedCatalogIds`, under the A2UI extension | the catalogs the app paints in |
 | `provider` | the vendor the app fronts, at its own site: where "Continue on <App>" goes when a paint was refused |
 | `documentationUrl` | the app's help page: the link on the page where a key is pasted, and where "Continue on <App>" goes when there's no `provider` |
-| `securitySchemes`, `security` (`securityRequirements` on a card written for A2A 1.0) | the sign-in the app needs, checked before every dispatch ([`authority.md`](authority.md)) |
+| `securitySchemes`, `securityRequirements` (`security` on a card written for A2A 0.3) | the sign-in the app needs, checked before every dispatch ([`authority.md`](authority.md)) |
 
-GitHub's card is written for A2A 0.3. A card written for A2A 1.0 says the same things in 1.0's fields, and every process reads either one through the card's one reading, into one shape ([`card.md`](card.md)).
+GitHub's card is written for A2A 1.0. A card written for A2A 0.3 says the same things in 0.3's fields, and every process reads either one through the card's one reading, into one shape ([`card.md`](card.md)).
 
 The one thing the platform adds is the **app id**, `github` here: the namespace on every surface the app paints (`github:notifications-1`), and the app's name in every ref the merged view makes into its data. It's given at install: a lowercase slug, with `shell` reserved for A2UIVerse itself.
 
@@ -224,7 +228,7 @@ The command reads the artifact folder, base64-encodes every file, and posts `{ap
 {
   "id": "github",
   "cardUrl": "http://localhost:11001/.well-known/agent-card.json",
-  "card": {"name": "GitHub", "url": "http://localhost:11001", "version": "0.2.0", "…": "the card as fetched, verbatim"},
+  "card": {"name": "GitHub", "supportedInterfaces": [{"url": "localhost:11101", "protocolBinding": "GRPC", "protocolVersion": "1.0"}, "…"], "version": "0.2.0", "…": "the card as fetched, verbatim"},
   "catalogs": {"https://github.com/…/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-o0lcA0wt5e2S9Jv8bXLb47m3_4kvXVto2Bx9zD4tyLM"},
   "entitlement": ["https://a2ui.org/…/basic/catalog.json", "https://github.com/…/github-catalog/catalogs/v0.9.1/catalog.json"],
   "installedAt": "2026-10-03T00:49:11.509Z",
@@ -332,7 +336,7 @@ It's a **hash tree** one level deep, like a Merkle tree: the id is a hash over t
 
 `apps/orchestrator/src/registry/registry.ts` (`Registry.install`) and the sdk's `gateArtifact` (`packages/sdk/js/src/gate.ts`). Every check is a function of the sdk's, and the marketplace runs the same gate at publish, so both refuse the same things for the same reasons. Install runs every check and collects every finding before it answers. One finding refuses the whole app, and the publisher sees everything there is to fix at once.
 
-**Reading the card.** The registry fetches the card through the card package's fetch (`fetchLiveCard` in `packages/card`, naming A2A 1.0 in its request, ten seconds unless `A2UIVERSE_CARD_TIMEOUT_SECONDS` says otherwise) and reads it through the card's one reading (`readCard`). A card that can't be fetched, or that was fetched and doesn't read (`the card at … could not be read: …`, the A2A SDK's own message), refuses the install as an app that couldn't be reached. A card that lists no interface the platform speaks refuses it under a cause of its own, `no-interface`, with one finding saying what the card lists and what the platform speaks, and nothing else is checked. The fetch checks a signed card's signatures as it fetches it ([`card.md`](card.md#checking-a-signed-card)): a card none of whose signatures passes refuses the install under the cause `unconfirmed`, with one finding, `the card at … could not be confirmed: …`, and a key set that doesn't answer in time is the card that couldn't be fetched. Each fetch of a signed card writes a `cardSignature` line in the journal.
+**Reading the card.** The registry fetches the card through the card package's fetch (`fetchLiveCard` in `packages/card`, naming A2A 1.0 in its request, ten seconds unless `A2UIVERSE_CARD_TIMEOUT_SECONDS` says otherwise) and reads it through the card's one reading (`readCard`). A card that can't be fetched, or that was fetched and doesn't read (`the card at … could not be read: …`, ending in the A2A SDK's own message, or in `not an agent card: no name` for a card with no name), refuses the install as an app that couldn't be reached. A card that lists no interface the platform speaks refuses it under a cause of its own, `no-interface`, with one finding saying what the card lists and what the platform speaks, and nothing else is checked. The fetch checks a signed card's signatures as it fetches it ([`card.md`](card.md#checking-a-signed-card)): a card none of whose signatures passes refuses the install under the cause `unconfirmed`, with one finding, `the card at … could not be confirmed: …`, and a key set that doesn't answer in time is the card that couldn't be fetched. Each fetch of a signed card writes a `cardSignature` line in the journal.
 
 **Reading the card's catalogs.** `readCatalogIdsByVersion` reads the card per A2UI version: the extension entries whose URI is v0.9's or v0.9.1's count, and an entry for a version the platform does not speak — upstream's ADK restaurant finder lists v0.8 beside v0.9 — is passed over. Inside a counted entry the params are read flat, as the extension guide writes them and Gmail's card has them, or keyed by version (`{"v0.9.1": {"supportedCatalogIds": […]}}`), the shape of the schema's whole object and of GitHub's card; the entry's URI decides which version the ids land under, and each object is validated against the one version part of the pinned schema, never the root's required key. The map comes out filled: a version whose entries name no ids takes the other's set, so only a card whose two entries name different sets keeps a version axis, which the hub alone reads. `readSupportedCatalogIds` is the union over the versions, and it is what install, coverage and the update check read. A malformed entry is a finding for the whole card, naming its version, never read as "declares none".
 
@@ -434,7 +438,7 @@ The read routes are shaped like files on purpose: a folder with the same layout,
 `apps/orchestrator/src/agentsPool/agentsPool.ts`. A dispatch reads the app's record once, as it starts, and keeps that snapshot to its end:
 
 - It sends the message's `a2uiClientCapabilities` as the app's entitlement per version, each version's set under its own key, in place of what the client sent, so an app is told only what it may paint in.
-- `catalogOutside` checks the `catalogId` of every `createSurface` in every event the app sends against the set of the message's `version` — the union of the two sets when the stamp is missing or unspoken — through the sdk's `paintOutside`, the rule the marketplace's smoke test shares. A miss is never relayed: the app is sent A2A's `tasks/cancel`, and the dispatch fails with the `catalog` cause, carrying the id; the error names the stamp when the catalog is in the app's union but declared for the other version. The slot's failure tile says "This app sent something that can't be shown here." with no Retry, since the same paint would be refused the same way.
+- `catalogOutside` checks the `catalogId` of every `createSurface` in every event the app sends against the set of the message's `version` — the union of the two sets when the stamp is missing or unspoken — through the sdk's `paintOutside`, the rule the marketplace's smoke test shares. A miss is never relayed: the app is sent A2A's Cancel Task, and the dispatch fails with the `catalog` cause, carrying the id; the error names the stamp when the catalog is in the app's union but declared for the other version. The slot's failure tile says "This app sent something that can't be shown here." with no Retry, since the same paint would be refused the same way.
 - An app that isn't installed when the dispatch starts isn't asked at all: its slot fails with the `uninstalled` cause.
 - An app whose card lists no interface the platform speaks isn't asked either: its slot fails with the `interface` cause.
 - Nor is an app whose live card was last fetched signed and refused: its slot fails with the `unconfirmed` cause, judged before the others.
@@ -535,13 +539,13 @@ Two browser behaviours shape the third column:
 | Stellify finds a problem | `file: reason`, one line each, then "N findings; nothing written"; exit 1 |
 | Install fails any check | Nothing changes. Every finding is answered at once, `422`; the command prints `refused github:` and each finding, and exits 1 |
 | The card can't be fetched at install | Refused: `the card at … could not be fetched: …` |
-| The card was fetched and doesn't read | Refused: `the card at … could not be read: …`, the A2A SDK's own message |
-| The card lists no interface the platform speaks | Refused under the `no-interface` cause, with one finding: `the card lists no interface A2UIVerse speaks: it lists …; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x` |
+| The card was fetched and doesn't read | Refused: `the card at … could not be read: …`, ending in the A2A SDK's own message, or in `not an agent card: no name` |
+| The card lists no interface the platform speaks | Refused under the `no-interface` cause, with one finding: `the card lists no interface A2UIVerse speaks: it lists …; A2UIVerse speaks JSONRPC, HTTP+JSON and GRPC at A2A 0.3 and 1.x` |
 | The card is signed and none of its signatures passes | Refused under the `unconfirmed` cause, with one finding: `the card at … could not be confirmed: the card's signature did not pass: …` |
 | No write token, or the wrong one | `401`; the command names the state directory it read the token from |
 | A browser write from an origin outside the list, or not JSON | `403` or `415`; nothing changes |
 | The registry on disk is damaged | The orchestrator doesn't start; the error names the file and the problem |
-| An agent is down at startup | It stays installed and unroutable for the run; the boot log names it |
+| An agent is down at startup | It stays installed and can't be routed to until a check reaches a card that reads; the boot log names it |
 | An app paints outside its entitlement | The paint is dropped; the slot fails with the `catalog` cause, no Retry |
 | A question or a click reaches an app uninstalled since | The slot fails with the `uninstalled` cause, with Retry |
 | A question or a click reaches an app whose card lists no interface the platform speaks | The slot fails with the `interface` cause, "This app now connects in a way A2UIVerse can't use.", with Retry |

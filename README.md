@@ -19,7 +19,7 @@ Many agents on one UI, an agent marketplace, and full apps composed from agents:
 
 ## Your A2UI agent, unchanged
 
-A2UI's [who-is-it-for page](https://a2ui.org/introduction/who-is-it-for/#3-platform-builders-sdk-creators) asks platform builders: "Do you ship your agent into other apps you don't necessarily control?" Upstream's own restaurant finder was shipped into this one with no change to its code, from its card's address alone. An agent on A2UI v0.9 or v0.9.1 joins the same way: upstream's Python restaurant finder, whose card declares v0.8 beside v0.9, was installed from its address too, its v0.9 entry read and its v0.8 one passed over.
+A2UI's [who-is-it-for page](https://a2ui.org/introduction/who-is-it-for/#3-platform-builders-sdk-creators) asks platform builders: "Do you ship your agent into other apps you don't necessarily control?" Upstream's own restaurant finder was shipped into this one with no change to its code, from its card's address alone. An agent on A2UI v0.9 or v0.9.1 joins the same way: upstream's Python restaurant finder, whose card declares v0.8 beside v0.9, was installed from its address too, its v0.9 entry read and its v0.8 one passed over. An agent on A2A 0.3 or 1.0, over JSON-RPC, HTTP+JSON or gRPC, joins the same way, by whichever its card lists first: [the Phase 20 sitting log](_dev/docs/phase-20-sitting-log.md) is the account of one app joining on each of the six.
 
 <p align="center">
   <img src="docs/images/ecosystem-run-question.gif" width="800" alt="The question asked with no restaurant app installed: Calendar's agenda in one slot, the Store's offer of Restaurant Agent in the other, Install through the consent card, and the slot filled with five Chinese restaurants in New York beside the agenda">
@@ -161,7 +161,7 @@ The client talks only to the orchestrator, and the orchestrator to the apps. One
 4. **Synthesizer**, the second model call, runs once the apps have answered, when the plan reserved a merged view. It writes the view as formulas over the apps' data.
 5. **Client** evaluates the formulas, and again on every change, with no model call.
 
-Before an app is asked, the orchestrator's **AuthVault** checks the app's card against the accounts it holds, and the request carries the account's credential as an HTTP header. An app you aren't signed in to isn't asked: its slot takes the sign-in tile, and signing in sends the request then. Nor is an app whose live card no longer names a look it's installed with: its slot takes the update tile.
+Before an app is asked, the orchestrator's **AuthVault** checks the app's card against the accounts it holds, and the request carries the account's credential as a header. An app you aren't signed in to isn't asked: its slot takes the sign-in tile, and signing in sends the request then. Nor is an app whose live card no longer names a look it's installed with: its slot takes the update tile.
 
 | Part                                                        | What it is                                                                                                                                                                                                 |
 | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -172,7 +172,7 @@ Before an app is asked, the orchestrator's **AuthVault** checks the app's card a
 | [`packages/shell-catalog`](packages/shell-catalog/)         | The shell's own A2UI catalog: the basic catalog on Radix Themes, plus the components that compose a screen                                                                                                 |
 | [`packages/stellify`](packages/stellify/)                   | Stellify, the pack and publish tool: turns a catalog package into the catalog artifact the registry installs, and takes an app to the marketplace                                                          |
 | [`packages/card`](packages/card/)                           | An agent's card: the one reading every process reads it through, the fetch of the live card, the interface the platform takes, and when two cards are the same                                             |
-| [`packages/smoke-transport`](packages/smoke-transport/)     | How the marketplace and Stellify reach an agent: the transport of the smoke request                                                                                                                        |
+| [`packages/smoke-transport`](packages/smoke-transport/)     | How the orchestrator, the marketplace and Stellify reach an agent: the dial over a card's interfaces, and the transport of the smoke request                                                               |
 | [`packages/embedder`](packages/embedder/)                   | The one embedding model the Router and the marketplace rank with                                                                                                                                           |
 | [`packages/registry-snapshot`](packages/registry-snapshot/) | The catalog table and the seven catalog packages, packed, at one pinned commit, for the tests and replays                                                                                                  |
 | [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) | The apps, their agent kit and the scaffolder, in their own repo                                                                                                                                            |
@@ -197,7 +197,7 @@ Each model and its effort is a default, set by a variable:
 
 ## Built on
 
-A2UIVerse speaks the A2UI protocol at v0.9 and v0.9.1, on the packages the A2UI project publishes:
+A2UIVerse speaks the A2UI protocol at v0.9 and v0.9.1 and the A2A protocol at 0.3 and 1.0, on the packages the two projects publish:
 
 | Package          | Version | Used by                                                                                                      |
 | ---------------- | ------- | ------------------------------------------------------------------------------------------------------------ |
@@ -205,9 +205,10 @@ A2UIVerse speaks the A2UI protocol at v0.9 and v0.9.1, on the packages the A2UI 
 | `@a2ui/react`    | 0.14.0  | the client and the shell catalog; lent to the apps' catalogs at runtime                                      |
 | `a2ui-agent-sdk` | 0.9.0   | the agent kit in `a2uiverse-apps`                                                                            |
 | `a2ui-core`      | 0.4.0   | the agent kit                                                                                                |
-| `a2ui-a2a`       | 0.1.0   | the agent kit                                                                                                |
+| `@a2a-js/sdk`    | 1.3.0   | the client, the orchestrator, the marketplace and Stellify                                                   |
+| `a2a-sdk`        | 1.3.0   | the agent kit, which takes any 1.x from 1.3.0                                                                |
 
-The two npm packages carry local patches, described in the [client README](apps/client/README.md#upstream-patches).
+`@a2ui/web_core` and `@a2ui/react` carry local patches, described in the [client README](apps/client/README.md#upstream-patches).
 
 ## Where it's headed
 

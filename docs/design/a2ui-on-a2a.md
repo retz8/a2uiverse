@@ -72,19 +72,27 @@ You asked "Show me one timeline of my week from Gmail, Google Calendar and GitHu
 2. The press crosses the private wire. The wire between the client and the orchestrator is A2A 1.0 over JSON-RPC, so both marks ride it.
 3. The orchestrator finds the owner. `classifyTurn` reads the part by its `version` and `action` keys. The surface id's source, `gmail.1`, names the app and the account.
 4. The orchestrator writes the press again for the agent. It takes the source off the surface id and builds a new part with the same `a2uiPart`, so what the agent receives never depends on what the client's part carried.
-5. The A2A SDK writes the wire. Gmail's card lists JSON-RPC at A2A 0.3, so the SDK's 0.3 layer writes the part, and `mediaType` does not exist on that wire:
+5. The A2A SDK writes the wire. Gmail's card lists HTTP+JSON at A2A 1.0 first, so the part goes out in A2A 1.0's JSON, with both marks:
+
+   ```jsonc
+   {
+     "data": {"version": "v0.9", "action": {"name": "open-thread", "surfaceId": "gmail-2", …}},
+     "metadata": {"mimeType": "application/a2ui+json"},
+     "mediaType": "application/a2ui+json"
+   }
+   ```
+
+   To an agent on A2A 0.3 the SDK's 0.3 layer writes the part, and `mediaType` does not exist on that wire. A press inside Google Calendar's fragment, whose card lists JSON-RPC at A2A 0.3 first, goes out as:
 
    ```jsonc
    {
      "kind": "data",
-     "data": {"version": "v0.9", "action": {"name": "open-thread", "surfaceId": "gmail-2", …}},
+     "data": {"version": "v0.9", "action": {…}},
      "metadata": {"mimeType": "application/a2ui+json"}
    }
    ```
 
-   To an agent on A2A 1.0 the same part goes out with `"mediaType": "application/a2ui+json"` beside its metadata.
-
-6. Gmail asks for more access. Opening a thread needs a scope the account does not hold, so Gmail's agent moves its task to `auth-required` with two parts on the status message: a line of text, and `{"security": [{"signIn": ["messages"]}]}`.
+6. Gmail asks for more access. Opening a thread needs a scope the account does not hold, so Gmail's agent moves its task to `TASK_STATE_AUTH_REQUIRED` with two parts on the status message: a line of text, and `{"securityRequirements": [{"schemes": {"signIn": {"list": ["messages"]}}}]}`.
 7. The dispatch ends there. It reads the request, hands it to the vault and stops reading the stream. The journal's record of the dispatch says it ended on `TASK_STATE_AUTH_REQUIRED`.
 8. You press Allow, the sign-in window signs the account in with the extra scope, and the orchestrator sends the kept press again.
 9. Gmail paints the thread. Its parts arrive marked as the agent kit marks them, and the relay passes them with those marks, the surface ids namespaced.
@@ -122,12 +130,13 @@ const isMessage = (value: unknown): value is A2uiMessage =>
   typeof (value as A2uiMessage).version === 'string';
 
 export function a2uiMessagesIn(data: unknown): A2uiMessage[] {
-  if (Array.isArray(data)) return data.filter(isMessage);
+  const list = Array.isArray(data) ? data : wrappedList(data);
+  if (list) return list.filter(isMessage);
   return isMessage(data) ? [data] : [];
 }
 ```
 
-`a2uiMessagesIn` lives in the platform sdk and takes a part's `data`, not the part, so the sdk needs no A2A package. Three readers go through it:
+`wrappedList` takes a list an A2A 0.3 layer wrapped as `{value: [...]}` and left wrapped. `a2uiMessagesIn` lives in the platform sdk and takes a part's `data`, not the part, so the sdk needs no A2A package. Three readers go through it:
 
 1. The client's `extractA2uiMessagesFromEvent`. It then keeps the messages whose `version` is one the platform speaks, `v0.9` or `v0.9.1`, and passes over the rest with nothing said, an entry of a list like a message alone.
 2. The orchestrator. Its dispatch reads an agent's event for the catalog check, the credential bar and whether the answer painted. Once an event is relayed, the same reading feeds the journal's list of surfaces touched, the copy of each surface's data model, and the count of paints.
@@ -201,7 +210,7 @@ A paint's title and whether it asks a question ride in a part of their own, ahea
 {"paintMeta": {"surfaceId": "assigned-issues", "title": "Assigned Issues"}}
 ```
 
-`readPaintMeta` reads it by its `paintMeta` key, whatever the part's mark, or with none. The orchestrator writes one for its own layout surface, carrying the Planner's title for the canvas, through `shellPart`, so it is marked `application/a2ui-shell+json` in both fields. The agent kit writes the older string, `application/json+a2ui-shell`, in `metadata.mimeType`, and its parts are read the same.
+`readPaintMeta` reads it by its `paintMeta` key, whatever the part's mark, or with none. The orchestrator writes one for its own layout surface, carrying the Planner's title for the canvas, through `shellPart`, so it is marked `application/a2ui-shell+json` in both fields. The agent kit marks its own the same way. A part marked with the older string, `application/json+a2ui-shell`, is read the same.
 
 ### Operation part
 
@@ -212,9 +221,9 @@ A press on the composition is the A2UIVerse extension's own part, `{version, ope
 Neither A2A version names a field for the scheme or the scopes an agent needs part-way through a task. The platform's convention is a data part on the auth-required status message, carrying no mark, in one of two shapes:
 
 ```jsonc
-// A2A 1.0's requirement shape
+// A2A 1.0's requirement shape, which the agent kit writes
 {"securityRequirements": [{"schemes": {"signIn": {"list": ["messages"]}}}]}
-// A2A 0.3's requirement shape, which the agent kit writes today
+// A2A 0.3's requirement shape
 {"security": [{"signIn": ["messages"]}]}
 ```
 
@@ -230,7 +239,7 @@ Three readers take the result:
 
 ### When an answer has ended
 
-An agent's answer ends by its task's state, never by `final`:
+An agent's answer ends by its task's state, never by `final`, A2A 0.3's mark on a status update:
 
 | What the stream last said | The answer |
 | --- | --- |
@@ -273,9 +282,7 @@ Leaving is cheap. The generator of the A2A SDK's client cancels the response bod
 
 ## Known limits
 
-1. Toward an agent on A2A 0.3 over HTTP+JSON and gRPC, no mark on a part arrives, and a list in one part a 0.3 layer wrapped arrives wrapped, read by the platform around the A2A SDK (`_dev/a2a-findings.md` 9).
-2. No kit agent answers on A2A 1.0 yet. The A2A 1.0 paths are proven against the fake agent and against the captured Python wires.
-3. The agent kit still writes the older `paintMeta` string and the request in A2A 0.3's shape. Both are read.
+Toward an agent on A2A 0.3 over HTTP+JSON and gRPC, no mark on a part arrives, and a list in one part a 0.3 layer wrapped arrives wrapped, read by the platform around the A2A SDK (`_dev/a2a-findings.md` 9).
 
 ## Trying it without a model
 

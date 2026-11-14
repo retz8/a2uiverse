@@ -87,7 +87,7 @@ Who a publisher *is* isn't verified: that `a2uiverse-apps` is who it says is no 
 
 ### 2. Index entry: one per app id
 
-The marketplace serves one **entry** per published app, and lists them all in `index.json`. Here is Shop A's, as its second publish left it:
+The marketplace serves one **entry** per published app, and lists them all in `index.json`. Here is Shop A's, as its latest publish left it:
 
 ```jsonc
 // GET /apps/shop-a/entry.json (the card trimmed)
@@ -98,7 +98,7 @@ The marketplace serves one **entry** per published app, and lists them all in `i
   "card": {
     "name": "Shop A",
     "description": "Aperture & Co, a boutique camera dealer stocking hand-picked bodies with condition notes and staff ratings.",
-    "url": "http://localhost:12001",
+    "supportedInterfaces": [{"url": "http://localhost:12001", "protocolBinding": "JSONRPC", "protocolVersion": "1.0"}, "…"],
     "version": "0.2.0",
     "capabilities": {"extensions": [{"uri": "https://a2ui.org/a2a-extension/a2ui/v0.9",
       "params": {"supportedCatalogIds": ["https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json"]}}]},
@@ -106,10 +106,10 @@ The marketplace serves one **entry** per published app, and lists them all in `i
     "…": "the rest of the card, as its agent served it"
   },
   "catalogs": {
-    "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json": "sha256-EwxaM_GVu2VR39tDlkH7sDy6pytF6IkoF-20tWCqf0Q"
+    "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json": "sha256-0AAJt2HiWapVKUvdNI3vVwb5CV6zbKHJm88cBZB6sZM"
   },
   "versions": ["0.1.0", "0.2.0"],
-  "publishedAt": "2026-11-04T11:27:50.771Z",
+  "publishedAt": "2026-11-14T09:10:09.129Z",
   "retired": []
 }
 ```
@@ -130,7 +130,7 @@ A2UI has one version for a catalog: its id. A2UIVerse keeps that and adds a leve
 
 ```
 catalog id      https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json      the catalog's only version
-  └ build       sha256-EwxaM_GV…                                           one artifact for that id
+  └ build       sha256-0AAJt2Hi…                                           one artifact for that id
 card version    0.2.0                                                       the agent's version, on the card
 ```
 
@@ -146,9 +146,9 @@ At publish the marketplace sends the agent one real A2A request, built the way t
 
 - It advertises exactly the **entitlement** the app will have — its declared catalog ids plus the basic catalog, per A2UI version as the card declares them, each version's set under its own key — as the message's `a2uiClientCapabilities`, as the orchestrator will advertise it after install.
 - Its words are the card's own: **the first skill's first example**, else "Hello! Show me what you can do.". Shop A was asked _"What cameras do you have?"_.
-- It waits for the task to end (60 seconds by default) and collects every A2UI message the stream carried.
+- It waits for the task to end (60 seconds by default) and collects every A2UI message its messages carried.
 
-Then it judges the answer as the hub judges a paint: the task reached a terminal state; the answer **creates a surface**; every surface's catalog id is **inside the entitlement**; each surface's tree **validates against its catalog's schema**; and **no credential input** is painted. The paint is stored as the listing's preview, **settled** as the check judged it: each surface's component updates collapsed into one, holding each component's last copy drawn from `root`, every other message as sent:
+Then it judges the answer as the hub judges a paint: the answer ended, and not as failed, canceled or rejected; the answer **creates a surface**; every surface's catalog id is **inside the entitlement**; each surface's tree **validates against its catalog's schema**; and **no credential input** is painted. The paint is stored as the listing's preview, **settled** as the check judged it: each surface's component updates collapsed into one, holding each component's last copy drawn from `root`, every other message as sent:
 
 ```jsonc
 // GET /apps/shop-a/preview.json (trimmed)
@@ -166,13 +166,13 @@ Then it judges the answer as the hub judges a paint: the task reached a terminal
     {"version": "v0.9", "updateComponents": {"surfaceId": "list", "components": [{"id": "root", "component": "Card", "child": "body"}, "…"]}}
   ],
   "capturedBy": "marketplace",
-  "capturedAt": "2026-11-04T11:27:50.752Z"
+  "capturedAt": "2026-11-14T09:10:09.110Z"
 }
 ```
 
 It's plain A2UI, kept so the Store can draw it through the client's ordinary loader. No render and no screenshot happen at publish. The Store draws it one message at a time, so what it draws is what was judged: an agent that streams its tree, a half-written copy of a component before the whole one, is stored as its tree stood when the answer ended, not as the stream that brought it.
 
-**An agent that needs sign-in** can't be tried this way: the marketplace holds no credential, and never will. So its publish is in two halves. The marketplace still sends the request, with no credential, and the agent passes by answering as the contract says — a refusal for sign-in, **HTTP 401** or the gRPC status `UNAUTHENTICATED`, or a task in `auth-required` naming a scheme its card declares, in A2A 1.0's requirement shape or A2A 0.3's. The paint comes from the publisher instead: `stellify preview` runs the same smoke test on their machine, against their running agent, with a credential they supply in `STELLIFY_CREDENTIAL`, and writes a preview document marked `capturedBy: "publisher"`. Publish sends it beside the artifacts, and the marketplace checks it exactly as it checks a live paint — entitlement, schema, credential bar — and stores the paint as the check settled it, so a file from a Stellify older than the settling is stored settled too. Linear's, GitHub's and the others' previews in the launch were captured this way; Shop A's and Shop B's, which need no sign-in, by the marketplace itself.
+**An agent that needs sign-in** can't be tried this way: the marketplace holds no credential, and never will. So its publish is in two halves. The marketplace still sends the request, with no credential, and the agent passes by answering as the contract says — a refusal for sign-in, **HTTP 401** or the gRPC status `UNAUTHENTICATED`, or a task in `TASK_STATE_AUTH_REQUIRED`, `auth-required` from an agent on A2A 0.3, naming a scheme its card declares, in A2A 1.0's requirement shape or A2A 0.3's. The paint comes from the publisher instead: `stellify preview` runs the same smoke test on their machine, against their running agent, with a credential they supply in `STELLIFY_CREDENTIAL`, and writes a preview document marked `capturedBy: "publisher"`. Publish sends it beside the artifacts, and the marketplace checks it exactly as it checks a live paint — entitlement, schema, credential bar — and stores the paint as the check settled it, so a file from a Stellify older than the settling is stored settled too. The previews of the six apps that ask sign-in were captured this way, Shop B's with its key among them; Shop A's, which needs no sign-in, by the marketplace itself.
 
 ### 5. Install by id: the same install, resolved through the marketplace
 
@@ -180,7 +180,7 @@ The orchestrator's install takes a card URL and packed folders, or **the app id 
 
 ```bash
 pnpm --filter @a2uiverse/orchestrator registry install shop-a
-# installed shop-a · card 0.2.0 · catalog sha256-EwxaM_GV…
+# installed shop-a · card 0.2.0 · catalog sha256-0AAJt2Hi…
 ```
 
 With the id alone the registry reads Shop A's entry from the marketplace, fetches the **live card** from the URL the entry names, reads each artifact's descriptor from the marketplace and fetches **only the files it doesn't already hold** — a file whose hash a held artifact lists is copied from disk. Then the ordinary install core runs: the same gate, the same coverage check, the same record, with one more field:
@@ -190,8 +190,8 @@ With the id alone the registry reads Shop A's entry from the marketplace, fetche
 {
   "id": "shop-a",
   "cardUrl": "http://localhost:12001/.well-known/agent-card.json",
-  "card": {"name": "Shop A", "url": "http://localhost:12001", "version": "0.2.0", "…": "…"},
-  "catalogs": {"https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json": "sha256-EwxaM_GVu2VR39tDlkH7sDy6pytF6IkoF-20tWCqf0Q"},
+  "card": {"name": "Shop A", "supportedInterfaces": [{"url": "http://localhost:12001", "protocolBinding": "JSONRPC", "protocolVersion": "1.0"}, "…"], "version": "0.2.0", "…": "…"},
+  "catalogs": {"https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json": "sha256-0AAJt2HiWapVKUvdNI3vVwb5CV6zbKHJm88cBZB6sZM"},
   "entitlement": ["https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json", "https://…/shop-a-catalog/catalogs/v0.9.1/catalog.json"],
   "installedAt": "…",
   "source": "marketplace"
@@ -211,7 +211,7 @@ Nothing pushes updates. The orchestrator **computes** each installed app's state
 | `ahead-of-store` | the live card declares a catalog or a version the entry lacks | `shop-a  ahead of the Store  0.1.0  the Store lacks catalog …/v2/catalog.json and version 0.2.0` |
 | `update-required` | a catalog id installed is no longer on the published card | `shop-a  update required  0.2.0 → 0.3.0  retired …/v0.9.1/catalog.json` |
 | `major-update` | the published card names a catalog id the installed one doesn't, the installed ones kept | `shop-a  major update  0.1.0 → 0.2.0  new catalog …/v2/catalog.json` |
-| `card-update` | the version moved with no id added or dropped; what it newly asks is read from `security` | `linear  card update  0.1.0 → 0.2.0  asks signIn: issues.write` |
+| `card-update` | the version moved with no id added or dropped; what it newly asks is read from `securityRequirements` | `linear  card update  0.1.0 → 0.2.0  asks signIn: issues.write` |
 | `newer-build` | only a build moved | `linear  newer build  0.1.0  catalog …/linear-catalog/catalogs/v0.9.1/catalog.json sha256-JvcQSoor… → sha256-zJbZyJNl…` |
 | `up-to-date` | nothing differs | `shop-a  up to date  0.1.0` |
 
@@ -239,7 +239,7 @@ flowchart TD
     Q --> U["7. The update check: up to date,<br/>until the publisher ships again"]
 ```
 
-This is Shop A's first publish, from the launch of 2026-10-25, at card `0.1.0` and the build of that day. [The entry above](#2-index-entry-one-per-app-id) is where its second publish left it.
+This is Shop A's first publish, from the launch of 2026-10-25, at card `0.1.0` and the build of that day. [The entry above](#2-index-entry-one-per-app-id) is where its latest publish left it.
 
 **1. The publisher claims a name.** Once per marketplace. In the launch the launcher did it for the roster — `dev:agents — claimed a2uiverse-apps at http://localhost:10002` — and the marketplace's log said `claimed a2uiverse-apps`. The token went into the launcher's own publisher file; a person's would go into `~/.config/stellify/publisher.json`.
 
@@ -338,7 +338,7 @@ flowchart TD
 
 **Everything else is collected**, in this order, and answered as one `422` list:
 
-1. The card's own facts: a `version`, a `description`, and an interface the platform speaks. A card listing none says what it lists and what the platform speaks (`the card lists no interface A2UIVerse speaks: it lists GRPC at A2A 1.0 and HTTP+JSON at A2A 1.0; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x`), or `the card lists no interface` when it lists none at all, and nothing is sent to the agent.
+1. The card's own facts: a `version`, a `description`, and an interface the platform speaks. A card listing none says what it lists and what the platform speaks (`the card lists no interface A2UIVerse speaks: it lists ACME-RPC at A2A 1.0; A2UIVerse speaks JSONRPC, HTTP+JSON and GRPC at A2A 0.3 and 1.x`), or `the card lists no interface` when it lists none at all, and nothing is sent to the agent.
 2. The static gate over each handed artifact — the sdk's `gateArtifact`, the same function the registry's install runs, so both refuse the same files for the same reasons.
 3. No two artifacts for one id; none for the basic or the shell catalog, which the client provides.
 4. Coverage both ways — `checkCoverage(declared, handed, public ∪ ownedHeld)`. The third set is what makes a card-only publish possible: a catalog id the marketplace already holds a row for, owned by this publisher, counts as covered. A publish that changes the card alone hands nothing, and its note says `catalog "…": the held build counts as covered`.
@@ -361,16 +361,16 @@ Two pieces: a **transport** that sends the request and reports what it saw, and 
 | Observation | When |
 | --- | --- |
 | `unauthorized` | the agent refused the request for sign-in: HTTP 401, or `UNAUTHENTICATED` on gRPC |
-| `ended` with a state | the task reached `auth-required`, or the stream closed after a `message`, or with its task's last state terminal (`completed`, `failed`, `canceled`, `rejected`) or interrupted (`input-required`, `auth-required`) — with every A2UI message its messages carried, the text of the message it ended on, and its `auth-required` data part when it had one |
+| `ended` with a state | the task reached auth-required, or the stream closed after a `message`, or with its task's last state terminal (completed, failed, canceled, rejected) or interrupted (input-required, auth-required) — with every A2UI message its messages carried, the text of the message it ended on, and its auth-required data part when it had one |
 | `unfinished` | the stream closed any other way, with the last state it carried, or none when it carried nothing |
 | `unreached` | the walk reached no interface the card lists, with each one it tried |
 | `error` | the request failed once sent, 60 seconds passed, or the card lists no interface the platform speaks |
 
-An answer ends by its task's state, as a dispatch does in the orchestrator, and `final` is not read. Two cases follow. A status update marked `final` while its task is still `working` ends nothing, and a stream that closes after it never finished. A stream that closes on `auth-required`, set by an update not marked `final`, has ended asking to sign in. An answer that reaches `auth-required` has ended when the state arrives, whether or not the agent closes its stream: A2A 1.0 asks an agent that waits for a credential to keep it open, so the runner stops reading there and leaves the stream. An agent that holds its stream open after any other last event runs into the 60 seconds. A2UI is read from the answer's messages and never from an artifact, one message or a list in a part, bare or still wrapped by an A2A 0.3 layer, whatever the part is marked with ([`a2ui-on-a2a.md`](a2ui-on-a2a.md)). A state is spelled in lowercase, A2A 0.3's name for it, for an agent on either A2A version.
+An answer ends by its task's state, as a dispatch does in the orchestrator, and `final`, A2A 0.3's mark on a status update, is not read. Two cases follow. A status update marked `final` while its task is still working ends nothing, and a stream that closes after it never finished. A stream that closes on auth-required, set by an update not marked `final`, has ended asking to sign in. An answer that reaches auth-required has ended when the state arrives, whether or not the agent closes its stream: A2A 1.0 asks an agent that waits for a credential to keep it open, so the runner stops reading there and leaves the stream. An agent that holds its stream open after any other last event runs into the 60 seconds. A2UI is read from the answer's messages and never from an artifact, one message or a list in a part, bare or still wrapped by an A2A 0.3 layer, whatever the part is marked with ([`a2ui-on-a2a.md`](a2ui-on-a2a.md)). The observation spells a state in lowercase, A2A 0.3's name for it, as in `auth-required`, for an agent on either A2A version.
 
-A card the A2A SDK's reader refuses never reaches the transport: publish and `preview` answer with the one finding above, in the SDK's own words. For a card written for A2A 0.3 that is a card with no `capabilities`, `defaultInputModes`, `defaultOutputModes` or `skills`, a skill with no `tags`, or a sign-in scheme of an unknown `type`.
+A card the A2A SDK's reader refuses never reaches the transport: publish and `preview` answer with the one finding above, in the SDK's own words. For a card written for A2A 0.3 that is a card with no `capabilities`, `defaultInputModes`, `defaultOutputModes` or `skills`, a skill with no `tags`, a sign-in scheme of an unknown `type`, or an OAuth scheme that names no flow.
 
-**The judgement** differs by the card. Each interface passed over is a note on an accepted publish, `GRPC at A2A 1.0 (grpc.shop-b.example:443) was not reached: no connection could be opened; the request went to JSONRPC at A2A 0.3`, and `unreached` is one finding in place of the smoke request's, naming each interface tried and why. For an **open app**: `unauthorized` is a finding (`the agent answered 401, but its card requires no sign-in`, `UNAUTHENTICATED` in place of 401 on gRPC), `unfinished` and `error` are findings, `ended` as `failed`, `canceled` or `rejected` is a finding carrying the agent's own words, and anything else hands its messages to `checkPaint`. For a **sign-in app**: `checkSignInAnswer` passes a refusal for sign-in, or an `auth-required` whose security requirement, read in either A2A version's shape, names only schemes the card declares, and refuses everything else with what it saw instead.
+**The judgement** differs by the card. Each interface passed over is a note on an accepted publish, `GRPC at A2A 1.0 (grpc.shop-b.example:443) was not reached: no connection could be opened; the request went to JSONRPC at A2A 0.3`, and `unreached` is one finding in place of the smoke request's, naming each interface tried and why. For an **open app**: `unauthorized` is a finding (`the agent answered 401, but its card requires no sign-in`, `UNAUTHENTICATED` in place of 401 on gRPC), `unfinished` and `error` are findings, `ended` as failed, canceled or rejected is a finding carrying the agent's own words, and anything else hands its messages to `checkPaint`. For a **sign-in app**: `checkSignInAnswer` passes a refusal for sign-in, or an auth-required answer whose security requirement, read in either A2A version's shape, names only schemes the card declares, and refuses everything else with what it saw instead.
 
 **`checkPaint`** (`packages/sdk/js/src/smoke.ts`) groups the messages by surface and refuses any of: no `createSurface` at all; a surface with no `catalogId`; a catalog id outside the entitlement — outside the set of the surface's stamp, the message's `version`, the union when the stamp is neither version, through the sdk's `paintOutside` the hub shares; a catalog whose schema the checker doesn't hold; a tree that fails the sdk's A2UI validator against that schema; a credential input in any `updateComponents`, found by the same `credentialInputIn` the hub uses.
 
@@ -419,7 +419,7 @@ STATE_DIR/
     index.json                      every entry, regenerated after each write
     apps/shop-a/entry.json
     apps/shop-a/preview.json
-    artifacts/sha256-EwxaM_GV…/     artifact.json, index.js, catalog.json, dist/theme.css
+    artifacts/sha256-0AAJt2Hi…/     artifact.json, index.js, catalog.json, dist/theme.css
   publishers.json                   the ledger, owner-only, never served
   models/                           the embedding model's cache
 ```
@@ -492,7 +492,7 @@ What stays: the app id and the catalog ids remain the publisher's in the ledger,
 
 Stellify's four marketplace verbs and `list` are plain functions (`packages/stellify/src/verbs.ts`), each taking the marketplace's address and the token **explicitly** and returning the marketplace's answer or its findings, never throwing on a refusal. Only the command line reads the publisher file (`publisher.ts`): `publisher.json` under `stellify` in the XDG configuration directory, or wherever `STELLIFY_HOME` points, written `0600` through a rename, one publisher per machine, `--replace` to claim another name. The launcher uses the functions with a token of its own and never touches that file.
 
-`preview` (`preview.ts`) is the smoke test moved to the publisher's machine: it fetches the live card and reads it, answering a card that doesn't read or lists no interface the platform speaks with the finding publish gives for it and sending nothing, picks the header the credential rides in from the card's sign-in requirements and schemes as the orchestrator will after install (a bearer `Authorization` header for OAuth, OpenID Connect and `http` bearer; the named header for `apiKey`), gates each handed artifact so a folder that would fail at publish fails here first, fetches from the marketplace the schema of any declared catalog it already holds for this publisher, sends the same request through the same transport with the credential's header, judges it as the marketplace judges a live paint — a refusal for sign-in or an `auth-required` with the credential sent is a finding — and runs `checkPaint`, keeping the settled paint it hands back. The document it writes is the one `publish` hands over, `capturedBy: "publisher"`. For a card that needs no sign-in it still runs, with no credential, so a developer sees the screen the Store will show.
+`preview` (`preview.ts`) is the smoke test moved to the publisher's machine: it fetches the live card and reads it, answering a card that doesn't read or lists no interface the platform speaks with the finding publish gives for it and sending nothing, picks the header the credential rides in from the card's sign-in requirements and schemes as the orchestrator will after install (a bearer `Authorization` header for OAuth, OpenID Connect and a bearer token; the named header for an API key), gates each handed artifact so a folder that would fail at publish fails here first, fetches from the marketplace the schema of any declared catalog it already holds for this publisher, sends the same request through the same transport with the credential's header, judges it as the marketplace judges a live paint — a refusal for sign-in or an auth-required answer with the credential sent is a finding — and runs `checkPaint`, keeping the settled paint it hands back. The document it writes is the one `publish` hands over, `capturedBy: "publisher"`. For a card that needs no sign-in it still runs, with no credential, so a developer sees the screen the Store will show.
 
 ### Publish on the page
 
@@ -519,11 +519,11 @@ The orchestrator's Planner reads the marketplace too, when a question needs some
 | The card can't be fetched at publish | `the card at … could not be fetched: …`, with everything else found, `422` |
 | The card was fetched and doesn't read | `the card at … could not be read: …`, the A2A SDK's own message, alone, `422`; no smoke request sent |
 | The card is signed and none of its signatures passes | `the card at … could not be confirmed: …`, alone, `422`; no smoke request sent |
-| The card lists no interface the platform speaks | `the card lists no interface A2UIVerse speaks: it lists … ; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x`, `422`; nothing sent to the agent, the app never listed |
+| The card lists no interface the platform speaks | `the card lists no interface A2UIVerse speaks: it lists … ; A2UIVerse speaks JSONRPC, HTTP+JSON and GRPC at A2A 0.3 and 1.x`, `422`; nothing sent to the agent, the app never listed |
 | A sign-in app published with no preview | `the card requires sign-in: publish needs the preview `stellify preview` captures with your own credential` |
 | A preview handed for an open app, or at another version | `a preview is only taken for an app whose card requires sign-in …`; `the preview was captured at version "0.1.0", the card is at "0.2.0"` |
 | A build removes something | `catalog artifact 1 (…): components/Video: removed`; the row stays where it was |
-| A build packed for another host interface | `catalog artifact 1 (…): host interface "0.9.1" is not one the platform supplies (it supplies "0.14.0")`, `422`; Stellify 0.5.0 packs for `0.14.0` |
+| A build packed for another host interface | `catalog artifact 1 (…): host interface "0.9.1" is not one the platform supplies (it supplies "0.14.0")`, `422`; Stellify 0.11.0 packs for `0.14.0` |
 | The card changed at a published version | `the card changed, but version "0.1.0" is already published: a changed card carries a version this app id has never published` |
 | The agent never finishes, fails, or paints nothing | `the agent never finished: the stream ended with its task still working`, naming the last state the stream carried, or `… the stream ended before any answer` when it carried nothing; `the agent ended the task as failed: …`; `the answer paints nothing: no createSurface` |
 | The agent paints outside its entitlement | `surface "list" is painted in catalog "…", outside its entitlement`; stamped for the other version, `surface "list" is painted in catalog "…" stamped v0.9, which its card declares for v0.9.1 only` |
@@ -572,7 +572,7 @@ Publishing and installing need no model; the roster's deterministic mode answers
 - **The whole roster, through the marketplace.** `pnpm dev:marketplace` in one terminal, then `pnpm dev:all --publish --tier default,mocks`. Read: the claim, each app's `published … · card 0.1.0 · catalog …` and `installed … · card 0.1.0 · catalog …` at the same build, then `pnpm --filter @a2uiverse/orchestrator registry list` (every source `marketplace`) and `registry updates` (all `up to date`). For a fresh marketplace, stop it and wipe `apps/marketplace/.state` but keep its `models/`; the launcher's publisher file in `scripts/.state/stellify/` can stay — the launch claims the name again.
 - **One app by hand.** With Shop A's agent up and `STELLIFY_HOME` pointed at the launcher's publisher directory (or a name of your own claimed first): in `../a2uiverse-apps/mocks/shop-a/shop-a-catalog`, `pnpm build && pnpm exec stellify pack`, then `pnpm exec stellify publish shop-a http://localhost:12001/.well-known/agent-card.json dist/artifact`; `pnpm exec stellify list`; `curl localhost:10002/apps/shop-a/entry.json` and `…/preview.json`; `pnpm --filter @a2uiverse/marketplace marketplace search "camera prices"`; `registry install shop-a`; `registry updates`.
 - **Each update state.** Change Shop A's `version` in its agent config (`mocks/shop-a/agent/app/config.py`) and restart the agent: `registry updates` reads `ahead of the Store`, `registry install shop-a` is refused in the Store-behind words, `stellify list` prints the notice. Publish at the new version: `card update`. Install by id: `up to date`. A visible change to the catalog's implementation, packed and published at the same version: `newer build` for an app from a local pack, `up to date` with an automatic journal line for one from the marketplace. `stellify unpublish shop-b`: `not published`, and the search without it. Stop the marketplace: every app `unknown`.
-- **The tests.** The marketplace's (`pnpm --filter @a2uiverse/marketplace test`) stand up a scripted A2A agent in-process (`test/fakeAgent.ts`) and drive every route and refusal through it — `marketplace.test.ts` for the publish order and its findings, `store.test.ts` for the boot's verification. The transport and the dial are tested in their own package (`pnpm --filter @a2uiverse/smoke-transport test`) against the same agent, which that package holds for all three suites (`src/testing/fakeAgent.ts`): the server of `@a2a-js/sdk` 0.3.14, an agent on A2A 0.3 on JSON-RPC, HTTP+JSON and gRPC. Beside it the package holds an agent on A2A 1.0 (`src/testing/fakeAgentV1.ts`), the server of `@a2a-js/sdk` 1.x answering both A2A versions on the three bindings, the six paths. The card's reading, its fetch and the interface taken are tested in the card package (`pnpm --filter @a2uiverse/card test`), over cards captured from real servers. The orchestrator's `test/registryMarketplace.test.ts` and `test/updates.test.ts` install by id and compute every state against a fake marketplace (`test/fakeMarketplace.ts`). Stellify's `test/verbs.test.ts` and `test/preview.test.ts` drive the verbs against its own fakes and assert on the wire. The sdk's `evolution.test.ts`, `drift.test.ts`, `retirement.test.ts` and `smoke.test.ts` pin the rules, and `marketplace.contract.test.ts` holds the schemas equal to the JSON in `packages/sdk/contracts/`.
+- **The tests.** The marketplace's (`pnpm --filter @a2uiverse/marketplace test`) stand up scripted A2A agents in-process, one on A2A 0.3 (`test/fakeAgent.ts`) and one on A2A 1.0 (the smoke-transport package's), and drive every route and refusal through them — `marketplace.test.ts` for the publish order and its findings, `store.test.ts` for the boot's verification. The transport and the dial are tested in their own package (`pnpm --filter @a2uiverse/smoke-transport test`) against the same agents, which that package holds for the four suites that use them, the orchestrator's and Stellify's beside these two (`src/testing/fakeAgent.ts`): the server of `@a2a-js/sdk` 0.3.14, an agent on A2A 0.3 on JSON-RPC, HTTP+JSON and gRPC. Beside it the package holds an agent on A2A 1.0 (`src/testing/fakeAgentV1.ts`), the server of `@a2a-js/sdk` 1.x answering both A2A versions on the three bindings, the six paths. The card's reading, its fetch and the interface taken are tested in the card package (`pnpm --filter @a2uiverse/card test`), over cards captured from real servers. The orchestrator's `test/registryMarketplace.test.ts` and `test/updates.test.ts` install by id and compute every state against a fake marketplace (`test/fakeMarketplace.ts`). Stellify's `test/verbs.test.ts` and `test/preview.test.ts` drive the verbs against its own fakes and assert on the wire. The sdk's `evolution.test.ts`, `drift.test.ts`, `retirement.test.ts` and `smoke.test.ts` pin the rules, and `marketplace.contract.test.ts` holds the schemas equal to the JSON in `packages/sdk/contracts/`.
 
 ## Where the code is
 

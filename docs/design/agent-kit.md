@@ -8,7 +8,7 @@ The kit speaks **A2UI and A2A and nothing else**. It knows nothing about A2UIVer
 
 ## Problem it solves
 
-Every app in the apps repo has the same shape: **App = MCP server + Agentic BFF + A2UI catalog**. The agent is the Agentic BFF: an A2A server that takes a question, calls its vendor's MCP server, and answers with UI it generates in A2UI, drawn from its own catalog. There are five vendor apps (GitHub, Gmail, Google Calendar, CircleCI, Linear) and two mock stores.
+Every app built on the kit has the same shape: **App = MCP server + Agentic BFF + A2UI catalog**. The agent is the Agentic BFF: an A2A server that takes a question, calls its vendor's MCP server, and answers with UI it generates in A2UI, drawn from its own catalog. There are five vendor apps (GitHub, Gmail, Google Calendar, CircleCI, Linear) and two mock stores on it. A third mock store, Shop C, is written by hand in Go, with no kit and no catalog of its own.
 
 Without a kit, every one of those agents would carry its own copy of the same hard parts:
 
@@ -107,7 +107,7 @@ The model defaults to `gemini-3.8-flash`, at the thinking tier `low`. The `MODEL
 
 In the model modes, the model answers in text: some prose, and A2UI messages inside `<a2ui-json>` blocks. The kit does three things with that text:
 
-1. **Streams it.** As tokens arrive, a streaming parser pulls A2UI messages out of the partial text as they're written, and what's new of each is sent to the client right away, as an A2A `working` update. The client paints the surface as it's written.
+1. **Streams it.** As tokens arrive, a streaming parser pulls A2UI messages out of the partial text as they're written, and what's new of each is sent to the client right away, as an A2A working status update. The client paints the surface as it's written.
 2. **Checks it at the end.** Once the model stops, the whole answer is validated against the app's own catalog: known components, correct props, a `root`, everything reachable, every binding pointing at real data.
 3. **Retries once.** If the check fails, the model is called again in the same conversation, with the error message as a correction.
 
@@ -146,7 +146,7 @@ A2UI messages are sealed: the protocol's schema allows no extra fields, so an ag
 <a2ui-json>[{"version": "v0.9", "createSurface": {"surfaceId": "assigned-issues", …}}, …]</a2ui-json>
 ```
 
-The kit strips the tag out of the prose and sends it as its own A2A data part, **`paintMeta`**, marked with the MIME type `application/json+a2ui-shell`, just ahead of the `createSurface` it names. A2UIVerse reads the part by its `paintMeta` key, whatever it is marked with, and marks its own `application/a2ui-shell+json`, a string the kit has yet to take up ([`a2ui-on-a2a.md`](a2ui-on-a2a.md)):
+The kit strips the tag out of the prose and sends it as its own A2A data part, **`paintMeta`**, marked with the MIME type `application/a2ui-shell+json`, just ahead of the `createSurface` it names. A2UIVerse reads the part by its `paintMeta` key, whatever it is marked with, and marks its own with the same string ([`a2ui-on-a2a.md`](a2ui-on-a2a.md)):
 
 ```json
 {"paintMeta": {"surfaceId": "assigned-issues", "title": "Assigned Issues"}}
@@ -185,9 +185,9 @@ flowchart TD
 
 **5. The answer is checked.** When the model stops, the kit collects every A2UI message from the full text and validates them. A turn that creates a surface is checked as a whole surface; a turn that only updates a surface the client already has (a detail opened in place, a list re-sorted) is checked as an update. Then the app's **question policy** runs: Linear's requires that a surface declared a question carries at least one action, so the user can actually answer it.
 
-**6. Done, retried, or apologized.** A valid answer ends the task as `completed`. An invalid one sends the model the error and tries once more. If that fails too, the kit deletes every surface the attempts created, so the client isn't left with half a UI, and ends with a plain-text apology.
+**6. Done, retried, or apologized.** A valid answer ends the task as completed. An invalid one sends the model the error and tries once more. If that fails too, the kit deletes every surface the attempts created, so the client isn't left with half a UI, and ends with a plain-text apology.
 
-**In `deterministic` mode** there's no model: the executor hands the question to the app's canned-response pair and sends the whole answer in one `completed` update. **In `stub` mode** everything above is the same except step 3's tools, which read fixtures instead of calling Linear.
+**In `deterministic` mode** there's no model: the executor hands the question to the app's canned-response pair and sends the whole answer in one completed update. **In `stub` mode** everything above is the same except step 3's tools, which read fixtures instead of calling Linear.
 
 ## Inside the machinery
 
@@ -365,18 +365,18 @@ Beside it, `tool_shaping.py` gives apps a walker for annotating results with not
 
 ### Cancel, and a task store that holds the line
 
-When a client cancels (A2A's `tasks/cancel`), the SDK calls the executor's `cancel`, which answers with a bare `canceled` status, and then cancels the running `execute`. The `CancelledError` lands wherever the attempt was waiting, usually on the model stream. The attempt's `finally` closes the stream, which stops ADK's run, and no further attempt starts. An MCP call already sent is abandoned: the server finishes it, and the reply goes nowhere.
+When a client cancels (A2A's Cancel Task), the SDK calls the executor's `cancel`, which answers with a bare canceled status, and then cancels the running `execute`. The `CancelledError` lands wherever the attempt was waiting, usually on the model stream. The attempt's `finally` closes the stream, which stops ADK's run, and no further attempt starts. An MCP call already sent is abandoned: the server finishes it, and the reply goes nowhere.
 
-A2A says a task that reached a terminal state (`completed`, `canceled`, `rejected`, `failed`) can't be restarted. Nothing in the A2A SDK's in-memory store holds that line: after a client closes its stream the SDK can keep reading the task in the background while the cancel reads it again, and a `working` update still queued could land after `canceled`, leaving the task reading `working`. On its 0.3 line the store also handed every reader the same object to update in place; the 1.x store keeps and hands out copies. The kit's `TerminalGuardedTaskStore` is the SDK's in-memory store that **refuses to overwrite** a task that already ended.
+A2A says a task that reached a terminal state (completed, canceled, rejected, failed) can't be restarted. Nothing in the A2A SDK's in-memory store holds that line: after a client closes its stream the SDK can keep reading the task in the background while the cancel reads it again, and a working update still queued could land after the canceled one, leaving the task reading working. On its 0.3 line the store also handed every reader the same object to update in place; the 1.x store keeps and hands out copies. The kit's `TerminalGuardedTaskStore` is the SDK's in-memory store that **refuses to overwrite** a task that already ended.
 
 ### Sign-in: the agent's own front door
 
 Sign-in is explained end to end in [`authority.md`](authority.md). The kit's part in brief: an app that needs its user signed in puts a `SignIn` on its config, its scopes in its customer's words, the scopes the first sign-in asks, which actions and tools need which scopes, its made-up accounts, and its live **upstream**, the vendor's own sign-in. The agent then becomes its own sign-in front door:
 
-- the card declares one `oauth2` scheme, `signIn`, with its `scopes` map and no `pkceRequired`, and `securityRequirements` asks for the first sign-in's scopes;
+- the card declares one OAuth scheme, `signIn`, with its `scopes` map and no `pkceRequired`, and `securityRequirements` asks for the first sign-in's scopes;
 - `sign_in_server.py` serves an OAuth authorization server beside A2A, on Authlib: metadata, `/oauth/authorize` with S256 PKCE, a token endpoint whose refresh tokens rotate, registration by a client ID metadata document or dynamically, revocation, and an ID token signed ES256 with the account's `sub` and display claims;
 - an A2A call on any of the six paths without a live token the agent issued is refused for sign-in, and inside a request `current_account()` is the signed-in account ([One check over every call](#one-check-over-every-call));
-- an action or tool needing a scope the token lacks raises `AuthRequired`, which ends the run in A2A's `auth-required` naming the missing scope keys, in A2A 1.0's requirement shape, `{"securityRequirements": [{"schemes": {"signIn": {"list": [...]}}}]}`, to a caller on either A2A version. The answer ends there, on all six paths.
+- an action or tool needing a scope the token lacks raises `AuthRequired`, which ends the run in A2A's `TASK_STATE_AUTH_REQUIRED`, `auth-required` to a caller on A2A 0.3, naming the missing scope keys, in A2A 1.0's requirement shape, `{"securityRequirements": [{"schemes": {"signIn": {"list": [...]}}}]}`, to a caller on either A2A version. The answer ends there, on all six paths.
 
 The account comes from the upstream. In deterministic and stub mode that's a chooser over the made-up accounts, and `fake_account=<id>` on the sign-in address skips it, for recordings and tests. In live mode it's `VendorOAuth`, the vendor's OAuth: the agent keeps the vendor's token, refreshes it, and hands each MCP connection its account's token; the client only ever holds the token the agent issued. An app signed in with a key uses `ApiKeySignIn` instead. Each agent keeps its accounts, tokens and ID-token signing key in an owner-only store, `<app>/agent/.state/sign-in.json`, or under `--state-dir`. The kit's own sign-in offers the authorization-code flow alone; the device-code flow A2UIVerse signs in by is the hand-written A2A 1.0 agent's.
 

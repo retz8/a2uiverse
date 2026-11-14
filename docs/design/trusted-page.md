@@ -195,7 +195,7 @@ Shop B's view in the App Library says "Its publisher took Shop B out of the Stor
 | `GET /marketplace/artifacts/<id>/<path>` | A preview's build files: from the registry when it holds them, else from the marketplace, checked first |
 | `GET /marketplace/publisher.json` | Who is signed in to Publish, the held token asked about each time |
 | `GET /marketplace/listings.json?publisher=<name>` | That publisher's apps, each one's live card read again first |
-| `GET /registry/apps.json`, `GET /registry/updates.json` | The installed apps, each saying whether this run reached its card and whether that live card lists no interface the platform speaks; the update check, run and answered |
+| `GET /registry/apps.json`, `GET /registry/updates.json` | The installed apps, each saying whether this run reached its card, whether that live card lists no interface the platform speaks, and whether it was last fetched signed and refused; the update check, run and answered |
 | `GET /auth/accounts.json` | Every installed app's accounts |
 
 `installed` is the registry's at the moment of the read. `update` is the state the orchestrator last computed, never a check run for this read. A read the marketplace can't answer says why: `503` unreached, `404` not published, `502` an answer that doesn't read. An index entry or a search result that doesn't read is left out and logged, the rest kept.
@@ -221,6 +221,7 @@ A sample needs a `MessageProcessor` over the catalogs it paints in. `SampleFrame
 | The Store is behind the app | "Shop B can't be installed yet." "Its publisher has changed the app, and the Store hasn't caught up. Try again later." |
 | The app unreached | "Shop B couldn't be reached," "so nothing was installed." |
 | The app's card listing no interface the platform speaks | "Shop B can't be installed." "It connects in a way A2UIVerse can't use, so nothing was installed.", with nothing to press; for an update, "Shop B can't be updated." "It connects in a way A2UIVerse can't use, so nothing changed." |
+| The app's card signed, with no signature that passes | "Shop B can't be installed." "Its details couldn't be confirmed, so nothing was installed.", with nothing to press; for an update, "Shop B can't be updated." "Its details couldn't be confirmed, so nothing changed." |
 | The checks failed | "Shop B can't be installed." "Its files didn't pass the checks on this computer, so nothing changed." |
 | The Store unreached | "The Store can't be reached right now," |
 | The app no longer in the Store | "Shop B isn't in the Store anymore," "so nothing was installed.", with nothing to press |
@@ -298,7 +299,7 @@ The App Library runs the update check each time it's entered, on Check again, an
 | no longer published | "No longer in the Store" | none |
 | the Store unreached | "Couldn't check for updates" | Check again |
 
-An app installed from a local copy that the Store doesn't list reads "Installed from your computer". An app no check has seen since it was installed reads "Not checked yet". An app whose live card lists no interface the platform speaks reads "Connects in a way A2UIVerse can't use" in place of its update state, with no press on its row, and its view carries the notice "Shop B now connects in a way A2UIVerse can't use." with Check again. In the Store, an installed app's listing shows its state in place of Install: ✓ Installed, or the update waiting.
+An app installed from a local copy that the Store doesn't list reads "Installed from your computer". An app no check has seen since it was installed reads "Not checked yet". An app whose live card lists no interface the platform speaks reads "Connects in a way A2UIVerse can't use" in place of its update state, with no press on its row, and its view carries the notice "Shop B now connects in a way A2UIVerse can't use." with Check again. An app whose live card was last fetched signed and refused reads "Details couldn't be confirmed" the same way, judged ahead of it, and its view carries the notice "Shop B's details couldn't be confirmed, so it isn't shown." In the Store, an installed app's listing shows its state in place of Install: ✓ Installed, or the update waiting.
 
 ### Reads and writes bounded
 

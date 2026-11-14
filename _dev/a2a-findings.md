@@ -21,6 +21,8 @@ which a2ui-a2a 0.1.0's `try_activate_a2ui_extension` calls.
 request never names it back, so a streaming client cannot learn from the response which
 extension the agent answered under.
 
+**Reported:** not filed. Nothing upstream reports it for `a2a-python`, as of 2026-11-15. The same defect in `@a2a-js/sdk` was `a2aproject/a2a-js` issue [#710](https://github.com/a2aproject/a2a-js/issues/710) (closed), fixed by `a2aproject/a2a-js` pull request [#762](https://github.com/a2aproject/a2a-js/pull/762) (merged 2026-10-14).
+
 ### Issue
 
 A2A 0.3's extensions topic says the agent names what it activated on the response
@@ -375,6 +377,8 @@ No issue or PR across `a2aproject` names the disagreement, searched 2026-11-05.
 
 **Severity:** spec conformance. The A2A 1.0 specification's `AgentCard.supported_interfaces` is an "Ordered list of supported interfaces. The first entry is preferred." (`specification/a2a.proto` at A2A `v1.0.0`). An agent that lists its A2A 0.3 interface first is dialed on 1.0.
 
+**Reported:** not filed. `a2aproject/a2a-js` issue [#734](https://github.com/a2aproject/a2a-js/issues/734) (closed) and `a2aproject/a2a-js` pull request [#764](https://github.com/a2aproject/a2a-js/pull/764) (merged 2026-10-08) cover part of it: of several A2A 1.0 interfaces on one binding the first is kept. Both keep the choice of a 1.0 interface over a 0.3 one.
+
 ### Issue
 
 An agent that answers both A2A versions over JSON-RPC states its preference by the order of its interfaces. The client ignores that order inside one binding: with `JSONRPC` at 0.3 listed before `JSONRPC` at 1.0, it dials the 1.0 interface. Of several 1.0 interfaces on one binding it takes the last.
@@ -435,6 +439,8 @@ Issue [#734](https://github.com/a2aproject/a2a-js/issues/734) reports that of se
 **Component:** `@a2a-js/sdk` 1.3.0, `src/server/express/agent_card_handler.ts`, `agentCardHandler`: the body is `JSON.stringify(agentCard)` of the in-memory `AgentCard`. Read back by `AgentCard.fromJSON` (`src/types/protojson.ts`).
 
 **Severity:** interoperability. A server built on the SDK whose card declares a sign-in scheme serves a card no A2A 1.0 client reads the scheme from, the SDK's own client among them.
+
+**Reported:** not filed. `a2aproject/a2a-js` issue [#663](https://github.com/a2aproject/a2a-js/issues/663) (open) names the served form in one sentence, and `a2aproject/a2a-js` pull request [#664](https://github.com/a2aproject/a2a-js/pull/664) (open) would let the SDK's own reader read it. Neither changes the card handler.
 
 ### Issue
 
@@ -499,6 +505,8 @@ Issue [#663](https://github.com/a2aproject/a2a-js/issues/663) reports that canon
 
 **Severity:** interoperability. A client that fetches a card without naming an A2A version and reads it with the SDK's functions sees an agent that requires sign-in as requiring none.
 
+**Reported:** not filed. Nothing upstream reports it, as of 2026-11-15.
+
 ### Issue
 
 With its A2A 0.3 layer on, the card handler serves a caller that names no A2A version a card in 0.3's shape with 1.0's `supportedInterfaces` embedded beside it: `url`, `preferredTransport`, 0.3's `security` and `securitySchemes`, and `supportedInterfaces`. `isLegacyAgentCard` returns false for any card with a non-empty `supportedInterfaces`, so such a card goes to `AgentCard.fromJSON`, which reads `securityRequirements` and not `security`, and reads 0.3's schemes as empty. The read card has no requirement.
@@ -536,6 +544,8 @@ Pull request [#504](https://github.com/a2aproject/a2a-js/pull/504) ("feat: add v
 
 **Severity:** robustness. An interface at a version the client does not speak is dialed as A2A 1.0.
 
+**Reported:** not filed. Nothing upstream reports it, as of 2026-11-15.
+
 ### Issue
 
 The A2A 1.0 specification's `AgentInterface.protocol_version` names "The version of the A2A protocol this interface exposes." The client does not compare it with the versions it implements: an interface at `2.0`, or at `0.2`, is sent A2A 1.0's `SendMessage` with `A2A-Version: 1.0`.
@@ -567,6 +577,8 @@ None found, searched in `a2aproject/a2a-js` on 2026-11-13.
 **Component:** `@a2a-js/sdk` 1.3.0, `src/client/card-resolver.ts`, `DefaultAgentCardResolver.normalizeAgentCard` and its `isProtoAgentCard`; reached from `ClientFactory.createFromAgentCard` in `src/client/factory.ts`.
 
 **Severity:** correctness. A caller that hands `createFromAgentCard` a card it already holds in memory gets a client whose card has empty sign-in schemes.
+
+**Reported:** not filed. `a2aproject/a2a-js` issue [#663](https://github.com/a2aproject/a2a-js/issues/663) (open) reports the same cause, `AgentCard.fromJSON` given an in-memory card, for the signature check, and `a2aproject/a2a-js` pull request [#664](https://github.com/a2aproject/a2a-js/pull/664) (open) would fix it there. Neither names the client's path.
 
 ### Issue
 
@@ -617,6 +629,8 @@ Pull request [#344](https://github.com/a2aproject/a2a-js/pull/344) ("fix: suppor
 
 **Severity:** specification conflict. A client that waits for a stream to close before it treats an answer as ended waits as long as the agent keeps the stream, which section 7.6.1 asks the agent to do.
 
+**Reported:** not filed. `a2aproject/A2A` pull request [#2270](https://github.com/a2aproject/A2A/pull/2270) (merged 2026-10-13 into the `dev-1.1` branch) covers part of it: it takes "or interrupted" out of section 11.7 on that branch. `main` and section 7.6.1 stand as the finding quotes them.
+
 ### Issue
 
 Three sentences describe when a stream closes:
@@ -657,6 +671,8 @@ No issue or pull request on `a2aproject/A2A` reports the three sentences disagre
 **Component:** `@a2a-js/sdk` 1.3.0, its A2A 0.3 layer on HTTP+JSON and gRPC (`LegacyRestTransport` and `LegacyGrpcTransport`, `dist/client/transports/grpc/index.js` and `dist/client/index.js`). Its codec for A2A 0.3's `Part` holds one field, `part`, the oneof of `text`, `file` and `data`, as `specification/grpc/a2a.proto` at A2A `v0.3.0` defines it. The field `google.protobuf.Struct metadata = 4` was added to that `Part` on 2025-09-03 (A2A commit `a8b45dcc`, pull request 1004, fixing issue 1005), after `v0.3.0`. Python's `a2a-sdk` carries it on its 0.3 `Part`, at 0.3.26 and in the 0.3 layer of 1.3.0.
 
 **Severity:** interoperability. On these two paths a part's `metadata` never reaches the agent and never reaches the caller, while JSON-RPC carries it both ways. A mark in `metadata.mimeType`, which A2UI's extension specification requires on an A2UI part, does not arrive, and neither does the flag the 0.3 layers set when they wrap a list in `data`.
+
+**Reported:** not filed. `a2aproject/A2A` issue [#1005](https://github.com/a2aproject/A2A/issues/1005) (closed) and `a2aproject/A2A` pull request [#1004](https://github.com/a2aproject/A2A/pull/1004) (merged 2025-09-02) cover part of it: they added the part's `metadata` field to the specification's proto. Nothing reports that the 0.3 layer of `@a2a-js/sdk` reads and writes with the proto as it stood before that change.
 
 ### Issue
 
@@ -700,6 +716,8 @@ No issue or pull request on `a2aproject/a2a-js` reports it, searched on 2026-11-
 
 **Severity:** specification gap. A client and an agent on gRPC agree on where a credential rides only by convention, and for an `apiKey` scheme no convention is written down.
 
+**Reported:** not filed. Nothing upstream reports it, as of 2026-11-15.
+
 ### Issue
 
 Section 7.3 has a client send its credentials "in protocol-appropriate headers or metadata for every A2A request", and names no header or key. Section 10.2 has service parameters ride as gRPC metadata keys, "automatically converted to lowercase by gRPC". A credential is not a service parameter, and no sentence says it rides the same way.
@@ -723,6 +741,8 @@ No issue or pull request on `a2aproject/A2A` reports it, searched on 2026-11-14.
 **Component:** `a2aproject/A2A`, `docs/specification.md`: the example card's gRPC interface `https://georoute-agent.example.com/a2a/grpc`, at tag `v1.0.0` in `supportedInterfaces` and at tag `v0.3.0` in `additionalInterfaces`. `@a2a-js/sdk` 1.3.0's `GrpcTransportFactory`, which hands an interface's URL to `@grpc/grpc-js` as the target, untouched.
 
 **Severity:** interoperability. A card written as the specification writes one cannot be dialed over gRPC by the A2A SDK, and the specification says nothing of how a gRPC interface's URL is spelled.
+
+**Reported:** not filed. `a2aproject/A2A` issue [#1388](https://github.com/a2aproject/A2A/issues/1388) (closed) and `a2aproject/A2A` pull request [#1997](https://github.com/a2aproject/A2A/pull/1997) (merged 2026-07-21) cover part of it: they corrected the gRPC URL in the proto's comment, on `main` alone. The example card in the specification's text and the A2A SDK's dial stand as the finding has them.
 
 ### Issue
 
@@ -749,6 +769,8 @@ No issue or pull request on `a2aproject/A2A` or `a2aproject/a2a-js` reports it, 
 **Component:** `@a2a-js/sdk` 1.3.0, `src/compat/v0_3/translate/agent_card.ts` at tag `v1.3.0`, reached through `parseLegacyAgentCard` in `@a2a-js/sdk/compat/v0_3/client`: `toCoreAgentCard` gives the card's own URL `compat.protocolVersion || PROTOCOL_VERSION_0_3` (line 169), and `toCoreAgentInterface` gives every entry of `additionalInterfaces` the fixed `PROTOCOL_VERSION_0_3`, `"0.3"` (line 48).
 
 **Severity:** consistency. One card that names one A2A version reads as two. The client's choice of transport is unharmed, since the SDK counts every version from 0.3 up to 1.0 as A2A 0.3, but anything that records or compares an interface by its version sees the agent on `0.3.0` at one interface and on `0.3` at the next.
+
+**Reported:** not filed. Nothing upstream reports it, as of 2026-11-15.
 
 ### Issue
 
@@ -785,6 +807,8 @@ No issue or pull request on `a2aproject/a2a-js` reports it, searched on 2026-11-
 **Component:** `@a2a-js/sdk` 1.3.0, `src/compat/v0_3/translate/security.ts` at tag `v1.3.0`: `toCoreOAuthFlows` (line 195) takes `authorizationCode`, `clientCredentials`, `implicit` or `password` and otherwise throws `OAuthFlows must declare at least one flow` (line 232). Reached for every scheme from `toCoreAgentCard` (`src/compat/v0_3/translate/agent_card.ts`, line 188) through `parseLegacyAgentCard` in `@a2a-js/sdk/compat/v0_3/client`.
 
 **Severity:** interoperability. An agent on A2A 0.3 that signs in by the device-code flow, which A2A 1.0 adds, cannot say so on its card: the SDK refuses the whole card, every other scheme and skill with it, and a client on the SDK cannot reach the agent at all.
+
+**Reported:** not filed. Nothing upstream reports it, as of 2026-11-15.
 
 ### Issue
 
@@ -828,6 +852,8 @@ No issue or pull request on `a2aproject/a2a-js` reports it, searched on 2026-11-
 
 **Severity:** spec conformance. A card valid under A2A 0.3's schema is refused whole, for one scheme the client may not need: an agent with a usable `apiKey` scheme beside it is unreachable too.
 
+**Reported:** not filed. Nothing upstream reports it, as of 2026-11-15.
+
 ### Issue
 
 A2A 0.3's `OAuth2SecurityScheme` requires `flows` and `type`, and its `OAuthFlows` requires none of its four properties (`specification/json/a2a.json` at A2A `v0.3.0`), so `flows: {}`, or `flows` holding a flow 0.3 does not name, is a valid 0.3 scheme. `toCoreOAuthFlows` throws for it, because the 1.0 proto's `flow` oneof has no empty case, and `toCoreAgentCard` lets the throw end the reading of the whole card. The SDK's own 1.0 → 0.3 writer produces such a scheme: `toCompatOAuthFlows` in the same file returns an empty result for a 1.0 scheme whose only flow is `deviceCode`, as its comment says.
@@ -853,6 +879,8 @@ No issue or pull request on `a2aproject/a2a-js` reports it, searched on 2026-11-
 **Component:** `@a2a-js/sdk` 1.3.0, `src/signature.ts` at tag `v1.3.0`: `verifyAgentCardSignature` (line 80) decodes each signature's protected header (line 97), asks the caller's `retrievePublicKey(kid, jku)` for a key, and verifies with `jose.flattenedVerify(jws, publicKey)` (line 110), passing no `algorithms` option.
 
 **Severity:** security hardening. The algorithm a card's signature is checked under is whatever its own protected header names, as long as the key the callback returns fits it. A callback that resolves keys from a key set holding a symmetric key, or one that returns the wrong kind of key for a `kid`, lets a shared-secret signature pass. RFC 8725 section 3.1: "Libraries MUST enable the caller to specify a supported set of algorithms and MUST NOT use any other algorithms when performing cryptographic operations."
+
+**Reported:** not filed. Nothing upstream reports the missing list of algorithms, as of 2026-11-15. `a2aproject/a2a-js` issue [#627](https://github.com/a2aproject/a2a-js/issues/627) (open) and `a2aproject/A2A` issue [#2122](https://github.com/a2aproject/A2A/issues/2122) (open) raise the finding's remark on `typ` alone.
 
 ### Issue
 
@@ -906,6 +934,8 @@ No issue or pull request on `a2aproject/a2a-js` reports it, searched on 2026-11-
 **Component:** `a2a-sdk` 1.3.0, `src/a2a/client/card_resolver.py` at tag `v1.3.0`: `parse_agent_card` (line 21) runs `_handle_security_compatibility` (line 91), which for every scheme holding a 0.3 `type` pops it (line 119) and wraps the whole scheme object, the 1.0 copy's key with it, under the 1.0 key that `type` maps to (lines 125 to 128). `ParseDict(..., ignore_unknown_fields=True)` (line 32) then drops the nested 1.0 copy. `A2ACardResolver.get_agent_card` (line 151) hands that reading to the caller's `signature_verifier` (lines 201 and 202), and `create_signature_verifier` (`src/a2a/utils/signing.py`, line 103) canonicalizes the reading with `_canonicalize_agent_card` (line 208). The served card comes from `agent_card_to_dict` (`src/a2a/server/request_handlers/response_helpers.py`, line 88), which merges `to_compat_agent_card`'s output into the 1.0 card key by key (lines 105 to 117), so each scheme holds both shapes in one object.
 
 **Severity:** correctness. A card signed by the SDK's signer and served by the SDK's card route fails the SDK's own client when a scheme holds something A2A 0.3 cannot say, and the client reads that scheme without it even when no signature is checked. Where the check passes, it vouches for the 0.3 copy the Python client read, not for the signed 1.0 copy a reader of A2A 1.0's shape reads: the 1.0 copy can be changed and the Python verifier still passes, while `@a2a-js/sdk` 1.3.0 refuses the same card.
+
+**Reported:** not filed. Nothing upstream reports it, as of 2026-11-15.
 
 ### Issue
 
@@ -1050,6 +1080,8 @@ No issue or pull request on `a2aproject/a2a-python` reports it, searched on 2026
 
 **Severity:** interoperability. A 1.3.0 agent that signs its card and offers it on A2A 0.3 beside 1.0 hands a 0.3 client a signature that cannot pass: a client that checks signatures refuses the card, and one that does not holds a signature that vouches for nothing it was given.
 
+**Reported:** not filed. Nothing upstream reports it, as of 2026-11-15.
+
 ### Issue
 
 The signer signs `MessageToDict` of the 1.0 card (`_canonicalize_agent_card`, `src/a2a/utils/signing.py`, line 208). `to_compat_agent_card` writes a different card: 0.3's field names and shapes, with only the interfaces at a 0.3 version, since A2A 0.3's card cannot name an interface's version. It keeps the 1.0 form's signatures.
@@ -1188,6 +1220,8 @@ No issue or pull request reports it, searched on 2026-11-14: on `a2aproject/a2a-
 
 **Severity:** interoperability. A card signed by a 0.3.26 agent passes only a verifier that repeats 0.3.26's own serialization. A verifier that follows RFC 8785, which A2A 1.0 requires and the SDK's docstring names, fails it whenever the card holds a character outside ASCII or a number Python writes differently from ECMAScript, and fails every card when it canonicalizes the card as served.
 
+**Reported:** not filed. `a2aproject/a2a-python` issue [#1174](https://github.com/a2aproject/a2a-python/issues/1174) (closed) and `a2aproject/a2a-python` pull request [#1193](https://github.com/a2aproject/a2a-python/pull/1193) (merged 2026-08-25) cover part of it: the same three departures from RFC 8785, reported and fixed on the 1.x line. Nothing reports the 0.3 line.
+
 ### Issue
 
 A2A 0.3 names no canonical form. Its `AgentCardSignature` "represents a JWS signature of an AgentCard" and "follows the JSON format of an RFC 7515 JSON Web Signature (JWS)" (`specification/json/a2a.json` at A2A `v0.3.0`), and `docs/specification.md` at `v0.3.0` says no more (section 5.5.6). A2A 1.0 section 8.4.1 requires RFC 8785, with REQUIRED fields kept even at their default value.
@@ -1288,6 +1322,8 @@ Issue 1174 on `a2aproject/a2a-python` (closed on 2026-08-25) reports the same th
 
 **Severity:** security, specification. A client that follows section 8.4.3 as written can verify a forged card: whoever serves a card can sign it with a fresh key and name a key set holding that key.
 
+**Reported:** not filed. `a2aproject/A2A` issue [#2096](https://github.com/a2aproject/A2A/issues/2096) (open) reports the same thing, and `a2aproject/A2A` pull request [#2099](https://github.com/a2aproject/A2A/pull/2099) (open) proposes a fix.
+
 ### Issue
 
 Section 8.4.2 lists `jku`, "URL to JSON Web Key Set (JWKS) containing the public key", among the protected header's parameters, all chosen by the signer. Section 8.4.3 has a client "Retrieve the public key using the `kid` and `jku` (or from a trusted key store)", and its security considerations say "Public keys **SHOULD** be retrieved over secure channels (HTTPS)", "Clients **MAY** maintain a trusted key store for known agent providers" and "Expired or revoked keys **MUST NOT** be used for verification". Nothing says which keys a client may trust for a given agent: where a key set may be, or how a key comes to be the agent's. Read literally, any key set the signature names is acceptable, so a pass shows only that the card matches a key its signer chose.
@@ -1320,6 +1356,8 @@ Issue 2096 on `a2aproject/A2A`, "spec(§8.4.3): Agent Card signature verificatio
 **Component:** `@a2a-js/sdk` 1.3.0. `Client.getAgentCard` (`src/client/multitransport-client.ts`) returns what the transport's `getExtendedAgentCard` returns, and each transport reads the answer before returning it: `AgentCard.fromJSON(rpcResponse.result)` in `src/client/transports/json_rpc_transport.ts`, `_sendRequest(..., AgentCard)` in `src/client/transports/rest_transport.ts`, the decoded message in `src/client/transports/grpc/grpc_transport.ts`, and `toCoreAgentCard(...)` in each of the three A2A 0.3 transports under `src/compat/v0_3/client/transports/`.
 
 **Severity:** interoperability, security. A signed extended card that carries a sign-in scheme cannot be verified from what the client hands back, by the SDK's own verifier included, and a caller that reads cards its own way cannot have the card as the agent wrote it.
+
+**Reported:** not filed. `a2aproject/a2a-js` issue [#663](https://github.com/a2aproject/a2a-js/issues/663) (open) and `a2aproject/a2a-js` pull request [#664](https://github.com/a2aproject/a2a-js/pull/664) (open) cover part of it: the signature check failing on a card the SDK has read. Nothing asks for the answer as served.
 
 ### Issue
 
@@ -1392,6 +1430,8 @@ Issue 663 on `a2aproject/a2a-js` (open) reports `canonicalizeAgentCard` dropping
 
 **Severity:** interoperability. The JavaScript client throws on the Python server's extended card once the card names a sign-in scheme, and a reader of A2A 0.3's JSON-schema form refuses the JavaScript server's.
 
+**Reported:** not filed. `a2aproject/a2a-python` issue [#1418](https://github.com/a2aproject/a2a-python/issues/1418) (closed) and `a2aproject/a2a-python` pull request [#1420](https://github.com/a2aproject/a2a-python/pull/1420) (merged 2026-11-09) cover part of it: the Python client now reads `GET /v1/card` in A2A 0.3's JSON-schema form. Nothing reports the server and the client of `@a2a-js/sdk`.
+
 ### Issue
 
 A2A 0.3's section 3.2.3 has an HTTP+JSON transport "use JSON objects that are structurally equivalent to the core A2A data structures", and its section 7.10 answers `GET /v1/card` with an `AgentCard`. The core `AgentCard` of A2A 0.3 is the one its JSON schema defines, where a sign-in scheme is `{"type": "apiKey", "in": ..., "name": ...}`. The JavaScript server writes the JSON form of A2A 0.3's protobuf instead, where it is `{"apiKeySecurityScheme": {...}}` and an empty list is left out (a skill's `tags`, which the schema requires), and the JavaScript client reads only that form.
@@ -1461,6 +1501,8 @@ Issue 1418 on `a2aproject/a2a-python`, "Compat REST client drops security from t
 
 **Severity:** spec conformance. A client of an agent on the 0.3 line that asks over gRPC never gets the extended card the same agent serves over JSON-RPC.
 
+**Reported:** not filed. Nothing upstream reports it, as of 2026-11-15.
+
 ### Issue
 
 A2A 0.3's section 7.10 maps `agent/getAuthenticatedExtendedCard` to the gRPC method `GetAgentCard` and the HTTP+JSON path `GET /v1/card`, the same operation on each transport, and its section 3.4 asks an agent serving several transports for "functionally equivalent" methods. `GrpcHandler` takes only the public card and a modifier of it, so on gRPC the operation answers the public card.
@@ -1489,6 +1531,8 @@ None found, searched on `a2aproject/a2a-python` on 2026-11-14 ("GetAgentCard grp
 **Component:** `@a2a-js/sdk` 1.3.0, `src/client/transports/json_rpc_transport.ts`: an HTTP answer that is not a success is thrown as `new Error("HTTP error for <method>! Status: ...")`, the status only in the message.
 
 **Severity:** interoperability. A caller cannot tell a refusal for sign-in from any other failure without reading the message's words.
+
+**Reported:** not filed. `a2aproject/a2a-js` issue [#317](https://github.com/a2aproject/a2a-js/issues/317) (closed) reports the same thing. Its fix, `a2aproject/a2a-js` pull request [#587](https://github.com/a2aproject/a2a-js/pull/587) (merged 2026-07-22), gave the HTTP+JSON transport's errors a status and left the JSON-RPC transport's without one.
 
 ### Issue
 
@@ -1545,6 +1589,8 @@ Issue 317 on `a2aproject/a2a-js`, "Passthrough http status code in error", is cl
 
 **Severity:** security. An agent that configures an extended card and no modifier serves it to any caller, signed in or not.
 
+**Reported:** not filed. Nothing upstream reports it, as of 2026-11-15.
+
 ### Issue
 
 Section 13.3 of the A2A 1.0 specification says the Get Extended Agent Card operation "MUST require authentication", and section 3.1.11 that "The client MUST authenticate the request". The handler leaves the check to the agent's modifier and serves the configured card when there is none. The `@a2a-js/sdk` 1.3.0 server, given a card rather than a function, serves it only when `context.user?.isAuthenticated` and the public card otherwise (`src/server/request_handler/default_request_handler.ts`).
@@ -1571,6 +1617,8 @@ Issue 657 on `a2aproject/a2a-python` (open) asks to pass the call context to the
 
 **Severity:** spec conformance. A client that reads gRPC statuses by section 5.4 of the A2A 1.0 specification takes these answers for a failed precondition.
 
+**Reported:** not filed. `a2aproject/a2a-python` issue [#1166](https://github.com/a2aproject/a2a-python/issues/1166) (closed as not planned) reports the same thing for `a2a-python`. Section 5.4 of the specification maps an operation not supported to `FAILED_PRECONDITION` from tag `v1.0.1` on, changed by `a2aproject/A2A` pull request [#1627](https://github.com/a2aproject/A2A/pull/1627) (merged 2026-04-14), where tag `v1.0.0` has `UNIMPLEMENTED`.
+
 ### Issue
 
 Section 5.4 of the A2A 1.0 specification maps `UnsupportedOperationError` and `VersionNotSupportedError` to `UNIMPLEMENTED`, and `ExtendedAgentCardNotConfiguredError` to `FAILED_PRECONDITION`. Both servers answer `FAILED_PRECONDITION` for all three, so the status alone does not tell an agent that serves no extended card from one that has not configured it.
@@ -1594,6 +1642,8 @@ Issue 1166 on `a2aproject/a2a-python`, "grpc_handler maps 3 A2A errors to FAILED
 **Component:** `a2a-go` v2.8.0. A call interceptor's `a2a.ErrUnauthenticated` is written on JSON-RPC as an error object under the code -31401 (`internal/jsonrpc/jsonrpc.go`) in an HTTP 200 answer (`a2asrv/jsonrpc.go`). On HTTP+JSON the same error is HTTP 401 (`internal/rest/rest.go`), and on gRPC `UNAUTHENTICATED`.
 
 **Severity:** interoperability. A client that reads HTTP 401 on JSON-RPC as the refusal for sign-in takes the answer for an ordinary failure, so it neither signs in nor refreshes.
+
+**Reported:** not filed. `a2aproject/a2a-go` issue [#175](https://github.com/a2aproject/a2a-go/issues/175) (closed) covers part of it: it records the choice of the code -31401 for a JSON-RPC call refused as unauthenticated. Nothing reports the HTTP 200 it is answered with.
 
 ### Issue
 
@@ -1622,6 +1672,8 @@ Nothing reports it on `a2aproject/a2a-go`, searched on 2026-11-14 ("31401", "una
 **Component:** `a2a-go` v2.8.0. `OAuth2SecurityScheme.MarshalJSON` in `a2a/auth.go` takes the five flow types by value and fails on a pointer, and its `UnmarshalJSON` sets a value. `toProtoOAuthFlows` in `a2apb/v1/pbconv/to_proto.go` takes them by pointer and fails on a value, and `fromProtoOAuthFlows` in `from_proto.go` returns a pointer.
 
 **Severity:** bug. A card whose sign-in is OAuth cannot be served both as JSON and over gRPC: an agent serving its card at the well-known address cannot serve the same card as its extended card on gRPC, and a client cannot write as JSON a card it read over gRPC.
+
+**Reported:** not filed. `a2aproject/a2a-go` pull request [#541](https://github.com/a2aproject/a2a-go/pull/541) (open) reports the same thing and fixes it.
 
 ### Issue
 
@@ -1653,6 +1705,8 @@ Nothing reports it on `a2aproject/a2a-go`, searched on 2026-11-14 ("OAuthFlows",
 **Component:** `a2a-go` v2.8.0, `canonicalizeJSON` in `a2acrypto/canonical.go`: RFC 8785 over the card's JSON as given, `signatures` dropped. `@a2a-js/sdk` 1.3.0, `canonicalizeAgentCard`: the card through its protobuf model and back, every empty string, list and object removed, then RFC 8785.
 
 **Severity:** interoperability. A signed card holding an empty value passes the verifier of the SDK that signed it and fails the other's.
+
+**Reported:** not filed. `a2aproject/a2a-go` issue [#445](https://github.com/a2aproject/a2a-go/issues/445) (open) reports the same thing. `a2aproject/a2a-js` issue [#627](https://github.com/a2aproject/a2a-js/issues/627) (open) and `a2aproject/A2A` issue [#2122](https://github.com/a2aproject/A2A/issues/2122) (open) hold the question of how an empty value is treated.
 
 ### Issue
 

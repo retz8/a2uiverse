@@ -23,7 +23,7 @@ The answer, in one line: **the card says what sign-in an app needs, the shell as
 
 ```mermaid
 flowchart LR
-    C["The app's card<br/>securitySchemes, security"] --> V{"AuthVault:<br/>an account that meets it?"}
+    C["The app's card<br/>securitySchemes, securityRequirements"] --> V{"AuthVault:<br/>an account that meets it?"}
     V -->|"yes"| D["Dispatch,<br/>the credential as a header"]
     V -->|"no"| T["The slot asks:<br/>the authority tile"]
     T -->|"Sign in"| W["A window:<br/>the app's own sign-in page"]
@@ -35,33 +35,35 @@ flowchart LR
 
 ### 1. An app asks on its card
 
-An app says what sign-in it needs in its A2A agent card, in two fields A2A already has. **`securitySchemes`** names each way to sign in, under a key. **`security`** says which of them a request needs. Gmail's card, as it was installed in the example (trimmed):
+An app says what sign-in it needs in its A2A agent card, in two fields A2A already has. **`securitySchemes`** names each way to sign in, under a key. **`securityRequirements`** says which of them a request needs. Gmail's card, as the marketplace stores it (trimmed):
 
 ```jsonc
 {
   "name": "Gmail",
   "securitySchemes": {
     "signIn": {
-      "type": "oauth2",
-      "oauth2MetadataUrl": "http://localhost:11002/.well-known/oauth-authorization-server",
-      "flows": {"authorizationCode": {
-        "authorizationUrl": "https://<tunnel>-11002.asse.devtunnels.ms/oauth/authorize",
-        "tokenUrl": "http://localhost:11002/oauth/token",
-        "scopes": {
-          "inbox": "See your inbox",
-          "messages": "Read your email",
-          "organize": "Write drafts and label your email"
-        }
-      }}
+      "oauth2SecurityScheme": {
+        "oauth2MetadataUrl": "http://localhost:11002/.well-known/oauth-authorization-server",
+        "flows": {"authorizationCode": {
+          "authorizationUrl": "https://<tunnel>-11002.asse.devtunnels.ms/oauth/authorize",
+          "tokenUrl": "http://localhost:11002/oauth/token",
+          "refreshUrl": "http://localhost:11002/oauth/token",
+          "scopes": {
+            "messages": "Read your email",
+            "inbox": "See your inbox",
+            "organize": "Write drafts and label your email"
+          }
+        }}
+      }
     }
   },
-  "security": [{"signIn": ["inbox"]}]
+  "securityRequirements": [{"schemes": {"signIn": {"list": ["inbox"]}}}]
 }
 ```
 
-`security` is a list of alternatives, each a set of schemes that must all hold at once: an **OR of ANDs**. Here there's one alternative, the `signIn` scheme with the `inbox` scope. An empty list, or an empty alternative, means no sign-in is needed. The `scopes` map gives each scope's **words**, written for the person who will read them. Those words are what the shell shows; nothing else on the canvas describes what an app may do.
+`securityRequirements` is a list of alternatives, each a set of schemes that must all hold at once: an **OR of ANDs**. Here there's one alternative, the `signIn` scheme with the `inbox` scope. An empty list, or an empty alternative, means no sign-in is needed. The `scopes` map gives each scope's **words**, written for the person who will read them. Those words are what the shell shows; nothing else on the canvas describes what an app may do.
 
-Gmail's card is written for A2A 0.3. A card written for A2A 1.0 says the same in 1.0's fields, `securitySchemes` and `securityRequirements`, and the platform reads either one through the card's one reading, into one shape ([`card.md`](card.md)).
+Gmail's card is written for A2A 1.0. The scheme's kind is its one member, `oauth2SecurityScheme` here, and this guide says the kinds in plain words: OAuth, OpenID Connect, a bearer token and an API key. A card written for A2A 0.3 names the kind in a `type` field, `oauth2`, `openIdConnect`, `http` or `apiKey`, and says which schemes a request needs in `security`, where a card written for 1.0 says it in `securityRequirements`. The platform reads either one through the card's one reading, into one shape ([`card.md`](card.md)). The stored card holds both: the Python A2A SDK that serves Gmail's card writes A2A 0.3's fields beside 1.0's, for a client on A2A 0.3.
 
 ### 2. A source is an app and its account
 
@@ -71,7 +73,7 @@ Each account has a **label**, taken from the sign-in itself: the email, user nam
 
 ### 3. The credential rides a header, and only the vault holds it
 
-A credential travels only as an HTTP header on the A2A request, as the card's scheme names it: `Authorization: Bearer …` for OAuth and a bearer token, the scheme's own header for an API key. It is never part of a message, so it never reaches a partition, the models or the client. The **AuthVault** is the one place that holds credentials: an owner-only JSON file in the orchestrator's state folder, one entry per (app, account).
+A credential travels only on the A2A request, as the header the card's scheme names: `Authorization: Bearer …` for OAuth and a bearer token, the scheme's own header for an API key. On JSON-RPC and HTTP+JSON it is that HTTP header, and on gRPC it is one metadata entry under the header's name in lowercase. It is never part of a message, so it never reaches a partition, the models or the client. The **AuthVault** is the one place that holds credentials: an owner-only JSON file in the orchestrator's state folder, one entry per (app, account).
 
 ### 4. Our agents are their own sign-in front door
 
@@ -94,7 +96,7 @@ An app can also sign you in by a short code you give on its own page, OAuth's de
 
 ### 6. Two triggers: before the dispatch, and in the middle of it
 
-The orchestrator checks each app's card against the vault **before** dispatching to it. When nothing in the vault meets the card, the slot takes the tile at first paint and the agent isn't called at all. That covers most cases. What the card can't predict, the agent says while it works, in one of two ways A2A gives it: **HTTP 401** (the token stopped working: the vault refreshes it, or the slot asks to sign in again), or an in-task **`auth-required`** naming the scopes it's missing (the person pressed something that needs more access). The second is a **request for more access**, and it's asked on the fragment's attribution row, so the fragment stays.
+The orchestrator checks each app's card against the vault **before** dispatching to it. When nothing in the vault meets the card, the slot takes the tile at first paint and the agent isn't called at all. That covers most cases. What the card can't predict, the agent says while it works, in one of two ways A2A gives it: a **refusal for sign-in**, HTTP 401 on JSON-RPC and HTTP+JSON or the status `UNAUTHENTICATED` on gRPC (the token stopped working: the vault refreshes it, or the slot asks to sign in again), or the task ending in the **auth-required** state, `TASK_STATE_AUTH_REQUIRED` on the wire and `auth-required` from an agent on A2A 0.3, naming the scopes it's missing (the person pressed something that needs more access). The second is a **request for more access**, and it's asked on the fragment's attribution row, so the fragment stays.
 
 ## One question, end to end
 
@@ -179,15 +181,15 @@ The journal records the sign-in as facts, never a secret:
   <em>Opening a thread needs "Read your email". The fragment stays; the request sits on its attribution row.</em>
 </p>
 
-The first sign-in let Gmail see the inbox, nothing more. Opening a thread needs `messages`: in Gmail's sign-in config, the `open-thread` action needs that scope. So when you press a thread, Gmail's agent doesn't run the action. It ends the task in A2A's `auth-required` state, with one line of text for a plain A2A client and the request in A2A 0.3's requirement shape, the one the agent kit writes:
+The first sign-in let Gmail see the inbox, nothing more. Opening a thread needs `messages`: in Gmail's sign-in config, the `open-thread` action needs that scope. So when you press a thread, Gmail's agent doesn't run the action. It ends the task in A2A's auth-required state, `TASK_STATE_AUTH_REQUIRED`, with one line of text for a plain A2A client and the request in A2A 1.0's requirement shape, the one the agent kit writes:
 
 ```jsonc
 // the status message's parts
-[{"kind": "text", "text": "More access is needed: Read your email."},
- {"kind": "data", "data": {"security": [{"signIn": ["messages"]}]}}]
+[{"text": "More access is needed: Read your email."},
+ {"data": {"securityRequirements": [{"schemes": {"signIn": {"list": ["messages"]}}}]}}]
 ```
 
-The orchestrator reads the request in that shape or in A2A 1.0's, `{"securityRequirements": [{"schemes": {"signIn": {"list": ["messages"]}}}]}`, from an agent on either A2A version, and holds it in the one shape, A2A 1.0's. The answer has ended when the state arrives, whether or not the agent closes its stream ([`a2ui-on-a2a.md`](a2ui-on-a2a.md) has both). The orchestrator never relays this. The vault reads it against the card **as installed**: `signIn` is a scheme the card declares, and `messages` is one of its scopes, so the request is valid. A key the installed card doesn't declare would make it invalid; it would fail like a malformed paint, and no consent would be shown. The vault works out what's missing (`messages`, since `gmail.1` holds only `inbox`) and journals an `escalationRequested`. Because Gmail's fragment is already on screen, the slot keeps it, and its `Attribution` is painted with `escalation: {scopes: ["Read your email"]}`. The shell catalog draws a fixed-width **Needs access** chip on the row and a card over the fragment's top: "Gmail needs more access to finish this.", "It will also be able to" over "Read your email", **Allow** and **Not now**. Nothing under it moves. The orchestrator **keeps the press** that asked.
+The orchestrator reads the request in that shape or in A2A 0.3's, `{"security": [{"signIn": ["messages"]}]}`, from an agent on either A2A version, and holds it in the one shape, A2A 1.0's. The answer has ended when the state arrives, whether or not the agent closes its stream ([`a2ui-on-a2a.md`](a2ui-on-a2a.md) has both). The orchestrator never relays this. The vault reads it against the card **as installed**: `signIn` is a scheme the card declares, and `messages` is one of its scopes, so the request is valid. A key the installed card doesn't declare would make it invalid; it would fail like a malformed paint, and no consent would be shown. The vault works out what's missing (`messages`, since `gmail.1` holds only `inbox`) and journals an `escalationRequested`. Because Gmail's fragment is already on screen, the slot keeps it, and its `Attribution` is painted with `escalation: {scopes: ["Read your email"]}`. The shell catalog draws a fixed-width **Needs access** chip on the row and a card over the fragment's top: "Gmail needs more access to finish this.", "It will also be able to" over "Read your email", **Allow** and **Not now**. Nothing under it moves. The orchestrator **keeps the press** that asked.
 
 - **Not now** sends `dismiss`. The request and the kept press are dropped, the chip goes, the fragment stays as it was, and the journal says `notNow`.
 - **Allow** opens the window for `gmail.1` again. This time the vault asks only for the missing `messages`, and it names the account by sending its ID-token subject as `login_hint`. Gmail's agent finds that account, so on the deterministic roster there's no chooser at all. The new token carries everything granted so far, `inbox messages`. Signed in, the client sends `retry`, and the orchestrator sends the kept press again: the thread opens.
@@ -227,12 +229,12 @@ The Planner now sees Gmail's two sources, each by its label. A question about wh
 
 | Scheme on the card | The vault |
 | --- | --- |
-| `oauth2` with the authorization-code flow | Signs in with OAuth by redirect, discovering the server from `oauth2MetadataUrl`, or the well-known address at the authorization URL's origin |
-| `oauth2` with the device-code flow | Signs in with OAuth by a code given on the app's own page, discovering the server from `oauth2MetadataUrl`, or the well-known address at the device authorization URL's origin |
-| `openIdConnect` | Signs in with OAuth by redirect, discovering from `openIdConnectUrl` |
-| `http` with `scheme: bearer` | Opens the orchestrator's **token page** for a token to paste |
-| `apiKey` in a header | Opens the token page for a key, sent in that header |
-| Anything else (`http` basic, mutual TLS, a key in a query string, `oauth2` with any other flow), or two schemes required at once | Not supported here |
+| `oauth2SecurityScheme` with the authorization-code flow | Signs in with OAuth by redirect, discovering the server from `oauth2MetadataUrl`, or the well-known address at the authorization URL's origin |
+| `oauth2SecurityScheme` with the device-code flow | Signs in with OAuth by a code given on the app's own page, discovering the server from `oauth2MetadataUrl`, or the well-known address at the device authorization URL's origin |
+| `openIdConnectSecurityScheme` | Signs in with OAuth by redirect, discovering from `openIdConnectUrl` |
+| `httpAuthSecurityScheme` with `scheme: bearer` | Opens the orchestrator's **token page** for a token to paste |
+| `apiKeySecurityScheme` with `location: header` | Opens the token page for a key, sent in that header |
+| Anything else (HTTP basic, mutual TLS, an API key in a query string, OAuth with any other flow), or two schemes required at once | Not supported here |
 
 The order is the card package's `redirectFirst`, which Stellify's credential chooser and the trusted page's sign-in line use too, so all three follow the same alternative ([`card.md`](card.md#reading-sign-in)). A card listing the device-code flow, then a key, then the authorization-code flow is followed by the key.
 
@@ -350,7 +352,7 @@ The AgentsPool sends each dispatch with the header `prepare` returned and watche
 flowchart TD
     S["Send, with the header"] --> R{"What came back?"}
     R -->|"events"| OK["Relayed as usual"]
-    R -->|"HTTP 401, or auth-required naming nothing"| U{"Sent once already?"}
+    R -->|"refused for sign-in, or auth-required naming nothing"| U{"Sent once already?"}
     U -->|"no"| F["vault.unauthorized:<br/>a refresh made since? use it.<br/>Otherwise one refresh"]
     F -->|"new header"| S
     F -->|"can't refresh"| A["The slot: sign in again"]
@@ -377,12 +379,12 @@ A slot that needs sign-in behaves like a [failed source](synthesis.md#when-thing
 
 An app built on the kit turns sign-in on with a `SignIn` on its config (`agent-kit/src/a2ui_agent_kit/sign_in.py`). The config holds its scopes in its customer's words, the scopes the first sign-in asks, which actions and tools need which scopes, its made-up accounts, and its live **upstream**, the vendor's own sign-in. The kit then:
 
-- writes the card's `securitySchemes` (one `oauth2` scheme, `signIn`) and `security` (the first sign-in's scopes);
+- writes the card's `securitySchemes` (one OAuth scheme, `signIn`) and `securityRequirements` (the first sign-in's scopes);
 - serves an OAuth authorization server next to A2A, on Authlib: metadata at `/.well-known/oauth-authorization-server`, `/oauth/authorize` with S256 PKCE required, `/oauth/token` with refresh tokens that rotate on every use, `/oauth/register`, `/oauth/revoke`, `/oauth/jwks`, and an ID token signed ES256 carrying the account's `sub`, `email`, `preferred_username` and `name`;
-- answers 401 to an A2A request without a live token it issued;
-- in a request, binds `current_account()`. An action or tool needing a scope the token lacks raises `AuthRequired`, which ends the run in `auth-required` with the missing keys, as in step 4.
+- refuses an A2A request without a live token it issued, with HTTP 401 on JSON-RPC and HTTP+JSON and `UNAUTHENTICATED` on gRPC;
+- in a request, binds `current_account()`. An action or tool needing a scope the token lacks raises `AuthRequired`, which ends the run in `TASK_STATE_AUTH_REQUIRED` with the missing keys, as in step 4.
 
-The sign-in page's **upstream** is where the account comes from. In deterministic and stub mode it's the chooser over the made-up accounts. Adding `fake_account=<id>` to the sign-in address skips the chooser, for the recorder and the tests; live mode refuses it. In live mode the upstream is `VendorOAuth`, the vendor's real OAuth. It's configured per vendor with its scopes mapped to the vendor's, refreshes the vendor's token five minutes before it runs out, and revokes it when the account's last sign-in ends. A `login_hint` naming an account the agent knows binds the sign-in to it, and the scopes it already granted ride along, so the new token carries the union. A hint naming no account binds nothing, and the person chooses. An app with only an API key uses `ApiKeySignIn` instead: an `apiKey` scheme on the card, and 401 without a known key.
+The sign-in page's **upstream** is where the account comes from. In deterministic and stub mode it's the chooser over the made-up accounts. Adding `fake_account=<id>` to the sign-in address skips the chooser, for the recorder and the tests; live mode refuses it. In live mode the upstream is `VendorOAuth`, the vendor's real OAuth. It's configured per vendor with its scopes mapped to the vendor's, refreshes the vendor's token five minutes before it runs out, and revokes it when the account's last sign-in ends. A `login_hint` naming an account the agent knows binds the sign-in to it, and the scopes it already granted ride along, so the new token carries the union. A hint naming no account binds nothing, and the person chooses. An app with only an API key uses `ApiKeySignIn` instead: an API key scheme on the card, and the same refusal without a known key.
 
 ### Journal and the secret sweep
 
@@ -402,11 +404,11 @@ Every text request the orchestrator writes to an app ends with the same advice, 
 
 ### Connect: a pasted key
 
-Shop B, one of the mock stores, signs in with an API key: its card declares an `apiKey` scheme in a header, with a `description` in its customer's words. The slot says **Connect** instead of Sign in: "Connect Shop B to show it here.", and "Opens a page to paste your Shop B key". The quiet line says "Not connected · Connect", and the merged view's reserved column "· not connected". Connect opens the start route, which sends the window to the orchestrator's own **token page**: "Connect Shop B", "From Shop B:" over the scheme's description, a link to the card's help page, "Paste your key", "Name this account (optional)", and **Connect**. The key is posted to the orchestrator and kept as the account's secret. The account takes the name typed, or, left blank, the name the field's hint shows: the app's name for the first key account ("Shop B"), the day it was connected added for a later one ("Shop B · connected Oct 17"), and its number only if that is taken too. A typed name another of the app's accounts holds, ignoring case, falls back to that default. An account connected again keeps its name, and its page asks none. The window says "You're connected to Shop B".
+Shop B, one of the mock stores, signs in with an API key: its card declares an API key scheme in a header, with a `description` in its customer's words. The slot says **Connect** instead of Sign in: "Connect Shop B to show it here.", and "Opens a page to paste your Shop B key". The quiet line says "Not connected · Connect", and the merged view's reserved column "· not connected". Connect opens the start route, which sends the window to the orchestrator's own **token page**: "Connect Shop B", "From Shop B:" over the scheme's description, a link to the card's help page, "Paste your key", "Name this account (optional)", and **Connect**. The key is posted to the orchestrator and kept as the account's secret. The account takes the name typed, or, left blank, the name the field's hint shows: the app's name for the first key account ("Shop B"), the day it was connected added for a later one ("Shop B · connected Oct 17"), and its number only if that is taken too. A typed name another of the app's accounts holds, ignoring case, falls back to that default. An account connected again keeps its name, and its page asks none. The window says "You're connected to Shop B".
 
 ### Device code: a code given on the app's page
 
-Some apps sign you in without sending the window back to the orchestrator. The app's server hands the vault two codes: a long **device code** the vault keeps, and a short **user code**, such as `WDJB-MJHT`, that you type or check on the app's own page. This is OAuth's device authorization grant ([RFC 8628](https://www.rfc-editor.org/rfc/rfc8628)), the device-code flow that A2A 1.0 adds to a card. A card names it as an `oauth2` scheme whose flow is `deviceCode`, with `deviceAuthorizationUrl`, `tokenUrl` and `scopes`. A card written for A2A 0.3, which names no such flow, writes it the same way under `flows.deviceCode`, and the card's one reading takes it ([`card.md`](card.md#reading-a-card)).
+Some apps sign you in without sending the window back to the orchestrator. The app's server hands the vault two codes: a long **device code** the vault keeps, and a short **user code**, such as `WDJB-MJHT`, that you type or check on the app's own page. This is OAuth's device authorization grant ([RFC 8628](https://www.rfc-editor.org/rfc/rfc8628)), the device-code flow that A2A 1.0 adds to a card. A card names it as an `oauth2SecurityScheme` whose flow is `deviceCode`, with `deviceAuthorizationUrl`, `tokenUrl` and `scopes`. A card written for A2A 0.3, which names no such flow, writes it the same way under `flows.deviceCode`, and the card's one reading takes it ([`card.md`](card.md#reading-a-card)).
 
 Say a TV app's card offers only the device-code flow, with the scope `watch`, "See what you watch".
 
@@ -472,7 +474,7 @@ Stellify's `preview` takes an app that signs in by device code: the publisher's 
 
 ### Not supported here
 
-A card whose `security` names only schemes the vault can't do, like `http` basic, fills the slot with "Signing in to Acme Wiki isn't supported here.", "Acme Wiki asks for a kind of sign-in A2UIVerse can't do. The app stays installed.", and **Manage apps**, which opens the App Library. The app stays installed.
+A card whose `securityRequirements` names only schemes the vault can't do, like HTTP basic, fills the slot with "Signing in to Acme Wiki isn't supported here.", "Acme Wiki asks for a kind of sign-in A2UIVerse can't do. The app stays installed.", and **Manage apps**, which opens the App Library. The app stays installed.
 
 ### Refresh, and signing in again
 
@@ -512,7 +514,7 @@ The App Library ([`trusted-page.md`](trusted-page.md#gmails-accounts) has the pa
 
 | Decision | What it buys | What it costs |
 | --- | --- | --- |
-| **The card is checked before dispatch** | Most sign-ins are known at first paint; an agent is never called just to be told no | Per-skill `security` isn't consulted; one card-level requirement covers the app |
+| **The card is checked before dispatch** | Most sign-ins are known at first paint; an agent is never called just to be told no | Per-skill `securityRequirements` isn't consulted; one card-level requirement covers the app |
 | **The credential rides only the header** | No message, partition, prompt, journal line or log can carry one | Every hop that forwards a request must forward its headers, not just its body |
 | **The tile is the consent** | One press, no dialog; the canvas never blocks on a sign-in | The tile's words are fixed; an app can't explain why in its own voice |
 | **A real window, never a frame** | The sign-in page is the app's own, at its own address, outside the canvas | `noopener` leaves the canvas blind to the window; the outcome has to be polled |
@@ -540,7 +542,7 @@ No recorded beat shows a sign-in: the recorder signs every app in through the re
 
 | Concern | Orchestrator (`apps/orchestrator/src`) | Client (`apps/client/src`) | Shell catalog (`packages/shell-catalog/src`) | Agent kit (`../a2uiverse-apps/agent-kit/src/a2ui_agent_kit`) |
 | --- | --- | --- | --- | --- |
-| Reading a card | `vault/schemes.ts`; the order alternatives are followed in, `packages/card/src/requirements.ts` | `canvas/trustedPage/appCard.ts` | | `sign_in.py` (writes it) |
+| Reading a card | `vault/schemes.ts`; the order alternatives are followed in, `packages/card/src/requirements.ts` | `canvas/trustedPage/appCard.ts` | | `sign_in_server.py`, `server.py` (write it) |
 | Device code: the codes, the asks, the code page | `vault/vault.ts` (`#startDevice`, `#pollDevice`), `vault/oauth.ts`, `vault/pages.ts` (`codePage`) | | | |
 | The vault, its file | `vault/vault.ts`, `vault/store.ts` | | | `sign_in_store.py` (the agent's own store) |
 | OAuth client and server | `vault/oauth.ts` | | | `sign_in_server.py`, `sign_in_vendor.py`, `sign_in_fake.py` |
@@ -559,9 +561,9 @@ No recorded beat shows a sign-in: the recorder signs every app in through the re
 | Word | Meaning |
 | --- | --- |
 | **Authority** | Whatever lets A2UIVerse act for you at an app: a sign-in, a pasted key or token |
-| **Scheme** | One way to sign in, declared on the card under a key: `oauth2`, `openIdConnect`, `http` bearer, `apiKey` |
+| **Scheme** | One way to sign in, declared on the card under a key: OAuth, OpenID Connect, a bearer token or an API key |
 | **Scope** | One thing an app may do once signed in, keyed on the card, with words for the person |
-| **`security`** | The card's list of alternatives, each the schemes and scopes a request needs: an OR of ANDs; `securityRequirements` on a card written for A2A 1.0 |
+| **`securityRequirements`** | The card's list of alternatives, each the schemes and scopes a request needs: an OR of ANDs; `security` on a card written for A2A 0.3 |
 | **AuthVault** | The orchestrator's store of credentials, one entry per (app, account), and its OAuth client |
 | **Source** | An app and one of its accounts, `gmail.2`; the bare app id for an app with no sign-in |
 | **Label** | An account's name in words, from the ID token |
@@ -571,7 +573,7 @@ No recorded beat shows a sign-in: the recorder signs every app in through the re
 | **Attempt** | One sign-in in flight, named by an id the client made, polled until it ends |
 | **Front door** | The OAuth server an agent built on the kit runs for its own sign-in |
 | **Upstream** | Where a kit agent's sign-in page gets the account: the chooser, or the vendor's sign-in |
-| **Request for more access** | An `auth-required` naming missing scopes, asked on the fragment's attribution row |
+| **Request for more access** | A task ending in the auth-required state and naming missing scopes, asked on the fragment's attribution row |
 | **Resume** | The `retry` the client sends for the slot its sign-in was pressed in |
 | **Credential bar** | The check that refuses any paint with a password, code or card field |
 | **Client ID metadata document** | A JSON file about the vault, served at an address that is its client id |

@@ -65,6 +65,8 @@ Three cases were known when this spec was written, from reading the SDK's source
 2. Its 0.3 translators throw on a card with no `capabilities`, `defaultInputModes`, `defaultOutputModes` or `skills`, and on a message with no `messageId`.
 3. A server built on it leaves a stream open when a task asks for sign-in.
 
+*Amended by task 20.13 decision 1.* No finding is filed upstream in the phase. Filing happens after the phase, one finding at a time, through the `contribute-oss-finding` skill.
+
 ### 10. SPEC is written in A2A 1.0's vocabulary
 
 Card fields, operations and task states take A2A 1.0's names throughout SPEC, with 0.3's name beside one only where an agent on 0.3 differs on the wire. Sentences that hold for one binding only are rewritten to hold for all three.

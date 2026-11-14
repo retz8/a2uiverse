@@ -13,7 +13,7 @@ const {served, signature} = await fetchLiveCard(
 ); // a signed card is checked here; `signature` is the one that passed
 const card = readCard(served); // the A2A SDK's own AgentCard, in A2A 1.0's shape
 const [taken] = spokenInterfaces(card);
-// {url: 'http://localhost:12001', protocolBinding: 'JSONRPC', protocolVersion: '0.3.0', tenant: ''}
+// {url: 'http://localhost:12001', protocolBinding: 'JSONRPC', protocolVersion: '1.0', tenant: ''}
 ```
 
 Keep `served` at rest, as the agent wrote it. Hand `card` to every reader.
@@ -55,7 +55,7 @@ Keep `served` at rest, as the agent wrote it. Hand `card` to every reader.
 
 ## Fixtures
 
-[`test/fixtures`](test/fixtures/README.md) holds eight cards in A2A 1.0's shape, captured from two real servers: the `@a2a-js/sdk` 1.3.0 server and Python's `a2a-sdk` 1.3.0; and twelve signed cards, from Python's `a2a-sdk` 1.3.0 and 0.3.26 signers, each beside the key set it names. None is written by hand. The tests also read every tracked card written for A2A 0.3: the platform sdk's four card fixtures and the seven Store recordings.
+[`test/fixtures`](test/fixtures/README.md) holds eight cards captured from two real servers, seven in A2A 1.0's shape and one in A2A 0.3's: the `@a2a-js/sdk` 1.3.0 server and Python's `a2a-sdk` 1.3.0; and twelve signed cards, from Python's `a2a-sdk` 1.3.0 and 0.3.26 signers, each beside the key set it names. None is written by hand. The tests also read every tracked card written for A2A 0.3: the platform sdk's four card fixtures and the seven Store recordings.
 
 To capture them again, with [`uv`](https://docs.astral.sh/uv/) on the PATH for the Python server:
 
