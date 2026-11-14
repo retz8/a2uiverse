@@ -1,0 +1,3854 @@
+{
+  "name": "beat-36-temporal-merge-spread",
+  "beat": 36,
+  "title": "Temporal merge on the spread fleet",
+  "prompt": "What needs my attention today?",
+  "model": "deterministic",
+  "recordedAt": "2026-11-14T10:45:15Z",
+  "contextId": "d89dd598-67c5-4c1d-9af4-a7fa2da98387",
+  "chainedFrom": null,
+  "turns": [
+    {
+      "taskId": "25f30898-09ca-4340-8cc8-10bcbb99d733",
+      "kind": "utterance",
+      "prompt": "What needs my attention today?",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 5322,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "shell:main",
+                "title": "What needs me today"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "timeline",
+                      "top",
+                      "bottom"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 5323,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "timeline",
+                      "top",
+                      "bottom"
+                    ]
+                  },
+                  {
+                    "id": "timeline",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 6205,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "timeline",
+                      "top",
+                      "bottom"
+                    ]
+                  },
+                  {
+                    "id": "timeline",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell"
+                  },
+                  {
+                    "id": "top",
+                    "component": "Row",
+                    "children": [
+                      "gmail",
+                      "calendar"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 6205,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "timeline",
+                      "top",
+                      "bottom"
+                    ]
+                  },
+                  {
+                    "id": "timeline",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell"
+                  },
+                  {
+                    "id": "top",
+                    "component": "Row",
+                    "children": [
+                      "attribution-gmail",
+                      "calendar"
+                    ]
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "source": "gmail.1",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Gmail"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 6205,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "timeline",
+                      "top",
+                      "bottom"
+                    ]
+                  },
+                  {
+                    "id": "timeline",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell"
+                  },
+                  {
+                    "id": "top",
+                    "component": "Row",
+                    "children": [
+                      "attribution-gmail",
+                      "attribution-calendar"
+                    ]
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "source": "gmail.1",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Gmail"
+                  },
+                  {
+                    "id": "attribution-calendar",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "source": "calendar.1",
+                    "child": "calendar",
+                    "weight": 1
+                  },
+                  {
+                    "id": "calendar",
+                    "component": "Slot",
+                    "source": "calendar.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Google Calendar"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 6205,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "timeline",
+                      "top",
+                      "bottom"
+                    ]
+                  },
+                  {
+                    "id": "timeline",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell"
+                  },
+                  {
+                    "id": "top",
+                    "component": "Row",
+                    "children": [
+                      "attribution-gmail",
+                      "attribution-calendar"
+                    ]
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "source": "gmail.1",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Gmail"
+                  },
+                  {
+                    "id": "attribution-calendar",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "source": "calendar.1",
+                    "child": "calendar",
+                    "weight": 1
+                  },
+                  {
+                    "id": "calendar",
+                    "component": "Slot",
+                    "source": "calendar.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Google Calendar"
+                  },
+                  {
+                    "id": "bottom",
+                    "component": "Row",
+                    "children": [
+                      "github",
+                      "linear"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 6205,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "timeline",
+                      "top",
+                      "bottom"
+                    ]
+                  },
+                  {
+                    "id": "timeline",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell"
+                  },
+                  {
+                    "id": "top",
+                    "component": "Row",
+                    "children": [
+                      "attribution-gmail",
+                      "attribution-calendar"
+                    ]
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "source": "gmail.1",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Gmail"
+                  },
+                  {
+                    "id": "attribution-calendar",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "source": "calendar.1",
+                    "child": "calendar",
+                    "weight": 1
+                  },
+                  {
+                    "id": "calendar",
+                    "component": "Slot",
+                    "source": "calendar.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Google Calendar"
+                  },
+                  {
+                    "id": "bottom",
+                    "component": "Row",
+                    "children": [
+                      "attribution-github",
+                      "linear"
+                    ]
+                  },
+                  {
+                    "id": "attribution-github",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "source": "github.1",
+                    "child": "github",
+                    "weight": 1
+                  },
+                  {
+                    "id": "github",
+                    "component": "Slot",
+                    "source": "github.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "GitHub"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 6205,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "timeline",
+                      "top",
+                      "bottom"
+                    ]
+                  },
+                  {
+                    "id": "timeline",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell"
+                  },
+                  {
+                    "id": "top",
+                    "component": "Row",
+                    "children": [
+                      "attribution-gmail",
+                      "attribution-calendar"
+                    ]
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "source": "gmail.1",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Gmail"
+                  },
+                  {
+                    "id": "attribution-calendar",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "source": "calendar.1",
+                    "child": "calendar",
+                    "weight": 1
+                  },
+                  {
+                    "id": "calendar",
+                    "component": "Slot",
+                    "source": "calendar.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Google Calendar"
+                  },
+                  {
+                    "id": "bottom",
+                    "component": "Row",
+                    "children": [
+                      "attribution-github",
+                      "attribution-linear"
+                    ]
+                  },
+                  {
+                    "id": "attribution-github",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "source": "github.1",
+                    "child": "github",
+                    "weight": 1
+                  },
+                  {
+                    "id": "github",
+                    "component": "Slot",
+                    "source": "github.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "GitHub"
+                  },
+                  {
+                    "id": "attribution-linear",
+                    "component": "Attribution",
+                    "displayName": "Linear",
+                    "source": "linear.1",
+                    "child": "linear",
+                    "weight": 1
+                  },
+                  {
+                    "id": "linear",
+                    "component": "Slot",
+                    "source": "linear.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Linear"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 6301,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "timeline",
+                      "top",
+                      "bottom"
+                    ]
+                  },
+                  {
+                    "id": "timeline",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell"
+                  },
+                  {
+                    "id": "top",
+                    "component": "Row",
+                    "children": [
+                      "attribution-gmail",
+                      "attribution-calendar"
+                    ]
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "source": "gmail.1",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Gmail"
+                  },
+                  {
+                    "id": "attribution-calendar",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "source": "calendar.1",
+                    "child": "calendar",
+                    "weight": 1
+                  },
+                  {
+                    "id": "calendar",
+                    "component": "Slot",
+                    "source": "calendar.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Google Calendar"
+                  },
+                  {
+                    "id": "bottom",
+                    "component": "Row",
+                    "children": [
+                      "attribution-github",
+                      "attribution-linear"
+                    ]
+                  },
+                  {
+                    "id": "attribution-github",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "source": "github.1",
+                    "child": "github",
+                    "weight": 1
+                  },
+                  {
+                    "id": "github",
+                    "component": "Slot",
+                    "source": "github.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "GitHub"
+                  },
+                  {
+                    "id": "attribution-linear",
+                    "component": "Attribution",
+                    "displayName": "Linear",
+                    "source": "linear.1",
+                    "child": "linear",
+                    "weight": 1
+                  },
+                  {
+                    "id": "linear",
+                    "component": "Slot",
+                    "source": "linear.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Linear"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 6366,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "gmail.1:gmail-4",
+                "title": "Needs attention"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "gmail.1:gmail-4",
+                "sendDataModel": true,
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "sender": "Mei Silva",
+                      "id": "19829cbece7facf1"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "id": "19829cbece7facf1"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    },
+                    {
+                      "sender": "Alex Bergman",
+                      "id": "1956e7633ba626aa"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    },
+                    {
+                      "subject": "Could you review #8 before quarter planning?",
+                      "sender": "Alex Bergman",
+                      "id": "1956e7633ba626aa"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    },
+                    {
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "sender": "Alex Bergman",
+                      "id": "1956e7633ba626aa"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    },
+                    {
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "sender": "Alex Bergman",
+                      "when": "2026-09-19 11:30 UTC",
+                      "id": "1956e7633ba626aa"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    },
+                    {
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "sender": "Alex Bergman",
+                      "when": "2026-09-19 11:30 UTC",
+                      "id": "1956e7633ba626aa"
+                    },
+                    {
+                      "id": "19fd40c07b154538"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    },
+                    {
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "sender": "Alex Bergman",
+                      "when": "2026-09-19 11:30 UTC",
+                      "id": "1956e7633ba626aa"
+                    },
+                    {
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "sender": "Mei Silva",
+                      "id": "19fd40c07b154538"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    },
+                    {
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "sender": "Alex Bergman",
+                      "when": "2026-09-19 11:30 UTC",
+                      "id": "1956e7633ba626aa"
+                    },
+                    {
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "sender": "Mei Silva",
+                      "id": "19fd40c07b154538"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    },
+                    {
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "sender": "Alex Bergman",
+                      "when": "2026-09-19 11:30 UTC",
+                      "id": "1956e7633ba626aa"
+                    },
+                    {
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 11:05 UTC",
+                      "id": "19fd40c07b154538"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    },
+                    {
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "sender": "Alex Bergman",
+                      "when": "2026-09-19 11:30 UTC",
+                      "id": "1956e7633ba626aa"
+                    },
+                    {
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 11:05 UTC",
+                      "id": "19fd40c07b154538"
+                    },
+                    {
+                      "sender": "Clara Moreau",
+                      "id": "19b6cefab66744cf"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    },
+                    {
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "sender": "Alex Bergman",
+                      "when": "2026-09-19 11:30 UTC",
+                      "id": "1956e7633ba626aa"
+                    },
+                    {
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 11:05 UTC",
+                      "id": "19fd40c07b154538"
+                    },
+                    {
+                      "subject": "Numbers for the 11:30 budget sync",
+                      "sender": "Clara Moreau",
+                      "id": "19b6cefab66744cf"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    },
+                    {
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "sender": "Alex Bergman",
+                      "when": "2026-09-19 11:30 UTC",
+                      "id": "1956e7633ba626aa"
+                    },
+                    {
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 11:05 UTC",
+                      "id": "19fd40c07b154538"
+                    },
+                    {
+                      "subject": "Numbers for the 11:30 budget sync",
+                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara",
+                      "sender": "Clara Moreau",
+                      "id": "19b6cefab66744cf"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    },
+                    {
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "sender": "Alex Bergman",
+                      "when": "2026-09-19 11:30 UTC",
+                      "id": "1956e7633ba626aa"
+                    },
+                    {
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 11:05 UTC",
+                      "id": "19fd40c07b154538"
+                    },
+                    {
+                      "subject": "Numbers for the 11:30 budget sync",
+                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara",
+                      "sender": "Clara Moreau",
+                      "when": "2026-09-19 10:48 UTC",
+                      "id": "19b6cefab66744cf"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-4",
+                "value": {
+                  "threads": [
+                    {
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 12:41 UTC",
+                      "id": "19829cbece7facf1"
+                    },
+                    {
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "sender": "Alex Bergman",
+                      "when": "2026-09-19 11:30 UTC",
+                      "id": "1956e7633ba626aa"
+                    },
+                    {
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "sender": "Mei Silva",
+                      "when": "2026-09-19 11:05 UTC",
+                      "id": "19fd40c07b154538"
+                    },
+                    {
+                      "subject": "Numbers for the 11:30 budget sync",
+                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara",
+                      "sender": "Clara Moreau",
+                      "when": "2026-09-19 10:48 UTC",
+                      "id": "19b6cefab66744cf"
+                    }
+                  ]
+                },
+                "path": "/"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "gmail.1:gmail-4",
+                "components": [
+                  {
+                    "child": "body",
+                    "component": "Surface",
+                    "container": "low",
+                    "id": "root",
+                    "padding": "small",
+                    "shape": "large"
+                  },
+                  {
+                    "children": [
+                      "header",
+                      "sheet"
+                    ],
+                    "component": "Stack",
+                    "id": "body",
+                    "gap": "xs"
+                  },
+                  {
+                    "children": [
+                      "heading",
+                      "sub"
+                    ],
+                    "component": "Stack",
+                    "id": "header",
+                    "padding": "sm",
+                    "gap": "xs"
+                  },
+                  {
+                    "component": "Text",
+                    "text": "Needs attention today",
+                    "variant": "titleLarge",
+                    "id": "heading"
+                  },
+                  {
+                    "component": "Text",
+                    "text": "4 unread threads waiting on your review or reply",
+                    "variant": "bodySmall",
+                    "id": "sub",
+                    "color": "onSurfaceVariant"
+                  },
+                  {
+                    "child": "thread-list",
+                    "component": "Surface",
+                    "container": "lowest",
+                    "id": "sheet",
+                    "padding": "none",
+                    "shape": "large"
+                  },
+                  {
+                    "children": {
+                      "componentId": "thread-row",
+                      "path": "/threads"
+                    },
+                    "component": "List",
+                    "layout": "inline",
+                    "dividers": true,
+                    "id": "thread-list"
+                  },
+                  {
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    },
+                    "headline": "thread-sender",
+                    "component": "ListItem",
+                    "meta": "thread-when",
+                    "supporting": "thread-preview",
+                    "id": "thread-row",
+                    "leading": [
+                      "thread-avatar"
+                    ]
+                  },
+                  {
+                    "component": "Avatar",
+                    "size": "medium",
+                    "id": "thread-avatar",
+                    "name": {
+                      "path": "sender"
+                    }
+                  },
+                  {
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    },
+                    "maxLines": 1,
+                    "weight": "bold",
+                    "id": "thread-sender"
+                  },
+                  {
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    },
+                    "variant": "labelMedium",
+                    "id": "thread-when",
+                    "color": "onSurfaceVariant"
+                  },
+                  {
+                    "children": [
+                      "thread-subject",
+                      "thread-snippet"
+                    ],
+                    "component": "Stack",
+                    "id": "thread-preview",
+                    "gap": "none"
+                  },
+                  {
+                    "component": "Text",
+                    "text": {
+                      "path": "subject"
+                    },
+                    "maxLines": 1,
+                    "weight": "medium",
+                    "id": "thread-subject"
+                  },
+                  {
+                    "component": "Text",
+                    "text": {
+                      "path": "snippet"
+                    },
+                    "maxLines": 1,
+                    "id": "thread-snippet",
+                    "color": "onSurfaceVariant"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json": "sha256-JelTSVff66_b8qYzPmRzI3ozNv62yyR09X1PVI-Fu8E"
+            }
+          }
+        },
+        {
+          "offsetMs": 6366,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "calendar.1:calendar-4",
+                "title": "Needs attention today"
+              }
+            },
+            {
+              "createSurface": {
+                "sendDataModel": true,
+                "surfaceId": "calendar.1:calendar-4",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json"
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-4",
+                "value": {
+                  "waiting": [
+                    {
+                      "summary": "Design review — agenda surface",
+                      "end": "2026-09-19T12:00:00Z",
+                      "when": "11:00 – 12:00",
+                      "start": "2026-09-19T11:00:00Z",
+                      "id": "7nuujj9h9ru89blofii3m5otlo"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-4",
+                "value": {
+                  "waiting": [
+                    {
+                      "note": "Unanswered invitation • Overlaps Budget sync • Walk through the three fragment layouts.",
+                      "summary": "Design review — agenda surface",
+                      "end": "2026-09-19T12:00:00Z",
+                      "when": "11:00 – 12:00",
+                      "start": "2026-09-19T11:00:00Z",
+                      "id": "7nuujj9h9ru89blofii3m5otlo"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-4",
+                "value": {
+                  "clashes": [
+                    {
+                      "summary": "Budget sync",
+                      "end": "2026-09-19T12:15:00Z",
+                      "when": "11:30 – 12:15",
+                      "start": "2026-09-19T11:30:00Z",
+                      "id": "ev1fmp1rmvhhb260fbebvd7o9o"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-4",
+                "value": {
+                  "clashes": [
+                    {
+                      "note": "Overlaps Design review • Two line items still do not reconcile against the estimate.",
+                      "summary": "Budget sync",
+                      "end": "2026-09-19T12:15:00Z",
+                      "when": "11:30 – 12:15",
+                      "start": "2026-09-19T11:30:00Z",
+                      "id": "ev1fmp1rmvhhb260fbebvd7o9o"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-4",
+                "path": "/",
+                "value": {
+                  "clashes": [
+                    {
+                      "note": "Overlaps Design review • Two line items still do not reconcile against the estimate.",
+                      "summary": "Budget sync",
+                      "end": "2026-09-19T12:15:00Z",
+                      "when": "11:30 – 12:15",
+                      "start": "2026-09-19T11:30:00Z",
+                      "id": "ev1fmp1rmvhhb260fbebvd7o9o"
+                    }
+                  ],
+                  "waiting": [
+                    {
+                      "note": "Unanswered invitation • Overlaps Budget sync • Walk through the three fragment layouts.",
+                      "summary": "Design review — agenda surface",
+                      "end": "2026-09-19T12:00:00Z",
+                      "when": "11:00 – 12:00",
+                      "start": "2026-09-19T11:00:00Z",
+                      "id": "7nuujj9h9ru89blofii3m5otlo"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateComponents": {
+                "surfaceId": "calendar.1:calendar-4",
+                "components": [
+                  {
+                    "component": "Surface",
+                    "container": "low",
+                    "shape": "large",
+                    "child": "body",
+                    "padding": "small",
+                    "id": "root"
+                  },
+                  {
+                    "component": "Stack",
+                    "gap": "xs",
+                    "children": [
+                      "header",
+                      "sheet"
+                    ],
+                    "id": "body"
+                  },
+                  {
+                    "component": "Stack",
+                    "children": [
+                      "heading"
+                    ],
+                    "padding": "sm",
+                    "id": "header"
+                  },
+                  {
+                    "component": "Text",
+                    "text": "Needs attention today",
+                    "variant": "titleLarge",
+                    "id": "heading"
+                  },
+                  {
+                    "component": "Surface",
+                    "container": "lowest",
+                    "shape": "large",
+                    "child": "sections",
+                    "padding": "none",
+                    "id": "sheet"
+                  },
+                  {
+                    "component": "Stack",
+                    "gap": "none",
+                    "children": [
+                      "waiting-label",
+                      "waiting-list",
+                      "divider",
+                      "clash-label",
+                      "clash-list"
+                    ],
+                    "id": "sections"
+                  },
+                  {
+                    "component": "Stack",
+                    "children": [
+                      "waiting-title"
+                    ],
+                    "padding": "sm",
+                    "id": "waiting-label"
+                  },
+                  {
+                    "color": "primary",
+                    "text": "Unanswered invitations",
+                    "component": "Text",
+                    "variant": "titleSmall",
+                    "id": "waiting-title"
+                  },
+                  {
+                    "component": "List",
+                    "layout": "inline",
+                    "children": {
+                      "componentId": "waiting-row",
+                      "path": "/waiting"
+                    },
+                    "id": "waiting-list"
+                  },
+                  {
+                    "supporting": "waiting-body",
+                    "component": "ListItem",
+                    "action": {
+                      "event": {
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        },
+                        "name": "open-event"
+                      }
+                    },
+                    "headline": "waiting-when",
+                    "leading": [
+                      "waiting-swatch"
+                    ],
+                    "id": "waiting-row"
+                  },
+                  {
+                    "color": "peacock",
+                    "component": "ColorSwatch",
+                    "shape": "dot",
+                    "id": "waiting-swatch"
+                  },
+                  {
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    },
+                    "variant": "labelLarge",
+                    "id": "waiting-when"
+                  },
+                  {
+                    "component": "Stack",
+                    "gap": "none",
+                    "children": [
+                      "waiting-summary",
+                      "waiting-note"
+                    ],
+                    "id": "waiting-body"
+                  },
+                  {
+                    "component": "Text",
+                    "text": {
+                      "path": "summary"
+                    },
+                    "maxLines": 1,
+                    "id": "waiting-summary"
+                  },
+                  {
+                    "color": "onSurfaceVariant",
+                    "text": {
+                      "path": "note"
+                    },
+                    "maxLines": 1,
+                    "variant": "bodySmall",
+                    "component": "Text",
+                    "id": "waiting-note"
+                  },
+                  {
+                    "component": "Divider",
+                    "id": "divider"
+                  },
+                  {
+                    "component": "Stack",
+                    "children": [
+                      "clash-title"
+                    ],
+                    "padding": "sm",
+                    "id": "clash-label"
+                  },
+                  {
+                    "color": "primary",
+                    "text": "Double-booked today",
+                    "component": "Text",
+                    "variant": "titleSmall",
+                    "id": "clash-title"
+                  },
+                  {
+                    "component": "List",
+                    "layout": "inline",
+                    "children": {
+                      "componentId": "clash-row",
+                      "path": "/clashes"
+                    },
+                    "id": "clash-list"
+                  },
+                  {
+                    "supporting": "clash-body",
+                    "component": "ListItem",
+                    "action": {
+                      "event": {
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        },
+                        "name": "open-event"
+                      }
+                    },
+                    "headline": "clash-when",
+                    "leading": [
+                      "clash-swatch"
+                    ],
+                    "id": "clash-row"
+                  },
+                  {
+                    "color": "peacock",
+                    "component": "ColorSwatch",
+                    "shape": "dot",
+                    "id": "clash-swatch"
+                  },
+                  {
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    },
+                    "variant": "labelLarge",
+                    "id": "clash-when"
+                  },
+                  {
+                    "component": "Stack",
+                    "gap": "none",
+                    "children": [
+                      "clash-summary",
+                      "clash-note"
+                    ],
+                    "id": "clash-body"
+                  },
+                  {
+                    "component": "Text",
+                    "text": {
+                      "path": "summary"
+                    },
+                    "maxLines": 1,
+                    "id": "clash-summary"
+                  },
+                  {
+                    "color": "onSurfaceVariant",
+                    "text": {
+                      "path": "note"
+                    },
+                    "maxLines": 1,
+                    "variant": "bodySmall",
+                    "component": "Text",
+                    "id": "clash-note"
+                  }
+                ]
+              },
+              "version": "v0.9.1"
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json": "sha256-f7RrwSoCOtMKe8S_bY87w_UI6yyMmNNJPrGZyMr_Hao"
+            }
+          }
+        },
+        {
+          "offsetMs": 6368,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "github.1:notifications-4",
+                "title": "My Open Pull Requests"
+              }
+            },
+            {
+              "version": "v0.9.1",
+              "createSurface": {
+                "sendDataModel": true,
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
+                "surfaceId": "github.1:notifications-4"
+              }
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "title": "Give the Synthesizer more thinking effort than the Planner"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {}
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "number": 7
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "repository": "retz8/a2uiverse",
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "number": 7,
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "title": "Name the workflow, not its id, in the confirm status line"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {}
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "repository": "retz8/a2uiverse",
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "number": 6,
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "title": "Say on the canvas when an utterance fails"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "number": 2639
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "repository": "a2ui-project/a2ui",
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "number": 2639,
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "number": 2639,
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Commented",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "updatedAt": "2026-09-12T15:15:21Z",
+                      "number": 2639,
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Commented",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    },
+                    {
+                      "number": 2531
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "updatedAt": "2026-09-12T15:15:21Z",
+                      "number": 2639,
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Commented",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "updatedAt": "2026-09-12T15:15:21Z",
+                      "number": 2639,
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Commented",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    },
+                    {
+                      "repository": "a2ui-project/a2ui",
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "updatedAt": "2026-09-12T15:15:21Z",
+                      "number": 2639,
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Commented",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    },
+                    {
+                      "number": 2531,
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "updatedAt": "2026-09-12T15:15:21Z",
+                      "number": 2639,
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Commented",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    },
+                    {
+                      "number": 2531,
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Changes requested",
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "updatedAt": "2026-09-12T15:15:21Z",
+                      "number": 2639,
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Commented",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    },
+                    {
+                      "updatedAt": "2026-09-14T01:08:02Z",
+                      "number": 2531,
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Changes requested",
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "updatedAt": "2026-09-12T15:15:21Z",
+                      "number": 2639,
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Commented",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    },
+                    {
+                      "updatedAt": "2026-09-14T01:08:02Z",
+                      "number": 2531,
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Changes requested",
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape"
+                    },
+                    {
+                      "number": 2529
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "updatedAt": "2026-09-12T15:15:21Z",
+                      "number": 2639,
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Commented",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    },
+                    {
+                      "updatedAt": "2026-09-14T01:08:02Z",
+                      "number": 2531,
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Changes requested",
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape"
+                    },
+                    {
+                      "repository": "a2ui-project/a2ui",
+                      "number": 2529,
+                      "title": "fix(web_core): make the setter for a binding-only prop callable"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "updatedAt": "2026-09-12T15:15:21Z",
+                      "number": 2639,
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Commented",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    },
+                    {
+                      "updatedAt": "2026-09-14T01:08:02Z",
+                      "number": 2531,
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Changes requested",
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape"
+                    },
+                    {
+                      "number": 2529,
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2529",
+                      "title": "fix(web_core): make the setter for a binding-only prop callable"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "updatedAt": "2026-09-12T15:15:21Z",
+                      "number": 2639,
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Commented",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    },
+                    {
+                      "updatedAt": "2026-09-14T01:08:02Z",
+                      "number": 2531,
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Changes requested",
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape"
+                    },
+                    {
+                      "number": 2529,
+                      "prRef": "a2ui-project/a2ui#2529",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Changes requested",
+                      "title": "fix(web_core): make the setter for a binding-only prop callable",
+                      "branch": "fix/web_core-binding-only-prop-setter"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "updatedAt": "2026-09-12T15:15:21Z",
+                      "number": 2639,
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Commented",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    },
+                    {
+                      "updatedAt": "2026-09-14T01:08:02Z",
+                      "number": 2531,
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Changes requested",
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape"
+                    },
+                    {
+                      "updatedAt": "2026-09-14T01:08:00Z",
+                      "number": 2529,
+                      "prRef": "a2ui-project/a2ui#2529",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Changes requested",
+                      "title": "fix(web_core): make the setter for a binding-only prop callable",
+                      "branch": "fix/web_core-binding-only-prop-setter"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "updateDataModel": {
+                "path": "/",
+                "surfaceId": "github.1:notifications-4",
+                "value": {
+                  "prs": [
+                    {
+                      "updatedAt": "2026-09-19T07:07:26Z",
+                      "number": 8,
+                      "prRef": "retz8/a2uiverse#8",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "branch": "synthesizer-effort-apart-from-planner"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:34Z",
+                      "number": 7,
+                      "prRef": "retz8/a2uiverse#7",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "branch": "status-line-names-the-workflow"
+                    },
+                    {
+                      "updatedAt": "2026-09-19T07:07:33Z",
+                      "number": 6,
+                      "prRef": "retz8/a2uiverse#6",
+                      "repository": "retz8/a2uiverse",
+                      "reviewStatus": "No reviews",
+                      "title": "Say on the canvas when an utterance fails",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+                    },
+                    {
+                      "updatedAt": "2026-09-12T15:15:21Z",
+                      "number": 2639,
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Commented",
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "branch": "fix/react-basic-catalog-styles"
+                    },
+                    {
+                      "updatedAt": "2026-09-14T01:08:02Z",
+                      "number": 2531,
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Changes requested",
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape"
+                    },
+                    {
+                      "updatedAt": "2026-09-14T01:08:00Z",
+                      "number": 2529,
+                      "prRef": "a2ui-project/a2ui#2529",
+                      "repository": "a2ui-project/a2ui",
+                      "reviewStatus": "Changes requested",
+                      "title": "fix(web_core): make the setter for a binding-only prop callable",
+                      "branch": "fix/web_core-binding-only-prop-setter"
+                    }
+                  ]
+                }
+              },
+              "version": "v0.9.1"
+            },
+            {
+              "version": "v0.9.1",
+              "updateComponents": {
+                "components": [
+                  {
+                    "component": "Stack",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "ph",
+                      "list"
+                    ],
+                    "direction": "vertical",
+                    "id": "root"
+                  },
+                  {
+                    "component": "PageHeader",
+                    "aria-label": "Open Pull Requests Header",
+                    "children": [
+                      "ph-ta"
+                    ],
+                    "id": "ph"
+                  },
+                  {
+                    "component": "PageHeader.TitleArea",
+                    "variant": "medium",
+                    "children": [
+                      "ph-lv",
+                      "ph-title",
+                      "ph-tv"
+                    ],
+                    "id": "ph-ta"
+                  },
+                  {
+                    "component": "PageHeader.LeadingVisual",
+                    "children": [
+                      "ph-icon"
+                    ],
+                    "id": "ph-lv"
+                  },
+                  {
+                    "name": "git-pull-request",
+                    "accessibility": {
+                      "label": "Open Pull Requests"
+                    },
+                    "component": "Icon",
+                    "fill": "open",
+                    "id": "ph-icon"
+                  },
+                  {
+                    "as": "h1",
+                    "component": "PageHeader.Title",
+                    "id": "ph-title",
+                    "text": "My Open Pull Requests"
+                  },
+                  {
+                    "component": "PageHeader.TrailingVisual",
+                    "children": [
+                      "ph-count"
+                    ],
+                    "id": "ph-tv"
+                  },
+                  {
+                    "component": "CounterLabel",
+                    "variant": "primary",
+                    "count": 6,
+                    "id": "ph-count"
+                  },
+                  {
+                    "role": "listbox",
+                    "component": "ActionList",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-item",
+                      "path": "/prs"
+                    },
+                    "id": "list"
+                  },
+                  {
+                    "component": "ActionList.Item",
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    },
+                    "children": [
+                      "item-lv",
+                      "item-content"
+                    ],
+                    "id": "pr-item"
+                  },
+                  {
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "item-icon"
+                    ],
+                    "id": "item-lv"
+                  },
+                  {
+                    "name": "git-pull-request",
+                    "component": "Icon",
+                    "fill": "open",
+                    "id": "item-icon"
+                  },
+                  {
+                    "component": "Stack",
+                    "gap": "condensed",
+                    "children": [
+                      "item-title",
+                      "item-meta"
+                    ],
+                    "direction": "vertical",
+                    "id": "item-content"
+                  },
+                  {
+                    "weight": "semibold",
+                    "component": "Text",
+                    "id": "item-title",
+                    "text": {
+                      "path": "title"
+                    }
+                  },
+                  {
+                    "direction": "horizontal",
+                    "component": "Stack",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "meta-ref",
+                      "meta-branch",
+                      "meta-review",
+                      "meta-sep",
+                      "meta-updated-label",
+                      "meta-time"
+                    ],
+                    "wrap": "wrap",
+                    "id": "item-meta"
+                  },
+                  {
+                    "weight": "medium",
+                    "component": "Text",
+                    "size": "small",
+                    "id": "meta-ref",
+                    "text": {
+                      "path": "prRef"
+                    }
+                  },
+                  {
+                    "as": "span",
+                    "component": "BranchName",
+                    "id": "meta-branch",
+                    "text": {
+                      "path": "branch"
+                    }
+                  },
+                  {
+                    "component": "Label",
+                    "size": "small",
+                    "variant": "secondary",
+                    "id": "meta-review",
+                    "text": {
+                      "path": "reviewStatus"
+                    }
+                  },
+                  {
+                    "component": "Text",
+                    "size": "small",
+                    "id": "meta-sep",
+                    "text": "•"
+                  },
+                  {
+                    "component": "Text",
+                    "size": "small",
+                    "id": "meta-updated-label",
+                    "text": "Updated:"
+                  },
+                  {
+                    "month": "short",
+                    "year": "numeric",
+                    "second": "2-digit",
+                    "minute": "2-digit",
+                    "format": "datetime",
+                    "id": "meta-time",
+                    "hour": "numeric",
+                    "component": "RelativeTime",
+                    "day": "numeric",
+                    "datetime": {
+                      "path": "updatedAt"
+                    }
+                  }
+                ],
+                "surfaceId": "github.1:notifications-4"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-_8sP4dsaO4E3OGntam4LzprfT01GSA9YlvPCoNjuM8c"
+            }
+          }
+        },
+        {
+          "offsetMs": 6431,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "linear.1:linear-4",
+                "title": "My issues"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json",
+                "surfaceId": "linear.1:linear-4",
+                "sendDataModel": true
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "value": {
+                  "team": "A2uiverse"
+                },
+                "surfaceId": "linear.1:linear-4"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "value": {
+                  "issues": [
+                    {
+                      "labels": "Bug",
+                      "statusType": "started",
+                      "id": "A2U-5",
+                      "status": "In Review",
+                      "priority": "High",
+                      "title": "Say on the canvas when an utterance fails"
+                    }
+                  ]
+                },
+                "surfaceId": "linear.1:linear-4"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "value": {
+                  "issues": [
+                    {
+                      "labels": "Bug",
+                      "statusType": "started",
+                      "link": "#6",
+                      "status": "In Review",
+                      "id": "A2U-5",
+                      "priority": "High",
+                      "title": "Say on the canvas when an utterance fails"
+                    }
+                  ]
+                },
+                "surfaceId": "linear.1:linear-4"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "value": {
+                  "issues": [
+                    {
+                      "priority": "High",
+                      "id": "A2U-5",
+                      "status": "In Review",
+                      "title": "Say on the canvas when an utterance fails",
+                      "statusType": "started",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "id": "A2U-7"
+                    }
+                  ]
+                },
+                "surfaceId": "linear.1:linear-4"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "value": {
+                  "issues": [
+                    {
+                      "priority": "High",
+                      "id": "A2U-5",
+                      "status": "In Review",
+                      "title": "Say on the canvas when an utterance fails",
+                      "statusType": "started",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "status": "In Progress",
+                      "title": "Shell-action report hangs through the tunnel"
+                    }
+                  ]
+                },
+                "surfaceId": "linear.1:linear-4"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "value": {
+                  "issues": [
+                    {
+                      "priority": "High",
+                      "id": "A2U-5",
+                      "status": "In Review",
+                      "title": "Say on the canvas when an utterance fails",
+                      "statusType": "started",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "labels": "Bug",
+                      "statusType": "started",
+                      "id": "A2U-7",
+                      "status": "In Progress",
+                      "priority": "Low",
+                      "title": "Shell-action report hangs through the tunnel"
+                    }
+                  ]
+                },
+                "surfaceId": "linear.1:linear-4"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "value": {
+                  "issues": [
+                    {
+                      "priority": "High",
+                      "id": "A2U-5",
+                      "status": "In Review",
+                      "title": "Say on the canvas when an utterance fails",
+                      "statusType": "started",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "labels": "Bug",
+                      "statusType": "started",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "status": "In Progress",
+                      "id": "A2U-7",
+                      "priority": "Low",
+                      "title": "Shell-action report hangs through the tunnel"
+                    }
+                  ]
+                },
+                "surfaceId": "linear.1:linear-4"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "value": {
+                  "issues": [
+                    {
+                      "priority": "High",
+                      "id": "A2U-5",
+                      "status": "In Review",
+                      "title": "Say on the canvas when an utterance fails",
+                      "statusType": "started",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "priority": "Low",
+                      "id": "A2U-7",
+                      "status": "In Progress",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "statusType": "started",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC",
+                      "labels": "Bug"
+                    }
+                  ]
+                },
+                "surfaceId": "linear.1:linear-4"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "value": {
+                  "issues": [
+                    {
+                      "priority": "High",
+                      "id": "A2U-5",
+                      "status": "In Review",
+                      "title": "Say on the canvas when an utterance fails",
+                      "statusType": "started",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "priority": "Low",
+                      "id": "A2U-7",
+                      "status": "In Progress",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "statusType": "started",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "id": "A2U-6"
+                    }
+                  ]
+                },
+                "surfaceId": "linear.1:linear-4"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "value": {
+                  "issues": [
+                    {
+                      "priority": "High",
+                      "id": "A2U-5",
+                      "status": "In Review",
+                      "title": "Say on the canvas when an utterance fails",
+                      "statusType": "started",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "priority": "Low",
+                      "id": "A2U-7",
+                      "status": "In Progress",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "statusType": "started",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "statusType": "started",
+                      "id": "A2U-6",
+                      "status": "In Progress",
+                      "priority": "Medium"
+                    }
+                  ]
+                },
+                "surfaceId": "linear.1:linear-4"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "value": {
+                  "issues": [
+                    {
+                      "priority": "High",
+                      "id": "A2U-5",
+                      "status": "In Review",
+                      "title": "Say on the canvas when an utterance fails",
+                      "statusType": "started",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "priority": "Low",
+                      "id": "A2U-7",
+                      "status": "In Progress",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "statusType": "started",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "labels": "Improvement",
+                      "statusType": "started",
+                      "link": "#7",
+                      "status": "In Progress",
+                      "id": "A2U-6",
+                      "priority": "Medium",
+                      "title": "Name the workflow, not its id, in the confirm status line"
+                    }
+                  ]
+                },
+                "surfaceId": "linear.1:linear-4"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "value": {
+                  "issues": [
+                    {
+                      "priority": "High",
+                      "id": "A2U-5",
+                      "status": "In Review",
+                      "title": "Say on the canvas when an utterance fails",
+                      "statusType": "started",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "priority": "Low",
+                      "id": "A2U-7",
+                      "status": "In Progress",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "statusType": "started",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "priority": "Medium",
+                      "id": "A2U-6",
+                      "status": "In Progress",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "statusType": "started",
+                      "link": "#7",
+                      "updated": "Sep 18, 2026, 11:53 AM UTC",
+                      "labels": "Improvement"
+                    }
+                  ]
+                },
+                "surfaceId": "linear.1:linear-4"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "value": {
+                  "issues": [
+                    {
+                      "priority": "High",
+                      "id": "A2U-5",
+                      "status": "In Review",
+                      "title": "Say on the canvas when an utterance fails",
+                      "statusType": "started",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "priority": "Low",
+                      "id": "A2U-7",
+                      "status": "In Progress",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "statusType": "started",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC",
+                      "labels": "Bug"
+                    },
+                    {
+                      "priority": "Medium",
+                      "id": "A2U-6",
+                      "status": "In Progress",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "statusType": "started",
+                      "link": "#7",
+                      "updated": "Sep 18, 2026, 11:53 AM UTC",
+                      "labels": "Improvement"
+                    }
+                  ],
+                  "team": "A2uiverse"
+                },
+                "path": "/",
+                "surfaceId": "linear.1:linear-4"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "linear.1:linear-4",
+                "components": [
+                  {
+                    "gap": "none",
+                    "component": "Stack",
+                    "id": "body",
+                    "children": [
+                      "header",
+                      "list"
+                    ]
+                  },
+                  {
+                    "component": "Panel",
+                    "id": "root",
+                    "padding": "none",
+                    "child": "body"
+                  },
+                  {
+                    "context": {
+                      "path": "/team"
+                    },
+                    "component": "ViewHeader",
+                    "id": "header",
+                    "title": "My issues"
+                  },
+                  {
+                    "component": "List",
+                    "id": "list",
+                    "children": {
+                      "path": "/issues",
+                      "componentId": "issue-row"
+                    }
+                  },
+                  {
+                    "component": "ListItem",
+                    "action": {
+                      "event": {
+                        "context": {
+                          "issueId": {
+                            "path": "id"
+                          }
+                        },
+                        "name": "open-issue"
+                      }
+                    },
+                    "id": "issue-row",
+                    "leading": [
+                      "row-priority",
+                      "row-id",
+                      "row-status"
+                    ],
+                    "trailing": [
+                      "row-labels",
+                      "row-link",
+                      "row-when"
+                    ],
+                    "child": "row-title"
+                  },
+                  {
+                    "component": "PriorityIcon",
+                    "id": "row-priority",
+                    "priority": {
+                      "path": "priority"
+                    }
+                  },
+                  {
+                    "component": "Text",
+                    "variant": "secondary",
+                    "id": "row-id",
+                    "text": {
+                      "path": "id"
+                    }
+                  },
+                  {
+                    "component": "StatusIcon",
+                    "id": "row-status",
+                    "status": {
+                      "path": "status"
+                    },
+                    "type": {
+                      "path": "statusType"
+                    }
+                  },
+                  {
+                    "component": "Text",
+                    "weight": "medium",
+                    "id": "row-title",
+                    "text": {
+                      "path": "title"
+                    }
+                  },
+                  {
+                    "component": "Chip",
+                    "label": {
+                      "path": "labels"
+                    },
+                    "id": "row-labels"
+                  },
+                  {
+                    "component": "Text",
+                    "variant": "caption",
+                    "id": "row-link",
+                    "text": {
+                      "path": "link"
+                    }
+                  },
+                  {
+                    "component": "Text",
+                    "variant": "caption",
+                    "id": "row-when",
+                    "text": {
+                      "path": "updated"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "linear.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json": "sha256-b2Dyp9NHEHZy37zVUGsFRHJ1ttZZGcUQUekcTF0UFOs"
+            }
+          }
+        },
+        {
+          "offsetMs": 12160,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:synthesis",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:synthesis",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "head",
+                      "timeline"
+                    ]
+                  },
+                  {
+                    "id": "head",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "heading",
+                      "sort"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h5",
+                    "text": "Needs attention today"
+                  },
+                  {
+                    "id": "sort",
+                    "component": "SortControl",
+                    "sort": {
+                      "path": "/sorts/0"
+                    }
+                  },
+                  {
+                    "id": "timeline",
+                    "component": "Table",
+                    "columns": [
+                      "Source",
+                      "When",
+                      "What"
+                    ],
+                    "columnSources": [
+                      null,
+                      null,
+                      null
+                    ],
+                    "children": {
+                      "path": "/timeline",
+                      "componentId": "timeline-item"
+                    }
+                  },
+                  {
+                    "id": "timeline-item",
+                    "component": "TableRow",
+                    "children": [
+                      "col-source",
+                      "col-when",
+                      "col-what"
+                    ]
+                  },
+                  {
+                    "id": "col-source",
+                    "component": "DerivedValue",
+                    "cell": {
+                      "path": "source"
+                    }
+                  },
+                  {
+                    "id": "col-when",
+                    "component": "DerivedValue",
+                    "cell": {
+                      "path": "when"
+                    },
+                    "format": {
+                      "kind": "datetime"
+                    }
+                  },
+                  {
+                    "id": "col-what",
+                    "component": "DerivedValue",
+                    "cell": {
+                      "path": "what"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "fragment"
+          },
+          "synthesis": {
+            "dataModel": {
+              "timeline": []
+            },
+            "sorts": [
+              {
+                "path": "/timeline",
+                "options": [
+                  {
+                    "key": "/when",
+                    "label": "When"
+                  }
+                ],
+                "key": "/when",
+                "direction": "desc"
+              }
+            ],
+            "partial": true
+          }
+        },
+        {
+          "offsetMs": 32346,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "timeline",
+                      "top",
+                      "bottom"
+                    ]
+                  },
+                  {
+                    "id": "timeline",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell",
+                    "merged": [
+                      "gmail.1",
+                      "calendar.1",
+                      "github.1",
+                      "linear.1"
+                    ]
+                  },
+                  {
+                    "id": "top",
+                    "component": "Row",
+                    "children": [
+                      "attribution-gmail",
+                      "attribution-calendar"
+                    ]
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "source": "gmail.1",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Gmail"
+                  },
+                  {
+                    "id": "attribution-calendar",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "source": "calendar.1",
+                    "child": "calendar",
+                    "weight": 1
+                  },
+                  {
+                    "id": "calendar",
+                    "component": "Slot",
+                    "source": "calendar.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Google Calendar"
+                  },
+                  {
+                    "id": "bottom",
+                    "component": "Row",
+                    "children": [
+                      "attribution-github",
+                      "attribution-linear"
+                    ]
+                  },
+                  {
+                    "id": "attribution-github",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "source": "github.1",
+                    "child": "github",
+                    "weight": 1
+                  },
+                  {
+                    "id": "github",
+                    "component": "Slot",
+                    "source": "github.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "GitHub"
+                  },
+                  {
+                    "id": "attribution-linear",
+                    "component": "Attribution",
+                    "displayName": "Linear",
+                    "source": "linear.1",
+                    "child": "linear",
+                    "weight": 1
+                  },
+                  {
+                    "id": "linear",
+                    "component": "Slot",
+                    "source": "linear.1",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Linear"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 32346
+    }
+  ]
+}

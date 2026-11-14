@@ -860,4 +860,12 @@ export const BEATS: BeatSpec[] = [
     title: 'PR list in v0.9.1',
     prompt: 'Show me the open pull requests on a2ui-project/a2ui that need review.',
   },
+  {
+    // Beat 5's question on the fleet spread over the six paths: GitHub answering on gRPC at A2A
+    // 1.0, Gmail on HTTP+JSON at A2A 1.0, Calendar on JSON-RPC at A2A 0.3 (task-20.12 decision 11).
+    beat: 36,
+    slug: 'temporal-merge-spread',
+    title: 'Temporal merge on the spread fleet',
+    prompt: TODAY,
+  },
 ];

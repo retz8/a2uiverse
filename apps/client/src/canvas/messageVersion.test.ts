@@ -136,6 +136,56 @@ describe('a recorded fragment from a v0.9.1-only app', () => {
   });
 });
 
+describe('a recorded merge over the fleet spread across the paths', () => {
+  it('beat 36: four fragments that reached the hub on four paths each land in their slot, in their own catalog, version and title', async () => {
+    // Recorded on 2026-11-14 (task-20.12 decision 11): GitHub answered on gRPC at A2A 1.0, Gmail
+    // on HTTP+JSON at A2A 1.0, Calendar on JSON-RPC at A2A 0.3 and Linear on HTTP+JSON at A2A 0.3,
+    // where a part's metadata, its mark among it, does not reach the hub.
+    const beat = getBeatFixture(36)!;
+    const fragments = beat.turns[0]!.batches.filter(
+      b => b.stamp?.role === 'fragment' && b.stamp.source !== 'shell',
+    );
+    const appOf = (source: string) => source.split('.')[0]!;
+    expect(fragments.map(b => appOf(b.stamp!.source!)).sort()).toEqual([
+      'calendar',
+      'github',
+      'gmail',
+      'linear',
+    ]);
+    const versionOf: Record<string, string> = {
+      github: 'v0.9.1',
+      calendar: 'v0.9.1',
+      gmail: 'v0.9',
+      linear: 'v0.9',
+    };
+    for (const batch of fragments) {
+      const app = appOf(batch.stamp!.source!);
+      const created = batch.messages.find(m => 'createSurface' in m) as
+        {createSurface: {surfaceId: string}} | undefined;
+      // Each fragment's paintMeta names the surface it creates, read by its key whatever its mark.
+      const meta = batch.messages.find(m => 'paintMeta' in m) as
+        {paintMeta: {surfaceId: string; title?: string}} | undefined;
+      expect(meta?.paintMeta.surfaceId).toBe(created?.createSurface.surfaceId);
+      expect(meta?.paintMeta.title).toBeTruthy();
+      const a2ui = batch.messages.filter(m => !('paintMeta' in m));
+      expect(new Set(a2ui.map(m => m.version))).toEqual(new Set([versionOf[app]]));
+    }
+
+    const {wiring, sent} = canvasAnswering(beat);
+    await wiring.sendUtterance(beat.prompt);
+    const runtime = wiring.viewed()!;
+    for (const batch of fragments) {
+      const source = batch.stamp!.source!;
+      const [catalogId] = Object.keys(batch.stamp!.builds ?? {});
+      await expect.poll(() => runtime.store.getState().placement.has(source)).toBe(true);
+      const {surfaceId} = runtime.store.getState().placement.get(source)!;
+      expect(runtime.processor.model.getSurface(surfaceId)?.defaultCatalog?.id).toBe(catalogId);
+    }
+    // Drawn, nothing reported: the question was the one message sent.
+    expect(sent).toHaveLength(1);
+  });
+});
+
 describe('a fragment in a version the platform does not speak', () => {
   it('is passed over: never drawn, never placed, nothing reported', async () => {
     const {wiring, sent} = canvasAnswering(fragmentIn('v1.0'));
