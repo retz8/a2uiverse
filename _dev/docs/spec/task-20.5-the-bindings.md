@@ -48,6 +48,8 @@ The limit holds for each interface the walk tries, and covers opening the connec
 
 A dispatch starts at the interface that last answered for the app. The walk starts over from the card's first spoken interface when the app's live card is fetched again, or when the remembered interface is not reached. A follow-up press and a cancel go to the remembered interface. The memory is the orchestrator's, in memory alone.
 
+*Amended by task 20.8 decision 4.* A dispatch to an account that holds a card of its own walks that card alone, and the interface that last answered is remembered for the account, on that card, its walk starting over when the account's card is fetched again.
+
 ### 6. The journal records the interfaces not reached
 
 The journal's dispatch record ([`types.ts`](../../../apps/orchestrator/src/agentsPool/types.ts)) keeps the A2A version and the binding of the interface the dispatch used (decision 5 of the [20.1 task spec](task-20.1-private-wire-and-dispatch.md)). Beside them it lists each interface tried before that one and not reached, in the order tried: its binding, its A2A version, and which case of decision 3 it was. When no interface is reached, the version and the binding of the interface used stay absent and the list says what was tried.

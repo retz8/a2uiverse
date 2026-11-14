@@ -103,6 +103,8 @@ A sign-in scheme the vault does not sign in with keeps today's tile, "Signing in
 
 *Amended by task 20.7 decisions 5, 6 and 8.* A signed card read as A2A 1.0 is checked with every fetch from its card URL, its signatures judged over the A2A SDK's canonical form of the card as served; a signed card read as written for A2A 0.3 is taken as an unsigned card is. The reading keeps a card's extended-card flag, and nothing uses it until 20.8.
 
+*Amended by task 20.8 decisions 1, 2 and 6.* A live card's extended-card flag, A2A 0.3's carried into it by the reading, is read: where it is set, the orchestrator and `stellify preview` ask for the card the agent serves each signed-in account, and that card stands in for the live card in how the account is reached and what it can do.
+
 ### 19. Every reader goes through the reading
 
 Beside the four processes, the readers are two scripts ([`dev-agents.mjs`](../../../scripts/dev-agents.mjs) and [`launch-preview.mjs`](../../../scripts/launch-preview.mjs)), the [registry snapshot](../../../packages/registry-snapshot/world.js) and the embedder's corpus text. The platform's own card needs no reading: the orchestrator already holds it as the A2A SDK's `AgentCard`.

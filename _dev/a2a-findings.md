@@ -1308,3 +1308,276 @@ A2UIVerse takes a key only from a key set on the card URL's own origin, `https` 
 ### Prior art
 
 Issue 2096 on `a2aproject/A2A`, "spec(§8.4.3): Agent Card signature verification permits signer-controlled trust root via jku", open since 2026-08-02, reports the same gap; it points to `a2aproject/a2a-go` pull request 368, merged on 2026-09-23, whose verifier takes its trust root from its own policy and never from the signer's `jku`. Searched on 2026-11-14 ("jku", "agent card signature key").
+
+
+## 20. The client hands back an extended card it has read, never the answer as served (a2a-js 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0. `Client.getAgentCard` (`src/client/multitransport-client.ts`) returns what the transport's `getExtendedAgentCard` returns, and each transport reads the answer before returning it: `AgentCard.fromJSON(rpcResponse.result)` in `src/client/transports/json_rpc_transport.ts`, `_sendRequest(..., AgentCard)` in `src/client/transports/rest_transport.ts`, the decoded message in `src/client/transports/grpc/grpc_transport.ts`, and `toCoreAgentCard(...)` in each of the three A2A 0.3 transports under `src/compat/v0_3/client/transports/`.
+
+**Severity:** interoperability, security. A signed extended card that carries a sign-in scheme cannot be verified from what the client hands back, by the SDK's own verifier included, and a caller that reads cards its own way cannot have the card as the agent wrote it.
+
+### Issue
+
+Section 3.1.11 of the A2A 1.0 specification answers Get Extended Agent Card with "A complete Agent Card object", and section 8.4.3 has a client "verify at least one signature before trusting an Agent Card". A signature covers the card as served, in its canonical JSON. `getAgentCard` hands back the in-memory `AgentCard`, and `canonicalizeAgentCard` given an in-memory card drops its sign-in schemes (issue 663), so the payload a verifier computes from it is not the one that was signed. `getAgentCard(options, verifySignature)` verifies the same in-memory card, and fails the same way. Over A2A 0.3 the transports also translate the card before handing it back, so a caller cannot apply its own reading of a 0.3 card either.
+
+### Reproduction
+
+Run on 2026-11-14 with `@a2a-js/sdk` 1.3.0 and `jose` 6.2.17. An agent answers `GetExtendedAgentCard` with a card that carries an `apiKey` scheme, signed over `canonicalizeAgentCard` of the card as served:
+
+```js
+// f20_repro.mjs, @a2a-js/sdk 1.3.0
+import {createServer} from 'node:http';
+import express from 'express';
+import {exportJWK, FlattenedSign, generateKeyPair, importJWK} from 'jose';
+import {AgentCard, canonicalizeAgentCard, verifyAgentCardSignature} from '@a2a-js/sdk';
+import {ClientFactory} from '@a2a-js/sdk/client';
+
+console.debug = () => {};
+const app = express();
+app.use(express.json());
+const server = createServer(app);
+await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+const url = `http://127.0.0.1:${server.address().port}/`;
+const card = {
+  name: 'Shop', description: 'a shop', version: '1.0.0',
+  supportedInterfaces: [{url, protocolBinding: 'JSONRPC', protocolVersion: '1.0'}],
+  capabilities: {extendedAgentCard: true},
+  securitySchemes: {key: {apiKeySecurityScheme: {location: 'header', name: 'X-Key'}}},
+  securityRequirements: [{schemes: {key: {list: []}}}],
+  skills: [{id: 'orders', name: 'Orders', description: 'Your orders', tags: []}],
+};
+const {privateKey, publicKey} = await generateKeyPair('ES256');
+const jws = await new FlattenedSign(new TextEncoder().encode(canonicalizeAgentCard(card)))
+  .setProtectedHeader({alg: 'ES256', typ: 'JOSE', kid: 'k1'})
+  .sign(privateKey);
+const signed = {...card, signatures: [{protected: jws.protected, signature: jws.signature}]};
+app.post('/', (req, res) => res.json({jsonrpc: '2.0', id: req.body.id, result: signed}));
+const jwk = await exportJWK(publicKey);
+const verifier = verifyAgentCardSignature(async () => importJWK(jwk, 'ES256'));
+const ok = card => verifier(card).then(() => 'verified', e => e.message);
+console.log('the answer as served:', await ok(signed));
+const client = await new ClientFactory().createFromAgentCard(AgentCard.fromJSON(card));
+const extended = await client.getAgentCard();
+console.log('what getAgentCard() hands back:', await ok(extended));
+console.log('getAgentCard(options, verifier):', await client.getAgentCard(undefined, verifier).then(() => 'verified', e => e.message));
+server.close();
+```
+
+Output:
+
+```text
+the answer as served: verified
+what getAgentCard() hands back: No valid signatures found on agent card.
+getAgentCard(options, verifier): No valid signatures found on agent card.
+```
+
+### Fix
+
+Hand back the answer as served beside the card read, for instance as `getAgentCard(options, verifier, {raw: true})` or a `getExtendedAgentCardJson` on each transport, and have `getAgentCard`'s own verifier run on the answer as served.
+
+A2UIVerse asks each transport directly and keeps the body of the answer through the fetch it hands the client (`keepingFetch` in `packages/smoke-transport/src/extendedCard.ts` in `retz8/a2uiverse`), reading the JSON-RPC result or the HTTP+JSON body with its own reading and checking a signature over it; on gRPC at A2A 1.0 it takes the JSON form of the message received, and on gRPC at A2A 0.3, where only the SDK's reading can be had, that reading. Its Backlog holds a line to drop this at the release that hands the answer back.
+
+### Prior art
+
+Issue 663 on `a2aproject/a2a-js` (open) reports `canonicalizeAgentCard` dropping the schemes of an in-memory card, the cause of the failure above; issue 705 (closed) the client caching an extended card before its signature passed. Neither asks for the answer as served. Searched on 2026-11-14 ("extended agent card", "getExtendedAgentCard", "getAgentCard").
+
+## 21. The two SDKs write an extended card over A2A 0.3 on HTTP+JSON in different JSON forms (a2a-js 1.3.0, a2a-python 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0: its A2A 0.3 HTTP+JSON server writes `GET /v1/card` as `AgentCard.toJSON(ToProto.agentCard(card))` (`src/compat/v0_3/server/express/rest_handler.ts`), the JSON form of A2A 0.3's protobuf, and its 0.3 client reads it as such (`LegacyRestTransport.getExtendedAgentCard`, `src/compat/v0_3/client/transports/rest_transport.ts`). `a2a-sdk` 1.3.0: its 0.3 layer writes the same answer with `model_dump(mode='json', exclude_none=True)` (`src/a2a/compat/v0_3/rest_handler.py`), A2A 0.3's JSON-schema form.
+
+**Severity:** interoperability. The JavaScript client throws on the Python server's extended card once the card names a sign-in scheme, and a reader of A2A 0.3's JSON-schema form refuses the JavaScript server's.
+
+### Issue
+
+A2A 0.3's section 3.2.3 has an HTTP+JSON transport "use JSON objects that are structurally equivalent to the core A2A data structures", and its section 7.10 answers `GET /v1/card` with an `AgentCard`. The core `AgentCard` of A2A 0.3 is the one its JSON schema defines, where a sign-in scheme is `{"type": "apiKey", "in": ..., "name": ...}`. The JavaScript server writes the JSON form of A2A 0.3's protobuf instead, where it is `{"apiKeySecurityScheme": {...}}` and an empty list is left out (a skill's `tags`, which the schema requires), and the JavaScript client reads only that form.
+
+### Reproduction
+
+Run on 2026-11-14 with `@a2a-js/sdk` 1.3.0, an agent answering in A2A 0.3's JSON-schema form, as `a2a-sdk` 1.3.0's 0.3 layer answers:
+
+```js
+// f21_repro.mjs, @a2a-js/sdk 1.3.0: its 0.3 HTTP+JSON client asking for the extended card of an
+// agent that answers GET /v1/card in A2A 0.3's JSON-schema form, as a2a-sdk 1.3.0's 0.3 layer does.
+import {createServer} from 'node:http';
+import express from 'express';
+import {AgentCard} from '@a2a-js/sdk';
+import {ClientFactory, RestTransportFactory} from '@a2a-js/sdk/client';
+
+const app = express();
+const server = createServer(app);
+await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+const url = `http://127.0.0.1:${server.address().port}`;
+const answer = {
+  name: 'Shop', description: 'a shop', version: '1.0.0', protocolVersion: '0.3.0',
+  url: `${url}/rest`, preferredTransport: 'HTTP+JSON', capabilities: {streaming: true},
+  defaultInputModes: ['text'], defaultOutputModes: ['text'],
+  skills: [{id: 'orders', name: 'Orders', description: 'Your orders', tags: ['orders']}],
+  securitySchemes: {key: {type: 'apiKey', in: 'header', name: 'X-Key'}},
+  security: [{key: []}],
+  supportsAuthenticatedExtendedCard: true,
+};
+app.get('/rest/v1/card', (_req, res) => res.json(answer));
+const card = AgentCard.fromJSON({
+  name: 'Shop', version: '1.0.0',
+  supportedInterfaces: [{url: `${url}/rest`, protocolBinding: 'HTTP+JSON', protocolVersion: '0.3'}],
+  capabilities: {extendedAgentCard: true}, skills: [],
+});
+const client = await new ClientFactory({
+  transports: [new RestTransportFactory({legacyCompat: {enabled: true}})],
+}).createFromAgentCard(card);
+await client.getAgentCard().then(
+  read => console.log('read:', JSON.stringify(read.securitySchemes)),
+  err => console.log(`${err.constructor.name}: ${err.message}`),
+);
+server.close();
+```
+
+Output:
+
+```text
+JsonRpcTransportError: Unsupported security scheme type
+```
+
+The other way, captured on 2026-11-14 by `scripts/capture-extended-cards.mjs` in `packages/smoke-transport` of `retz8/a2uiverse` against both servers: the JavaScript server's answer carries `"securitySchemes": {"key": {"apiKeySecurityScheme": {"location": "header", "name": "X-Scratch-Key"}}}`, which `parseLegacyAgentCard` refuses with "Unsupported v0.3 security scheme type: undefined"; the Python server's carries `{"key": {"type": "apiKey", "in": "header", "name": "X-Scratch-Key", ...}}`.
+
+### Fix
+
+Write and read `GET /v1/card` in A2A 0.3's JSON-schema form in `@a2a-js/sdk`'s 0.3 layer, as its 0.3 JSON-RPC layer already does for `agent/getAuthenticatedExtendedCard`.
+
+A2UIVerse reads the answer as served with its own reading, and where that reading refuses a card the answer names, at A2A 0.3, takes the SDK's own reading of it (`cardOf` in `packages/smoke-transport/src/dial.ts` in `retz8/a2uiverse`), with a Backlog line to drop it at the release that fixes this.
+
+### Prior art
+
+Issue 1418 on `a2aproject/a2a-python`, "Compat REST client drops security from the v0.3 extended agent card", closed on 2026-11-09, reports the same disagreement from the Python client's side: it parsed `GET /v1/card` as A2A 0.3's protobuf JSON while 0.3 servers "send the pydantic card JSON". Nothing on `a2aproject/a2a-js` reports it, searched on 2026-11-14 ("v1/card", "extended agent card", "getExtendedAgentCard").
+
+## 22. The 0.3 line answers the extended card's request over gRPC with the public card (a2a-python 0.3.26)
+
+**Component:** `a2a-sdk` 0.3.26, `src/a2a/server/request_handlers/grpc_handler.py`: `GetAgentCard` returns `self.agent_card`, through its `card_modifier`, and never the extended card; `src/a2a/server/apps/jsonrpc/jsonrpc_app.py` serves the extended card for `agent/getAuthenticatedExtendedCard`.
+
+**Severity:** spec conformance. A client of an agent on the 0.3 line that asks over gRPC never gets the extended card the same agent serves over JSON-RPC.
+
+### Issue
+
+A2A 0.3's section 7.10 maps `agent/getAuthenticatedExtendedCard` to the gRPC method `GetAgentCard` and the HTTP+JSON path `GET /v1/card`, the same operation on each transport, and its section 3.4 asks an agent serving several transports for "functionally equivalent" methods. `GrpcHandler` takes only the public card and a modifier of it, so on gRPC the operation answers the public card.
+
+### Reproduction
+
+Run on 2026-11-14 by `scripts/capture-extended-cards.mjs` in `packages/smoke-transport` of `retz8/a2uiverse`, against `scripts/serve_extended_card_v0_3.py`, an `a2a-sdk` 0.3.26 agent built with `A2AStarletteApplication(agent_card=card, http_handler=handler, extended_agent_card=extended)` and `GrpcHandler(card, handler)`, the extended card the public card with one skill more:
+
+```text
+a2a-sdk 0.3.26, JSONRPC: skills shop, lanterns
+a2a-sdk 0.3.26, GRPC: skills shop
+```
+
+### Fix
+
+Give `GrpcHandler` the extended card and its modifier, as `A2AStarletteApplication` takes them, and answer `GetAgentCard` with the extended card when the request carries a credential and `supports_authenticated_extended_card` is true. The 1.x line serves the extended card on gRPC through its 0.3 layer.
+
+A2UIVerse takes whatever card the answer holds: an agent on the 0.3 line over gRPC is served on its public card.
+
+### Prior art
+
+None found, searched on `a2aproject/a2a-python` on 2026-11-14 ("GetAgentCard grpc", "extended agent card", "extended_card_modifier").
+
+## 23. A refusal for sign-in on JSON-RPC arrives as a plain error with no status (a2a-js 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0, `src/client/transports/json_rpc_transport.ts`: an HTTP answer that is not a success is thrown as `new Error("HTTP error for <method>! Status: ...")`, the status only in the message.
+
+**Severity:** interoperability. A caller cannot tell a refusal for sign-in from any other failure without reading the message's words.
+
+### Issue
+
+Section 3.3.2 of the A2A 1.0 specification has an agent signal a missing or invalid credential with HTTP 401 on JSON-RPC and HTTP+JSON, and section 7.10 of A2A 0.3 names a 401 for the extended card's request. The JSON-RPC transport throws a plain `Error` with no own field, so the status is not available to the caller as a value.
+
+### Reproduction
+
+Run on 2026-11-14 with `@a2a-js/sdk` 1.3.0:
+
+```js
+// f23_repro.mjs, @a2a-js/sdk 1.3.0: a refusal for sign-in on JSON-RPC, through its own client.
+import {createServer} from 'node:http';
+import express from 'express';
+import {AgentCard} from '@a2a-js/sdk';
+import {ClientFactory} from '@a2a-js/sdk/client';
+
+const app = express();
+app.post('/', (_req, res) => res.status(401).set('WWW-Authenticate', 'Bearer').json({}));
+const server = createServer(app);
+await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+const url = `http://127.0.0.1:${server.address().port}/`;
+const client = await new ClientFactory().createFromAgentCard(
+  AgentCard.fromJSON({
+    name: 'Shop', version: '1.0.0',
+    supportedInterfaces: [{url, protocolBinding: 'JSONRPC', protocolVersion: '1.0'}],
+    capabilities: {extendedAgentCard: true}, skills: [],
+  }),
+);
+await client.getAgentCard().catch(err =>
+  console.log(`${err.constructor.name} (${Object.keys(err).join(', ') || 'no own fields'}): ${err.message}`),
+);
+server.close();
+```
+
+Output:
+
+```text
+Error (no own fields): HTTP error for GetExtendedAgentCard! Status: 401 Unauthorized. Response: {}
+```
+
+### Fix
+
+Throw an error carrying the status as a field, as the HTTP+JSON transport's `RestTransportError` subclasses carry `statusCode`, or a typed error for 401.
+
+A2UIVerse hands the client a fetch that turns an HTTP 401 into an error of its own before the transport sees it (`answeringFetch` in `packages/smoke-transport/src/answers.ts` in `retz8/a2uiverse`).
+
+### Prior art
+
+Issue 317 on `a2aproject/a2a-js`, "Passthrough http status code in error", is closed; in 1.3.0 the JSON-RPC transport still throws the status in the message alone. Searched on 2026-11-14 ("401", "status code error").
+
+## 24. The extended card's handler makes no authentication check of its own (a2a-python 1.3.0)
+
+**Component:** `a2a-sdk` 1.3.0, `src/a2a/server/request_handlers/default_request_handler.py`, `on_get_extended_agent_card`: it checks the card's `capabilities.extended_agent_card`, then serves `extended_agent_card` through `extended_card_modifier`, whatever `context.user.is_authenticated` says.
+
+**Severity:** security. An agent that configures an extended card and no modifier serves it to any caller, signed in or not.
+
+### Issue
+
+Section 13.3 of the A2A 1.0 specification says the Get Extended Agent Card operation "MUST require authentication", and section 3.1.11 that "The client MUST authenticate the request". The handler leaves the check to the agent's modifier and serves the configured card when there is none. The `@a2a-js/sdk` 1.3.0 server, given a card rather than a function, serves it only when `context.user?.isAuthenticated` and the public card otherwise (`src/server/request_handler/default_request_handler.ts`).
+
+### Reproduction
+
+Run on 2026-11-14 by `scripts/capture-extended-cards.mjs` in `packages/smoke-transport` of `retz8/a2uiverse`: the request for the extended card of `scripts/serve_extended_card.py`, an `a2a-sdk` 1.3.0 agent whose card asks a key, sent with no credential at all, is answered with a card (`asked with no credential: served`), never refused.
+
+### Fix
+
+Refuse the request when `context.user.is_authenticated` is false, with the binding's refusal for sign-in, unless the agent's modifier says otherwise, as `@a2a-js/sdk` does for a configured card.
+
+A2UIVerse sends the account's credential with every such request and makes no use of a card served to a caller that sent none.
+
+### Prior art
+
+Issue 657 on `a2aproject/a2a-python` (open) asks to pass the call context to the modifier of the unauthenticated card; nothing reports the missing check, searched on 2026-11-14 ("extended agent card", "authenticated extended card authentication", "extended_card_modifier").
+
+## 25. Both servers answer gRPC `FAILED_PRECONDITION` for an operation not supported (a2a-js 1.3.0, a2a-python 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0, `src/errors/grpc/grpc.ts`: `UnsupportedOperationError` (and `VersionNotSupportedError`) mapped to `GRPC_STATUS_CODE.FAILED_PRECONDITION`. `a2a-sdk` 1.3.0, `src/a2a/server/request_handlers/grpc_handler.py`, `_ERROR_CODE_MAP`: the same.
+
+**Severity:** spec conformance. A client that reads gRPC statuses by section 5.4 of the A2A 1.0 specification takes these answers for a failed precondition.
+
+### Issue
+
+Section 5.4 of the A2A 1.0 specification maps `UnsupportedOperationError` and `VersionNotSupportedError` to `UNIMPLEMENTED`, and `ExtendedAgentCardNotConfiguredError` to `FAILED_PRECONDITION`. Both servers answer `FAILED_PRECONDITION` for all three, so the status alone does not tell an agent that serves no extended card from one that has not configured it.
+
+### Reproduction
+
+Run on 2026-11-14 by `scripts/capture-extended-cards.mjs` in `packages/smoke-transport` of `retz8/a2uiverse`: the request for the extended card of an agent whose card does not say it serves one, over gRPC at A2A 1.0 and 0.3, to the `@a2a-js/sdk` 1.3.0 server and to `a2a-sdk` 1.3.0. Each answered status 9, `FAILED_PRECONDITION`, `@a2a-js/sdk` and `a2a-sdk`'s 1.0 handler with an `ErrorInfo` naming `UNSUPPORTED_OPERATION`, and `a2a-sdk`'s 0.3 layer with the details `UnsupportedOperationError: The agent does not support authenticated extended cards` and no `ErrorInfo`.
+
+### Fix
+
+Map `UnsupportedOperationError` and `VersionNotSupportedError` to `UNIMPLEMENTED`, as section 5.4 has them.
+
+A2UIVerse reads an answer that the agent has no extended card by the `ErrorInfo` reason, the JSON-RPC code, the reason in an HTTP answer's body, or the error's name in a gRPC status's details, and never by the status alone (`noneAnswered` in `packages/smoke-transport/src/extendedCard.ts` in `retz8/a2uiverse`).
+
+### Prior art
+
+Issue 1166 on `a2aproject/a2a-python`, "grpc_handler maps 3 A2A errors to FAILED_PRECONDITION instead of UNIMPLEMENTED", closed on 2026-09-16; its fix, pull request 1167, is open, and 1.3.0 still answers `FAILED_PRECONDITION`. Nothing on `a2aproject/a2a-js` reports it, searched on 2026-11-14 ("FAILED_PRECONDITION", "UNIMPLEMENTED", "grpc status").

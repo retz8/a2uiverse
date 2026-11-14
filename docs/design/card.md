@@ -47,6 +47,7 @@ That raises five problems:
 3. **An agent changes how it is reached without changing what it does.** When Shop B starts serving its card in A2A 1.0's shape, nothing about the app is new. Nobody should be asked to update it or to publish a new version.
 4. **Some agents cannot be reached at all.** A card listing only a binding the platform does not speak describes an app that would fail on every question.
 5. **A card can be signed.** A2A 1.0 lets an agent sign its card, so a client can tell the card it holds is the one the agent wrote. A signature that does not check out means the card was changed on the way or the agent's keys moved, and the platform should not act on that card.
+6. **A signed-in person can be told more.** An agent can serve each signed-in caller a card of its own, the extended card, with skills or ways in the public card does not show. Taken at its word, that card could also name new permissions or new catalogs no one consented to.
 
 A2UIVerse's answer is one small package, [`@a2uiverse/card`](../../packages/card/README.md), that every process goes through.
 
@@ -63,7 +64,7 @@ flowchart LR
 
 A signed card is checked inside the fetch, before anything keeps or reads it.
 
-## Six ideas to hold on to
+## Seven ideas to hold on to
 
 ### 1. A card is kept as its agent served it
 
@@ -88,6 +89,10 @@ A card that lists no interface the platform speaks is refused at publish, at ins
 ### 6. A signed card is checked every time it is fetched
 
 When a card carries signatures, the fetch checks them against the keys the agent publishes at its own origin, the scheme, host and port of its card URL. One signature passing is enough. A card none of whose signatures passes is refused at the same doors as an agent the platform cannot reach. A pass says the card is intact against the keys at its agent's own origin; it says nothing about who the publisher is. An unsigned card is taken as before, and so is a signed card written for A2A 0.3.
+
+### 7. A signed-in account can have a card of its own
+
+When a live card says its agent serves an extended card, the orchestrator asks for it with each account's credential, and the card that comes back is that account's own. It decides how the account is reached and what the Router and the Planner know it can do. It never decides sign-in, catalogs or the name on screen: those stay what the install fixed. It lives in the orchestrator's memory and nowhere else.
 
 ## One card, end to end
 
@@ -219,6 +224,78 @@ A key set that does not answer within the time limit is different: it is the car
 Since the reading reads a 1.0 card with the same function of the A2A SDK that makes the payload, everything the platform reads from a signed card is inside what its signature covers. A field outside A2A 1.0's schema is outside the signature, and the reading does not read it either.
 
 A signature is set aside when two cards are compared (see the next section): a card that gains, loses or changes a signature and nothing else is the same card, so re-signing is never an update.
+
+### An account's own card
+
+Say Shop B serves its members more than its public card shows. Alice connected her key to Shop B, and Shop B's live card says so in its capabilities:
+
+```json
+"capabilities": {"extendedAgentCard": true}
+```
+
+A card written for A2A 0.3 says it as `"supportsAuthenticatedExtendedCard": true`, and the reading carries that into the same field. `servesExtendedCard(card)` reads it.
+
+**When it is fetched.** The orchestrator asks for Alice's card, with her key, whenever the run takes Shop B's live card, and gives it what remains of that fetch's time limit; a fetch at a sign-in gets 5 s of its own:
+
+| The live card fetched at                               | The account's card gets      |
+| ------------------------------------------------------ | ---------------------------- |
+| boot, the update check, an install over the app        | what remains of 10 s         |
+| a tile's Retry or Update                               | what remains of 5 s          |
+| a sign-in for the account completing (none fetched)    | 5 s                          |
+
+Whatever waits on the live card waits on the accounts' cards too: boot, the update check's answer, a Retry's dispatch. A sign-in's outcome is told to the canvas only once Alice's card has come back or the 5 s ran out, so the slot's resume already dials from it. Nothing is on a timer, and no caching header is read. A live card that stops saying it serves an extended card drops every account's card; an app whose live card could not be fetched has none asked for.
+
+**How it is asked for.** The request is A2A's Get Extended Agent Card, sent over the live card's spoken interfaces by the walk, with the account's credential as a dispatch carries it on each binding. It moves on only from an interface never reached. The operation's name depends on the interface:
+
+| Binding  | A2A 1.0                    | A2A 0.3                               |
+| -------- | -------------------------- | ------------------------------------- |
+| JSON-RPC | `GetExtendedAgentCard`     | `agent/getAuthenticatedExtendedCard`  |
+| HTTP+JSON | `GET /extendedAgentCard`  | `GET /v1/card`                        |
+| gRPC     | `GetExtendedAgentCard`     | `GetAgentCard`                        |
+
+The account's own card is never used to fetch its replacement: the fetch always walks the live card.
+
+**The answer as served.** The A2A SDK's client hands back a card it has already read (finding 20 in `_dev/a2a-findings.md`), and an extended card signed with a sign-in scheme fails every check once read that way. So `Dialer.fetchExtendedCard` asks each transport directly and keeps the body of the answer through the fetch it hands the client: the JSON-RPC `result`, or the HTTP+JSON body, is the card as served. On gRPC at A2A 1.0 the transport hands back the message received, and its JSON form is the card as served. Two cases take the A2A SDK's own reading instead, at A2A 0.3: on gRPC, where nothing else can be had, and on HTTP+JSON when the card the answer names does not read. The A2A SDK's own server writes that answer in the JSON form of A2A 0.3's protobuf, where Python's A2A SDK writes A2A 0.3's JSON-schema form (finding 21), and the reading takes only the second.
+
+**Read and checked.** `takeExtendedCard` gives the answer to the reading, and a signed card to the check, against key sets on Shop B's card URL's own origin: an account's card has no URL of its own. A card that passes, an unsigned card and a card written for A2A 0.3 are taken.
+
+**How a fetch ends.**
+
+| What the agent did                                                     | Alice is served on                     |
+| ---------------------------------------------------------------------- | -------------------------------------- |
+| served a card that reads, and passes where signed                      | that card, from now on                 |
+| said it has none: `ExtendedAgentCardNotConfiguredError` or `UnsupportedOperationError` | the live card; a card held is dropped |
+| refused her key, did not answer in time, answered no card that reads, or signed one that does not pass | whatever she was served before |
+
+"Has none" is read by the reason in the error's details, the JSON-RPC code, the reason in an HTTP answer's body, or the error's name in a gRPC status's details, never by a gRPC status alone: both SDKs' servers answer `FAILED_PRECONDITION` for errors A2A 1.0 maps elsewhere (finding 25). A refused key does not mark the account to sign in again; the next dispatch finds that out as it always has.
+
+**What it stands in for.** A dispatch to `shop-b.1` walks Alice's card alone, its interface that last answered remembered for her account, and the live card's interfaces are never tried for her. An account's card that lists no interface the platform speaks gives that slot the tile "This app now connects in a way A2UIVerse can't use.", and Retry fetches the live card and then her card again. The Router ranks Shop B by its best-matching card, the live one or any account's. The Planner sees, under her source, what her card adds:
+
+```
+- appId: shop-b
+  sources:
+    - shop-b.1 · Alice
+      this account's own card adds:
+        name: Shop B · members
+        skills:
+          - Members' prices: Prices for members (e.g. what do members pay for the Lumen Z6)
+    - shop-b.2 · Bob
+  name: Shop B
+```
+
+`accountCardAdds` computes those lines: the name and the description where they differ, and each skill the live card does not hold the same. The installed-apps reader gives the Planner the same under `ownCardAdds`.
+
+What her card says of sign-in, catalogs and the name on screen is never read. The vault judges her access against the card as installed, the entitlement stays what the install fixed, and the attribution keeps Shop B's name. A new permission comes through the in-task request for more access, and a new catalog through a publish and an update.
+
+**Kept nowhere.** Her card is held in the orchestrator's memory until the next fetch replaces it, and goes when she signs out or Shop B is uninstalled. It is not written to the registry's file, the vault's file or the journal, and not sent to the client or the marketplace. After a restart with Shop B's agent down, she is served on the stored card until a fetch brings hers. The journal writes a line of kind `accountCard` for each fetch made, never the card:
+
+```json
+{"kind": "accountCard", "appId": "shop-b", "source": "shop-b.1", "fetch": "signIn", "binding": "JSONRPC", "a2aVersion": "1.0", "outcome": "taken"}
+```
+
+A dispatch over her card adds `accountCard: true` and the address it went to, `url`, to its record.
+
+**At `stellify preview`.** When the live card has the flag and the publisher gave a credential, the preview asks for the publisher's account's card in the same way and walks it with its request. The terminal says the card was read, notes each sign-in scheme, scope or catalog id it names that the live card lacks, says when the agent served none and the preview went ahead on the live card, and stops with a finding when the card lists no interface the platform speaks. The marketplace holds no credential and never asks for an extended card.
 
 ### Choosing the interface
 
@@ -396,13 +473,17 @@ The reading adds about 32 kB to the client's bundle (7 kB gzipped), measured on 
 | The payload is the A2A SDK's canonical form; the rules are the platform's | Both A2A 1.0 signers agree with it, and the reading and the payload come from one function | The platform keeps its own list of algorithms and its own key set fetch beside the SDK's verifier         |
 | A signature on a card written for A2A 0.3 is not judged           | Every 0.3 agent composes as before; no 0.3 signer agrees with a 1.0 verifier              | A signed 0.3 card gets nothing from its signature                                                                  |
 | The check runs with every fetch, nothing remembered               | A key taken out of a key set stops passing at once; no cache to go stale                  | Each fetch of a signed card costs one more request, and a stored copy is never checked again                       |
+| An account's card decides how it is reached and what it can do, never sign-in or catalogs | No permission or catalog arrives without a publish gate or a consent card | An agent cannot widen an account's access through its card alone; it asks in the task, or publishes |
+| An account's card is fetched on the live card's schedule, held in memory alone | No timer, no stale copy at rest, nothing of it reaches the client or the marketplace | Each fetch of the live card costs one more request per account, and a restart forgets the cards until the next fetch |
+| The answer is read as served, around the A2A SDK's client          | The card's one reading and the check apply to an extended card as to a public one         | Two places read around the A2A SDK (findings 20, 21), each a Backlog line to drop at the release that fixes it |
 
 ## Known limits
 
 1. Toward an agent on A2A 0.3 over HTTP+JSON or gRPC, the A2A SDK drops every part's `metadata`, both ways: a mark in `metadata.mimeType` does not arrive (`_dev/a2a-findings.md` 9). The platform reads a part by what it holds and carries no patch.
 2. A gRPC channel the orchestrator opens stays open for the run, one for each interface it has sent to.
-3. A card's extended-card flag is read and kept, and nothing uses it.
-4. A pass says nothing about who the publisher is: a publisher's identity is not verified (`SPEC.md` section 17, out of scope).
+3. A pass says nothing about who the publisher is: a publisher's identity is not verified (`SPEC.md` section 17, out of scope).
+4. An agent on Python's A2A SDK 0.3 line answers the extended card's request over gRPC with its public card (finding 22), so an account reached that way is served on the public card.
+5. At A2A 0.3, over gRPC always and over HTTP+JSON for the A2A SDK's own servers, an account's card is the A2A SDK's reading of the answer, not the answer as served.
 
 ## Trying it without a model
 
@@ -441,6 +522,10 @@ pnpm --filter @a2uiverse/smoke-transport test
 | The reading, a device-code flow on a 0.3 card among it | [`packages/card/src/readCard.ts`](../../packages/card/src/readCard.ts)                                                                                                                                          |
 | The fetch                                           | [`packages/card/src/liveCard.ts`](../../packages/card/src/liveCard.ts)                                                                                                                                             |
 | The check of a signed card                          | [`packages/card/src/signatures.ts`](../../packages/card/src/signatures.ts)                                                                                                                                         |
+| The flag, what an account's card adds, its sign-in beyond the live card's | [`packages/card/src/accountCard.ts`](../../packages/card/src/accountCard.ts) |
+| The extended card's request, its answer as served, how it ends | [`packages/smoke-transport/src/dial.ts`](../../packages/smoke-transport/src/dial.ts), [`extendedCard.ts`](../../packages/smoke-transport/src/extendedCard.ts) |
+| Each account's card: when it is fetched, how long it is held | [`apps/orchestrator/src/registry/accountCards.ts`](../../apps/orchestrator/src/registry/accountCards.ts) |
+| The extended cards captured from real servers, and how | [`packages/smoke-transport/test/fixtures`](../../packages/smoke-transport/test/fixtures/README.md), [`packages/smoke-transport/scripts`](../../packages/smoke-transport/scripts) |
 | Spoken interfaces, the card to dial, the finding    | [`packages/card/src/interfaces.ts`](../../packages/card/src/interfaces.ts)                                                                                                                                         |
 | The same-card test                                  | [`packages/card/src/sameCard.ts`](../../packages/card/src/sameCard.ts)                                                                                                                                             |
 | Sign-in requirements and the order they are followed in | [`packages/card/src/requirements.ts`](../../packages/card/src/requirements.ts)                                                                                                                                 |
@@ -477,3 +562,5 @@ pnpm --filter @a2uiverse/smoke-transport test
 | Key set         | The JSON Web Key Set a signature's `jku` names, holding the agent's public keys by `kid`                                  |
 | Origin          | A URL's scheme, host and port together: a key set must share the card URL's                                              |
 | Pass            | A signature the check verifies; a card passes when one of its signatures does                                            |
+| Extended card   | The card an agent serves a signed-in caller through A2A's Get Extended Agent Card                                         |
+| Account's card  | The extended card the orchestrator holds for one account, in its memory alone                                             |
