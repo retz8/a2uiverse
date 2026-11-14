@@ -648,3 +648,129 @@ A2UIVerse's dispatch and its smoke request end an answer at auth-required when t
 ### Prior art
 
 No issue or pull request on `a2aproject/A2A` reports the three sentences disagreeing, searched on 2026-11-13.
+
+## 9. Toward an agent on A2A 0.3 over HTTP+JSON and gRPC, the client drops every part's metadata, both ways (a2a-js 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0, its A2A 0.3 layer on HTTP+JSON and gRPC (`LegacyRestTransport` and `LegacyGrpcTransport`, `dist/client/transports/grpc/index.js` and `dist/client/index.js`). Its codec for A2A 0.3's `Part` holds one field, `part`, the oneof of `text`, `file` and `data`, as `specification/grpc/a2a.proto` at A2A `v0.3.0` defines it. The field `google.protobuf.Struct metadata = 4` was added to that `Part` on 2025-09-03 (A2A commit `a8b45dcc`, pull request 1004, fixing issue 1005), after `v0.3.0`. Python's `a2a-sdk` carries it on its 0.3 `Part`, at 0.3.26 and in the 0.3 layer of 1.3.0.
+
+**Severity:** interoperability. On these two paths a part's `metadata` never reaches the agent and never reaches the caller, while JSON-RPC carries it both ways. A mark in `metadata.mimeType`, which A2UI's extension specification requires on an A2UI part, does not arrive, and neither does the flag the 0.3 layers set when they wrap a list in `data`.
+
+### Issue
+
+A2A 0.3 over JSON-RPC carries a part's `metadata` (the 0.3 JSON schema's `Part` has it), and so does A2A 1.0 on every binding. The client's 0.3 layer writes and reads HTTP+JSON and gRPC with a codec generated from a proto that predates the field, so it drops it in both directions.
+
+The flag is lost with it. Both SDKs' 0.3 layers wrap a `data` value that is not an object as `{value: ...}` and set `data_part_compat` in the part's metadata, and a reader unwraps the value by that flag. Over HTTP+JSON and gRPC at A2A 0.3 the client gets the wrapped object with no flag, so a list in one part from Python's `a2a-sdk` arrives as `{value: [...]}`.
+
+### Reproduction
+
+Run on 2026-11-14 by the client of `@a2a-js/sdk` 1.3.0 against a scratch agent on Python's `a2a-sdk` 1.3.0, which answers both A2A versions on the three bindings, its 0.3 layer on. The agent is `packages/smoke-transport/scripts/serve_a2ui.py` in `retz8/a2uiverse`, and the wires are under `packages/smoke-transport/test/fixtures/`.
+
+1. A press sent with `metadata: {mimeType: 'application/a2ui+json'}` and the same `mediaType`, echoed back by the agent as it held the parts:
+
+   | Path | On the wire the client wrote | What the agent held |
+   | --- | --- | --- |
+   | HTTP+JSON at A2A 1.0 (`python-http+json-1.0-echo.json`) | `metadata` and `mediaType` | both |
+   | HTTP+JSON at A2A 0.3 (`python-http+json-0.3-echo.json`) | `{"data": {"data": {...}}}`, no `metadata` | no `metadata` |
+   | gRPC at A2A 1.0, run live | | both |
+   | gRPC at A2A 0.3, run live | | no `metadata` |
+   | JSON-RPC at A2A 0.3 (`python-0.3-echo.json`) | `metadata` | `metadata` |
+
+2. A list in one part: over HTTP+JSON at A2A 0.3 (`python-http+json-0.3-list.json`) the agent writes `{"data": {"data": {"value": [...]}}, "metadata": {"data_part_compat": true, "mimeType": "application/a2ui+json"}}`, and the client hands its caller `{value: [...]}` with no metadata. Over gRPC at A2A 0.3, run live, the same. Over JSON-RPC at A2A 0.3 the client unwraps it to the bare list.
+
+The same holds against the servers of `@a2a-js/sdk` 1.3.0 and 0.3.14: a part's metadata reaches an agent on A2A 1.0 on every binding and on A2A 0.3 over JSON-RPC alone (`packages/smoke-transport/src/dial.test.ts`).
+
+### Fix
+
+Carry `metadata = 4` on the 0.3 layer's `Part`, as Python's `a2a-sdk` does, so A2A 0.3 over HTTP+JSON and gRPC carries what JSON-RPC carries.
+
+A2UIVerse carries no patch for it: its readers read an A2UI part by what it holds, its one reading takes an object holding `value` and nothing else, `value` a list, as that list, and the agents it composes read a press by its content.
+
+### Prior art
+
+No issue or pull request on `a2aproject/a2a-js` reports it, searched on 2026-11-14. Issue 536 (closed) made the 0.3 layer wrap a `data` value that is not an object instead of throwing; the wrap's flag is the metadata this finding loses.
+
+## 10. Neither A2A version names the gRPC metadata key a credential rides under (A2A 0.3, 1.0)
+
+**Component:** `a2aproject/A2A` at tag `v1.0.0`, `docs/specification.md`, section 7.3 (Client Authentication Process) and section 10.2 (Service Parameter Transmission); at tag `v0.3.0`, the same document.
+
+**Severity:** specification gap. A client and an agent on gRPC agree on where a credential rides only by convention, and for an `apiKey` scheme no convention is written down.
+
+### Issue
+
+Section 7.3 has a client send its credentials "in protocol-appropriate headers or metadata for every A2A request", and names no header or key. Section 10.2 has service parameters ride as gRPC metadata keys, "automatically converted to lowercase by gRPC". A credential is not a service parameter, and no sentence says it rides the same way.
+
+The one place a key appears is the Go example in section 10.2, whose `metadata.Pairs` writes `"authorization", "Bearer token"` beside `a2a-version` and `a2a-extensions`. It is an example, and it covers a bearer token alone. An `apiKey` scheme names an HTTP header (`location: header`, `name`), and nothing says whether that name becomes a gRPC metadata key, though some header names cannot be one: gRPC over HTTP/2 allows `0-9 a-z _ - .` in a key, reserves the prefix `grpc-`, and keeps the suffix `-bin` for binary values. A2A 0.3's specification says less: its gRPC binding names metadata only as a feature gRPC has.
+
+### Reproduction
+
+A reading, not a run. A2UIVerse sends the credential on gRPC as one plain metadata entry under the scheme's header name in lowercase (`authorization: Bearer <token>`, or the `apiKey` header's name), and passes over a gRPC interface whose `apiKey` header cannot be a key (`packages/smoke-transport/src/credentialOnBinding.ts` in `retz8/a2uiverse`). The servers of `@a2a-js/sdk` 1.3.0 and of Python's `a2a-sdk` 1.3.0 receive it there.
+
+### Fix
+
+Say in section 7.3, or in each binding's section, where a credential rides: on gRPC, as metadata under the scheme's header name in lowercase, and what an `apiKey` scheme whose header name is no legal key means for a gRPC interface.
+
+### Prior art
+
+No issue or pull request on `a2aproject/A2A` reports it, searched on 2026-11-14. Issue 2374 (open) reports that the 1.0 specification's examples send `A2A-Version: 0.3`, the section 10.2 example among them.
+
+## 11. The specification's example card lists a gRPC interface at a URL the A2A SDK cannot dial (A2A 0.3, 1.0; a2a-js 1.3.0)
+
+**Component:** `a2aproject/A2A`, `docs/specification.md`: the example card's gRPC interface `https://georoute-agent.example.com/a2a/grpc`, at tag `v1.0.0` in `supportedInterfaces` and at tag `v0.3.0` in `additionalInterfaces`. `@a2a-js/sdk` 1.3.0's `GrpcTransportFactory`, which hands an interface's URL to `@grpc/grpc-js` as the target, untouched.
+
+**Severity:** interoperability. A card written as the specification writes one cannot be dialed over gRPC by the A2A SDK, and the specification says nothing of how a gRPC interface's URL is spelled.
+
+### Issue
+
+The specification's example writes a gRPC interface as an `https://` URL with a path. The A2A SDK's own sample, `src/samples/agents/multi-transport-agent/index.ts` in `a2aproject/a2a-js` at `v1.3.0`, writes `localhost:${GRPC_PORT}`, a bare `host:port`. `@grpc/grpc-js` reads a target with a scheme it has no resolver for as a DNS name, so the URL of the example fails to resolve. A gRPC target has no path: a gRPC call's path is `/<package>.<Service>/<Method>`.
+
+The SDK also dials a gRPC interface without TLS unless its caller hands it channel credentials, whatever the URL's scheme says.
+
+### Reproduction
+
+Run on 2026-11-14 with `@a2a-js/sdk` 1.3.0 and `@grpc/grpc-js` 1.14.7, a gRPC server of `@a2a-js/sdk` listening on `127.0.0.1:<port>`: a card listing that interface as `127.0.0.1:<port>` is dialed, and the same interface listed as `http://127.0.0.1:<port>`, `http://127.0.0.1:<port>/a2a/grpc` or `https://127.0.0.1:<port>/a2a/grpc` fails with `gRPC error for sendStreamingMessage: 14 Name resolution failed for target dns:http://127.0.0.1:<port>/a2a/grpc`.
+
+### Fix
+
+In the specification, say how a gRPC interface's URL is spelled and what its scheme means for TLS. In the SDK, read both spellings: a URL with a scheme handed to `@grpc/grpc-js` as its host and port, TLS for `https://`.
+
+A2UIVerse reads both spellings: it hands the A2A SDK `host:port`, the path left out, dials `https://` with TLS and `http://` without, and a bare `host:port` with TLS unless its host is the local machine (`packages/smoke-transport/src/address.ts` in `retz8/a2uiverse`).
+
+### Prior art
+
+No issue or pull request on `a2aproject/A2A` or `a2aproject/a2a-js` reports it, searched on 2026-11-14.
+
+## 12. A card written for A2A 0.3 is read with its further interfaces at a version it never names (a2a-js 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0, `src/compat/v0_3/translate/agent_card.ts` at tag `v1.3.0`, reached through `parseLegacyAgentCard` in `@a2a-js/sdk/compat/v0_3/client`: `toCoreAgentCard` gives the card's own URL `compat.protocolVersion || PROTOCOL_VERSION_0_3` (line 169), and `toCoreAgentInterface` gives every entry of `additionalInterfaces` the fixed `PROTOCOL_VERSION_0_3`, `"0.3"` (line 48).
+
+**Severity:** consistency. One card that names one A2A version reads as two. The client's choice of transport is unharmed, since the SDK counts every version from 0.3 up to 1.0 as A2A 0.3, but anything that records or compares an interface by its version sees the agent on `0.3.0` at one interface and on `0.3` at the next.
+
+### Issue
+
+In A2A 0.3 the version belongs to the card: `AgentCard.protocolVersion` is "The version of the A2A protocol this agent supports" (`specification/json/a2a.json` at `v0.3.0`), and an `AgentInterface` holds `transport` and `url` alone. The translator's own header says so: "`protocolVersion`: card-level in v0.3, per-interface in v1.0." Yet only the first interface takes the card's version. Each further one takes the constant, whatever the card says.
+
+### Reproduction
+
+Run on 2026-11-14 with `@a2a-js/sdk` 1.3.0:
+
+```js
+import {parseLegacyAgentCard} from '@a2a-js/sdk/compat/v0_3/client';
+const card = parseLegacyAgentCard({
+  name: 'Shop B', description: 'd', version: '0.2.0', protocolVersion: '0.3.0',
+  url: 'grpc.shop-b.example:443', preferredTransport: 'GRPC',
+  additionalInterfaces: [{url: 'http://localhost:12002', transport: 'JSONRPC'}],
+  capabilities: {}, defaultInputModes: ['text'], defaultOutputModes: ['text'], skills: [],
+});
+card.supportedInterfaces.map(i => [i.protocolBinding, i.protocolVersion]);
+// [["GRPC","0.3.0"],["JSONRPC","0.3"]]
+```
+
+### Fix
+
+In `toCoreAgentCard`, give every further interface the version the first one takes: `compat.protocolVersion || PROTOCOL_VERSION_0_3`.
+
+A2UIVerse's card reading does so after `parseLegacyAgentCard` returns (`packages/card/src/readCard.ts` in `retz8/a2uiverse`).
+
+### Prior art
+
+No issue or pull request on `a2aproject/a2a-js` reports it, searched on 2026-11-14. Pull request 504 brought the translation in, and issue 646 asks for its converters to be exported, neither touching the version.

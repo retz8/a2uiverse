@@ -36,6 +36,8 @@ Stellify's committed build keeps the A2A SDK external, pinned at exactly `1.3.0`
 
 The transport of the smoke request lives once, in a small workspace package of its own: one runner, which takes an optional credential header. The marketplace depends on the package. Stellify's committed build inlines it as it inlines the platform sdk, with the A2A SDK external as decision 2 has it. The judgement over what the transport saw stays in the marketplace and in Stellify, each with its own words. The orchestrator's dispatch is not part of the package.
 
+*Amended by task 20.5 decision 11.* The package also holds the dial, which the orchestrator's dispatch and the smoke runner both use: the walk over a card's interfaces, the time limit on opening a connection, the reading of a gRPC address, the credential on each binding and the refusal for sign-in on each. The orchestrator depends on the package; the dispatch's resend after a refresh, its relay and its journal stay in the orchestrator.
+
 ### 4. The package also holds the fetch of the live card
 
 The same package holds the fetch of the live card: the card fetched under its timeout and kept as its agent served it. The marketplace uses it at publish, at its refresh at boot and on a report. Stellify uses it for `preview`. Where the card's one reading lives stays with 20.3.

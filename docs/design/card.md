@@ -43,7 +43,7 @@ The same facts in A2A 1.0's shape:
 That raises four problems:
 
 1. **Two shapes, many readers.** If each reader understood both shapes by itself, each would get one of them slightly wrong.
-2. **A card can list several ways in.** A2A 1.0 lets an agent list several interfaces: more than one binding (JSON-RPC, HTTP+JSON, gRPC) and more than one A2A version. The platform has to choose one, and it does not speak all of them yet.
+2. **A card can list several ways in.** A2A 1.0 lets an agent list several interfaces: more than one binding (JSON-RPC, HTTP+JSON, gRPC) and more than one A2A version. The platform has to choose one, and the one it chooses may not answer.
 3. **An agent changes how it is reached without changing what it does.** When Shop B starts serving its card in A2A 1.0's shape, nothing about the app is new. Nobody should be asked to update it or to publish a new version.
 4. **Some agents cannot be reached at all.** A card listing only a binding the platform does not speak describes an app that would fail on every question.
 
@@ -56,7 +56,7 @@ flowchart LR
     F --> R["one reading"]
     S --> R
     R -->|"A2A SDK's AgentCard"| X["every reader:<br/>Router, vault, update check,<br/>Store, App Library"]
-    R --> I["interface taken"]
+    R --> I["the walk over the<br/>spoken interfaces"]
     I --> D["dispatch, smoke request"]
 ```
 
@@ -68,11 +68,11 @@ The registry (the orchestrator's record of installed apps) and the marketplace's
 
 ### 2. One reading gives every reader the same card
 
-`readCard(served)` returns the A2A SDK's own in-memory `AgentCard`, in A2A 1.0's shape, whichever shape the card was written in. It is built by two functions of `@a2a-js/sdk`: `parseLegacyAgentCard` for a card written for A2A 0.3, and `AgentCard.fromJSON` for every other. The platform has no card type of its own. Read, Shop B's card says the same thing as the second JSON above, with the SDK's defaults filled in.
+`readCard(served)` returns the A2A SDK's own in-memory `AgentCard`, in A2A 1.0's shape, whichever shape the card was written in. It is built by two functions of `@a2a-js/sdk`: `parseLegacyAgentCard` for a card written for A2A 0.3, and `AgentCard.fromJSON` for every other. The platform has no card type of its own, and changes one thing in what the SDK returns: every interface of a 0.3 card is at the A2A version the card names. Read, Shop B's card says the same thing as the second JSON above, with the SDK's defaults filled in.
 
-### 3. An interface is one way in, and the platform takes the first it speaks
+### 3. An interface is one way in, and the platform walks the ones it speaks
 
-Each entry of `supportedInterfaces` is an interface: a URL, a binding and an A2A version. `spokenInterfaces(card)` returns the ones the platform speaks, in the card's own order. The first is the interface taken. An agent is **reachable** when that list is not empty.
+Each entry of `supportedInterfaces` is an interface: a URL, a binding and an A2A version. `spokenInterfaces(card)` returns the ones the platform speaks, JSON-RPC, HTTP+JSON and gRPC on A2A 0.3 and 1.x, in the card's own order. A request goes to the first, and moves to the next only when the one it took was **never reached**: nothing there answered the request, so sending it elsewhere cannot deliver it twice. An agent is **reachable** when that list is not empty.
 
 ### 4. Two cards can be the same card
 
@@ -92,7 +92,7 @@ Shop B is published, installed and asked a question. Each step names the functio
 4. **The entry stores the card as served.** The index entry's `card` is the 0.3 JSON, untouched.
 5. **Install fetches and reads the same way.** The orchestrator's registry fetches the live card, reads it, and writes the served JSON into its record file.
 6. **Every reader takes the read card.** The Router embeds its name and skills, the AuthVault (the orchestrator's credential store) reads that it asks for a key in the header `X-Northlight-Key`, the App Library shows its name.
-7. **The dispatch dials the interface taken.** When a question goes to Shop B, the dispatch takes the first spoken interface from the card this run holds and hands the A2A SDK that card with that one interface listed.
+7. **The dispatch walks the spoken interfaces.** When a question goes to Shop B, the dispatch takes the first spoken interface of the card this run holds, opens a connection to it, and hands the A2A SDK that card with that one interface listed. Shop B lists one, so the walk has nowhere else to go.
 
 Later, Shop B's publisher moves the agent to A2A 1.0 and it serves the second JSON above with a 1.0 interface listed first. The next check fetches the new card, reads it, and finds the same catalog ids, the same version and the same sign-in: the app is up to date, and its dispatches now go to the 1.0 interface. The stored copies keep the older shape until Shop B is next published or installed over for another reason.
 
@@ -108,13 +108,17 @@ export function readCard(served: unknown): AgentCard {
   if (typeof (served as {name?: unknown}).name !== 'string') {
     throw new Error('not an agent card: no name');
   }
-  return isLegacyAgentCard(served) ? parseLegacyAgentCard(served) : AgentCard.fromJSON(served);
+  return isLegacyAgentCard(served)
+    ? atCardVersion(parseLegacyAgentCard(served))
+    : AgentCard.fromJSON(served);
 }
 ```
 
 `isLegacyAgentCard` is the A2A SDK's own test. A card counts as written for A2A 0.3 when it has no non-empty `supportedInterfaces` and has a top-level `url`, a field only 0.3 has, or a `protocolVersion` below 1.0. A card carrying both shapes is read as A2A 1.0.
 
-What the SDK's two functions drop, the reading drops, and what they refuse, the reading refuses. Three cases are known and each has a fixture under [`packages/card/test/fixtures`](../../packages/card/test/fixtures/README.md):
+A 0.3 card names its A2A version once, for the whole agent, and its `additionalInterfaces` name none. `parseLegacyAgentCard` gives the card's own URL that version and each further interface a fixed `0.3`, so Shop B serving gRPC at its own URL and JSON-RPC as a further interface would read as `0.3.0` and `0.3` (finding 12 in `_dev/a2a-findings.md`). `atCardVersion` gives every interface the version the first one has, so the journal and a publisher's notes spell the version as the card does.
+
+Apart from that version, what the SDK's two functions drop, the reading drops, and what they refuse, the reading refuses. Three cases are known and each has a fixture under [`packages/card/test/fixtures`](../../packages/card/test/fixtures/README.md):
 
 1. `parseLegacyAgentCard` throws on a 0.3 card with no `capabilities`, `defaultInputModes`, `defaultOutputModes` or `skills`, and on an OAuth scheme that declares no flow.
 2. The server of `@a2a-js/sdk` 1.3.0 serves its card in the SDK's in-memory form, where a sign-in scheme sits under `scheme.$case`. `AgentCard.fromJSON` does not read that form, so the scheme is dropped and the app reads as asking a sign-in the platform does not support.
@@ -138,7 +142,7 @@ The 10 s limits read the environment variable `A2UIVERSE_CARD_TIMEOUT_SECONDS`. 
 ### Choosing the interface
 
 ```ts
-export const SPOKEN_BINDINGS: readonly string[] = ['JSONRPC'];
+export const SPOKEN_BINDINGS: readonly string[] = ['JSONRPC', 'HTTP+JSON', 'GRPC'];
 
 export function spokenInterfaces(card: AgentCard): AgentInterface[] {
   return (card.supportedInterfaces ?? []).filter(
@@ -154,30 +158,65 @@ An interface is spoken when three things hold:
 
 1. It names a URL. A 0.3 card with no `url` reads to an interface with none.
 2. Its binding is on `SPOKEN_BINDINGS`, compared whatever its case, as the A2A SDK compares bindings.
-3. Its A2A version is from 0.3 up to but not including 1.0, or is 1.x. An interface naming no version counts as 0.3, as the A2A SDK reads it.
+3. Its A2A version is from 0.3 up to but not including 1.0, or is 1.x. An interface naming no version counts as 0.3, as the A2A SDK reads it. Every interface of a 0.3 card is at the card's own version.
 
-| The card lists                       | Spoken                 | Taken        |
-| ------------------------------------ | ---------------------- | ------------ |
-| JSON-RPC at 0.3.0                    | yes                    | that one     |
-| JSON-RPC at 1.0, then JSON-RPC at 0.3 | both                   | 1.0          |
-| JSON-RPC at 0.3, then JSON-RPC at 1.0 | both                   | 0.3          |
-| gRPC at 1.0, then JSON-RPC at 1.0    | the second             | JSON-RPC     |
-| gRPC at 1.0 and HTTP+JSON at 1.0     | none                   | unreachable  |
-| JSON-RPC at 2.0                      | none                   | unreachable  |
-| a binding of the agent's own         | none                   | unreachable  |
+| The card lists                          | Spoken | Tried first |
+| --------------------------------------- | ------ | ----------- |
+| JSON-RPC at 0.3.0                       | yes    | that one    |
+| JSON-RPC at 1.0, then JSON-RPC at 0.3   | both   | 1.0         |
+| JSON-RPC at 0.3, then JSON-RPC at 1.0   | both   | 0.3         |
+| gRPC at 1.0, then JSON-RPC at 1.0       | both   | gRPC        |
+| a binding of the agent's own, then gRPC | gRPC   | gRPC        |
+| JSON-RPC at 2.0                         | none   | unreachable |
+| a binding of the agent's own            | none   | unreachable |
 
-### Dialing the interface taken
+### Walking the interfaces
 
-The A2A SDK's client chooses an interface by itself when it is handed a whole card, and inside one binding it takes an A2A 1.0 interface over a 0.3 one whatever the card's order. So the platform chooses first:
+The **dial** is how the platform reaches an agent, written once in [`@a2uiverse/smoke-transport`](../../packages/smoke-transport/README.md) and used by the orchestrator's dispatch and by the smoke request behind publish and `stellify preview`. Say Shop B's card listed gRPC at A2A 1.0 first and its JSON-RPC interface second:
 
-```ts
-const [taken] = spokenInterfaces(card);
-const client = await factory.createFromAgentCard(cardToDial(card, taken));
+```mermaid
+flowchart TD
+    W["the card's spoken interfaces,<br/>the one remembered first"] --> C{"the credential<br/>can ride here?"}
+    C -->|no| P["passed over: credential"]
+    C -->|yes| O{"a connection opens<br/>within the limit?"}
+    O -->|no| N["not reached: no connection"]
+    O -->|yes| S["the request sent,<br/>its first step read"]
+    S -->|"not served here"| U["not reached: does not serve it"]
+    S -->|"anything else"| T["taken: the answer,<br/>a refusal for sign-in or a failure"]
+    P --> W
+    N --> W
+    U --> W
 ```
 
-`cardToDial` is the read card listing the one interface taken. The SDK then dials that interface, through its A2A 0.3 layer when the interface is on 0.3. The client factory is given a card resolver that resolves nothing and normalizes nothing: the SDK's own normalizing would read an in-memory card with sign-in schemes over again as JSON and drop the schemes.
+An interface is **never reached** in three cases, and the walk moves on from those alone:
 
-The journal's record of a dispatch holds the A2A version and the binding of the interface taken: `0.3.0` and `JSONRPC` for Shop B.
+1. No connection could be opened: the name did not resolve, the connection was refused, the TLS handshake failed, or the time limit passed. The limit is 5 s at a dispatch, where a person waits on the canvas, and 10 s at publish and `preview`. It covers opening the connection and nothing after it.
+2. What answered said the interface is not there: the A2A error for a version not supported, on any binding; the gRPC status `UNIMPLEMENTED`; an HTTP 404 or 405 carrying no A2A error, on JSON-RPC and HTTP+JSON; the JSON-RPC error -32601, "Method not found", which a server with no handler for the interface's A2A version answers, the two versions naming the send method differently.
+3. The interface cannot carry the credential: on gRPC, an `apiKey` header whose name is no legal metadata key.
+
+Everything else ends the walk where it stands: a refusal for sign-in, a stream that broke, a failed task, a timeout, the gRPC status `UNAVAILABLE`, HTTP 502, 503 and 504. The request may have reached the agent in each of those, so it is never sent to another interface.
+
+The dial opens a connection of its own before it hands the A2A SDK the request: a TCP connection, with the TLS handshake for an interface dialed with TLS, offering HTTP/2 for gRPC and HTTP/1.1 otherwise. That is the one place a time limit on opening alone can be had on all three bindings without patching the SDK, whose gRPC transport takes no channel options. The connection is closed once it opens, and the SDK opens its own for the request.
+
+The A2A SDK's client chooses an interface by itself when it is handed a whole card, and inside one binding it takes an A2A 1.0 interface over a 0.3 one whatever the card's order. So the dial hands it the read card listing the one interface it tries, through `cardToDial`. The SDK dials that interface, through its A2A 0.3 layer when the interface is on 0.3. The client factory is given a card resolver that resolves nothing and normalizes nothing: the SDK's own normalizing would read an in-memory card with sign-in schemes over again as JSON and drop the schemes.
+
+A gRPC interface's URL comes in two spellings: a bare `host:port`, as the A2A SDK's own sample agent writes it, and a URL with a scheme, as the A2A specification's example card writes it (`https://georoute-agent.example.com/a2a/grpc`). `@grpc/grpc-js` cannot resolve the second, so the dial hands the SDK `host:port`, the path left out. `https://` dials with TLS and `http://` without; a bare `host:port` dials with TLS unless its host is the local machine. A certificate is checked against the authorities Node trusts.
+
+The credential rides as the header the card's scheme names on JSON-RPC and HTTP+JSON. On gRPC it rides as one metadata entry under that name in lowercase: `authorization: Bearer <token>`, or the `apiKey` header's name with the key. The sign-in signal follows the binding: HTTP 401, or the gRPC status `UNAUTHENTICATED`, each treated as a 401 has always been.
+
+The orchestrator remembers, for each app, the interface that last answered, and a dispatch starts there. The memory lasts while the run holds that live card: a fetch of the card again, changed or not, starts the walk over from the first spoken interface, and so does the remembered interface not being reached. A cancel goes to the interface its request went to.
+
+The journal's record of a dispatch holds the A2A version and the binding of the interface used, `0.3.0` and `JSONRPC` for Shop B, and beside them each interface passed over: `notReached: [{binding: 'GRPC', a2aVersion: '1.0', why: 'connection'}]`. A publisher reads the same as a note on an accepted publish and on Stellify's terminal:
+
+```
+GRPC at A2A 1.0 (grpc.shop-b.example:443) was not reached: no connection could be opened; the request went to JSONRPC at A2A 0.3.0
+```
+
+When the walk reaches no interface, the slot fails as an agent that could not be reached, with Retry, and nothing new is said to the person. Publish is refused and `preview` captures nothing, with one finding:
+
+```
+no interface the card lists was reached: GRPC at A2A 1.0 (grpc.shop-b.example:443): no connection could be opened; JSONRPC at A2A 0.3.0 (http://localhost:12002): no connection could be opened
+```
 
 ### Telling whether two cards are the same
 
@@ -208,7 +247,7 @@ A card that says in A2A 1.0's shape something its 0.3 card could not say, such a
 The finding names what the card lists and what the platform speaks:
 
 ```
-the card lists no interface A2UIVerse speaks: it lists GRPC at A2A 1.0 and HTTP+JSON at A2A 1.0; A2UIVerse speaks JSONRPC at A2A 0.3 and 1.x
+the card lists no interface A2UIVerse speaks: it lists ACME-RPC at A2A 1.0; A2UIVerse speaks JSONRPC, HTTP+JSON and GRPC at A2A 0.3 and 1.x
 ```
 
 A card with no interface at all reads `the card lists no interface`. Nothing drawn for a person names a binding or a protocol version: the finding is the publisher's.
@@ -227,31 +266,36 @@ The reading adds about 32 kB to the client's bundle (7 kB gzipped), measured on 
 
 ## When things go wrong
 
-| What happens                                              | What the platform does                                                                                                      |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| The card URL does not answer in time                      | Publish and install are refused with "could not be fetched". At boot the app stays installed and unroutable                 |
-| The answer is not a card, or the A2A SDK refuses it       | One finding, "the card at … could not be read: …" with the SDK's own message, and nothing else runs                         |
-| A live card stops reading after install                   | The app is treated as one whose card could not be fetched: installed, unroutable, until a check reaches a card that reads   |
-| A stored card does not read                               | The orchestrator and the marketplace refuse to boot, naming the app and the reason                                          |
-| The marketplace hands the orchestrator a card that does not read | The update state is unknown, and the Store's search leaves the entry out                                             |
-| The card lists nothing the platform speaks                | The four doors above                                                                                                        |
+| What happens                                                     | What the platform does                                                                                                    |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| The card URL does not answer in time                             | Publish and install are refused with "could not be fetched". At boot the app stays installed and unroutable               |
+| The answer is not a card, or the A2A SDK refuses it              | One finding, "the card at … could not be read: …" with the SDK's own message, and nothing else runs                       |
+| A live card stops reading after install                          | The app is treated as one whose card could not be fetched: installed, unroutable, until a check reaches a card that reads |
+| A stored card does not read                                      | The orchestrator and the marketplace refuse to boot, naming the app and the reason                                        |
+| The marketplace hands the orchestrator a card that does not read | The update state is unknown, and the Store's search leaves the entry out                                                  |
+| The card lists nothing the platform speaks                       | The four doors above                                                                                                      |
+| No interface the card lists is reached                           | The slot fails as an agent not reached, with Retry; publish is refused and `preview` captures nothing, with one finding   |
 
 ## Design decisions
 
-| Decision                                                        | What it buys                                                                                   | What it costs                                                                                                          |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| The reading returns the A2A SDK's `AgentCard`                   | No card type to keep in step with A2A, and one translation shared with the dispatch            | Readers handle the SDK's in-memory shape (`scheme.$case`), and the platform inherits what the SDK's functions drop     |
-| A stored card names no field                                    | The compiler stops a reader from reaching past the reading                                     | Every stored card is read at load and held twice in memory                                                             |
-| The platform chooses the interface and the SDK dials it         | The card's order holds inside one binding, with no patch to the SDK                            | The platform keeps its own list of spoken bindings beside the SDK's transports                                         |
-| Interfaces and signatures are set aside when comparing cards    | A change of A2A version or bindings alone is no update and needs no new version                | A signature is not compared, since it covers the interfaces                                                            |
-| The fetch names A2A 1.0                                         | A server that answers both versions serves its 1.0 form, which keeps its sign-in when read     | An agent that answers differently by that header is kept in the form it serves to A2A 1.0 callers                      |
-| The client runs the same reading                                | The wire carries cards unchanged, and the page and the orchestrator read one way               | About 32 kB more in the bundle                                                                                         |
+| Decision                                                          | What it buys                                                                               | What it costs                                                                                                      |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| The reading returns the A2A SDK's `AgentCard`                     | No card type to keep in step with A2A, and one translation shared with the dispatch        | Readers handle the SDK's in-memory shape (`scheme.$case`), and the platform inherits what the SDK's functions drop |
+| A stored card names no field                                      | The compiler stops a reader from reaching past the reading                                 | Every stored card is read at load and held twice in memory                                                         |
+| The platform walks the interfaces and the SDK dials the one tried | The card's order holds inside one binding, with no patch to the SDK                        | The platform keeps its own list of spoken bindings beside the SDK's transports                                     |
+| The walk moves on only from an interface never reached            | A request is never delivered twice                                                         | An interface that fails after the request went out is not tried elsewhere: the slot fails                          |
+| The dial opens a connection itself before the SDK sends           | One time limit on opening, on all three bindings, with no patch to the SDK                 | One connection more than the request needs, for each interface tried                                               |
+| The interface that answered is remembered while the card is held  | A later dispatch does not wait on an interface that was not reached                        | A refetch of the card, even an unchanged one, starts the walk over                                                 |
+| Interfaces and signatures are set aside when comparing cards      | A change of A2A version or bindings alone is no update and needs no new version            | A signature is not compared, since it covers the interfaces                                                        |
+| The fetch names A2A 1.0                                           | A server that answers both versions serves its 1.0 form, which keeps its sign-in when read | An agent that answers differently by that header is kept in the form it serves to A2A 1.0 callers                  |
+| The client runs the same reading                                  | The wire carries cards unchanged, and the page and the orchestrator read one way           | About 32 kB more in the bundle                                                                                     |
 
 ## Known limits
 
-1. JSON-RPC is the one binding spoken. An agent serving only HTTP+JSON or gRPC is turned away.
-2. The device-code OAuth flow reads, and the vault does not sign in with it: the slot says signing in isn't supported here.
-3. A card's signatures and its extended-card flag are read and kept, and nothing uses them.
+1. Toward an agent on A2A 0.3 over HTTP+JSON or gRPC, the A2A SDK drops every part's `metadata`, both ways: a mark in `metadata.mimeType` does not arrive (`_dev/a2a-findings.md` 9). The platform reads a part by what it holds and carries no patch.
+2. A gRPC channel the orchestrator opens stays open for the run, one for each interface it has sent to.
+3. The device-code OAuth flow reads, and the vault does not sign in with it: the slot says signing in isn't supported here.
+4. A card's signatures and its extended-card flag are read and kept, and nothing uses them.
 
 ## Trying it without a model
 
@@ -275,39 +319,47 @@ console.log(spokenInterfaces(card), signInAlternatives(card));
 "
 ```
 
-The fake A2A 1.0 agent the tests dispatch to is in `@a2uiverse/smoke-transport/testing/v1`. It answers A2A 1.0 and 0.3 over JSON-RPC, each at a path of its own, and records which interface a request reached.
+The fake A2A 1.0 agent the tests dispatch to is in `@a2uiverse/smoke-transport/testing/v1`. It answers A2A 1.0 and 0.3 on JSON-RPC, HTTP+JSON and gRPC, and records which binding and which A2A version a request reached. The walk's own tests run against it and against the fake A2A 0.3 agent:
+
+```bash
+pnpm --filter @a2uiverse/smoke-transport test
+```
 
 ## Where the code is
 
-| What                                              | Where                                                                                                                                         |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| The reading                                       | [`packages/card/src/readCard.ts`](../../packages/card/src/readCard.ts)                                                                        |
-| The fetch                                         | [`packages/card/src/liveCard.ts`](../../packages/card/src/liveCard.ts)                                                                        |
-| Spoken interfaces, the card to dial, the finding  | [`packages/card/src/interfaces.ts`](../../packages/card/src/interfaces.ts)                                                                    |
-| The same-card test                                | [`packages/card/src/sameCard.ts`](../../packages/card/src/sameCard.ts)                                                                        |
-| Sign-in requirements                              | [`packages/card/src/requirements.ts`](../../packages/card/src/requirements.ts)                                                                |
-| The A2A 1.0 card fixtures and how they are captured | [`packages/card/test/fixtures`](../../packages/card/test/fixtures/README.md), [`packages/card/scripts`](../../packages/card/scripts)        |
-| The registry: stored and live cards               | [`apps/orchestrator/src/registry/registry.ts`](../../apps/orchestrator/src/registry/registry.ts)                                              |
-| The dispatch: reachability and the dial           | [`apps/orchestrator/src/agentsPool/agentsPool.ts`](../../apps/orchestrator/src/agentsPool/agentsPool.ts)                                      |
-| The marketplace: publish and the card-version rule | [`apps/marketplace/src/marketplace.ts`](../../apps/marketplace/src/marketplace.ts)                                                           |
-| The smoke request's dial                          | [`packages/smoke-transport/src/smokeRunner.ts`](../../packages/smoke-transport/src/smokeRunner.ts)                                            |
-| Stellify's preview                                | [`packages/stellify/src/preview.ts`](../../packages/stellify/src/preview.ts)                                                                  |
-| The client's reading on arrival                   | [`apps/client/src/orchestratorApi.ts`](../../apps/client/src/orchestratorApi.ts)                                                              |
-| The slot's cause and its statement                | [`packages/shell-catalog/src/components/slot`](../../packages/shell-catalog/src/components/slot)                                              |
-| The refusal's words, the App Library's words      | [`packages/sdk/js/src/marketplace.ts`](../../packages/sdk/js/src/marketplace.ts)                                                              |
+| What                                                | Where                                                                                                                                                                                                              |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| The reading                                         | [`packages/card/src/readCard.ts`](../../packages/card/src/readCard.ts)                                                                                                                                             |
+| The fetch                                           | [`packages/card/src/liveCard.ts`](../../packages/card/src/liveCard.ts)                                                                                                                                             |
+| Spoken interfaces, the card to dial, the finding    | [`packages/card/src/interfaces.ts`](../../packages/card/src/interfaces.ts)                                                                                                                                         |
+| The same-card test                                  | [`packages/card/src/sameCard.ts`](../../packages/card/src/sameCard.ts)                                                                                                                                             |
+| Sign-in requirements                                | [`packages/card/src/requirements.ts`](../../packages/card/src/requirements.ts)                                                                                                                                     |
+| The A2A 1.0 card fixtures and how they are captured | [`packages/card/test/fixtures`](../../packages/card/test/fixtures/README.md), [`packages/card/scripts`](../../packages/card/scripts)                                                                               |
+| The registry: stored and live cards                 | [`apps/orchestrator/src/registry/registry.ts`](../../apps/orchestrator/src/registry/registry.ts)                                                                                                                   |
+| The dispatch: reachability and the dial             | [`apps/orchestrator/src/agentsPool/agentsPool.ts`](../../apps/orchestrator/src/agentsPool/agentsPool.ts)                                                                                                           |
+| The marketplace: publish and the card-version rule  | [`apps/marketplace/src/marketplace.ts`](../../apps/marketplace/src/marketplace.ts)                                                                                                                                 |
+| The dial: the walk, never reached, the time limit   | [`packages/smoke-transport/src/dial.ts`](../../packages/smoke-transport/src/dial.ts), [`opening.ts`](../../packages/smoke-transport/src/opening.ts), [`answers.ts`](../../packages/smoke-transport/src/answers.ts) |
+| A gRPC address and TLS; the credential on gRPC      | [`packages/smoke-transport/src/address.ts`](../../packages/smoke-transport/src/address.ts), [`credentialOnBinding.ts`](../../packages/smoke-transport/src/credentialOnBinding.ts)                                  |
+| The smoke request                                   | [`packages/smoke-transport/src/smokeRunner.ts`](../../packages/smoke-transport/src/smokeRunner.ts)                                                                                                                 |
+| Stellify's preview                                  | [`packages/stellify/src/preview.ts`](../../packages/stellify/src/preview.ts)                                                                                                                                       |
+| The client's reading on arrival                     | [`apps/client/src/orchestratorApi.ts`](../../apps/client/src/orchestratorApi.ts)                                                                                                                                   |
+| The slot's cause and its statement                  | [`packages/shell-catalog/src/components/slot`](../../packages/shell-catalog/src/components/slot)                                                                                                                   |
+| The refusal's words, the App Library's words        | [`packages/sdk/js/src/marketplace.ts`](../../packages/sdk/js/src/marketplace.ts)                                                                                                                                   |
 
 ## Words used in this guide
 
-| Word            | Meaning                                                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Agent card      | The JSON an A2A agent publishes about itself, usually at `/.well-known/agent-card.json`                             |
-| Served card     | A card exactly as the agent's URL answered it, in the shape of the A2A version it was written in                    |
-| Read card       | The same card as the A2A SDK's in-memory `AgentCard`, in A2A 1.0's shape                                            |
-| Live card       | The card an agent serves now, as opposed to the copy stored at publish or at install                                |
-| Binding         | The transport an interface speaks: JSON-RPC, HTTP+JSON or gRPC                                                      |
-| Interface       | One way to reach an agent: a URL, a binding and an A2A version                                                      |
-| Interface taken | The first interface in the card's order that the platform speaks                                                    |
-| Reachable       | Said of an agent whose card lists at least one interface the platform speaks                                        |
-| Door            | A place an agent comes through: publish, install, Stellify's `preview`, or an installed app's slot                  |
-| Finding         | One line saying why a publish, a preview or an install was refused, written for the publisher                       |
-| Smoke request   | The one A2A request the marketplace and Stellify send an agent to check that it answers and paints                  |
+| Word            | Meaning                                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Agent card      | The JSON an A2A agent publishes about itself, usually at `/.well-known/agent-card.json`                                   |
+| Served card     | A card exactly as the agent's URL answered it, in the shape of the A2A version it was written in                          |
+| Read card       | The same card as the A2A SDK's in-memory `AgentCard`, in A2A 1.0's shape                                                  |
+| Live card       | The card an agent serves now, as opposed to the copy stored at publish or at install                                      |
+| Binding         | The transport an interface speaks: JSON-RPC, HTTP+JSON or gRPC                                                            |
+| Interface       | One way to reach an agent: a URL, a binding and an A2A version                                                            |
+| Walk            | The order a request tries a card's spoken interfaces in: the card's own, the interface remembered first                   |
+| Never reached   | Said of an interface the request did not get into: no connection, nothing served there, or no way to carry the credential |
+| Interface taken | The interface a request went to: the first in the walk that was reached                                                   |
+| Reachable       | Said of an agent whose card lists at least one interface the platform speaks                                              |
+| Door            | A place an agent comes through: publish, install, Stellify's `preview`, or an installed app's slot                        |
+| Finding         | One line saying why a publish, a preview or an install was refused, written for the publisher                             |
+| Smoke request   | The one A2A request the marketplace and Stellify send an agent to check that it answers and paints                        |

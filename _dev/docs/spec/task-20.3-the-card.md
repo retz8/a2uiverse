@@ -23,6 +23,8 @@ Four packages carry similar names here. The A2A SDK is `@a2a-js/sdk`. The platfo
 
 The card's one reading returns the A2A SDK's in-memory `AgentCard`, built by the A2A SDK's own two functions: `parseLegacyAgentCard` for a card written for A2A 0.3, and `AgentCard.fromJSON` for every other. The platform writes no card type of its own. What the A2A SDK's two functions drop, the reading drops, and what `parseLegacyAgentCard` refuses, the reading refuses (decision 8).
 
+*Amended by task 20.5 decision 7.* Every interface of a card written for A2A 0.3 is at the A2A version the card names, where `parseLegacyAgentCard` puts each further interface at `0.3`.
+
 ### 2. The reading lives in a workspace package of its own, for the card
 
 The client, the orchestrator, the marketplace and the smoke-transport package depend on the card package. Stellify's committed build inlines it, as it inlines the platform sdk and the smoke-transport package. The platform sdk keeps two invariants of the [13.2 task spec](task-13.2-sdk-marketplace-contracts.md): its main export stays browser-safe with ajv its only dependency, and it depends on no A2A package. The platform sdk's functions that take a card keep structural parameter types, over the read shape.
@@ -59,9 +61,13 @@ The registry and the marketplace each read every stored card once at load. A sto
 
 The card package holds one list of the bindings the platform speaks and one function over it. Given a read card, the function returns the interfaces the platform speaks, in the card's order. An agent is reachable when that list is not empty, and the first entry is the interface taken. An interface is spoken when its binding is on the list and its A2A version is from 0.3 up to but not including 1.0, or is 1.x. An absent version counts as 0.3, as the A2A SDK reads it. The list holds JSON-RPC in 20.3, and 20.5 adds HTTP+JSON and gRPC to it. Until 20.5 lands, an agent serving only HTTP+JSON or gRPC is turned away at the doors.
 
+*Amended by task 20.5 decisions 1 and 2.* The list holds JSON-RPC, HTTP+JSON and gRPC. The first entry is where a dial's walk starts, and the interface taken is the first the walk reaches; the walk moves to the next only from one never reached.
+
 ### 11. The platform chooses the interface and the A2A SDK dials it
 
 The orchestrator's dispatch and the smoke runner hand the A2A SDK the read card with the one interface decision 10 takes. The card's order then holds inside one binding too, where the A2A SDK alone would take an A2A 1.0 interface over a 0.3 one, the first case decision 9 of the phase spec names. No patch to the A2A SDK is carried. The dispatch's address is the chosen interface's URL. The A2A version and the binding the journal records for a dispatch (decision 5 of the 20.1 task spec) are the chosen interface's.
+
+*Amended by task 20.5 decisions 2, 6, 10 and 11.* The dial, written once in the smoke-transport package for the orchestrator's dispatch and the smoke runner, hands the A2A SDK the read card listing the one interface it tries, a gRPC one at the `host:port` it reads. The dispatch's address and the A2A version and the binding the journal records are those of the interface the request went to, and the journal lists each one passed over before it.
 
 ### 12. Two cards are the same card when equal as read, how the agent is reached set aside
 

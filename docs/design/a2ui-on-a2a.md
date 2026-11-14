@@ -36,7 +36,7 @@ An A2UI message is a JSON object with a `version` string. A data part is A2UI wh
 
 ### 2. `data` holds one message or a bare list
 
-`{"version": "v0.9", "createSurface": {…}}` is read, and so is `[{…}, {…}]`. Each entry of a list is judged on its own: an entry that is not a message is passed over and the others are taken. An object that wraps a list, `{"messages": [...]}`, is not read. No upstream source defines that form as a part.
+`{"version": "v0.9", "createSurface": {…}}` is read, and so is `[{…}, {…}]`. Each entry of a list is judged on its own: an entry that is not a message is passed over and the others are taken. An object that wraps a list, `{"messages": [...]}`, is not read. No upstream source defines that form as a part. A list an A2A 0.3 layer wrapped to send it, `{"value": [...]}`, is read when it arrives still wrapped, an object holding `value` and nothing else; that happens on the two paths where the flag that says so is lost (below).
 
 ### 3. A2UI rides a message, never an artifact
 
@@ -94,21 +94,23 @@ You asked "Show me one timeline of my week from Gmail, Google Calendar and GitHu
 
 ### What a part is on each A2A version
 
-The A2A SDK holds one in-memory shape and writes two wires from it.
+The A2A SDK holds one in-memory shape and writes a wire for each path from it. On A2A 1.0 the three bindings carry the same part; on A2A 0.3, JSON-RPC writes A2A 0.3's JSON and HTTP+JSON and gRPC write A2A 0.3's proto.
 
-| | In memory, `@a2a-js/sdk` 1.x | A2A 1.0 wire | A2A 0.3 wire |
-| --- | --- | --- | --- |
-| A data part | `{content: {$case: 'data', value}, metadata, filename: '', mediaType}` | `{"data": …, "metadata": …, "mediaType": …}` | `{"kind": "data", "data": {…}, "metadata": …}` |
-| `data` | any JSON value | any JSON value | an object only |
-| The part's own MIME type | `mediaType` | `mediaType` | no field |
-| `metadata.mimeType` | kept | kept | kept |
+|                          | In memory, `@a2a-js/sdk` 1.x                                           | A2A 1.0, every binding                       | A2A 0.3 over JSON-RPC                          | A2A 0.3 over HTTP+JSON and gRPC |
+| ------------------------ | ---------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------- | ------------------------------- |
+| A data part              | `{content: {$case: 'data', value}, metadata, filename: '', mediaType}` | `{"data": …, "metadata": …, "mediaType": …}` | `{"kind": "data", "data": {…}, "metadata": …}` | `{"data": {"data": {…}}}`       |
+| `data`                   | any JSON value                                                         | any JSON value                               | an object only                                 | an object only                  |
+| The part's own MIME type | `mediaType`                                                            | `mediaType`                                  | no field                                       | no field                        |
+| `metadata.mimeType`      | kept                                                                   | kept                                         | kept                                           | dropped, both ways              |
 
 An agent on A2A 1.0 can also be asked by a caller on A2A 0.3, through the 0.3 layer of its SDK. Two things happen to a data part on the way, in `@a2a-js/sdk` and in Python's `a2a-sdk` alike:
 
 1. `mediaType` is dropped. A mark in `metadata.mimeType` survives.
 2. A value that is not an object is wrapped: a list goes out as `{"value": [...]}` with `data_part_compat: true` in the part's metadata. The client of `@a2a-js/sdk` unwraps it, so the reading sees a bare list again.
 
-Both are in the wires captured from a scratch agent on Python's `a2a-sdk` 1.3.0, under [`packages/smoke-transport/test/fixtures`](../../packages/smoke-transport/test/fixtures/README.md). This is why the platform marks its own parts in both fields: `metadata.mimeType` is the one mark that reaches an agent on either wire.
+Over HTTP+JSON and gRPC at A2A 0.3 the client of `@a2a-js/sdk` drops every part's `metadata`, both ways: it writes and reads those two wires with a codec from A2A `v0.3.0`, whose part has no `metadata` (`_dev/a2a-findings.md` 9). No mark reaches an agent there, and the flag of a wrapped list does not come back, so a list a 0.3 layer wrapped arrives as `{"value": [...]}`. The platform carries no patch for it: its readers read a part by what it holds, the reading takes the wrapped list as the list it wraps, and the agents it composes read a press by its content.
+
+All of it is in the wires captured from a scratch agent on Python's `a2a-sdk` 1.3.0, under [`packages/smoke-transport/test/fixtures`](../../packages/smoke-transport/test/fixtures/README.md), over JSON-RPC and HTTP+JSON, and in a run against the same agent over gRPC. This is why the platform marks its own parts in both fields: `metadata.mimeType` reaches an agent on every path but A2A 0.3 over HTTP+JSON and gRPC, where no mark does.
 
 ### Reading
 
@@ -271,7 +273,7 @@ Leaving is cheap. The generator of the A2A SDK's client cancels the response bod
 
 ## Known limits
 
-1. JSON-RPC is the one binding spoken, so everything here is measured on JSON-RPC. HTTP+JSON writes a 0.3 data part in another shape.
+1. Toward an agent on A2A 0.3 over HTTP+JSON and gRPC, no mark on a part arrives, and a list in one part a 0.3 layer wrapped arrives wrapped, read by the platform around the A2A SDK (`_dev/a2a-findings.md` 9).
 2. No kit agent answers on A2A 1.0 yet. The A2A 1.0 paths are proven against the fake agent and against the captured Python wires.
 3. The agent kit still writes the older `paintMeta` string and the request in A2A 0.3's shape. Both are read.
 

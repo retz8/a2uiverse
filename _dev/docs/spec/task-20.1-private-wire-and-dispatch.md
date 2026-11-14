@@ -36,6 +36,8 @@ No patch is carried for what the 1.x SDK's 0.3 translators refuse and 0.3.14 pas
 
 The [record](../../../apps/orchestrator/src/agentsPool/types.ts) the journal writes for each dispatch holds the state the answer ended on, in A2A 1.0's name, in place of `sawFinal`. The field is absent when the stream broke. Beside it the record holds the A2A version and the binding of the interface the dispatch used.
 
+*Amended by task 20.5 decision 6.* Beside the A2A version and the binding of the interface used, the record lists each interface the walk tried before it and did not reach, in the order tried: its binding, its A2A version and which case of never reached it was. When no interface is reached, the version and the binding stay absent and the list says what was tried.
+
 ### 6. Everything relayed is a `working` status update of the orchestrator's one task
 
 On the private wire an agent's task event becomes a status update carrying its status message, a bare message becomes a status update carrying that message, and every terminal and interrupted state is demoted to `working`. Artifact updates are relayed as they are. The wire then carries the orchestrator's task, `working` updates, artifact updates and the orchestrator's one terminal update. How an agent's answer ended stays on the orchestrator, in the slot's state and in the journal.

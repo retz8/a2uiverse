@@ -38,6 +38,8 @@ An interface was never reached in three cases:
 
 The gRPC status `UNAVAILABLE`, HTTP 502, 503 and 504, and a connection that drops after the request went out are ordinary failures of the slot.
 
+*Amended in task 20.5, from its runs against Python's `a2a-sdk` 1.3.0.* The second case also holds the JSON-RPC error -32601, "Method not found" ([JSON-RPC 2.0](https://www.jsonrpc.org/specification): "The method does not exist / is not available"). A2A 0.3 and 1.0 name the send method differently, `message/stream` and `SendStreamingMessage`, so a JSON-RPC server with no handler for an interface's A2A version answers it, where the same agent answers HTTP 404 on HTTP+JSON and `UNIMPLEMENTED` on gRPC.
+
 ### 4. Opening a connection gets 5 s at a dispatch and 10 s at publish and `stellify preview`
 
 The limit holds for each interface the walk tries, and covers opening the connection alone. These are the two limits decision 5 of the 20.3 task spec gives a fetch of the live card: 5 s where a person waits on the canvas, 10 s elsewhere. The dispatch's hard cap and the smoke request's timeout keep running from the start, with the dials inside them.
@@ -63,6 +65,8 @@ When no interface is reached, publish is refused and `preview` captures nothing,
 `no interface the card lists was reached: GRPC at A2A 1.0 (grpc.shop-b.example:443): no connection could be opened; JSONRPC at A2A 0.3 (https://shop-b.example/): what answered there does not serve it`
 
 The binding and the A2A version are spelled as the card spells them, and each interface is named with its URL. The third note appears at `stellify preview` alone, since the marketplace sends no credential.
+
+*Amended in task 20.5, from its live sitting.* A card written for A2A 0.3 names its version once, for the agent, and the A2A SDK reads its further interfaces at a fixed `0.3`, so the note read `GRPC at A2A 0.3.0 (…) was not reached: …; the request went to JSONRPC at A2A 0.3`. The card's one reading puts every interface of a 0.3 card at the version the card names, decision 1 of the 20.3 task spec amended, and the A2A SDK's reading is a fourth finding in `_dev/a2a-findings.md`.
 
 ### 8. The sign-in signal on each binding
 
@@ -97,6 +101,8 @@ The dial is written once, for Node alone, and the orchestrator's dispatch and th
 Toward an agent on A2A 0.3 over HTTP+JSON or gRPC, the A2A SDK drops every part's `metadata`, in both directions. Its 0.3 layer on those two bindings is generated from the A2A repository at tag `v0.3.0`, where a part holds text, a file or data and nothing else ([`a2a.proto` at `v0.3.0`](https://github.com/a2aproject/A2A/blob/v0.3.0/specification/grpc/a2a.proto)). The field was added to the A2A repository on 2025-09-03, after that tag. Python's `a2a-sdk` carries it, at 0.3.26 and in the 0.3 layer of 1.3.0.
 
 The platform writes its one spelling of an A2UI part as decision 5 of the [20.4 task spec](task-20.4-a2ui-on-a2a-1-0.md) has it, and on these two paths the mark in `metadata.mimeType` does not arrive. No patch to the A2A SDK is carried for it, on the evidence rule of decision 4 of the 20.1 task spec: the agent kit and upstream's two restaurant finders read a press by its content. Reading is untouched, since every reader of the platform reads by content.
+
+*Amended in task 20.5, from its runs against Python's `a2a-sdk` 1.3.0.* Reading is touched in one case. Both A2A SDKs' 0.3 layers send a list in `data` as `{value: [...]}` and flag it in the part's `metadata`, and on these two paths the flag is dropped with the rest, so the list arrives still wrapped. The platform sdk's one reading takes an object holding `value` and nothing else, `value` a list, as that list. No patch is carried.
 
 ### 14. 20.5 as specified carries no patch
 

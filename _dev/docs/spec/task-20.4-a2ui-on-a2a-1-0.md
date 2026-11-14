@@ -32,6 +32,8 @@ A part is A2UI by what its `data` holds, under either MIME string, in `metadata.
 
 The reading takes one message object, or a bare list of messages. Each entry of a list is judged on its own. An object holding a `messages` list is not read, and that form is removed from every reader.
 
+*Amended by task 20.5 decision 13.* A list an A2A 0.3 layer wrapped as `{value: [...]}` arrives still wrapped over HTTP+JSON and gRPC at A2A 0.3, where the A2A SDK drops the part's `metadata` and the flag it unwraps by. The reading takes an object holding `value` and nothing else, `value` a list, as that list.
+
 ### 4. A2UI is read from a message, never from an artifact
 
 The reading takes A2UI from a bare message and from the status message of a task or a status update. A2UI in an artifact is not read by either end: the orchestrator stops reading an artifact's parts, so the client and the orchestrator count the same paints. An agent that carries A2UI in an artifact alone draws nothing.
@@ -41,6 +43,8 @@ The reading takes A2UI from a bare message and from the status message of a task
 Wherever the platform authors an A2UI part it writes one message per part, marked `application/a2ui+json` in `metadata.mimeType` and in `mediaType`. That holds for a press sent to an agent on either A2A version, and in both directions between the client and the orchestrator: the shell's own paints, the client's press and its error report. The platform builds one part with both marks, and the A2A SDK writes `mediaType` to an agent on A2A 1.0 and leaves it off the wire to an agent on 0.3. The string is `application/a2ui+json` whatever A2UI version the message is stamped.
 
 One message per part is held on evidence, as decision 4 of the [20.1 task spec](task-20.1-private-wire-and-dispatch.md) holds leniency: it stands until a real agent is found that reads only a list.
+
+*Amended by task 20.5 decision 13.* Toward an agent on A2A 0.3 over HTTP+JSON or gRPC the A2A SDK drops every part's `metadata`, both ways, so on those two paths the mark in `metadata.mimeType` does not arrive. The platform writes the same part there, and carries no patch.
 
 ### 6. The relay passes an agent's part as written
 
