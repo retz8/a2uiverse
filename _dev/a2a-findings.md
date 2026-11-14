@@ -774,3 +774,71 @@ A2UIVerse's card reading does so after `parseLegacyAgentCard` returns (`packages
 ### Prior art
 
 No issue or pull request on `a2aproject/a2a-js` reports it, searched on 2026-11-14. Pull request 504 brought the translation in, and issue 646 asks for its converters to be exported, neither touching the version.
+
+## 13. A card written for A2A 0.3 whose OAuth scheme names only the device-code flow does not read (a2a-js 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0, `src/compat/v0_3/translate/security.ts` at tag `v1.3.0`: `toCoreOAuthFlows` (line 195) takes `authorizationCode`, `clientCredentials`, `implicit` or `password` and otherwise throws `OAuthFlows must declare at least one flow` (line 232). Reached for every scheme from `toCoreAgentCard` (`src/compat/v0_3/translate/agent_card.ts`, line 188) through `parseLegacyAgentCard` in `@a2a-js/sdk/compat/v0_3/client`.
+
+**Severity:** interoperability. An agent on A2A 0.3 that signs in by the device-code flow, which A2A 1.0 adds, cannot say so on its card: the SDK refuses the whole card, every other scheme and skill with it, and a client on the SDK cannot reach the agent at all.
+
+### Issue
+
+A2A 0.3's `OAuthFlows` names four flows, none of them required (`specification/json/a2a.json` at A2A `v0.3.0`), and the schema leaves other properties open. A2A 1.0 adds `deviceCode` (`DeviceCodeOAuthFlow`: `deviceAuthorizationUrl`, `tokenUrl`, `refreshUrl`, `scopes`). An agent still serving its card in 0.3's shape writes the flow it has under `flows.deviceCode`, in 1.0's field names, as the only place a client can find it.
+
+The 1.0 → 0.3 direction already knows the gap: `toCompatOAuthFlows` in the same file says "v1.0's `deviceCode` is silently dropped (no v0.3 equivalent)". The 0.3 → 1.0 direction does not read `deviceCode` where it is written, and with no other flow beside it throws for the whole card.
+
+### Reproduction
+
+Run on 2026-11-14 with `@a2a-js/sdk` 1.3.0:
+
+```js
+import {parseLegacyAgentCard} from '@a2a-js/sdk/compat/v0_3/client';
+parseLegacyAgentCard({
+  name: 'TV', description: 'd', version: '0.1.0', protocolVersion: '0.3.0',
+  url: 'http://localhost:12009', capabilities: {}, defaultInputModes: ['text'],
+  defaultOutputModes: ['text'], skills: [],
+  securitySchemes: {signIn: {type: 'oauth2', flows: {deviceCode: {
+    deviceAuthorizationUrl: 'https://tv.example/device', tokenUrl: 'https://tv.example/token',
+    scopes: {watch: 'See what you watch'}}}}},
+  security: [{signIn: ['watch']}],
+});
+// RequestMalformedError: OAuthFlows must declare at least one flow
+```
+
+A scheme naming the authorization-code flow beside `deviceCode` reads, with the authorization-code flow.
+
+### Fix
+
+In `toCoreOAuthFlows`, read `deviceCode` as the 1.0 flow of the same name when none of 0.3's four flows is present, ahead of the throw.
+
+A2UIVerse's card reading takes such a scheme out before `parseLegacyAgentCard` and reads it with the SDK's own `SecurityScheme.fromJSON`, in A2A 1.0's shape (`packages/card/src/readCard.ts` in `retz8/a2uiverse`).
+
+### Prior art
+
+No issue or pull request on `a2aproject/a2a-js` reports it, searched on 2026-11-14. Pull request 358 (closed unmerged on 2026-03-18) would have added the device-code flow to the 0.3 SDK's own `OAuthFlows` type and its converters; pull request 481 brought the translation units in.
+
+## 14. A card written for A2A 0.3 does not read when one OAuth scheme holds none of A2A 0.3's four flows (a2a-js 1.3.0)
+
+**Component:** `@a2a-js/sdk` 1.3.0, `src/compat/v0_3/translate/security.ts` at tag `v1.3.0`, `toCoreOAuthFlows` (lines 195 to 232), reached from `toCoreAgentCard` (`src/compat/v0_3/translate/agent_card.ts`, line 188) through `parseLegacyAgentCard`.
+
+**Severity:** spec conformance. A card valid under A2A 0.3's schema is refused whole, for one scheme the client may not need: an agent with a usable `apiKey` scheme beside it is unreachable too.
+
+### Issue
+
+A2A 0.3's `OAuth2SecurityScheme` requires `flows` and `type`, and its `OAuthFlows` requires none of its four properties (`specification/json/a2a.json` at A2A `v0.3.0`), so `flows: {}`, or `flows` holding a flow 0.3 does not name, is a valid 0.3 scheme. `toCoreOAuthFlows` throws for it, because the 1.0 proto's `flow` oneof has no empty case, and `toCoreAgentCard` lets the throw end the reading of the whole card. The SDK's own 1.0 → 0.3 writer produces such a scheme: `toCompatOAuthFlows` in the same file returns an empty result for a 1.0 scheme whose only flow is `deviceCode`, as its comment says.
+
+Finding 13 is one case of this one: there a flow sits under `deviceCode`, which a reader could take.
+
+### Reproduction
+
+Run on 2026-11-14 with `@a2a-js/sdk` 1.3.0: the card of finding 13 with `flows: {}` throws `RequestMalformedError: OAuthFlows must declare at least one flow`.
+
+### Fix
+
+Read an OAuth scheme with no flow it can represent as a scheme with no flow (its `flow` unset, as `OAuthFlows.fromJSON` reads a 1.0 card's `flows` that names none), or leave that one scheme out, and read the rest of the card.
+
+A2UIVerse carries no change for it: such a card is refused at publish, at install and at `stellify preview`, in the SDK's words.
+
+### Prior art
+
+No issue or pull request on `a2aproject/a2a-js` reports it, searched on 2026-11-14.

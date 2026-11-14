@@ -68,7 +68,7 @@ The registry (the orchestrator's record of installed apps) and the marketplace's
 
 ### 2. One reading gives every reader the same card
 
-`readCard(served)` returns the A2A SDK's own in-memory `AgentCard`, in A2A 1.0's shape, whichever shape the card was written in. It is built by two functions of `@a2a-js/sdk`: `parseLegacyAgentCard` for a card written for A2A 0.3, and `AgentCard.fromJSON` for every other. The platform has no card type of its own, and changes one thing in what the SDK returns: every interface of a 0.3 card is at the A2A version the card names. Read, Shop B's card says the same thing as the second JSON above, with the SDK's defaults filled in.
+`readCard(served)` returns the A2A SDK's own in-memory `AgentCard`, in A2A 1.0's shape, whichever shape the card was written in. It is built by two functions of `@a2a-js/sdk`: `parseLegacyAgentCard` for a card written for A2A 0.3, and `AgentCard.fromJSON` for every other. The platform has no card type of its own, and changes two things in what the SDK returns for a 0.3 card: every interface is at the A2A version the card names, and a sign-in scheme whose only flow is the device-code flow is read. Read, Shop B's card says the same thing as the second JSON above, with the SDK's defaults filled in.
 
 ### 3. An interface is one way in, and the platform walks the ones it speaks
 
@@ -108,19 +108,39 @@ export function readCard(served: unknown): AgentCard {
   if (typeof (served as {name?: unknown}).name !== 'string') {
     throw new Error('not an agent card: no name');
   }
-  return isLegacyAgentCard(served)
-    ? atCardVersion(parseLegacyAgentCard(served))
-    : AgentCard.fromJSON(served);
+  return isLegacyAgentCard(served) ? readLegacy(served) : AgentCard.fromJSON(served);
 }
 ```
 
 `isLegacyAgentCard` is the A2A SDK's own test. A card counts as written for A2A 0.3 when it has no non-empty `supportedInterfaces` and has a top-level `url`, a field only 0.3 has, or a `protocolVersion` below 1.0. A card carrying both shapes is read as A2A 1.0.
 
+`readLegacy` makes the two changes for a 0.3 card.
+
 A 0.3 card names its A2A version once, for the whole agent, and its `additionalInterfaces` name none. `parseLegacyAgentCard` gives the card's own URL that version and each further interface a fixed `0.3`, so Shop B serving gRPC at its own URL and JSON-RPC as a further interface would read as `0.3.0` and `0.3` (finding 12 in `_dev/a2a-findings.md`). `atCardVersion` gives every interface the version the first one has, so the journal and a publisher's notes spell the version as the card does.
 
-Apart from that version, what the SDK's two functions drop, the reading drops, and what they refuse, the reading refuses. Three cases are known and each has a fixture under [`packages/card/test/fixtures`](../../packages/card/test/fixtures/README.md):
+A2A 0.3 names four OAuth flows: the authorization code, client credentials, implicit and password. The device-code flow, which A2A 1.0 adds, is not among them, so an agent still serving a 0.3 card that signs in by device code writes it under `flows.deviceCode` in A2A 1.0's field names:
 
-1. `parseLegacyAgentCard` throws on a 0.3 card with no `capabilities`, `defaultInputModes`, `defaultOutputModes` or `skills`, and on an OAuth scheme that declares no flow.
+```json
+"securitySchemes": {
+  "signIn": {
+    "type": "oauth2",
+    "oauth2MetadataUrl": "https://tv.example/.well-known/oauth-authorization-server",
+    "flows": {
+      "deviceCode": {
+        "deviceAuthorizationUrl": "https://tv.example/device",
+        "tokenUrl": "https://tv.example/token",
+        "scopes": {"watch": "See what you watch"}
+      }
+    }
+  }
+}
+```
+
+`parseLegacyAgentCard` fails the whole card for that scheme (finding 13). `readLegacy` takes each scheme whose only flow is `deviceCode` out before the SDK reads the card, reads it with the SDK's own `SecurityScheme.fromJSON` in A2A 1.0's shape, and puts it back in its place. A scheme that names one of the four flows beside `deviceCode` is left to the SDK, which reads it with that flow.
+
+Apart from those two, what the SDK's two functions drop, the reading drops, and what they refuse, the reading refuses. Three cases are known and each has a fixture under [`packages/card/test/fixtures`](../../packages/card/test/fixtures/README.md):
+
+1. `parseLegacyAgentCard` throws on a 0.3 card with no `capabilities`, `defaultInputModes`, `defaultOutputModes` or `skills`, and on an OAuth scheme that holds none of A2A 0.3's four flows and no device-code flow (finding 14), though A2A 0.3's schema makes every flow optional.
 2. The server of `@a2a-js/sdk` 1.3.0 serves its card in the SDK's in-memory form, where a sign-in scheme sits under `scheme.$case`. `AgentCard.fromJSON` does not read that form, so the scheme is dropped and the app reads as asking a sign-in the platform does not support.
 3. The same server, with its A2A 0.3 layer on, answers a caller that names no A2A version with 1.0's interfaces beside 0.3's `security`. `AgentCard.fromJSON` reads no `security`, so that card reads as asking no sign-in. The platform's fetch names A2A 1.0 and gets the 1.0 form.
 
@@ -235,6 +255,8 @@ A card that says in A2A 1.0's shape something its 0.3 card could not say, such a
 
 `signInAlternatives(card)` returns the card's sign-in requirements as a list of alternatives, each a scheme's name mapped to the scopes asked of it: `[{apiKey: []}]` for Shop B. `asksSignIn(card)` is true when there is at least one alternative and none is empty. The vault, the App Library, Stellify's credential chooser and the update check's new-scopes list all start from these two.
 
+Three readers choose one alternative to follow: the vault, Stellify's credential chooser and the trusted page's sign-in line. They choose alike through two more functions. `signInFlow(scheme)` says how a scheme signs a person in: `redirect` for OAuth's authorization-code flow and for OpenID Connect, `deviceCode` for OAuth's device-code flow, nothing for every other. `redirectFirst(alternatives, flowOf)` puts the alternatives a reader can follow in the order the platform follows them: the card's, except that each device-code alternative listed before the last redirect alternative moves to just after it. A card listing the device-code flow, then a key, then the authorization-code flow is followed by the key. The authority design record has why ([`authority.md`](authority.md)).
+
 ### Doors
 
 | Door                    | What happens                                                                                              | Who reads what                                                                                   |
@@ -289,13 +311,13 @@ The reading adds about 32 kB to the client's bundle (7 kB gzipped), measured on 
 | Interfaces and signatures are set aside when comparing cards      | A change of A2A version or bindings alone is no update and needs no new version            | A signature is not compared, since it covers the interfaces                                                        |
 | The fetch names A2A 1.0                                           | A server that answers both versions serves its 1.0 form, which keeps its sign-in when read | An agent that answers differently by that header is kept in the form it serves to A2A 1.0 callers                  |
 | The client runs the same reading                                  | The wire carries cards unchanged, and the page and the orchestrator read one way           | About 32 kB more in the bundle                                                                                     |
+| A device-code flow on a 0.3 card is read around the A2A SDK       | An agent still on A2A 0.3 can name the sign-in A2A 1.0 adds, and the vault signs in by it   | One place where the reading is not the SDK's own, kept until a release of the SDK reads the flow (finding 13)      |
 
 ## Known limits
 
 1. Toward an agent on A2A 0.3 over HTTP+JSON or gRPC, the A2A SDK drops every part's `metadata`, both ways: a mark in `metadata.mimeType` does not arrive (`_dev/a2a-findings.md` 9). The platform reads a part by what it holds and carries no patch.
 2. A gRPC channel the orchestrator opens stays open for the run, one for each interface it has sent to.
-3. The device-code OAuth flow reads, and the vault does not sign in with it: the slot says signing in isn't supported here.
-4. A card's signatures and its extended-card flag are read and kept, and nothing uses them.
+3. A card's signatures and its extended-card flag are read and kept, and nothing uses them.
 
 ## Trying it without a model
 
@@ -329,11 +351,11 @@ pnpm --filter @a2uiverse/smoke-transport test
 
 | What                                                | Where                                                                                                                                                                                                              |
 | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| The reading                                         | [`packages/card/src/readCard.ts`](../../packages/card/src/readCard.ts)                                                                                                                                             |
+| The reading, a device-code flow on a 0.3 card among it | [`packages/card/src/readCard.ts`](../../packages/card/src/readCard.ts)                                                                                                                                          |
 | The fetch                                           | [`packages/card/src/liveCard.ts`](../../packages/card/src/liveCard.ts)                                                                                                                                             |
 | Spoken interfaces, the card to dial, the finding    | [`packages/card/src/interfaces.ts`](../../packages/card/src/interfaces.ts)                                                                                                                                         |
 | The same-card test                                  | [`packages/card/src/sameCard.ts`](../../packages/card/src/sameCard.ts)                                                                                                                                             |
-| Sign-in requirements                                | [`packages/card/src/requirements.ts`](../../packages/card/src/requirements.ts)                                                                                                                                     |
+| Sign-in requirements and the order they are followed in | [`packages/card/src/requirements.ts`](../../packages/card/src/requirements.ts)                                                                                                                                 |
 | The A2A 1.0 card fixtures and how they are captured | [`packages/card/test/fixtures`](../../packages/card/test/fixtures/README.md), [`packages/card/scripts`](../../packages/card/scripts)                                                                               |
 | The registry: stored and live cards                 | [`apps/orchestrator/src/registry/registry.ts`](../../apps/orchestrator/src/registry/registry.ts)                                                                                                                   |
 | The dispatch: reachability and the dial             | [`apps/orchestrator/src/agentsPool/agentsPool.ts`](../../apps/orchestrator/src/agentsPool/agentsPool.ts)                                                                                                           |

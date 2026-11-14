@@ -90,6 +90,8 @@ The agent kit gives every app built on it this front door ([`agent-kit.md`](agen
 
 When a slot needs a sign-in, the shell draws the **authority tile** in it: what's needed, the scopes in the card's words, one button, and that it opens a new window. The tile is the consent. There is no second dialog, and no "decline" button: the rest of the canvas never waits on it. Pressing it opens the sign-in in a **real browser window**, never in a frame inside the canvas, and the canvas learns how it ended only from the orchestrator. Then the client sends a **resume** for the slot it was pressed in, and the slot paints in place.
 
+An app can also sign you in by a short code you give on its own page, OAuth's device-code flow. Then the window opens on a page of the orchestrator's that shows the code, and the app's page opens from it in a second window. The canvas says the same words either way ([Device code](#device-code-a-code-given-on-the-apps-page)).
+
 ### 6. Two triggers: before the dispatch, and in the middle of it
 
 The orchestrator checks each app's card against the vault **before** dispatching to it. When nothing in the vault meets the card, the slot takes the tile at first paint and the agent isn't called at all. That covers most cases. What the card can't predict, the agent says while it works, in one of two ways A2A gives it: **HTTP 401** (the token stopped working: the vault refreshes it, or the slot asks to sign in again), or an in-task **`auth-required`** naming the scopes it's missing (the person pressed something that needs more access). The second is a **request for more access**, and it's asked on the fragment's attribution row, so the fragment stays.
@@ -220,16 +222,19 @@ The Planner now sees Gmail's two sources, each by its label. A question about wh
 `cardNeed` (`vault/schemes.ts`) turns a card, as read, into one of three answers. It reads the card's sign-in requirements (`security` on a card written for A2A 0.3, `securityRequirements` on one written for 1.0) and its schemes in the one shape the reading gives them.
 
 - **None:** the card has no requirement, or one of its alternatives is empty.
-- **Sign in:** at least one alternative is usable. That means it names exactly one scheme, and the vault supports that scheme. Usable alternatives are kept in the card's order, and the first one is followed.
+- **Sign in:** at least one alternative is usable. That means it names exactly one scheme, and the vault supports that scheme. Usable alternatives are kept in the card's order, and the first one is followed, with one exception: a sign-in by redirect goes ahead of the device-code flow. Each device-code alternative listed before the last redirect alternative moves to just after it, and nothing else moves, a pasted key or token included.
 - **Unsupported:** no alternative is usable.
 
 | Scheme on the card | The vault |
 | --- | --- |
-| `oauth2` with the authorization-code flow | Signs in with OAuth, discovering the server from `oauth2MetadataUrl`, or the well-known address at the authorization URL's origin |
-| `openIdConnect` | Signs in with OAuth, discovering from `openIdConnectUrl` |
+| `oauth2` with the authorization-code flow | Signs in with OAuth by redirect, discovering the server from `oauth2MetadataUrl`, or the well-known address at the authorization URL's origin |
+| `oauth2` with the device-code flow | Signs in with OAuth by a code given on the app's own page, discovering the server from `oauth2MetadataUrl`, or the well-known address at the device authorization URL's origin |
+| `openIdConnect` | Signs in with OAuth by redirect, discovering from `openIdConnectUrl` |
 | `http` with `scheme: bearer` | Opens the orchestrator's **token page** for a token to paste |
 | `apiKey` in a header | Opens the token page for a key, sent in that header |
-| Anything else (`http` basic, mutual TLS, a key in a query string, `oauth2` with any other flow, the device-code flow among them), or two schemes required at once | Not supported here |
+| Anything else (`http` basic, mutual TLS, a key in a query string, `oauth2` with any other flow), or two schemes required at once | Not supported here |
+
+The order is the card package's `redirectFirst`, which Stellify's credential chooser and the trusted page's sign-in line use too, so all three follow the same alternative ([`card.md`](card.md#reading-sign-in)). A card listing the device-code flow, then a key, then the authorization-code flow is followed by the key.
 
 ### Standing: whether a dispatch may go
 
@@ -291,7 +296,8 @@ An **attempt** is the vault's record of one sign-in, held in memory:
 | `purpose` | `first`, `again`, `escalation` or `addAccount` |
 | `scheme`, `keys` | The scheme followed and the scopes asked |
 | `oauth` | The server's metadata, the client id, the PKCE verifier, `state`, `nonce`, and the account's `sub` when the sign-in is bound to one |
-| `state` | `pending`, then `signedIn`, `failed` or `expired`, after ten minutes |
+| `device` | For a device-code sign-in: the server's metadata, the client id, the device code, the user code and the address the code page opens, the wait between asks, and the account's `sub` when the sign-in is bound to one |
+| `state` | `pending`, then `signedIn`, `failed` or `expired`: after ten minutes, or for a device-code sign-in when the server says its codes have run out |
 
 The scopes asked depend on the purpose. A **first** sign-in or an **added account** asks the first usable alternative's scopes. A request for **more access** asks only the missing ones. **Signing in again** asks what the account held together with what the card requires. The vault itself never takes a scope from the address. An attempt that has ended stays readable for another ten minutes, so the client's next poll, or a callback arriving twice through the tunnel, is answered as it ended.
 
@@ -299,9 +305,11 @@ The scopes asked depend on the purpose. A **first** sign-in or an **added accoun
 
 The vault is a **public client**: it has no secret, and it proves itself with PKCE. It reads the server's metadata (RFC 8414, or OpenID Connect discovery). Then it introduces itself the first way the server allows:
 
-1. **A client ID metadata document**, when the server advertises support for one and can reach it. That means the document's address is https, or the server is on this machine. The document is served at `/auth/client.json`, and its address is the client id. On the deterministic roster every agent is on this machine, so the vault keeps no registration.
-2. **Dynamic registration** (RFC 7591), where the server offers it. The client id it gets back is kept per server issuer and return address, so it registers once. A server that later answers `invalid_client` has forgotten it; the registration is dropped and made again next time.
+1. **A client ID metadata document**, when the server advertises support for one and can reach it. That means the document's address is https, or the server is on this machine. The document is served at `/auth/client.json`, and its address is the client id. It declares the three grants the vault uses: the authorization code, refresh, and the device code. On the deterministic roster every agent is on this machine, so the vault keeps no registration.
+2. **Dynamic registration** (RFC 7591), where the server offers it. The registration names those of the three grants the server's metadata lists in `grant_types_supported`; metadata listing none gets the authorization code and refresh, and the device code where it names a device authorization endpoint. The client id it gets back is kept per server issuer and return address, so it registers once. A server that later answers `invalid_client` has forgotten it; the registration is dropped and made again next time. A registration made before the vault used the device code lacks that grant, and a server that refuses it for a device-code sign-in (`unauthorized_client` or `invalid_client`) has it dropped too: made again at once when the refusal answers the request for the codes, the next time when it answers an ask of the token endpoint.
 3. Neither: the sign-in can't start, "this sign-in is not supported here".
+
+The vault stays one client, public and with no secret, whichever flow it signs in by.
 
 It always asks for `openid` when the server supports it, whatever the card's scopes, so an ID token comes back with the account's `sub` and a label.
 
@@ -314,6 +322,7 @@ The `/auth/*` routes have to be reachable from the browser with no secret, so th
 | Start for someone else's canvas | The attempt id is the client's own (random) and used once, and the start route refuses a canvas the orchestrator doesn't hold |
 | Callback (login CSRF: your browser signed in to the attacker's account) | The callback must carry the cookie set on this window at start, the `state` that matches it, the PKCE verifier only the vault has, and an ID token with its `nonce` |
 | Post of a key into the token page | The form's `Origin` must be one of the orchestrator's own: its public address, or its local one, since a dev tunnel rewrites `Origin` to the local address |
+| Read of the code page from another browser | The page must carry the cookie set on the window at start; a copy of its address shows nothing but "This sign-in can't start" |
 | Scope in the address | Nothing in the address sets a scope; the vault decides what's asked |
 | Page in a frame | `X-Frame-Options: DENY` and `frame-ancestors 'none'` on every page |
 
@@ -321,7 +330,7 @@ Every page is served `Referrer-Policy: same-origin`. That keeps the `Origin` hea
 
 ### Callback: who signed in
 
-The callback exchanges the code, checks the ID token, and finds the account.
+The callback exchanges the code, checks the ID token, and finds the account. A device-code sign-in lands its tokens the same way once the token endpoint answers with them, with no `nonce` to check ([Device code](#device-code-a-code-given-on-the-apps-page)).
 
 - **First sign-in, or an added account:** an account with the same `sub` is the same account, so it's updated and the outcome says `existing`. Otherwise it's a new account under the app's `next` ordinal.
 - **More access:** the account stays bound. A different `sub` coming back fails the sign-in, "signed in as a different account".
@@ -331,7 +340,7 @@ The label is the ID token's `email`, then `preferred_username`, then `name`; wit
 
 ### Window and the poll
 
-The client's half is in [`client.md`](client.md#sign-in-a-window-a-poll-a-resume): opening the window inside the click (a browser allows a popup only there), https only with localhost exempt, polling the attempt every second, Open the sign-in again on a new attempt (whichever finishes first wins), Cancel that keeps polling, and the resume sent to the canvas the press was made on, on screen or not. Once a source has signed in, the client remembers it for the page load. Another slot's Sign in for that source then sends `retry` straight away, with no window, until a tile painted for it again says otherwise. **Allow** always opens the window, because it asks for scopes the account doesn't hold.
+The client's half is in [`client.md`](client.md#sign-in-a-window-a-poll-a-resume): opening the window inside the click (a browser allows a popup only there), https only with localhost exempt, polling the attempt every second until the orchestrator says it ended, Open the sign-in again on a new attempt (whichever finishes first wins), Cancel that keeps polling, and the resume sent to the canvas the press was made on, on screen or not. The client sets no limit of its own on an attempt the orchestrator has answered for, so a device code that lives half an hour is waited on for half an hour; an attempt the orchestrator never answered for, whose window never reached the start route, is let go after eleven minutes. Once a source has signed in, the client remembers it for the page load. Another slot's Sign in for that source then sends `retry` straight away, with no window, until a tile painted for it again says otherwise. **Allow** always opens the window, because it asks for scopes the account doesn't hold.
 
 ### In the middle of a task: 401, and a request for more access
 
@@ -377,7 +386,7 @@ The sign-in page's **upstream** is where the account comes from. In deterministi
 
 ### Journal and the secret sweep
 
-Every sign-in step is one journal line of kind `signIn`: `started`, `signedIn`, `failed`, `expired`, `refreshed`, `refreshFailed`, `revoked`, `escalationRequested` (with `valid`), `notNow`, `superseded`, and from the App Library `signedOut` (with what became of the access) and `renamed` (with the old label and the new). Each line names the app, the source, the purpose and the scope keys, and never a token; a write's line says who made it, `by: "page"` or `by: "token"`. `pnpm sweep:secrets` checks that for a whole sitting. It collects every secret the vault file and each agent's sign-in store hold, then searches the journal and every captured process log for them, and reports counts per file, never a secret. What reaches the browser isn't searched; the vault's own tests cover that.
+Every sign-in step is one journal line of kind `signIn`: `started`, `signedIn`, `failed`, `expired`, `refreshed`, `refreshFailed`, `revoked`, `escalationRequested` (with `valid`), `notNow`, `superseded`, and from the App Library `signedOut` (with what became of the access) and `renamed` (with the old label and the new). Each line names the app, the source, the purpose and the scope keys, and never a token; a `started` line for a device-code sign-in also carries `"flow": "deviceCode"`; a write's line says who made it, `by: "page"` or `by: "token"`. `pnpm sweep:secrets` checks that for a whole sitting. It collects every secret the vault file and each agent's sign-in store hold, then searches the journal and every captured process log for them, and reports counts per file, never a secret. What reaches the browser isn't searched; the vault's own tests cover that.
 
 ## Beyond the example
 
@@ -394,6 +403,72 @@ Every text request the orchestrator writes to an app ends with the same advice, 
 ### Connect: a pasted key
 
 Shop B, one of the mock stores, signs in with an API key: its card declares an `apiKey` scheme in a header, with a `description` in its customer's words. The slot says **Connect** instead of Sign in: "Connect Shop B to show it here.", and "Opens a page to paste your Shop B key". The quiet line says "Not connected · Connect", and the merged view's reserved column "· not connected". Connect opens the start route, which sends the window to the orchestrator's own **token page**: "Connect Shop B", "From Shop B:" over the scheme's description, a link to the card's help page, "Paste your key", "Name this account (optional)", and **Connect**. The key is posted to the orchestrator and kept as the account's secret. The account takes the name typed, or, left blank, the name the field's hint shows: the app's name for the first key account ("Shop B"), the day it was connected added for a later one ("Shop B · connected Oct 17"), and its number only if that is taken too. A typed name another of the app's accounts holds, ignoring case, falls back to that default. An account connected again keeps its name, and its page asks none. The window says "You're connected to Shop B".
+
+### Device code: a code given on the app's page
+
+Some apps sign you in without sending the window back to the orchestrator. The app's server hands the vault two codes: a long **device code** the vault keeps, and a short **user code**, such as `WDJB-MJHT`, that you type or check on the app's own page. This is OAuth's device authorization grant ([RFC 8628](https://www.rfc-editor.org/rfc/rfc8628)), the device-code flow that A2A 1.0 adds to a card. A card names it as an `oauth2` scheme whose flow is `deviceCode`, with `deviceAuthorizationUrl`, `tokenUrl` and `scopes`. A card written for A2A 0.3, which names no such flow, writes it the same way under `flows.deviceCode`, and the card's one reading takes it ([`card.md`](card.md#reading-a-card)).
+
+Say a TV app's card offers only the device-code flow, with the scope `watch`, "See what you watch".
+
+```mermaid
+sequenceDiagram
+    participant Canvas as Client
+    participant Code as Code page (window 1)
+    participant Orch as Orchestrator (AuthVault)
+    participant Page as TV's page (window 2)
+    participant Server as TV's authorization server
+    Canvas->>Code: open /auth/start?attempt&canvas&source=tv.1
+    Code->>Orch: GET /auth/start
+    Orch->>Server: its metadata, then POST the device authorization request
+    Server-->>Orch: device code, user code, the page's address, lifetime, interval
+    Orch-->>Code: a cookie for the attempt, and a redirect to /auth/code
+    Note over Code: Sign in to TV · Your code WDJB-MJHT · Copy
+    Code->>Page: Open TV's sign-in (noopener,noreferrer)
+    loop every interval
+        Orch->>Server: POST the token endpoint with the device code
+        Server-->>Orch: authorization_pending
+    end
+    Note over Page,Server: you check the code and approve
+    Orch->>Server: POST the token endpoint with the device code
+    Server-->>Orch: tokens and an ID token
+    Note over Orch: tv.1 written to the vault
+    Code->>Orch: GET /auth/attempts/:attempt
+    Note over Code: You're signed in to TV, closing in 5 s
+    Canvas->>Orch: GET /auth/attempts/:attempt, then retry tv.1
+```
+
+**On the canvas** nothing changes. The tile still says "Sign in to TV to show it here." and "Opens TV's sign-in in a new window", and the waiting form "Finish signing in to TV in the window that opened.", as for a redirect.
+
+**The start route** does the slow part before the window shows anything. The vault reads the server's metadata (from the card's `oauth2MetadataUrl`, otherwise the well-known address at the origin of the card's device authorization address), introduces itself as for a redirect, and asks the server's `device_authorization_endpoint` (the card's own address when the metadata names none) for the codes. The request carries the client id and the scopes the purpose asks, with `openid` added when the server supports it, as for a redirect. For more access and for signing in again it also carries the account's ID-token subject as `login_hint`; RFC 8628 defines only `client_id` and `scope` there, and has a server ignore the rest. The answer is read by RFC 8628's own field names alone. When the codes cannot be had, when the page they name is not on https (localhost exempt), or when the vault has no way to introduce itself, the window says "This sign-in can't start".
+
+**The code page**, `/auth/code`, is the orchestrator's own. It shows no address:
+
+1. "Sign in to TV", whatever the purpose: a first sign-in, an added account, more access or signing in again.
+2. "Your code" over the user code, with Copy.
+3. **Open TV's sign-in**, which opens TV's page in a second window with `noopener,noreferrer`. When the server's answer carries `verification_uri_complete`, the address with the code already in it, the button opens that and the line under it reads "Check that TV's page shows this same code." Otherwise it opens `verification_uri` and the line reads "TV's page will ask for this code.", and you type or paste the code there.
+4. After the press: a spinner over "Waiting for you to finish signing in", and under it **Open TV's sign-in again**.
+
+The code page asks the orchestrator how the attempt stands every second, as the canvas does, and turns into how it ended: "You're signed in to TV", counting down five seconds and closing; "Sign-in didn't finish" when TV refused; or "This code has run out" over "Close this window and try signing in again.". It never offers a new code: a new code comes from the canvas, through Open the sign-in again or the tile, as a new attempt, and whichever attempt finishes first is the outcome. Reloading the page shows the same code, or how it ended. It carries the attempt's cookie, so only the window that started it can read it. TV's own window is left to TV.
+
+**The vault asks the token endpoint** in the background, from the moment the codes arrive, as RFC 8628 has it:
+
+| The token endpoint answers | The vault |
+| --- | --- |
+| `authorization_pending` | Asks again after the interval: the server's `interval`, or 5 s when it names none |
+| `slow_down` | Adds 5 s to the interval, for every ask after |
+| Nothing: a timeout, or no connection | Doubles the interval and asks again |
+| Tokens | Lands them as a callback does, and the attempt is signed in |
+| `expired_token` | The attempt has expired |
+| `access_denied` | The attempt has failed, "the sign-in was refused at the app" |
+| Any other error | The attempt has failed with it; `unauthorized_client` or `invalid_client` also drops a registration the vault holds there |
+
+An attempt lives as long as the server's answer says the codes do (`expires_in`), with no limit of the vault's own, so a code that lives thirty minutes keeps the window, the code page and the canvas's waiting form going for thirty minutes. When the lifetime ends the vault stops asking, and the attempt has expired.
+
+**Who signed in** is judged as for a redirect: the ID token's signature, issuer, audience and expiry are checked, one account per identity, a different account refused for more access, an account re-bound for signing in again. No `nonce` is sent or checked: the device authorization request has no place for one, and the ID token comes from the token endpoint, never through the browser. Refresh, revocation, sign-out, uninstall and labels are as for any OAuth account.
+
+The device code is held by the vault alone, as a token is, and the user code is shown on the code page alone: neither reaches the canvas, the client's poll, the journal or the logs. The journal's `started` line says the sign-in went by device code, `"flow": "deviceCode"`; every other `signIn` line is as for a redirect.
+
+Stellify's `preview` takes an app that signs in by device code: the publisher's own token rides as a bearer `Authorization` header, as for the other OAuth schemes, and Stellify runs no sign-in. The trusted page reads the scheme as a sign-in, its scopes in the card's words, wherever it reads an app's card.
 
 ### Not supported here
 
@@ -421,6 +496,9 @@ The App Library ([`trusted-page.md`](trusted-page.md#gmails-accounts) has the pa
 | You closed the window, or it hid behind the canvas | The waiting form stays; Open the sign-in again opens a new window; Cancel puts the tile back | `canvas/signIn.ts` |
 | The sign-in ended badly at the app | The window stays open: "Sign-in didn't finish"; the tile goes back as it was | `vault/pages.ts` |
 | The attempt ran out (ten minutes) | The tile goes back as it was | `vault.#expire` |
+| A device code ran out, as its server says or at the end of its lifetime | The code page: "This code has run out"; the tile goes back as it was | `vault.#pollDevice`, `vault/pages.ts` |
+| The app refused a device-code sign-in | The code page: "Sign-in didn't finish"; the tile goes back as it was | `vault.#pollDevice` |
+| A device code can't be had, or its page is not on https | The window: "This sign-in can't start" | `vault.#startDevice` |
 | The token expired | Refreshed before the dispatch, nothing on screen | `vault.prepare` |
 | The refresh failed, or the app refused a fresh token | "Your Linear sign-in has run out." and Sign in again | `vault.unauthorized`, `markAgain` |
 | The app asked for a scope its card doesn't declare | The slot fails as invalid; no consent shown | `vault.requested` |
@@ -443,13 +521,16 @@ The App Library ([`trusted-page.md`](trusted-page.md#gmails-accounts) has the pa
 | **Accounts by `sub`** | One account signed in twice stays one; labels come from the sign-in | An agent that loses its accounts brings a new identity back; signing in again re-binds it |
 | **The request for more access on the attribution row** | The fragment stays; nothing moves; the press is sent again on Allow | A request held for later can be outrun by a later press, so a later press drops it |
 | **A paint with a credential field refused whole** | A deterministic check, one repair, then a way out; no model judges it | A component or option word that merely sounds like one is refused too |
+| **A sign-in by redirect goes ahead of device code** | Where an app offers both, you sign in in one window, on the app's page, with nothing to type or check | A card's order is not followed between the two; an app that prefers the code cannot say so |
+| **The code on the orchestrator's own page, the app's page in a second window** | The code is shown once, in the shell's words, beside a way back to the app's page; the canvas keeps its words | Two windows for one sign-in, and the code page must be closed by hand where the browser keeps it open |
+| **The server's clock ends a device-code attempt** | A code is good for as long as its server says, never cut short | A code that lives long keeps the vault asking, and the canvas waiting, for as long |
 
 ## Trying it
 
 - **The example, on made-up accounts.** Run the roster in deterministic mode (`pnpm dev:all --mode deterministic`) with a fresh orchestrator state folder (`STATE_DIR`) and the agents' sign-in stores in a scratch folder (`--agent-state <dir>`), so nothing you keep is signed in. Then ask the example's questions in order. The apps answer from their recorded data and sign in on their choosers. The orchestrator's Planner and Synthesizer still call their model; only the apps run without one. In the tunnel, set `A2UIVERSE_PUBLIC_URL` so each agent's sign-in page has an address the browser can reach (`_dev/docs/tunnel-environment.md`).
 - **Read the journal.** `<state>/intent-journal.jsonl`: every `signIn` line beside the turns.
 - **Look in the vault.** `<state>/vault/vault.json` holds the accounts, labels and scopes, and the tokens, so treat it as a secret.
-- **The tests.** `apps/orchestrator/test/vault.test.ts` runs the orchestrator against `fakeAuthServer.ts`, an in-process authorization server, with no network: the tile at first paint, the resume, forged sign-ins refused, both registrations, refresh and a 401, re-binding, requests for more access, the merge, the token page, uninstall with revocation, the App Library's reads, rename, sign-out and sign-ins with no canvas, and no secret in the journal or the logs. `apps/client/src/canvas/signIn.test.ts` covers the window and the poll. The shell catalog's slot and attribution tests draw every authority form. The kit's `tests/test_sign_in.py` and `tests/test_sign_in_vendor.py` cover the front door.
+- **The tests.** `apps/orchestrator/test/vault.test.ts` runs the orchestrator against `fakeAuthServer.ts`, an in-process authorization server, with no network: the tile at first paint, the resume, forged sign-ins refused, both registrations, refresh and a 401, re-binding, requests for more access, the merge, the token page, uninstall with revocation, the App Library's reads, rename, sign-out and sign-ins with no canvas, and no secret in the journal or the logs. Its device-code block runs the same server's device authorization endpoint and device-code grant: a first sign-in through the code page, a typed code, a refusal, a code run out, `slow_down` and an ask with no answer, more access, signing in again, an added account, the order beside a redirect and a key, the registration made again, a server found at the well-known address, and a sign-in that can't start. `apps/client/src/canvas/signIn.test.ts` covers the window and the poll. The shell catalog's slot and attribution tests draw every authority form. The kit's `tests/test_sign_in.py` and `tests/test_sign_in_vendor.py` cover the front door.
 - **One sign-in through the real window.** `apps/client/e2e-live/sign-in.spec.ts` starts the stack and signs in through the real popup.
 - **The sweep.** `pnpm sweep:secrets` after a sitting.
 
@@ -459,7 +540,8 @@ No recorded beat shows a sign-in: the recorder signs every app in through the re
 
 | Concern | Orchestrator (`apps/orchestrator/src`) | Client (`apps/client/src`) | Shell catalog (`packages/shell-catalog/src`) | Agent kit (`../a2uiverse-apps/agent-kit/src/a2ui_agent_kit`) |
 | --- | --- | --- | --- | --- |
-| Reading a card | `vault/schemes.ts` | | | `sign_in.py` (writes it) |
+| Reading a card | `vault/schemes.ts`; the order alternatives are followed in, `packages/card/src/requirements.ts` | `canvas/trustedPage/appCard.ts` | | `sign_in.py` (writes it) |
+| Device code: the codes, the asks, the code page | `vault/vault.ts` (`#startDevice`, `#pollDevice`), `vault/oauth.ts`, `vault/pages.ts` (`codePage`) | | | |
 | The vault, its file | `vault/vault.ts`, `vault/store.ts` | | | `sign_in_store.py` (the agent's own store) |
 | OAuth client and server | `vault/oauth.ts` | | | `sign_in_server.py`, `sign_in_vendor.py`, `sign_in_fake.py` |
 | The sign-in routes and pages | `vault/routes.ts`, `vault/pages.ts` | `orchestratorApi.ts` | | |
@@ -494,4 +576,8 @@ No recorded beat shows a sign-in: the recorder signs every app in through the re
 | **Credential bar** | The check that refuses any paint with a password, code or card field |
 | **Client ID metadata document** | A JSON file about the vault, served at an address that is its client id |
 | **PKCE** | A one-time secret the vault keeps and proves at the token endpoint, so a stolen code is useless |
+| **Device-code flow** | OAuth's sign-in by a short code given on the app's own page (RFC 8628), the vault asking the token endpoint until you finish |
+| **User code** | The short code the code page shows and you give on the app's page |
+| **Device code** | The long code the vault keeps and asks the token endpoint with; never shown |
+| **Code page** | The orchestrator's page that shows the user code and opens the app's page |
 | **`sub`** | The ID token's stable subject: who signed in, across sign-ins |
