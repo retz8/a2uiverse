@@ -3,7 +3,7 @@
 Instead of `localhost:<port>`, use the tunnel URL:
 `https://<tunnel-id>-<port>.asse.devtunnels.ms`. This applies to every URL the
 browser touches — the page address and any server URL the app calls
-(orchestrator, marketplace, agents). `<tunnel-id>` is kept in the git-ignored
+(orchestrator, agents). `<tunnel-id>` is kept in the git-ignored
 `CLAUDE.local.md`.
 
 This setup is only for Jioh In (@retz8); it does not apply to anyone else
@@ -37,22 +37,23 @@ working with this repo.
   controlled browser is on the remote side.
 - **The orchestrator reaches the marketplace on its own machine**, so its
   `MARKETPLACE_URL` default, `http://localhost:10002`, stands in a tunnel
-  session; only the browser needs the marketplace's tunnel URL.
+  session. The browser reads the marketplace through the orchestrator alone,
+  so the marketplace's port needs no tunnel.
 
 ## Ports
 
-Platform processes are `1000x`; vendor agents are `11001+` and mock agents `12001+`, one port per app regardless of run mode, for JSON-RPC and HTTP+JSON. Each agent answers gRPC on a second port, 100 above it: `11101+` and `12101+`, never through the tunnel. The browser talks to the orchestrator, and opens the vendor agents' sign-in pages; the orchestrator reaches the agents on `localhost`. Shop A and Shop B need no tunnel: shop-b's key is entered on the orchestrator's own page. Shop C, the mock store written by hand in Go, signs in by device code on a sign-in page of its own, which the browser opens, so that page needs a tunnel address; its gRPC port, 12103, needs none. The tunnel's eight ports are held by the client, the orchestrator, the marketplace and the five vendor agents, so the page rides a vendor agent's port the mock tier leaves idle, 11005: a proxy on the Mac passes that port's `/device` alone to Shop C's 12003, and Shop C runs with `--public-url` on 11005's tunnel address.
+Platform processes are `1000x`; vendor agents are `11001+` and mock agents `12001+`, one port per app regardless of run mode, for JSON-RPC and HTTP+JSON. Each agent answers gRPC on a second port, 100 above it: `11101+` and `12101+`, never through the tunnel. The browser talks to the orchestrator, and opens the vendor agents' sign-in pages; the orchestrator reaches the agents on `localhost`. Shop A and Shop B need no tunnel: shop-b's key is entered on the orchestrator's own page. Shop C, the mock store written by hand in Go, signs in by device code on a sign-in page of its own, which the browser opens, so that page needs a tunnel address; its gRPC port, 12103, needs none. The tunnel's eight ports are held by the client, the orchestrator, the five vendor agents and Shop C, on 12003, which serves its own sign-in page there with `--public-url` on 12003's tunnel address.
 
 | Process | Port | Tunnel | Repo |
 |---|---|---|---|
 | client (canvas shell) | 5173 | yes | `a2uiverse` |
 | orchestrator | 10001 | yes | `a2uiverse` |
-| marketplace | 10002 | yes | `a2uiverse` |
+| marketplace | 10002 | no | `a2uiverse` |
 | shell-catalog fixture (dev-only) | 5174 locally; 5173 through the tunnel, while the client is down | on 5173 | `a2uiverse` |
 | vendor agents | 11001–11005 | sign-in pages | `a2uiverse-apps` (table there) |
 | vendor agents' gRPC | 11101–11105 | no | `a2uiverse-apps` |
 | mock agents | 12001–12002 | no | `a2uiverse-apps` (`mocks/`, the launcher's mock tier) |
-| Shop C, started by hand | 12003 | its sign-in page, through 11005 | `a2uiverse-apps` (`mocks/shop-c/`) |
+| Shop C, started by hand | 12003 | its sign-in page | `a2uiverse-apps` (`mocks/shop-c/`) |
 | mock agents' gRPC | 12101+ | no | `a2uiverse-apps` |
 | upstream restaurant finder | 11006 | no | `../a2ui-upstream/`, a worktree of the A2UI fork at `upstream/main` |
 
@@ -79,7 +80,7 @@ pnpm --filter @a2uiverse/client dev
 
 The restaurant finder serves its pictures from its own address, `http://localhost:11006/static/`, so a browser across the tunnel shows them blank whether or not the port is forwarded: there `localhost` is the browser's own machine.
 
-The tunnel forwards at most eight ports — the client, the orchestrator, the marketplace and the five vendor agents — so the shell catalog's design-check page runs on the client's port while the client is down:
+The tunnel forwards at most eight ports — the client, the orchestrator, the five vendor agents and Shop C — so the shell catalog's design-check page runs on the client's port while the client is down:
 
 ```bash
 pnpm --filter @a2uiverse/shell-catalog dev --port 5173
@@ -127,11 +128,11 @@ pnpm dev:all --tier mocks --mode live  # the same, live
 pnpm dev:all --tier default,mocks      # the five apps and the two stores in one launch
 ```
 
-Shop C is not in the launcher's roster. It is started by hand beside the mock tier, its sign-in page on the tunnel through port 11005 and everything else on `localhost`, then installed from its card URL alone or published with Stellify by hand (its agent's README in `a2uiverse-apps`). The proxy on 11005 is any reverse proxy that passes `/device` to `http://localhost:12003`, `httputil.NewSingleHostReverseProxy` in a few lines of Go:
+Shop C is not in the launcher's roster. It is started by hand beside the mock tier, its sign-in page on the tunnel through port 12003 and everything else on `localhost`, then installed from its card URL alone or published with Stellify by hand (its agent's README in `a2uiverse-apps`):
 
 ```bash
-# in ../a2uiverse-apps/mocks/shop-c/agent, with the proxy on 11005 running
-go run . --public-url https://<tunnel-id>-11005.asse.devtunnels.ms --state-dir <scratch dir>
+# in ../a2uiverse-apps/mocks/shop-c/agent
+go run . --public-url https://<tunnel-id>-12003.asse.devtunnels.ms --state-dir <scratch dir>
 # here, once it answers
 pnpm --filter @a2uiverse/orchestrator registry install shop-c http://localhost:12003/.well-known/agent-card.json
 ```

@@ -193,3 +193,13 @@ Left to the plan:
 5. The environment the old fleet runs in.
 6. What beat 36's test asserts.
 7. Where the git-ignored folder for the scratch state sits.
+
+## Amendments of 2026-11-14
+
+### The request for more access on GitHub, Calendar and Linear
+
+In `deterministic`, GitHub, Calendar and Linear paint no press that needs more access: GitHub's Submit and Approve, Calendar's confirming of an event and its RSVP, and Linear's confirming of a change appear in no answer a person can reach from the canvas. Their request for more access is taken in the `stub` pass, on the loop's scratch state: a question to each app whose answer paints the press, then the press, Allow and the press sent again, read in the journal on the app's first path. Gmail's and CircleCI's stand from the loop's pass. Amends decisions 6 and 10.
+
+### GitHub's request for more access is left to the test suites
+
+The agent kit reads a press's scopes in `deterministic` alone; in `stub` and `live` a request for more access comes from a write tool the model calls. GitHub's canned tools only read, so its request for more access does not arise in `stub`. GitHub's request, on gRPC at A2A 1.0, is left to the fake agents of the platform's test suites, as gRPC at A2A 0.3's is, and the record says so; a Backlog line gives GitHub's canned tools a write. Amends decision 6 and the amendment above.
