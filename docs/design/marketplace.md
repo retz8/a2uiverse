@@ -264,7 +264,7 @@ Stellify posts `{appId, cardUrl, catalogs: [{files}]}` to `POST /publish` with t
 8. Runs the **smoke test**: one request, _"What cameras do you have?"_, advertising `[basic, shop-a's catalog]`. The agent answers with the `list` surface above and completes. Every check over the paint passes.
 9. **Commits**: the artifact written under its id; the ledger gaining `shop-a` and its catalog id for `a2uiverse-apps`; the entry and the preview written; the card **embedded** for search; `index.json` regenerated.
 
-It answers with the summary line and the **notes** the commit produced — here `app id "shop-a" is now a2uiverse-apps's` and `catalog "…/shop-a-catalog/catalogs/v0.9.1/catalog.json" is now a2uiverse-apps's`. Stellify prints each under the summary as `note: …`, word for word. The marketplace's log: `published shop-a · card 0.1.0 · catalog sha256-g_rV6uea… (by a2uiverse-apps)`.
+It answers with the summary line and the **notes** the commit produced — here `app id "shop-a" is now a2uiverse-apps's` and `catalog "…/shop-a-catalog/catalogs/v0.9.1/catalog.json" is now a2uiverse-apps's`. Stellify prints each under the summary as `note: …`, word for word. The marketplace's log has two lines for it, each opening with its instant as `Date#toISOString` writes it: `the hello-fragment smoke test of shop-a took <n> ms: ended TASK_STATE_COMPLETED` once the smoke request settles, then `published shop-a · card 0.1.0 · catalog sha256-g_rV6uea… (by a2uiverse-apps)`.
 
 Every finding after step 4 is collected and answered together, as install answers, so a publisher sees everything to fix in one go; a refusal prints `refused shop-a:` and each finding indented, and exits 1.
 

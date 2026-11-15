@@ -52,6 +52,7 @@ import {
   type SearchResponse,
 } from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
+import {logLine} from './log.js';
 import {
   FAILED_STATES,
   noneReachedFinding,
@@ -582,12 +583,19 @@ export class Marketplace {
     const schemas = await this.#schemasFor(declared, gated, held);
     const check = {entitlement, schemaFor: (id: string) => schemas.get(id)};
     const words = smokeWords(card);
+    // Timed on its own line, the publish's own line coming once it ends (found in 18.7).
+    const smokeStarted = this.#clock().getTime();
     const seen = await this.#deps.smoke({
       card,
       entitlement,
       words,
       timeoutMs: this.#deps.smokeTimeoutMs,
     });
+    const smokeEnded = this.#clock();
+    logLine(
+      `the hello-fragment smoke test of ${appId} took ${smokeEnded.getTime() - smokeStarted} ms: ${smokeOutcome(seen)}`,
+      smokeEnded,
+    );
     // The preview stored is the paint as the check judged it, settled (task-18.5.3 decisions 1, 2).
     let stored: PreviewDocument | undefined;
     if (signIn && preview) {
@@ -722,7 +730,11 @@ export class Marketplace {
   }
 
   #now(): string {
-    return (this.#deps.now?.() ?? new Date()).toISOString();
+    return this.#clock().toISOString();
+  }
+
+  #clock(): Date {
+    return this.#deps.now?.() ?? new Date();
   }
 
   async #writePublishers(next: Map<string, PublisherRecord>): Promise<void> {
@@ -813,6 +825,20 @@ function judgeSignIn(seen: SmokeObservation, card: AgentCard): string[] {
       return [noneReachedFinding(seen.notReached)];
     case 'error':
       return [`the smoke request failed: ${seen.message}`];
+  }
+}
+
+/** How the smoke request ended, for its log line: its kind, and the state or the words it carries. */
+function smokeOutcome(seen: SmokeObservation): string {
+  switch (seen.kind) {
+    case 'ended':
+      return `ended ${seen.state}`;
+    case 'unfinished':
+      return seen.state ? `unfinished, still ${seen.state}` : 'unfinished';
+    case 'error':
+      return `error: ${seen.message}`;
+    default:
+      return seen.kind;
   }
 }
 

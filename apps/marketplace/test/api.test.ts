@@ -279,7 +279,7 @@ describe('the log', () => {
       await post(`${base}/claim`, {publisher: 'Acme!'});
       await post(`${base}/unpublish`, {appId: 'shop'}, rival);
       await post(`${base}/unpublish`, {appId: 'nope'}, token);
-      const lines = log.mock.calls.map(call => String(call[0]));
+      const lines = log.mock.calls.map(call => String(call[0]).replace(AT, ''));
       expect(lines[0]).toBe(
         '@a2uiverse/marketplace: refused a claim of acme: publisher name "acme" is taken',
       );
@@ -291,7 +291,44 @@ describe('the log', () => {
       log.mockRestore();
     }
   });
+
+  test('every line opens with its time, as the journal writes one', async () => {
+    const {base} = await serve();
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      const before = Date.now();
+      await claimed(base);
+      const [line] = log.mock.calls.map(call => String(call[0]));
+      expect(line).toMatch(new RegExp(`${AT.source}@a2uiverse/marketplace: claimed acme$`));
+      const at = Date.parse(line!.split(' ')[0]!);
+      expect(at).toBeGreaterThanOrEqual(before);
+      expect(at).toBeLessThanOrEqual(Date.now());
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  test('a publish prints its hello-fragment smoke test on a line of its own, timed, ahead of the publish (found in 18.7)', async () => {
+    const {base} = await serve();
+    const token = await claimed(base);
+    const agent = await agentOf();
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      await published(base, token, 'shop', agent);
+      const lines = log.mock.calls.map(call => String(call[0]).replace(AT, ''));
+      expect(lines).toHaveLength(2);
+      expect(lines[0]).toMatch(
+        /^@a2uiverse\/marketplace: the hello-fragment smoke test of shop took \d+ ms: ended [\w-]+$/,
+      );
+      expect(lines[1]).toMatch(/^@a2uiverse\/marketplace: published shop · card 0\.1\.0 · /);
+    } finally {
+      log.mockRestore();
+    }
+  });
 });
+
+/** A log line's opening instant, as `Date#toISOString` writes it, and the space after it. */
+const AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z /;
 
 describe('the report line', () => {
   test('the flag an app stands at, its clearing, or nothing for an app clear before and after (task-13.8 decision 31)', () => {
