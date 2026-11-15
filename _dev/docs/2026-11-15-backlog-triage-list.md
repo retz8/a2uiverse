@@ -28,7 +28,7 @@ In this order.
 
    About a session, after item 1.
 
-4. Words on the screen that are not the customer's. Four fixes, each under an hour, each with its wording approved first:
+4. [DONE] (platform 82c88a7, f8e9619, e37a98d, 203ea0f, 957cd89) Words on the screen that are not the customer's. Four fixes, each under an hour, each with its wording approved first:
    1. A Planner model call that fails puts its error on the screen: the broken turn's final carries the message the call threw, in the provider's or the AI SDK's words ([`apps/orchestrator/src/executor.ts`](../../apps/orchestrator/src/executor.ts)).
    2. The orchestrator's sign-in window says only "Sign-in didn't finish" when a sign-in for added access is made as a different account than the fragment's, and the canvas puts the tile back with no words ([`vault.ts`](../../apps/orchestrator/src/vault/vault.ts), [`pages.ts`](../../apps/orchestrator/src/vault/pages.ts)).
    3. A card update newly asking for a key, or for a sign-in with no named scope, shows a consent card with nothing in it, the card having words only for scopes ([`ConsentCard.tsx`](../../apps/client/src/canvas/trustedPage/ConsentCard.tsx), [`appCard.ts`](../../apps/client/src/canvas/trustedPage/appCard.ts)).
