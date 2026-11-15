@@ -84,8 +84,7 @@ const PLATFORM: ExampleAgent = {
     },
     {
       name: 'Publishing an app',
-      description:
-        'Explains how a publisher puts their own app in the Store and points them to Publish.',
+      description: 'Explains how you put your own app in the Store and points you to Publish.',
     },
   ],
 };
