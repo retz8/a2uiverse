@@ -16,7 +16,7 @@ describe('stellify check', () => {
     const dir = copyFixture();
     const {code, out} = await run(['check', dir]);
     expect(code).toBe(0);
-    expect(out).toMatch(/star-catalog 1\.2\.3 — 6 files, no findings/);
+    expect(out).toMatch(/star-catalog 1\.2\.3 — 5 files, no findings/);
     expect(existsSync(join(dir, 'dist'))).toBe(false);
   });
 

@@ -321,7 +321,7 @@ The entry finishes once the slowest sheet has loaded. A sheet the package import
 
 - A file of the package keeps its path from the package root, `dist/primer-scoped.css`, wherever the package sits: in its own checkout, or installed in a `node_modules`.
 - A dependency's file goes under the name its `package.json` gives, `node_modules/@primer/react/dist/…`, never pnpm's real path inside its store.
-- Each copied sheet is scanned for `url(…)` and `@import`, and every file they reach is copied beside it. A reference outside the package and its dependencies is refused; `data:` and absolute URLs are left alone.
+- Each copied sheet is scanned for `url(…)`, and every file it reaches is copied beside it. A reference outside the package and its dependencies is refused; `data:` and absolute URLs are left alone. An `@import`, relative or absolute, is refused: the client puts each sheet on a constructed stylesheet, which drops it.
 
 **Same input, same bytes.** Paths are sorted, nothing records a time or an absolute path, and esbuild's output is stable, so packing one package twice gives the same artifact, hash for hash. Two apps handing the same catalog hand the same artifact, which is one row in the table.
 
@@ -572,7 +572,7 @@ Two browser behaviours shape the third column:
 | **One build per catalog id; a new build moves the row and the other apps follow, checked as an additive evolution** | Install is one operation on every path; a shared catalog upgrades in one install, and nothing another app renders in is removed or retyped under it | A hand install can move the build another hand-installed app renders in; the summary names it |
 | **The record keeps where its install came by** | Only an app from the marketplace is ever moved by the index; a pack handed from disk stays where the operator put it | A local-pack app on a shared row holds back the automatic update of the apps sharing it |
 | **Entitlement checked at the hub** | No app paints in another's catalog, whatever the client advertised | One check per relayed event |
-| **A paint drawn in the build the registry holds when it arrives, each build's stylesheets scoped to its own surfaces** | Nothing on screen changes its look when an update moves the catalog, and the next paint takes the new build on any canvas with no reload; no catalog's sheet styles another's | Every artifact sheet is read as text and adopted; a rule a sheet aims at the whole page reaches only its own surfaces; an `@import` inside a sheet is not followed, an adopted sheet having none |
+| **A paint drawn in the build the registry holds when it arrives, each build's stylesheets scoped to its own surfaces** | Nothing on screen changes its look when an update moves the catalog, and the next paint takes the new build on any canvas with no reload; no catalog's sheet styles another's | Every artifact sheet is read as text and adopted; a rule a sheet aims at the whole page reaches only its own surfaces; an `@import` inside a sheet is not followed, an adopted sheet having none, so Stellify refuses one at pack |
 | **Every request of a load bounded, then asked once more** | A request nothing answers fails its slot, with Retry, rather than leaving it loading for good | A load through a very slow link can fail where waiting longer would have worked |
 | **Retry sends again what failed** | Retry after a failed click shows what the click opened | A slot keeps the failed click until something there completes; a click made on a surface whose catalog an update dropped is not sent again |
 

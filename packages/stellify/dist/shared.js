@@ -1775,12 +1775,18 @@ var Layout = class {
 import { existsSync as existsSync3, readFileSync as readFileSync2, statSync } from "node:fs";
 import { dirname as dirname2, posix as posix2, resolve } from "node:path";
 var URL_REF = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^'")\s]+))\s*\)/g;
-var IMPORT_REF = /@import\s+(?:url\(\s*)?(?:"([^"]*)"|'([^']*)')/g;
+var IMPORT_RULE = /@import\s+(?:url\(\s*(?:"([^"]*)"|'([^']*)'|([^'")\s]+))\s*\)|"([^"]*)"|'([^']*)')[^;]*;?/g;
+var COMMENT = /\/\*[\s\S]*?\*\//g;
 var isExternal = (ref) => ref === "" || ref.startsWith("#") || ref.startsWith("data:") || ref.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(ref) || ref.startsWith("//");
+function stylesheetImports(css) {
+  return [...css.replace(COMMENT, "").matchAll(IMPORT_RULE)].map(
+    (match) => match.slice(1, 6).find((address) => address !== void 0) ?? ""
+  );
+}
 function stylesheetRefs(css) {
   const refs = [];
-  for (const match of css.matchAll(URL_REF)) refs.push(match[1] ?? match[2] ?? match[3] ?? "");
-  for (const match of css.matchAll(IMPORT_REF)) refs.push(match[1] ?? match[2] ?? "");
+  const text = css.replace(COMMENT, "").replace(IMPORT_RULE, "");
+  for (const match of text.matchAll(URL_REF)) refs.push(match[1] ?? match[2] ?? match[3] ?? "");
   return refs;
 }
 function copyStylesheet(layout, file, artifactPath2, copied) {
@@ -1788,6 +1794,12 @@ function copyStylesheet(layout, file, artifactPath2, copied) {
   const bytes = readFileSync2(file);
   copied.files.set(artifactPath2, new Uint8Array(bytes));
   const css = bytes.toString("utf8");
+  for (const address of stylesheetImports(css)) {
+    copied.findings.push({
+      file: artifactPath2,
+      reason: `${JSON.stringify(address)} is an @import, which the client does not follow; import the stylesheet from your code instead`
+    });
+  }
   for (const ref of stylesheetRefs(css)) {
     if (isExternal(ref)) continue;
     const bare = ref.replace(/[?#].*$/, "");
@@ -1809,8 +1821,7 @@ function copyStylesheet(layout, file, artifactPath2, copied) {
       });
       continue;
     }
-    if (/\.css$/i.test(bare)) copyStylesheet(layout, asset, assetPath, copied);
-    else if (!copied.files.has(assetPath)) {
+    if (!copied.files.has(assetPath)) {
       copied.files.set(assetPath, new Uint8Array(readFileSync2(asset)));
     }
   }

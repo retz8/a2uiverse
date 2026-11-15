@@ -1,5 +1,7 @@
-@import './tokens.css';
 .star-dialog {
   position: fixed;
   inset: var(--star-dialog-inset);
+}
+:where(.star-dialog) {
+  --star-dialog-inset: 1rem;
 }

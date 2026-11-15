@@ -1,6 +1,8 @@
 import type { Layout } from './layout.js';
 import type { Finding } from './types.js';
-/** Every reference in a stylesheet's text, as written. */
+/** Every `@import` in a stylesheet's text, the address as written. */
+export declare function stylesheetImports(css: string): string[];
+/** Every `url()` reference in a stylesheet's text outside an `@import`, as written. */
 export declare function stylesheetRefs(css: string): string[];
 export interface CopiedFiles {
     files: Map<string, Uint8Array>;

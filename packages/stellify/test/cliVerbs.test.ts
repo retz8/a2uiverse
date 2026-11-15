@@ -178,7 +178,6 @@ describe('stellify publish', () => {
       'lib/fonts/star.woff2',
       'lib/theme.css',
       'node_modules/star-dialog/lib/dialog.css',
-      'node_modules/star-dialog/lib/tokens.css',
     ]);
   });
 

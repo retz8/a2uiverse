@@ -39,7 +39,6 @@ describe('packing the fixture catalog', () => {
       'lib/fonts/star.woff2',
       'lib/theme.css',
       'node_modules/star-dialog/lib/dialog.css',
-      'node_modules/star-dialog/lib/tokens.css',
     ]);
     const descriptor = result.descriptor!;
     expect(Object.keys(descriptor.files)).toEqual([...result.files.keys()]);
@@ -65,7 +64,6 @@ describe('packing the fixture catalog', () => {
     expect(entry).toContain(
       'loadStylesheet(new URL("node_modules/star-dialog/lib/dialog.css", import.meta.url).href)',
     );
-    expect(entry).not.toContain('tokens.css');
   });
 
   test('the entry runs against a host, its loads awaited', async () => {
@@ -302,6 +300,28 @@ describe('refusals', () => {
     edit(dir, 'lib/theme.css', s => s.replace('./fonts/star.woff2', './fonts/missing.woff2'));
     expect(reasons(await stellify(dir))).toEqual([
       expect.stringMatching(/fonts\/missing\.woff2.*does not exist/),
+    ]);
+  });
+
+  test('a stylesheet that imports another, which the client does not follow', async () => {
+    const dir = copyFixture();
+    writeFileSync(join(dir, 'lib/more.css'), '.star-catalog .more { color: teal; }\n');
+    edit(dir, 'lib/theme.css', s => `@import './more.css';\n${s}`);
+    expect(reasons(await stellify(dir))).toEqual([
+      '"./more.css" is an @import, which the client does not follow; import the stylesheet from your code instead',
+    ]);
+  });
+
+  test("a stylesheet that imports a font service's, which the client does not follow", async () => {
+    const dir = copyFixture();
+    edit(
+      dir,
+      'lib/theme.css',
+      s =>
+        `/* @import in a comment is no import */\n@import url("https://fonts.example/css?family=Star");\n${s}`,
+    );
+    expect(reasons(await stellify(dir))).toEqual([
+      '"https://fonts.example/css?family=Star" is an @import, which the client does not follow; import the stylesheet from your code instead',
     ]);
   });
 
