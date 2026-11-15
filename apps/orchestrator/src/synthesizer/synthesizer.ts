@@ -9,6 +9,7 @@ import {
 import {RELATIONS} from '@a2uiverse/shell-catalog/schema';
 import {streamText, type LanguageModel} from 'ai';
 import type {Effort, Reasoning} from '../model/getModel.js';
+import {pastLimit, stepTimeout} from '../model/requestLimit.js';
 import {
   AttemptMeasurement,
   measureOf,
@@ -460,10 +461,13 @@ function repeatedLists(tree: SynthesisTree): string[] {
 export class AiSdkSynthesisModel implements SynthesisModel {
   #model: LanguageModel;
   #reasoning: Reasoning | undefined;
+  #requestLimitMs: number | undefined;
 
-  constructor(options: {model: LanguageModel; reasoning?: Reasoning}) {
+  /** `requestLimitMs`: how long the request may run, the apps' hard cap; none, and it runs until it ends. */
+  constructor(options: {model: LanguageModel; reasoning?: Reasoning; requestLimitMs?: number}) {
     this.#model = options.model;
     this.#reasoning = options.reasoning;
+    this.#requestLimitMs = options.requestLimitMs;
   }
 
   async generate(call: SynthesisCall): Promise<SynthesisAnswer> {
@@ -473,6 +477,7 @@ export class AiSdkSynthesisModel implements SynthesisModel {
       prompt: call.prompt,
       ...(this.#reasoning ? {reasoning: this.#reasoning} : {}),
       ...(call.signal ? {abortSignal: call.signal} : {}),
+      ...stepTimeout(this.#requestLimitMs),
       // A failed request is read off the stream below.
       onError: () => {},
     });
@@ -480,6 +485,8 @@ export class AiSdkSynthesisModel implements SynthesisModel {
     for await (const part of result.fullStream) {
       if (part.type === 'text-delta') call.onText?.(part.text);
       else if (part.type === 'error') failed ??= {error: part.error};
+      // Cut off: by the canvas closing, which the check below throws, or by the limit.
+      else if (part.type === 'abort') failed ??= {error: pastLimit(this.#requestLimitMs)};
     }
     call.signal?.throwIfAborted();
     if (failed) throw failed.error;

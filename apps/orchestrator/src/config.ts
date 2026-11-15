@@ -38,7 +38,10 @@ export interface Config {
    * that arrived could make a merge, how long with no source settling releases the synthesis.
    */
   softDeadlineMs: number;
-  /** The hard cap (`A2UIVERSE_HARD_CAP_SECONDS`, task-8.3 decision 2): from each dispatch to its slot failing. */
+  /**
+   * The hard cap (`A2UIVERSE_HARD_CAP_SECONDS`, task-8.3 decision 2): from each dispatch to its slot
+   * failing, and how long each model request of the Planner and the Synthesizer may run.
+   */
   hardCapMs: number;
   /**
    * The heartbeat (`A2UIVERSE_HEARTBEAT_SECONDS`, task-8.7 decision 31): an open stream that has

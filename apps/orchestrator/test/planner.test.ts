@@ -775,6 +775,27 @@ describe('ModelPlanner — the measurement (task 17.5)', () => {
       log.lines.some(line => /Planner request task=t2 1\.1: error after \d+ ms/.test(line)),
     ).toBe(true);
   });
+
+  test('a request that runs past its limit fails the plan as a request that throws, its line naming the limit', async () => {
+    const live = liveStream();
+    const model = new MockLanguageModelV3({doStream: async () => live.result});
+    const log = logged();
+    await expect(
+      new ModelPlanner({
+        model,
+        systemPrompt: 'SYSTEM',
+        catalog: files.catalog,
+        readers,
+        requestLimitMs: 50,
+      }).plan({...input, clock: {origin: Date.now(), task: 't3'}}),
+    ).rejects.toThrow('the model request ran past its 0.05 s limit');
+    log.restore();
+    expect(
+      log.lines.some(line =>
+        /Planner request task=t3 1\.1: error after \d+ ms .*ran past its 0\.05 s limit/.test(line),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe('ModelPlanner — the answer followed as it is written (task 17.9)', () => {

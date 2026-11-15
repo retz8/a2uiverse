@@ -343,6 +343,7 @@ function plannerFrom(
     sourcesOf: appId => sources.of(appId),
     store,
     ...(cache ? {cache} : {}),
+    requestLimitMs: config.hardCapMs,
   });
 }
 
@@ -373,5 +374,6 @@ function synthesisModelFrom(config: Config): SynthesisModel {
   return new AiSdkSynthesisModel({
     model: getModel({seam: 'Synthesizer', keys: config, modelId: config.synthesizerModelId}),
     reasoning: reasoningFor(config.synthesizerEffort),
+    requestLimitMs: config.hardCapMs,
   });
 }

@@ -6,6 +6,7 @@ import {
 } from '@a2uiverse/sdk';
 import {stepCountIs, streamText, type LanguageModel, type ModelMessage} from 'ai';
 import type {Effort, Reasoning} from '../model/getModel.js';
+import {pastLimit, stepTimeout} from '../model/requestLimit.js';
 import {
   AttemptMeasurement,
   wholeMs,
@@ -133,6 +134,7 @@ export class ModelPlanner implements Planner {
   readonly #system: string;
   readonly #tree: A2uiValidator;
   readonly #readers: PlatformReaders;
+  readonly #requestLimitMs: number | undefined;
   readonly #sourcesOf: SourcesOf;
   readonly #store: StoreSearch | undefined;
   readonly #cache: PlanCache | undefined;
@@ -156,6 +158,8 @@ export class ModelPlanner implements Planner {
     store?: StoreSearch;
     /** The plan cache (task-17.6 decision 10); none, and every plan is the model's. */
     cache?: PlanCache;
+    /** How long each model request may run, the apps' hard cap; none, and it runs until it ends. */
+    requestLimitMs?: number;
   }) {
     this.#model = options.model;
     this.#reasoning = options.reasoning;
@@ -166,6 +170,7 @@ export class ModelPlanner implements Planner {
     this.#sourcesOf = options.sourcesOf ?? (appId => [{source: appId}]);
     this.#store = options.store;
     this.#cache = options.cache;
+    this.#requestLimitMs = options.requestLimitMs;
   }
 
   async plan(input: PlanInput): Promise<PlanOutcome> {
@@ -238,6 +243,7 @@ export class ModelPlanner implements Planner {
         stopWhen: stepCountIs(MAX_STEPS),
         ...(this.#reasoning ? {reasoning: this.#reasoning} : {}),
         ...(input.signal ? {abortSignal: input.signal} : {}),
+        ...stepTimeout(this.#requestLimitMs),
         onStepEnd: step => measurement.take(step),
         // A failed request is read off the stream below.
         onError: () => {},
@@ -257,6 +263,10 @@ export class ModelPlanner implements Planner {
             break;
           case 'error':
             failed ??= {error: part.error};
+            break;
+          // Cut off: by the canvas closing, which the check below throws, or by the limit.
+          case 'abort':
+            failed ??= {error: pastLimit(this.#requestLimitMs)};
             break;
         }
       }

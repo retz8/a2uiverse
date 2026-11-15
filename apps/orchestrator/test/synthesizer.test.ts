@@ -912,4 +912,16 @@ describe('the Synthesizer’s answer followed as it is written (task 17.10)', ()
     expect(text).toBe(pieces.join(''));
     expect(step?.timeToFirstTokenMs).toEqual(expect.any(Number));
   });
+
+  test('a request that runs past its limit throws, naming the limit', async () => {
+    const live = liveStream();
+    const model = new MockLanguageModelV4({modelId: 'm', doStream: async () => live.result});
+    await expect(
+      new AiSdkSynthesisModel({model, requestLimitMs: 50}).generate({
+        system: 'S',
+        prompt: 'P',
+        input,
+      }),
+    ).rejects.toThrow('the model request ran past its 0.05 s limit');
+  });
 });

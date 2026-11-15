@@ -582,7 +582,7 @@ Three things can interrupt a view being drawn:
 | What happens | On the screen |
 | --- | --- |
 | A piece fails its own check, the retry's document is accepted | The half-drawn view stays until the retry's document is complete, then is replaced in one step; the retry is not streamed |
-| The retry fails too, or the model call fails | The slot collapses to "The merged view couldn't be made." with Try again, and the half-drawn view is taken down after the line is painted, so no skeleton shows between |
+| The retry fails too, or the model call fails, a request of it running past the hard cap among the ways | The slot collapses to "The merged view couldn't be made." with Try again, and the half-drawn view is taken down after the line is painted, so no skeleton shows between |
 | A press changes the apps' data while the model writes | The half-drawn view stays, evaluated live over the data as it stands; the merge is made again, not streamed, and swapped in whole once accepted, or taken down if it ends unmade |
 
 Only the question's first merge streams. Every re-synthesis — Include, Retry, Try again, the walk after a press, a step to a combination never seen — lands whole, as its landed view already shows something. The journal records when the first row left, `firstRowMs` on the synthesis, beside `deadAirMs`, which keeps its meaning: from the merge's release to the document accepted.
