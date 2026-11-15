@@ -193,12 +193,12 @@ flowchart TD
 
 ### Prompt: the app's prose, and three rules every app gets
 
-`prompt.py`'s `build_system_prompt` assembles the system prompt once, section by section, around three pieces the A2UI SDK writes: the base rules and the schema block from its `DirectJsonPromptGenerator`, and the examples its `load_examples` reads, each example file whole:
+`prompt.py`'s `build_system_prompt` assembles the system prompt once, section by section, around three pieces the A2UI SDK writes: the base rules and the catalog's schema block from the prompt generator of its Direct JSON format, the base rules ending with the protocol's own schema block, and the examples its `load_examples` reads, each example file whole:
 
 | Section | What goes in |
 | --- | --- |
 | role | the config's `role_description` |
-| workflow | the SDK's base rules, then the kit's three rules, then the config's `workflow_descriptions`, then the domain doc |
+| workflow | the SDK's base rules and the protocol's schema block, then the kit's three rules, then the config's `workflow_descriptions`, then the domain doc |
 | UI description | the brand guide |
 | schema | the app's catalog, as the SDK's schema block |
 | examples | the examples' header, the config's `examples_framing`, then the app's curated example surfaces |
@@ -276,7 +276,7 @@ Where it's written:
 
 `agent-kit/src/a2ui_agent_kit/executor_llm.py` is the heart of the kit. Its rule is **stream first, validate at the end, retry**. Streaming first means the user watches the UI assemble rather than waiting for the whole answer. Validating at the end is necessary because half a surface can't be judged: a `root` that hasn't arrived yet isn't missing.
 
-The streaming parser is the A2UI SDK's own `DirectJsonParser`, made fresh for each attempt over every catalog line's catalog. It heals the partial JSON to read a message early, hands a message out again each time it grows, and holds a `createSurface` back until its object closes. A block that isn't JSON at all fails the attempt, and the parser's verdict is the correction. A block the parser refuses as a renderer would is left to the kit's own check at the end, in the kit's words, and the rest of the answer streams through a fresh parser.
+The streaming parser is the A2UI SDK's own `DirectJsonParser`, one for the turn over every catalog line's catalog, and each attempt reads the answer through a stream of its own, checked against an empty renderer state. It heals the partial JSON to read a message early, hands a message out again each time it grows, and holds a `createSurface` back until its object closes. A block that isn't JSON at all, or that the answer never closes, fails the attempt, and the stream's verdict is the correction. A block the stream refuses as a renderer would is left to the kit's own check at the end, in the kit's words, and the stream reads on past it. An update to a surface an earlier turn painted is one: the stream holds no earlier turn's surfaces.
 
 **A retry patches in place.** Between the parser and the client sits the kit's **stream filter** (`_StreamFilter` in `executor_llm.py`), kept across both attempts with its memory of what the turn has sent. A retry's `createSurface` for a surface the turn already created is dropped; a component goes out only when it's new or changed since it was last sent, and a data model value only when it changed. So a growing `updateComponents` streams only what it added, a retry that repeats most of the first attempt sends only the components that changed, and the surface on screen is patched rather than wiped and redrawn. Nothing is torn down between attempts; only when every attempt has failed does the kit delete what it painted.
 
@@ -319,8 +319,6 @@ A `<` that turns out not to start a tag is released as soon as the next characte
 3. **Bindings resolve.** The kit rebuilds the data model from the answer's own `updateDataModel` messages, then walks the tree from `root` and checks that every binding points at a value. Inside a list template it resolves against each list item, and when a model wrote an absolute path where a relative one was meant, the message says exactly that: use `'title'`, not `'/title'`.
 
 The catalog's **kind** changes how pass 0 reads a component's declared props. A **custom** catalog (GitHub's, built on Primer) declares them at the top of each component's schema. A **basic** catalog (the themed A2UI basic catalog, like the mock stores') composes each component's props from `allOf` branches, so they're flattened before pass 0 can read them.
-
-The SDK's `a2ui-core` 0.4.0 reads a plain string prop equal to a component id as a child reference, on every surface, for any component whose spec declares no reference props: an `Icon` named `mail` inside a `Row` whose id is `mail` reads as a cycle, so a valid surface would fail pass 2. The kit carries a local fix, applied at import (`upstream_patches.py`): from v0.9, a component its catalog declares is read by its reference spec alone. It's finding 16 in the [findings file](../../_dev/a2ui-findings.md), and goes when an SDK release carries the fix.
 
 An update-only turn goes through `validate_update` instead: passes 0 and 2, and 3 when the turn repaints components, but not pass 1. The `createSurface`, the `root` and reachability live on the client, so the agent can't check them for an update: the SDK's check judges a surface the answer doesn't create without its root or reachability.
 
@@ -590,8 +588,7 @@ In `a2uiverse-apps/agent-kit/src/a2ui_agent_kit/`:
 | `executor_deterministic.py`, `responses.py` | The no-model executor; the fixture responder and stub fixture loader                |
 | `responder.py`                 | The responder protocol, and the ADK-backed implementation with a session per context          |
 | `catalog.py`, `versions.py`    | Catalog loading through the SDK's `CatalogConfig`, `validate_surface` and `validate_update` around its `validate_payload`; the versions the kit speaks and their extension URIs, an app's version set checked, each request's version chosen as upstream's helper chooses, the card's A2UI entries, the A2UI part and its mark, a press read by content, the stamp at send, the actions each version admits, the version fixtures are written in and the one a catalog is read at |
-| `upstream_patches.py`          | The local fix over `a2ui-core`'s child-reference fallback, applied at import (finding 16)      |
-| `prompt.py`, `knowledge.py`    | System prompt assembly around the SDK's base rules, schema block and examples: the three rules every app gets, the config's prose, domain doc and brand guide |
+| `prompt.py`, `knowledge.py`    | System prompt assembly around the SDK's base rules, schema blocks and examples: the three rules every app gets, the config's prose, domain doc and brand guide |
 | `paint_meta.py`                | The tag filter, the `paintMeta` part, the two question policies                                 |
 | `toolset.py`, `tool_shaping.py`| The MCP tool hooks; the annotation walker                                                       |
 | `recorder.py`, `corpus.py`, `beats.py` | Recording what was painted and what was read; the beat driver                           |
@@ -599,7 +596,7 @@ In `a2uiverse-apps/agent-kit/src/a2ui_agent_kit/`:
 | `preview_credential.py`        | A token from the running agent for Stellify's preview, signed in as one of its made-up accounts |
 | `testing.py`                   | Run an executor in-process, or the agent on its ports signed in as a vault would, for tests     |
 
-The kit pins upstream's A2UI packages exactly, in `pyproject.toml`: `a2ui-agent-sdk` 0.9.0 and `a2ui-core` 0.4.0 beneath it, and the Python A2A SDK at `a2a-sdk[http-server,grpc,signing]>=1.3.0,<2.0.0`. Upstream's A2A toolkit `a2ui-a2a` requires `a2a-sdk` below 0.4.0, so the kit writes its own part in its place. The kit's tests drive an agent over real sockets on each of the six paths with the Python A2A SDK's own client (`tests/test_six_paths.py`).
+The kit pins upstream's A2UI packages exactly, in `pyproject.toml`: `a2ui-agent-sdk` 0.11.0 and `a2ui-core` 0.6.0 beneath it, and the Python A2A SDK at `a2a-sdk[http-server,grpc,signing]>=1.3.0,<2.0.0`. Upstream's A2A toolkit `a2ui-a2a` requires `a2a-sdk` below 0.4.0, so the kit writes its own part in its place. The kit's tests drive an agent over real sockets on each of the six paths with the Python A2A SDK's own client (`tests/test_six_paths.py`).
 
 The scaffolder is `a2uiverse-apps/create-a2ui-agent/`: `src/cli.ts` (flags and the flow), `src/prompts.ts` (the walkthrough), `src/scaffold.ts` (composing templates), `src/generate.ts` (the three generated files), `src/kit.ts` (the pin), `src/ports.ts`, and `templates/`. Its drift gate is `test/scaffold-run.test.ts`.
 
