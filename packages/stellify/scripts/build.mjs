@@ -7,16 +7,20 @@
  * and the inlined packages' other dependencies, which this package declares at their versions. A
  * pnpm patch reaches installs of this workspace alone, so the A2A SDK moves into this build in the
  * change that first patches how an agent is reached. Deterministic: `pnpm verify` rebuilds and
- * fails on a diff. Declarations come from `tsc` after this.
+ * fails on a diff. Declarations come from `tsc` after this. `dist/` is cleared first, so a file
+ * the build no longer writes — a declaration of a source since deleted, which `tsc` leaves — is
+ * gone from the commit too.
  */
 import {build} from 'esbuild';
-import {readFileSync} from 'node:fs';
+import {readFileSync, rmSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const {dependencies} = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 const EXTERNAL = Object.keys(dependencies).flatMap(name => [name, `${name}/*`]);
+
+rmSync(resolve(root, 'dist'), {recursive: true, force: true});
 
 await build({
   absWorkingDir: root,
