@@ -2,6 +2,7 @@ import {
   checkCatalogExports,
   validateArtifactDescriptor,
   verifyArtifactFiles,
+  HOST_INTERFACE_VERSION,
   HOST_SPECIFIERS,
 } from '@a2uiverse/sdk';
 import {existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
@@ -244,6 +245,33 @@ describe('refusals', () => {
     expect(found).toHaveLength(1);
     expect(found[0]).toContain('"react-dom/server" is not lent by the host');
     for (const specifier of HOST_SPECIFIERS) expect(found[0]).toContain(specifier);
+  });
+
+  test('a named import a lent module does not export as the host lends it, as basicCatalog from @a2ui/react/v0_9, gone since 0.13.0', async () => {
+    const dir = copyFixture();
+    edit(
+      dir,
+      'lib/catalog.js',
+      s => `import {basicCatalog} from '@a2ui/react/v0_9';\nexport const OLD = basicCatalog;\n${s}`,
+    );
+    const found = reasons(await stellify(dir));
+    expect(found).toEqual([
+      `"basicCatalog" is not exported by "@a2ui/react/v0_9" as the host lends it, at host interface ${HOST_INTERFACE_VERSION}`,
+    ]);
+  });
+
+  test('a read through a whole-module import of a name the lent module does not export', async () => {
+    const dir = copyFixture();
+    edit(
+      dir,
+      'lib/catalog.js',
+      s =>
+        `import * as A2uiReact from '@a2ui/react/v0_9';\nexport const OLD = A2uiReact.basicCatalog;\n${s}`,
+    );
+    const found = reasons(await stellify(dir));
+    expect(found).toEqual([
+      `"basicCatalog" is not exported by "@a2ui/react/v0_9" as the host lends it, at host interface ${HOST_INTERFACE_VERSION}`,
+    ]);
   });
 
   test('the entry not built', async () => {

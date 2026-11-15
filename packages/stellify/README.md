@@ -74,7 +74,7 @@ notice: shop is ahead of the Store: its card declares catalog https://…/shop/c
 **What it checks**, every failure reported together as `file: reason`:
 
 1. The config has only known keys, and its `catalogId` matches the schema's.
-2. `package.json` has a name and a version and names a built entry that exists and bundles. An import of a host package the client doesn't lend is refused, with the list of what it does lend: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `@a2ui/web_core/v0_9/basic_catalog`, `zod`.
+2. `package.json` has a name and a version and names a built entry that exists and bundles. An import of a host package the client doesn't lend is refused, with the list of what it does lend: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `@a2ui/web_core/v0_9/basic_catalog`, `zod`. So is a name one of those doesn't export as the client lends it, imported by name or read through `import * as`: `"basicCatalog" is not exported by "@a2ui/react/v0_9" as the host lends it, at host interface 0.14.0`.
 3. Every stylesheet reached, and every `url()` or `@import` inside it, resolves to a file inside your package or one of its dependencies.
 4. The entry exports `CATALOG`.
 5. The schema parses, has a `catalogId`, and compiles as an A2UI catalog whose id is the one the descriptor carries.

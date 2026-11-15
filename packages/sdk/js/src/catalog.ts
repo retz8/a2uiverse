@@ -153,6 +153,13 @@ export const HOST_SPECIFIERS = [
 
 export type HostSpecifier = (typeof HOST_SPECIFIERS)[number];
 
+/**
+ * The export names of each module the host lends, as the client lends it: Stellify refuses at pack
+ * a named import a lent module does not export. Generated from the client's own modules, which a
+ * client test holds it to.
+ */
+export {HOST_EXPORTS} from './hostExports.generated.js';
+
 /** The interface's stylesheet loader, which an artifact's stylesheet imports are rewritten to. */
 export const HOST_STYLESHEET_LOADER = 'loadStylesheet';
 

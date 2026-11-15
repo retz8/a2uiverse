@@ -284,7 +284,7 @@ Every failure is a **finding**, `file: reason`, and every one is reported togeth
 | any other under `react`, `react-dom`, `@a2ui/react`, `@a2ui/web_core` or `zod`, like `react-dom/server` | refuse | a finding: the host doesn't lend it |
 | everything else: `@primer/react`, the package's own files | bundle | bundled into `index.js` |
 
-A host import resolves to a tiny virtual CommonJS module, so every named import (`useState`, `jsx`) becomes a property read at runtime and Stellify needs no list of what each module exports. From GitHub's `index.js`:
+A host import resolves to a tiny virtual CommonJS module, so every named import (`useState`, `jsx`) becomes a property read at runtime. From GitHub's `index.js`:
 
 ```js
 // a2uiverse-host:react
@@ -294,6 +294,8 @@ var require_react = __commonJS({
   }
 });
 ```
+
+That read takes any name, so a name the client doesn't lend would pack clean and be `undefined` in the client, as `basicCatalog` from `@a2ui/react/v0_9` is since 0.13.0. Once the entry packs, Stellify bundles it once more with each host import standing in as a module that exports only the names the sdk lists for it (`HOST_EXPORTS`), and each import esbuild finds no export for, named or read through `import * as`, is a finding: `"basicCatalog" is not exported by "@a2ui/react/v0_9" as the host lends it, at host interface 0.14.0`. The shipped bundle keeps the runtime read. The list is written from the client's own modules by `pnpm --filter @a2uiverse/client write:host-exports`, and a client test fails when it and what the client lends differ.
 
 **The stylesheet rewrite.** A catalog imports its CSS the way any React package does, and each Primer component imports its own sheet. A browser can't import CSS as a module, and a vendor shouldn't have to change how it writes styles. So each stylesheet import, static or dynamic, becomes a load through the host, resolved against the module's own URL:
 

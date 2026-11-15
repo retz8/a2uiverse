@@ -6,6 +6,12 @@
  * URL resolved from the entry's own URL, and the sheet with everything it reaches joins the
  * artifact's files. Any other specifier under a host package is refused with the list.
  *
+ * The runtime read takes any name, so a name the host does not lend would pack clean and be
+ * `undefined` in the client. Once the entry packs, a check pass bundles it again with each host
+ * specifier as a module exporting exactly the names the sdk lists for it (`HOST_EXPORTS`): esbuild's
+ * own refusal of an import with no matching export, and its warning on a read through a whole-module
+ * import, are the findings. The bundle shipped is the one with the runtime read.
+ *
  * The loads a stylesheet import makes while the entry evaluates start at once, each `<link>`
  * appended in import order, and the entry waits for all of them before it finishes (the 11.5
  * follow-up to task-11.3 decision 11). A sheet the package imports only later — a Provider's lazy
@@ -15,9 +21,12 @@
  */
 import {
   classifySpecifier,
+  HOST_EXPORTS,
   HOST_INTERFACE_GLOBAL,
+  HOST_INTERFACE_VERSION,
   HOST_SPECIFIERS,
   HOST_STYLESHEET_LOADER,
+  type HostSpecifier,
 } from '@a2uiverse/sdk';
 import {build, type Message, type Plugin} from 'esbuild';
 import {relative, sep} from 'node:path';
@@ -47,7 +56,11 @@ const EAGER = 'a2uiverse:stylesheet-eager:';
 const lent = (): string =>
   `the host lends ${HOST_SPECIFIERS.map(s => JSON.stringify(s)).join(', ')}`;
 
-function hostPlugin(): Plugin {
+/**
+ * A host module as the entry reaches it: `pack` reads the host's namespace at runtime; `check`
+ * stands in a module exporting only the names the host lends, so esbuild refuses any other.
+ */
+function hostPlugin(mode: 'pack' | 'check'): Plugin {
   return {
     name: 'a2uiverse-host',
     setup(api) {
@@ -65,11 +78,34 @@ function hostPlugin(): Plugin {
         }
       });
       api.onLoad({filter: /.*/, namespace: HOST_NAMESPACE}, args => ({
-        contents: `module.exports = globalThis.${HOST_INTERFACE_GLOBAL}.modules[${JSON.stringify(args.path)}];`,
+        contents:
+          mode === 'pack'
+            ? `module.exports = globalThis.${HOST_INTERFACE_GLOBAL}.modules[${JSON.stringify(args.path)}];`
+            : lentOnly(HOST_EXPORTS[args.path as HostSpecifier] ?? []),
         loader: 'js',
       }));
     },
   };
+}
+
+/** A module exporting `names`, each bound to nothing: the check pass's stand-in for a host module. */
+const lentOnly = (names: readonly string[]): string =>
+  names.length === 0
+    ? 'export {};'
+    : `const lent = undefined;\nexport {${names.map(name => `lent as ${JSON.stringify(name)}`).join(', ')}};`;
+
+/** A host module's name in esbuild's words, `a2uiverse-host:<specifier>`, and the name imported. */
+const UNLENT_IMPORT = /No matching export in "a2uiverse-host:([^"]+)" for import "([^"]+)"/;
+const UNLENT_READ =
+  /Import "([^"]+)" will always be undefined because there is no matching export in "a2uiverse-host:([^"]+)"/;
+
+/** The name and the specifier of an import the host does not lend, from one of esbuild's messages. */
+function unlentOf(message: Message): {name: string; specifier: string} | undefined {
+  const imported = UNLENT_IMPORT.exec(message.text);
+  if (imported) return {specifier: imported[1]!, name: imported[2]!};
+  const read = UNLENT_READ.exec(message.text);
+  if (read) return {name: read[1]!, specifier: read[2]!};
+  return undefined;
 }
 
 function stylesheetPlugin(layout: Layout, copied: CopiedFiles): Plugin {
@@ -157,16 +193,22 @@ function lazySheets(inputs: Record<string, {imports: {path: string; kind: string
  * the entry importing each of them, so they load before it finishes.
  */
 export async function bundleEntry(packageDir: string, entryRel: string): Promise<Bundle> {
-  const first = await bundleOnce(packageDir, entryRel, []);
-  if (first.code === undefined || first.lazy.length === 0) return first;
-  return bundleOnce(packageDir, entryRel, first.lazy);
+  const first = await bundleOnce(packageDir, entryRel, [], 'pack');
+  const packed =
+    first.code === undefined || first.lazy.length === 0
+      ? first
+      : await bundleOnce(packageDir, entryRel, first.lazy, 'pack');
+  if (packed.code === undefined) return packed;
+  const unlent = (await bundleOnce(packageDir, entryRel, [], 'check')).unlent;
+  return unlent.length === 0 ? packed : {...packed, findings: [...packed.findings, ...unlent]};
 }
 
 async function bundleOnce(
   packageDir: string,
   entryRel: string,
   eager: readonly string[],
-): Promise<Bundle & {lazy: string[]}> {
+  mode: 'pack' | 'check',
+): Promise<Bundle & {lazy: string[]; unlent: Finding[]}> {
   const layout = new Layout(packageDir);
   const copied: CopiedFiles = {files: new Map(), findings: []};
   try {
@@ -201,7 +243,7 @@ async function bundleOnce(
       write: false,
       metafile: true,
       logLevel: 'silent',
-      plugins: [hostPlugin(), stylesheetPlugin(layout, copied)],
+      plugins: [hostPlugin(mode), stylesheetPlugin(layout, copied)],
     });
     const output = result.metafile.outputs['index.js'];
     return {
@@ -210,9 +252,11 @@ async function bundleOnce(
       copied: copied.files,
       findings: [...copied.findings, ...result.errors.map(m => findingOf(packageDir, entryRel, m))],
       lazy: lazySheets(result.metafile.inputs),
+      unlent: unlentFindings(packageDir, entryRel, [...result.errors, ...result.warnings]),
     };
   } catch (error) {
-    const messages = (error as {errors?: Message[]}).errors;
+    const failure = error as {errors?: Message[]; warnings?: Message[]};
+    const messages = failure.errors;
     const findings =
       messages === undefined
         ? [{file: entryRel, reason: (error as Error).message}]
@@ -222,6 +266,21 @@ async function bundleOnce(
       copied: copied.files,
       findings: [...copied.findings, ...findings],
       lazy: [],
+      unlent: unlentFindings(packageDir, entryRel, [
+        ...(messages ?? []),
+        ...(failure.warnings ?? []),
+      ]),
     };
   }
+}
+
+/** One finding per import of a name the host does not lend, in the host's words. */
+function unlentFindings(packageDir: string, entryRel: string, messages: Message[]): Finding[] {
+  return messages.flatMap(message => {
+    const unlent = unlentOf(message);
+    if (!unlent) return [];
+    const {file} = findingOf(packageDir, entryRel, message);
+    const reason = `${JSON.stringify(unlent.name)} is not exported by ${JSON.stringify(unlent.specifier)} as the host lends it, at host interface ${HOST_INTERFACE_VERSION}`;
+    return [{file, reason}];
+  });
 }

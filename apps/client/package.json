@@ -22,7 +22,8 @@
     "record:beats": "tsx scripts/record-beats.ts",
     "record:store": "tsx scripts/record-store.ts",
     "check:transparency": "tsx scripts/check-transparency.ts",
-    "check:fixtures": "tsx scripts/check-fixture-privacy.ts"
+    "check:fixtures": "tsx scripts/check-fixture-privacy.ts",
+    "write:host-exports": "UPDATE_HOST_EXPORTS=1 vitest run src/catalogs/hostExports.test.ts && pnpm --filter @a2uiverse/sdk build"
   },
   "dependencies": {
     "@a2a-js/sdk": "1.3.0",
