@@ -16,6 +16,7 @@ import {
   type Revocation,
 } from '../../../orchestratorApi';
 import {KeyIcon, PlusIcon, TickIcon} from '../icons';
+import {CanList} from './CanList';
 import {sentence, signedOutLine} from './libraryWords';
 import type {SignInEnd, usePageSignIn} from './usePageSignIn';
 
@@ -268,6 +269,12 @@ function AccountRow({
             </Button>
           </div>
         </>
+      )}
+      {account.adds && account.adds.length > 0 && (
+        <div className="library-perm library-adds">
+          <span className="store-scopes__note">{account.label} can also</span>
+          <CanList items={account.adds} />
+        </div>
       )}
       {open === 'permissions' && <Permissions account={account} name={name} />}
       {waiting && (

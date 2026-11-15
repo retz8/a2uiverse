@@ -4,7 +4,8 @@
  * is told; a question to it is dispatched over the interface its own card names; an own card that
  * lists no interface the platform speaks takes its slot's tile, whose Retry fetches the public card
  * and then the account's again; and no word of the account's card is written to the registry's
- * file, the vault's file or the journal, nor sent to the client or the marketplace.
+ * file, the vault's file or the journal, nor sent to the canvas or the marketplace, the App
+ * Library's account list alone carrying each skill it adds, by its name and description.
  */
 import {randomBytes} from 'node:crypto';
 import {createServer, type Server} from 'node:http';
@@ -238,7 +239,7 @@ async function stateFiles(at = dir): Promise<Map<string, string>> {
 }
 
 describe("an account's own card through the orchestrator", () => {
-  test('fetched before the sign-in is told; the dispatch goes where it names; never written or sent', async () => {
+  test('fetched before the sign-in is told; the dispatch goes where it names; written nowhere, its added skills sent to the App Library alone', async () => {
     const {base, client} = await boot(() => ownCard([REST_1]));
     // The outcome is told once the account's card was fetched.
     expect(await connect(base)).toMatchObject({state: 'signedIn'});
@@ -280,6 +281,16 @@ describe("an account's own card through the orchestrator", () => {
     expect(installed).not.toContain(MARKER);
     expect(JSON.stringify(marketplace!.reports)).not.toContain(MARKER);
     expect(JSON.stringify(await readFile(join(dir, VAULT_FILE), 'utf8'))).not.toContain(MARKER);
+
+    // The App Library's account list alone carries what the account's card adds: each added
+    // skill's name and description, nothing else of the card.
+    const library = (await (await fetch(`${base}/auth/accounts.json`)).json()) as {
+      appId: string;
+      accounts: {source: string; adds?: unknown}[];
+    }[];
+    const account = library.find(app => app.appId === 'shop')?.accounts[0];
+    expect(account).toMatchObject({source: 'shop.1'});
+    expect(account?.adds).toEqual([{name: MARKER, description: `${MARKER} for members`}]);
   });
 
   test('an own card listing no interface the platform speaks takes the tile; Retry fetches the cards again', async () => {

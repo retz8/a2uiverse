@@ -281,6 +281,11 @@ export function buildOrchestrator({
         };
       },
       installed: () => registry.installed().map(record => record.id),
+      // Against the card the page shows, the app's as installed (task-20.8 decision 13, amended).
+      skillsAdded: source =>
+        (accountCards.adds(source, registry.storedCard(sources.appOf(source)))?.skills ?? []).map(
+          ({name, description}) => ({name, description}),
+        ),
       guard,
     }),
   );

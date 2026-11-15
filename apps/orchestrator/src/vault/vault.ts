@@ -284,7 +284,18 @@ export interface LibraryApp {
     permissions: string[];
     /** It must sign in again. */
     lapsed: boolean;
+    /**
+     * What the account's own card says it can do that the app's card as installed does not: each
+     * added skill's name and description, nothing else of the card; none when it adds nothing.
+     */
+    adds?: AddedSkill[];
   }[];
+}
+
+/** A skill an account's own card adds, as the App Library says it. */
+export interface AddedSkill {
+  name: string;
+  description: string;
 }
 
 export type Renamed =
@@ -1195,7 +1206,10 @@ export class AuthVault implements AccountStore {
    * Every app named, with whether it signs in, and each account: its label, its permissions in
    * the card's own words — never a scope's name — and whether it must sign in again (decision 9).
    */
-  library(appIds: readonly string[]): LibraryApp[] {
+  library(
+    appIds: readonly string[],
+    skillsAdded: (source: string) => AddedSkill[] = () => [],
+  ): LibraryApp[] {
     return appIds.map(appId => {
       const card = this.#deps.cardOf(appId);
       const need = cardNeed(card);
@@ -1203,12 +1217,15 @@ export class AuthVault implements AccountStore {
         need.kind === 'none' ? 'none' : need.kind === 'unsupported' ? 'unsupported' : 'supported';
       const accounts = (this.#deps.store.data.apps[appId]?.accounts ?? []).map(account => {
         const scheme = account.kind === 'oauth' ? schemeOf(card, account.scheme) : undefined;
+        const source = sourceId(appId, account.n);
+        const adds = skillsAdded(source);
         return {
-          source: sourceId(appId, account.n),
+          source,
           label: account.label,
           kind: account.kind === 'oauth' ? ('oauth' as const) : ('key' as const),
           permissions: scheme ? wordsFor(scheme, account.scopes) : [],
           lapsed: account.again === true,
+          ...(adds.length > 0 ? {adds} : {}),
         };
       });
       return {appId, signIn, accounts};

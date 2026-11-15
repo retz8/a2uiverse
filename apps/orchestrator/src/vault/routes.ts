@@ -27,6 +27,7 @@ import {codeEndPage, codePage, endPage, keyPage, refusedPage} from './pages.js';
 import {clientDocument, isSecureOrLocal, type ClientIdentity} from './oauth.js';
 import {
   KEY_NAME_MAX,
+  type AddedSkill,
   type Attempt,
   type AuthVault,
   type FailureCause,
@@ -53,6 +54,8 @@ export interface AuthRoutesDeps {
   app(appId: string): {name: string; documentationUrl?: string};
   /** The installed apps' ids, the accounts read's order. */
   installed(): readonly string[];
+  /** What an account's own card adds, for the App Library (task-20.8 decision 13, as amended). */
+  skillsAdded?(source: string): AddedSkill[];
   /** The write guard: the JSON content type, then an allowed origin or the write token. */
   guard: RequestHandler;
 }
@@ -227,7 +230,9 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
   });
 
   router.get('/accounts.json', (_req, res) => {
-    res.set('Cache-Control', 'no-store').json(deps.vault.library(deps.installed()));
+    res
+      .set('Cache-Control', 'no-store')
+      .json(deps.vault.library(deps.installed(), source => deps.skillsAdded?.(source) ?? []));
   });
 
   const body = express.json({limit: '16kb'});

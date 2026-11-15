@@ -446,6 +446,35 @@ describe('an app’s view', () => {
     expect(where()).toEqual({page: 'store', publisher: 'a2uiverse-apps'});
   });
 
+  it('says what the app can do, each thing in its card’s own words', async () => {
+    fake.installed = fake.installed.map(app =>
+      app.id === 'gmail'
+        ? {
+            ...app,
+            card: card('Gmail', {
+              ...OAUTH,
+              skills: [
+                {name: 'Inbox triage', description: 'Sorts what needs you first.'},
+                {name: 'Drafting a reply', description: 'Writes a reply for you to send.'},
+              ],
+            }),
+          }
+        : app,
+    );
+    renderWithShell(<Library initial={{page: 'appLibrary', app: 'gmail'}} />);
+    const can = await screen.findByTestId('library-can-do');
+    expect(within(can).getByRole('heading', {name: 'What Gmail can do'})).toBeInTheDocument();
+    expect(can).toHaveTextContent(
+      'Inbox triageSorts what needs you first.Drafting a replyWrites a reply for you to send.',
+    );
+  });
+
+  it('says nothing of what an app can do when its card names nothing', async () => {
+    renderWithShell(<Library initial={{page: 'appLibrary', app: 'calendar'}} />);
+    expect(await screen.findByRole('heading', {name: 'Google Calendar'})).toBeInTheDocument();
+    expect(screen.queryByTestId('library-can-do')).toBeNull();
+  });
+
   it('has no publisher line for an app the Store does not list', async () => {
     renderWithShell(<Library initial={{page: 'appLibrary', app: 'shop-b'}} />);
     expect(await screen.findByRole('heading', {name: 'Shop B'})).toBeInTheDocument();
@@ -540,6 +569,27 @@ describe('an app’s accounts', () => {
     expect(account('work@example.com')).toHaveTextContent(
       'Gmail doesn’t say what it can do with this account.',
     );
+  });
+
+  it('says what an account’s own card adds, under that account alone (task-20.8 decision 13, amended)', async () => {
+    fake.accounts = fake.accounts.map(app =>
+      app.appId === 'gmail'
+        ? {
+            ...app,
+            accounts: app.accounts.map(each =>
+              each.source === 'gmail:2'
+                ? {...each, adds: [{name: 'Team inbox', description: 'Reads the shared inbox.'}]}
+                : each,
+            ),
+          }
+        : app,
+    );
+    renderWithShell(<Library initial={{page: 'appLibrary', app: 'gmail'}} />);
+    await screen.findByText('work@example.com');
+    expect(account('work@example.com')).toHaveTextContent(
+      'work@example.com can alsoTeam inboxReads the shared inbox.',
+    );
+    expect(account('me@example.com')).not.toHaveTextContent('can also');
   });
 
   it('a key account is connected with a key', async () => {

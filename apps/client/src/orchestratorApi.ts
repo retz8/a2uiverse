@@ -429,6 +429,11 @@ export interface LibraryAccount {
   permissions: string[];
   /** It must sign in again. */
   lapsed: boolean;
+  /**
+   * What the account's own card says it can do that the app's card does not, each in the app's
+   * words; none when it adds nothing (task-20.8 decision 13, as amended).
+   */
+  adds?: {name: string; description: string}[];
 }
 
 /** An app's accounts, and whether it asks no sign-in, signs in, or asks one A2UIVerse can't run. */

@@ -37,6 +37,7 @@ import {pageLink} from '../pageLink';
 import {useInstalledApps} from '../../installedApps';
 import {useAppAct, type AppActOutcome} from '../useAppAct';
 import {Accounts} from './Accounts';
+import {CanList} from './CanList';
 import {
   appStateView,
   checkedAt,
@@ -717,6 +718,8 @@ function AppBody({
         </p>
       )}
 
+      <CanDo name={name} skills={app.card.skills} />
+
       <Accounts
         appId={app.id}
         name={name}
@@ -872,5 +875,23 @@ function UnreachedNotice({
         </span>
       </div>
     </div>
+  );
+}
+
+/** What the app can do: each skill its card names, its name over its description, in its words. */
+function CanDo({
+  name,
+  skills,
+}: {
+  name: string;
+  skills: readonly {id: string; name: string; description: string}[];
+}) {
+  const named = skills.filter(skill => skill.name.trim() !== '');
+  if (named.length === 0) return null;
+  return (
+    <section className="store-sec" data-testid="library-can-do" aria-label={`What ${name} can do`}>
+      <h2>What {name} can do</h2>
+      <CanList items={named} />
+    </section>
   );
 }

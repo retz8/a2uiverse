@@ -858,6 +858,32 @@
   color: var(--a2v-ink-2);
 }
 
+/* What an app or an account can do: each thing's name over its description. */
+.library-can {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.library-can li {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.library-can__name {
+  font-weight: 600;
+  color: var(--a2v-ink);
+}
+
+.library-can__what {
+  color: var(--a2v-ink-2);
+}
+
 .library-perm .store-scopes {
   padding: 0;
   background: transparent;

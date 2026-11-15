@@ -273,11 +273,15 @@ A page the address landed on (a reload, a link) has nothing of this binding's be
 
 ### Gmail's accounts
 
+Above its accounts, Gmail's view says what Gmail can do: each skill its card as installed names, its name over its description, under "What Gmail can do" (`CanList`). Nothing shows for an app whose card names none.
+
 Gmail signs in with OAuth and can hold several accounts. Its view in the App Library lists each by its label, with three buttons:
 
 - **Permissions** reads the scopes the account holds, in the card's own words, as the authority tile says them. It's read-only: a token's scopes can't be trimmed, so a permission goes only by signing out and in again. A key account says "Connected with a key".
 - **Rename** changes the label in the vault (`POST /auth/rename`). New paints and the Planner read the new name; canvases already painted keep the old one. A rename sticks: no later sign-in on that account replaces it.
 - **Sign out** asks once, then `POST /auth/sign-out` revokes the account's tokens where the server advertises revocation and drops the account. It answers what became of the access: "Signed out of" the account's label when its access was cancelled or there was nowhere to cancel it, and, when Gmail couldn't be reached to cancel it, a sentence saying where to remove the access by hand. Canvases already composed keep what they hold; the next question to that account asks for sign-in again.
+
+An account whose own card adds skills over the app's says so under its row: "Trade account can also" over each added skill's name and description, as Halide Supply's trade account adds "Trade prices". The orchestrator sends those two words of each added skill in the account list, `GET /auth/accounts.json`, and nothing else of the account's card ([`authority.md`](authority.md#app-library)).
 
 **Add account** opens the same sign-in window as the canvas's, on the start route with the bare app id and no canvas, and polls the attempt the same way (`usePageSignIn`). Nothing resumes: the new account appears in the list. [`authority.md`](authority.md#app-library) has the routes from the vault's side.
 

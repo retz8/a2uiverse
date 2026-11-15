@@ -490,7 +490,7 @@ The App Library signs one account out the same way: `POST /auth/sign-out` with i
 
 ### App Library
 
-The App Library ([`trusted-page.md`](trusted-page.md#gmails-accounts) has the page) reads `GET /auth/accounts.json`: every installed app, whether it asks no sign-in, signs in, or asks one the vault can't run, and each account with its label, its permissions in the card's own words (never a scope's name; a key account has none), and whether it must sign in again. Add account and Sign in again open the same window with no canvas: the start route then admits only the app's next account or an account that lapsed, and nothing resumes when it ends.
+The App Library ([`trusted-page.md`](trusted-page.md#gmails-accounts) has the page) reads `GET /auth/accounts.json`: every installed app, whether it asks no sign-in, signs in, or asks one the vault can't run, and each account with its label, its permissions in the card's own words (never a scope's name; a key account has none), whether it must sign in again, and, as `adds`, the name and description of each skill its own card adds over the app's card as installed, the one thing of an account's card that reaches the client. Add account and Sign in again open the same window with no canvas: the start route then admits only the app's next account or an account that lapsed, and nothing resumes when it ends.
 
 ## When things go wrong
 
