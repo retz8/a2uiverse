@@ -127,7 +127,7 @@ flowchart LR
     DER --> DET["fixtures/deterministic/<br/>deterministic mode's answers"]
 ```
 
-Setting `A2UI_RECORD_DIR` arms two recorders at once: one keeps every MCP result the model read, the other keeps every A2UI batch the agent streamed. The app's `scripts/record_beats.py` drives a fixed script of questions (the **beats**) against the running agent, and `scripts/derive_corpus.py` turns the recordings into both fixture folders. For Linear:
+Setting `A2UI_RECORD_DIR` arms two recorders at once: one keeps every MCP result the model read, the other keeps every A2UI batch the agent streamed, each turn held by its task, so turns running at once, two accounts of one app answering together, each keep only what they streamed. The app's `scripts/record_beats.py` drives a fixed script of questions (the **beats**) against the running agent, and `scripts/derive_corpus.py` turns the recordings into both fixture folders. For Linear:
 
 ```bash
 A2UI_RECORD_DIR=.recordings uv run python -m app --mode live --host localhost
