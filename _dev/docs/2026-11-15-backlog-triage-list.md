@@ -21,7 +21,7 @@ In this order.
 
    Under an hour to about a session.
 
-3. The agent kit moved to a newer `a2ui-agent-sdk` and `a2ui-core`, and its own fix for `a2ui-core`'s child-reference fallback dropped (`agent-kit/src/a2ui_agent_kit/upstream_patches.py` of `a2uiverse-apps`). The kit pins `a2ui-agent-sdk==0.9.0` and `a2ui-core==0.4.0`. `a2ui-core` 0.5.0 carries the fix (#3606), and `a2ui-agent-sdk` 0.10.0 is the first release that allows it: 0.9.0 requires `a2ui-core>=0.4.0,<0.5.0`, 0.10.0 `>=0.5.0,<0.6.0` and 0.11.0 `>=0.6.0,<0.7.0`. What changes:
+3. [DONE] (`a2uiverse-apps` 252d1d8, platform 30b8020) The agent kit moved to a newer `a2ui-agent-sdk` and `a2ui-core`, and its own fix for `a2ui-core`'s child-reference fallback dropped (`agent-kit/src/a2ui_agent_kit/upstream_patches.py` of `a2uiverse-apps`). The kit pins `a2ui-agent-sdk==0.9.0` and `a2ui-core==0.4.0`. `a2ui-core` 0.5.0 carries the fix (#3606), and `a2ui-agent-sdk` 0.10.0 is the first release that allows it: 0.9.0 requires `a2ui-core>=0.4.0,<0.5.0`, 0.10.0 `>=0.5.0,<0.6.0` and 0.11.0 `>=0.6.0,<0.7.0`. What changes:
    1. the kit's streaming parse in `executor_llm.py`, from `DirectJsonParser.parse_chunk` to `open_stream()` with `feed()` and `close()`;
    2. every app's prompt goldens, taken again for the SDK's `generate_base_rules()`;
    3. the `a2ui-agent-sdk` pin in the seven apps and in the scaffolder, `create-a2ui-agent/src/generate.ts`.
