@@ -24,6 +24,8 @@
  *   and the add-account tile's `retry` lists it there. While its window is open the tile waits as
  *   the authority tile does, keyed by the bare app id (task-12.13 decisions 26, 27).
  * - Failed or expired, the slot's tile goes back as it was, the reason to the console (decision 3).
+ *   More access signed in as another account is said on the canvas, naming the account to sign in
+ *   as, until a sign-in on that slot succeeds.
  */
 import type {SignInRequest} from '@a2uiverse/shell-catalog';
 import {readAttempt, signInStartUrl, type AttemptOutcome} from '../orchestratorApi';
@@ -98,6 +100,11 @@ export function mintAttemptId(): string {
     .replace(/=+$/, '');
 }
 
+/** What the progress line says of more access signed in as another account than the one asked. */
+export function otherAccountNoticeOf(outcome: AttemptOutcome, source: string): string {
+  return `That was a different ${outcome.app ?? source} account. Press Allow again and sign in as ${outcome.label}.`;
+}
+
 /** What the progress line says of an added account (task-12.8 decision 6). */
 export function accountNoticeOf(outcome: AttemptOutcome, app: string): string {
   const label = outcome.label || `${outcome.app ?? app} account`;
@@ -115,6 +122,9 @@ export function createSignIn({
   /** The sources signed in during this page load (decision 4). */
   const remembered = new Set<string>();
   const attempts = new Map<string, Attempt>();
+  /** Per canvas and source, the wrong-account line said there, until a sign-in on it succeeds. */
+  const otherAccountSaid = new Map<string, string>();
+  const slotKey = (attempt: Attempt) => `${attempt.canvas}\n${attempt.source}`;
 
   /**
    * The slot — or, for add-account, the app's add-account button — waits while any of its
@@ -141,6 +151,11 @@ export function createSignIn({
   const signedIn = (attempt: Attempt, outcome: AttemptOutcome) => {
     if (outcome.source) remembered.add(outcome.source);
     const runtime = runtimeOf(attempt.canvas);
+    const said = otherAccountSaid.get(slotKey(attempt));
+    otherAccountSaid.delete(slotKey(attempt));
+    if (said !== undefined && runtime?.store.getState().accountNotice === said) {
+      runtime.store.showAccountNotice(null);
+    }
     // One outcome per pressed slot or add-account step: a second window on it is let go.
     for (const other of [...attempts.values()]) {
       if (
@@ -184,6 +199,11 @@ export function createSignIn({
       console.info(
         `[A2UI:sign-in] ${attempt.source}: ${outcome.state}${outcome.reason ? ` (${outcome.reason})` : ''}`,
       );
+      if (outcome.state === 'failed' && outcome.cause === 'otherAccount' && outcome.label) {
+        const notice = otherAccountNoticeOf(outcome, attempt.source);
+        otherAccountSaid.set(slotKey(attempt), notice);
+        runtimeOf(attempt.canvas)?.store.showAccountNotice(notice);
+      }
       return settle(attempt);
     }
     if (!attempt.seen && Date.now() >= attempt.unseenUntil) {

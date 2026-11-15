@@ -80,6 +80,7 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
   const about = (attempt: Attempt) => ({
     app: deps.app(attempt.appId).name,
     connect: attempt.scheme.kind !== 'oauth',
+    ...(attempt.cause === 'otherAccount' && attempt.label ? {otherAccount: attempt.label} : {}),
   });
 
   router.get(CLIENT_DOCUMENT_PATH, (_req, res) => {
@@ -133,8 +134,16 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
     if (!attempt || !byCode) return html(res, 400, refusedPage());
     const app = deps.app(attempt.appId).name;
     // Reloaded, the page shows the same code; once ended, how it ended (task-20.6 decision 3).
-    if (attempt.state !== 'pending') return html(res, 200, codeEndPage(attempt.state, app));
+    if (attempt.state !== 'pending') {
+      const other = attempt.cause === 'otherAccount' ? attempt.label : undefined;
+      return html(res, 200, codeEndPage(attempt.state, app, other));
+    }
     if (!attempt.device) return html(res, 400, refusedPage());
+    // More access: the account it is asked for, named should another account sign in.
+    const account =
+      attempt.purpose === 'escalation'
+        ? deps.vault.accountsOf(attempt.appId).find(held => held.n === attempt.n)?.label
+        : undefined;
     return html(
       res,
       200,
@@ -144,6 +153,7 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
         opens: attempt.device.verificationUri,
         complete: attempt.device.complete,
         outcomeUrl: `${AUTH_ROUTE_PREFIX}/attempts/${encodeURIComponent(attempt.id)}`,
+        ...(account ? {account} : {}),
       }),
     );
   });

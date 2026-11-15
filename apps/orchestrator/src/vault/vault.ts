@@ -180,7 +180,10 @@ export interface Attempt {
   keys: string[];
   expiresAt: number;
   state: 'pending' | 'signedIn' | 'failed' | 'expired';
-  /** The source the sign-in ended as, its label and whether it was held; the reason it failed. */
+  /**
+   * The source the sign-in ended as, its label and whether it was held; the reason it failed.
+   * Failed with a cause, the label is the account's the sign-in was asked for.
+   */
   result?: string;
   label?: string;
   existing?: boolean;
@@ -192,6 +195,8 @@ export interface Attempt {
    */
   restore?: boolean;
   reason?: string;
+  /** Why it failed, where the person is told: the window's words and the canvas's. */
+  cause?: FailureCause;
   oauth?: {
     metadata: ServerMetadata;
     clientId: string;
@@ -240,13 +245,21 @@ export type Started =
   | {kind: 'refused'; reason: string};
 
 /**
+ * A failure the person is told of in words: more access signed in as another identity than the
+ * account's, the outcome naming the account it was asked for by its label.
+ */
+export type FailureCause = 'otherAccount';
+
+/**
  * What the client polls. Signed in, the source the sign-in ended as, the account's label, the
- * app's name and whether the account was already held (task-12.8 decision 6).
+ * app's name and whether the account was already held (task-12.8 decision 6). Failed with a
+ * cause, the account it was asked for by its label.
  */
 export type Outcome = {
   state: Attempt['state'];
   source?: string;
   reason?: string;
+  cause?: FailureCause;
   label?: string;
   app?: string;
   existing?: boolean;
@@ -883,7 +896,14 @@ export class AuthVault implements AccountStore {
       let rebound = false;
       if (grant.sub && claims && claims.sub !== grant.sub) {
         if (attempt.purpose !== 'again') {
-          return this.#fail(attempt, 'signed in as a different account');
+          // Told in words where the account it was asked for is still held, by its label.
+          const asked = this.#account(attempt.appId, attempt.n)?.label;
+          if (asked !== undefined) attempt.label = asked;
+          return this.#fail(
+            attempt,
+            'signed in as a different account',
+            asked !== undefined ? 'otherAccount' : undefined,
+          );
         }
         if (apps.accounts.some(held => held.sub === claims!.sub && held.n !== attempt.n)) {
           return this.#fail(attempt, 'that account is already added');
@@ -1086,9 +1106,10 @@ export class AuthVault implements AccountStore {
     return attempt;
   }
 
-  #fail(attempt: Attempt, reason: string): Attempt {
+  #fail(attempt: Attempt, reason: string, cause?: FailureCause): Attempt {
     attempt.state = 'failed';
     attempt.reason = reason;
+    if (cause) attempt.cause = cause;
     delete attempt.oauth;
     delete attempt.device;
     this.#deps.journal({event: 'failed', appId: attempt.appId, source: attempt.source, reason});
@@ -1112,6 +1133,7 @@ export class AuthVault implements AccountStore {
           }
         : {app: this.#deps.displayName(attempt.appId)}),
       ...(attempt.reason ? {reason: attempt.reason} : {}),
+      ...(attempt.cause ? {cause: attempt.cause, label: attempt.label} : {}),
     };
   }
 

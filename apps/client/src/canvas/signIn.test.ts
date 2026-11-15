@@ -304,6 +304,34 @@ describe('the resume', () => {
   });
 });
 
+describe('more access signed in as another account', () => {
+  it('puts the request back and says on its canvas which account to sign in as, until that account signs in', async () => {
+    const {signIn, add, answer} = setup();
+    const a = add('a');
+    a.runtime.store.mergeEscalations(new Map([['gmail.1', true]]));
+    signIn.request(a.runtime, {kind: 'start', source: 'gmail.1'});
+    answer(0, {
+      state: 'failed',
+      app: 'Gmail',
+      reason: 'signed in as a different account',
+      cause: 'otherAccount',
+      label: 'work@example.com',
+    });
+    await tick();
+    expect(a.runtime.store.getState().signingIn.size).toBe(0);
+    expect(a.pressed).toEqual([]);
+    expect(a.runtime.store.getState().accountNotice).toBe(
+      'That was a different Gmail account. Press Allow again and sign in as work@example.com.',
+    );
+
+    signIn.request(a.runtime, {kind: 'start', source: 'gmail.1'});
+    answer(1, {state: 'signedIn', source: 'gmail.1', label: 'work@example.com', existing: true});
+    await tick();
+    expect(a.pressed).toEqual([{kind: 'retry', sources: ['gmail.1']}]);
+    expect(a.runtime.store.getState().accountNotice).toBeNull();
+  });
+});
+
 describe('signed in again as another identity', () => {
   it('resumes the slot and says on its canvas who it is signed in as now (task-12.13 decision 24)', async () => {
     const {signIn, add, answer} = setup();

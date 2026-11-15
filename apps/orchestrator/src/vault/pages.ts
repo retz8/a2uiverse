@@ -74,13 +74,31 @@ interface Content {
 }
 
 /**
+ * What an end page says of the sign-in: the app's name, whether it was a pasted key or token,
+ * and — more access signed in as another account — the label of the account it was asked for.
+ */
+export interface EndAbout {
+  app?: string;
+  connect?: boolean;
+  otherAccount?: string;
+}
+
+/**
  * The end a sign-in came to: one heading, one line. Ended well, it says it closes in five
  * seconds, with Close now beside the count. A pasted key or token says connected (task-12.13
- * decisions 30, 31).
+ * decisions 30, 31). More access signed in as another account says which to sign in as.
  */
-function endContent(ended: boolean, about: {app?: string; connect?: boolean}): Content {
+function endContent(ended: boolean, about: EndAbout): Content {
   const app = about.app ? escapeHtml(about.app) : undefined;
   const connect = about.connect === true;
+  if (!ended && app && about.otherAccount) {
+    return {
+      title: 'That was a different account',
+      body:
+        '<h1>That was a different account</h1>' +
+        `<p>Close this window, then press Allow again and sign in to ${app} as ${escapeHtml(about.otherAccount)}.</p>`,
+    };
+  }
   if (!ended) {
     return connect
       ? {
@@ -134,15 +152,19 @@ const CLOSING_SCRIPT = [
 ].join('\n');
 
 /** A sign-in ended: the window says how, and closes itself when it ended well. */
-export function endPage(ended: boolean, about: {app?: string; connect?: boolean} = {}): string {
+export function endPage(ended: boolean, about: EndAbout = {}): string {
   const {title, body} = endContent(ended, about);
   return page(title, body, ended ? `${CLOSING_SCRIPT}\nclosing();` : '');
 }
 
 /** The end a device-code attempt came to, as the code page shows it when reloaded after. */
-export function codeEndPage(state: 'signedIn' | 'failed' | 'expired', app: string): string {
+export function codeEndPage(
+  state: 'signedIn' | 'failed' | 'expired',
+  app: string,
+  otherAccount?: string,
+): string {
   if (state === 'expired') return page(EXPIRED.title, EXPIRED.body);
-  return endPage(state === 'signedIn', {app});
+  return endPage(state === 'signedIn', {app, ...(otherAccount ? {otherAccount} : {})});
 }
 
 /**
@@ -150,7 +172,8 @@ export function codeEndPage(state: 'signedIn' | 'failed' | 'expired', app: strin
  * button that opens the app's page in a second window under the popup rule — the address with the
  * code in it where the server gave one, the line under it saying what to check — then the wait.
  * It asks the orchestrator how the attempt stands, as the canvas does, and turns into how it
- * ended: signed in, closing itself; didn't finish; or the code ran out. It shows no address and
+ * ended: signed in, closing itself; didn't finish; or the code ran out. More access, naming the
+ * account it is asked for, says too that the sign-in was another account. It shows no address and
  * offers no new code.
  */
 export function codePage(params: {
@@ -162,12 +185,17 @@ export function codePage(params: {
   complete: boolean;
   /** Where the attempt's outcome is asked. */
   outcomeUrl: string;
+  /** More access: the label of the account it is asked for. */
+  account?: string;
 }): string {
   const app = escapeHtml(params.app);
   const ended = {
     signedIn: endContent(true, {app: params.app}),
     failed: endContent(false, {app: params.app}),
     expired: EXPIRED,
+    ...(params.account
+      ? {otherAccount: endContent(false, {app: params.app, otherAccount: params.account})}
+      : {}),
   };
   const templates = Object.entries(ended)
     .map(
@@ -215,9 +243,10 @@ export function codePage(params: {
     "  if (state === 'signedIn') closing(); };",
     'const ask = async () => {',
     "  try { const answer = await fetch(outcomeUrl, {cache: 'no-store'});",
-    "    const {state} = answer.status === 404 ? {state: 'unknown'} : await answer.json();",
+    "    const {state, cause} = answer.status === 404 ? {state: 'unknown'} : await answer.json();",
     "    if (state === 'signedIn' || state === 'expired') end(state);",
-    "    else if (state !== 'pending') end('failed');",
+    "    else if (state !== 'pending')",
+    "      end(cause === 'otherAccount' && document.getElementById('end-otherAccount') ? 'otherAccount' : 'failed');",
     '  } catch { /* lost on the way: asked again */ } };',
     'const asking = setInterval(ask, 1000);',
   ].join('\n');

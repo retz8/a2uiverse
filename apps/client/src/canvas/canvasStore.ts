@@ -256,7 +256,7 @@ export interface CanvasStore {
   /** A sign-in window opened for a source on this canvas, or the tile put back. */
   setSigningIn(source: string, open: boolean): void;
   /** An account added from this canvas, said on the progress line. */
-  showAccountNotice(text: string): void;
+  showAccountNotice(text: string | null): void;
   /** An add-account window open from this canvas, in words, or `null` once it is not. */
   setAddingAccount(text: string | null): void;
   /** The merged view's facts, from a shell paint carrying its slot. */

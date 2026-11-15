@@ -290,6 +290,7 @@ async function signIn(
     state: string;
     source?: string;
     reason?: string;
+    cause?: string;
     label?: string;
     app?: string;
     existing?: boolean;
@@ -328,6 +329,7 @@ type DeviceOutcome = {
   state: string;
   source?: string;
   reason?: string;
+  cause?: string;
   label?: string;
   existing?: boolean;
   rebound?: boolean;
@@ -964,6 +966,40 @@ describe("the agent's requests for more access", () => {
       state: 'authority',
       authority: {cause: 'more', scopes: ['Change your orders']},
     });
+  });
+
+  test('more access signed in as a different account: refused, the outcome naming the account asked for, the window saying how to allow it', async () => {
+    const {base, client, orchestrator} = await boot({
+      apps: {
+        shop: {
+          card: oauthCard(),
+          admit: admitsTokens(),
+          script: authRequired([{signIn: ['write']}]),
+        },
+      },
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    await collect(client, press('retry', 'shop.1', canvas));
+
+    // The person picks another account than the one login_hint names.
+    auth.forgets = true;
+    auth.account = {sub: 'sub-bob', email: 'bob@example.com'};
+    const other = await signIn(base, canvas, 'shop.1');
+    expect(other.outcome).toEqual({
+      state: 'failed',
+      app: 'Shop',
+      reason: 'signed in as a different account',
+      cause: 'otherAccount',
+      label: 'ada@example.com',
+    });
+    const page = shownText(await other.callback!.text());
+    expect(page).toContain('That was a different account');
+    expect(page).toContain(
+      'Close this window, then press Allow again and sign in to Shop as ada@example.com.',
+    );
+    expect(orchestrator.vault.accountsOf('shop')).toEqual([{n: 1, label: 'ada@example.com'}]);
   });
 
   test('after a paint: the chip on the attribution row, Not now drops it, Allow sends the press again', async () => {
@@ -1799,6 +1835,40 @@ describe('device-code sign-in (task 20.6)', () => {
     expect(
       await signInLinesWith({event: 'started', purpose: 'escalation', flow: 'deviceCode'}),
     ).toBeTruthy();
+  });
+
+  test('more access by device code signed in as a different account: the code page carries the words, and says them once reloaded', async () => {
+    const {base, client} = await boot({
+      apps: {
+        shop: {
+          card: deviceCard(),
+          admit: admitsTokens(),
+          script: authRequired([{signIn: ['write']}]),
+        },
+      },
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await deviceSignIn(base, canvas, 'shop.1');
+    await collect(client, press('retry', 'shop.1', canvas));
+
+    auth.forgets = true;
+    auth.account = {sub: 'sub-bob', email: 'bob@example.com'};
+    const other = await deviceSignIn(base, canvas, 'shop.1');
+    expect(other.outcome).toMatchObject({
+      state: 'failed',
+      cause: 'otherAccount',
+      label: 'ada@example.com',
+    });
+    const words =
+      'Close this window, then press Allow again and sign in to Shop as ada@example.com.';
+    expect(other.page).toContain('id="end-otherAccount"');
+    expect(other.page).toContain(words);
+    const reloaded = await (
+      await fetch(other.location!, {headers: {cookie: other.cookie!}})
+    ).text();
+    expect(shownText(reloaded)).toContain('That was a different account');
+    expect(shownText(reloaded)).toContain(words);
   });
 
   test('signing in again asks what the account held and the card requires, named by login_hint; another account added takes the next number', async () => {
