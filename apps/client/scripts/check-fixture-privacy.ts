@@ -2,7 +2,7 @@
  * Fixture privacy gate (task 2.9 decision 9): refuse to ship a recorded beat, or a recorded Store
  * capture (task-14.10 decision 15), that carries real account data.
  *
- *   pnpm --filter @a2uiverse/client check:fixtures [-- --dir recordings/beats [--dir …]]
+ *   pnpm --filter @a2uiverse/client check:fixtures [--dir recordings/beats [--dir …]]
  *
  * Why this exists. A beat recorded through the hub over live MCP is captured **client-side**,
  * and the only thing standing between a real mailbox and a tracked file in this repo is the

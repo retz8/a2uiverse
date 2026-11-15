@@ -607,6 +607,19 @@ describe('startup', () => {
     expect(next.storedCard('gmail')).toEqual(readCard(installed));
   });
 
+  test('an agent down at startup is routable once an unchanged install-over reaches its card', async () => {
+    const installed = cardFor('http://127.0.0.1:11002', {name: 'Gmail'});
+    const {cards, stateDir} = await fresh([{id: 'gmail', card: installed}]);
+    cards.cards.clear();
+    const next = new Registry({stateDir, fetchCard: cards.fetch, embedder: new FakeEmbedder()});
+    await next.load();
+    await next.refreshCards();
+    expect(next.routable()).toEqual([]);
+    await next.install({appId: 'gmail', cardUrl: cards.serve(installed), catalogs: []});
+    expect(next.card('gmail')).toEqual(readCard(installed));
+    expect(next.routable().map(app => app.record.id)).toEqual(['gmail']);
+  });
+
   test('the platform’s card is indexed under shell, never listed as installed', async () => {
     const embedder = new FakeEmbedder();
     const platformCard = readCard(cardFor('http://127.0.0.1:10001', {name: 'A2UIVerse'}));
