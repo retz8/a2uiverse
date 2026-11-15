@@ -52,7 +52,7 @@ Checked group by group, each item decided, after the Do now list is all done.
 ### Group 1
 
 1. [DONE] (platform 2ef6bc3) The journal records a press that ended asking for more access as a failed dispatch; decide what it records it as. The press's turn is journaled completed, as the client is told; its dispatch stays failed with the request on its `authority`.
-2. A catalog's rules aimed at `body`, `html` or `:root` stay page-wide, so Primer's `body{margin:0}` reaches the whole page, and the collision detector flags only a custom property written at those three; decide what the platform does with such a rule.
+2. [DONE] (platform ccd0553) A catalog's rules aimed at `body`, `html` or `:root` stay page-wide, so Primer's `body{margin:0}` reaches the whole page, and the collision detector flags only a custom property written at those three; decide what the platform does with such a rule. Such a rule stays page-wide, and the detector flags every declaration written there, Primer's three accepted for `github-catalog`.
 3. The scoped stylesheet loader does not follow a sheet's `@import`, an adopted sheet having none, and no catalog uses one today; decide whether Stellify refuses one at pack.
 
 ### Group 2
