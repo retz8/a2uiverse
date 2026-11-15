@@ -127,6 +127,8 @@ It is written nowhere: not to the registry, not to the vault's file, not to the 
 
 What a person can notice is in behaviour only: which apps and accounts answer a question, and that a dispatch reaches the account. An account whose card lists no interface the platform speaks is said at its slot alone, by the tile of decision 4. The App Library's line stays per app, judged from the public card.
 
+*Amended by the backlog triage of 2026-11-15, group 3 item 8.* The App Library's account list carries, for each account, the name and description of each skill its own card adds over the app's card as installed, and the account says it can also do them; nothing else of an account's card reaches the client.
+
 ### 14. `stellify preview` does for the publisher's account what the orchestrator does for a person's
 
 1. When the public card has the flag and the publisher has signed in, the preview fetches that account's card, reads it and checks its signature, by decisions 7 to 11.
