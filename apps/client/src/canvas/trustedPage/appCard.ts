@@ -88,9 +88,30 @@ export function signInOf(card: AgentCard): SignInNeed {
     : {kind: 'signIn', words: wordsOf(first.scheme, first.scopes)};
 }
 
-/** The new permissions a card update asks for, in the published card's words. */
-export function newScopeWords(card: AgentCard, newScopes: readonly NewScopes[]): string[] {
-  return newScopes.flatMap(({scheme, scopes}) => wordsOf(card.securitySchemes[scheme], scopes));
+/**
+ * What a card update newly asks, read off the published card: its new permissions in the card's
+ * words; and whether it newly asks a pasted key or token, a sign-in in a window with no
+ * permission to list, or a sign-in the platform does not do.
+ */
+export interface NewAccess {
+  words: string[];
+  key: boolean;
+  signIn: boolean;
+  unsupported: boolean;
+}
+
+export function newAccessOf(card: AgentCard, newScopes: readonly NewScopes[]): NewAccess {
+  const access: NewAccess = {words: [], key: false, signIn: false, unsupported: false};
+  for (const {scheme, scopes} of newScopes) {
+    const declared = card.securitySchemes[scheme];
+    const words = wordsOf(declared, scopes);
+    access.words.push(...words);
+    const kind = kindOf(declared);
+    if (kind === 'key') access.key = true;
+    else if (kind === 'signIn') access.signIn ||= words.length === 0;
+    else access.unsupported = true;
+  }
+  return access;
 }
 
 /** The update states whose listing carries Update (task-14.2 decision 8). */

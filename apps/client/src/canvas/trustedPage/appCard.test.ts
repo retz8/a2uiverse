@@ -11,7 +11,7 @@ import {
   bringsNewLook,
   dayOf,
   listingAct,
-  newScopeWords,
+  newAccessOf,
   sampleCaption,
   signInOf,
   tileLetter,
@@ -134,9 +134,9 @@ describe('what signing in will be (task-14.7 decision 10)', () => {
       kind: 'signIn',
       words: ['See your issues'],
     });
-    expect(newScopeWords(current('deviceCode'), [{scheme: 'linear', scopes: ['read']}])).toEqual([
-      'See your issues',
-    ]);
+    expect(
+      newAccessOf(current('deviceCode'), [{scheme: 'linear', scopes: ['read']}]).words,
+    ).toEqual(['See your issues']);
     expect(signInOf(current('clientCredentials'))).toEqual({kind: 'unsupported'});
   });
 
@@ -167,10 +167,40 @@ describe('what signing in will be (task-14.7 decision 10)', () => {
 
   it('words a card update’s new permissions from the published card', () => {
     expect(
-      newScopeWords(card({securitySchemes: LINEAR_SCHEMES}), [
-        {scheme: 'linear', scopes: ['write']},
-      ]),
-    ).toEqual(['Create, change and comment on your issues']);
+      newAccessOf(card({securitySchemes: LINEAR_SCHEMES}), [{scheme: 'linear', scopes: ['write']}]),
+    ).toEqual({
+      words: ['Create, change and comment on your issues'],
+      key: false,
+      signIn: false,
+      unsupported: false,
+    });
+  });
+
+  it('says what a card update newly asks with no words of its own: a key, a sign-in naming none, a sign-in not supported', () => {
+    const schemes = {
+      ...LINEAR_SCHEMES,
+      key: {type: 'apiKey', in: 'header', name: 'X-Key'},
+      m: {type: 'mutualTLS'},
+    };
+    const updated = card({securitySchemes: schemes});
+    expect(newAccessOf(updated, [{scheme: 'key', scopes: []}])).toEqual({
+      words: [],
+      key: true,
+      signIn: false,
+      unsupported: false,
+    });
+    expect(newAccessOf(updated, [{scheme: 'linear', scopes: []}])).toEqual({
+      words: [],
+      key: false,
+      signIn: true,
+      unsupported: false,
+    });
+    expect(newAccessOf(updated, [{scheme: 'm', scopes: []}])).toEqual({
+      words: [],
+      key: false,
+      signIn: false,
+      unsupported: true,
+    });
   });
 });
 

@@ -105,6 +105,92 @@ describe('the consent card over a slot (task-15.9 decision 2)', () => {
     expect(onCancel).toHaveBeenCalledOnce();
   });
 
+  it('an update newly asking for a key, a sign-in naming nothing, or a sign-in not supported says so', () => {
+    const updating = (card: Parameters<typeof readCardFixture>[1], scheme: string) => (
+      <SlotConsentCard
+        ask={{
+          kind: 'update',
+          entry: {...SHOP_B, card: readCardFixture('Shop B', card)} as unknown as StoreEntry,
+          news: {newScopes: [{scheme, scopes: []}], newLook: false},
+        }}
+        anchor={anchor()}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />
+    );
+    const {rerender} = renderWithShell(
+      updating({securitySchemes: {key: {type: 'apiKey', in: 'header', name: 'X-Key'}}}, 'key'),
+    );
+    expect(screen.getByRole('dialog', {name: 'Update Shop B?'})).toHaveTextContent(
+      'This version asks for more. The next time you use it, Shop B will ask you to connect with a key.',
+    );
+
+    const oauth = {
+      type: 'oauth2',
+      flows: {
+        authorizationCode: {
+          authorizationUrl: 'https://example.com/a',
+          tokenUrl: 'https://example.com/t',
+          scopes: {},
+        },
+      },
+    };
+    rerender(updating({securitySchemes: {oauth}}, 'oauth'));
+    expect(screen.getByRole('dialog', {name: 'Update Shop B?'})).toHaveTextContent(
+      'This version asks for more. The next time you use it, Shop B will ask you to sign in.',
+    );
+
+    rerender(updating({securitySchemes: {m: {type: 'mutualTLS'}}}, 'm'));
+    expect(screen.getByRole('dialog', {name: 'Update Shop B?'})).toHaveTextContent(
+      'This version asks for more. Signing in to Shop B that way isn’t supported here.',
+    );
+  });
+
+  it('an update asking for permissions and a key lists the permissions, then the key, one line opening with what it asks', () => {
+    const card = readCardFixture('CircleCI', {
+      securitySchemes: {
+        oauth: {
+          type: 'oauth2',
+          flows: {
+            authorizationCode: {
+              authorizationUrl: 'https://example.com/a',
+              tokenUrl: 'https://example.com/t',
+              scopes: {'write:workflows': 'Rerun and cancel your workflows'},
+            },
+          },
+        },
+        key: {type: 'apiKey', in: 'header', name: 'X-Key'},
+      },
+    });
+    renderWithShell(
+      <SlotConsentCard
+        ask={{
+          kind: 'update',
+          entry: {...CIRCLECI, card} as unknown as StoreEntry,
+          news: {
+            newScopes: [
+              {scheme: 'key', scopes: []},
+              {scheme: 'oauth', scopes: ['write:workflows']},
+            ],
+            newLook: false,
+          },
+        }}
+        anchor={anchor()}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+    const dialog = screen.getByRole('dialog', {name: 'Update CircleCI?'});
+    expect(dialog).toHaveTextContent(
+      'This version asks for more. The next time you use it, CircleCI will also ask to be able to',
+    );
+    expect(dialog).toHaveTextContent('Rerun and cancel your workflows');
+    expect(dialog).toHaveTextContent(
+      'The next time you use it, CircleCI will ask you to connect with a key.',
+    );
+    expect(dialog.textContent!.split('This version asks for more.')).toHaveLength(2);
+  });
+
   it('keeps its press where it is on screen while a paint above moves it (task-15.11 decision 23)', () => {
     const watching = new Map<Element, ResizeObserverCallback>();
     vi.stubGlobal(

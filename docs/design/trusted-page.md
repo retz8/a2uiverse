@@ -229,7 +229,7 @@ A sample needs a `MessageProcessor` over the catalogs it paints in. `SampleFrame
 
 A slot's Install on the canvas reads the app's Store entry again before its consent card, so it can be refused before the card opens. Try again then asks on the card; it goes with no second card only after a press that passed the card, or needed none.
 
-The **consent card** (`ConsentCard`) has two shapes. Installing, it says what the app is, who publishes it, and what it will ask to sign in to, in its own words. Updating, it says only what's new: the new permissions in the app's words, and a new look when a catalog it paints in moves. An update passes it only when it asks for more (`asksForMore` in the sdk): a card update naming a new permission.
+The **consent card** (`ConsentCard`) has two shapes. Installing, it says what the app is, who publishes it, and what it will ask to sign in to, in its own words. Updating, it says only what's new: the new permissions in the app's words, and a new look when a catalog it paints in moves. A new key, or a new sign-in naming no permission to list, is said as installing says it: "This version asks for more. The next time you use it, Shop B will ask you to connect with a key." or "…will ask you to sign in."; a new sign-in A2UIVerse can't do, with nothing else to say, "This version asks for more. Signing in to Shop B that way isn't supported here.". Only the first line opens with "This version asks for more." An update passes it only when it asks for more (`asksForMore` in the sdk): a card update naming a new permission.
 
 ### Publisher held by the orchestrator
 
@@ -349,14 +349,13 @@ What only the lost answer knew stays unsaid: the apps that followed an update, w
 | **A write bounded and never sent twice** | No page stuck on "Updating"; no install made twice | What only the lost answer knew stays unsaid |
 | **A sample drawn live, apart from every canvas** | The Store shows the app in its own look, the real paint, not a picture of one | A vendor's code runs in the browser before the app is installed |
 | **The Planner reads the update state as last computed** | A plan never waits on the marketplace or a live card | The answer can be behind; it says when it checked |
-| **The consent card only when an update asks for more** | The card always has something in it to agree to | A card update newly asking for a key, or a sign-in with no named scope, passes an empty card |
+| **The consent card only when an update asks for more** | The card always has something in it to agree to | An update asking only for a new look goes straight through, the look unannounced |
 | **The Store holds the lists it has shown** | A cleared search or Back shows its list at once | A list can be behind until the registry changes or Try again |
 
 ## Known limits
 
 - **One publisher per orchestrator.** A second publisher on the same computer signs the first out first.
 - **Pack and preview stay on the terminal.** Publish takes Stellify's folders and sample file; it doesn't build or pack anything.
-- **The consent card has words only for scopes.** A card update that newly asks for a key, or for a sign-in with no named scope, passes the consent card with nothing in it.
 
 ## Trying it
 

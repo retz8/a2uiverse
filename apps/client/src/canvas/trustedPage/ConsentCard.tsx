@@ -10,7 +10,7 @@
 import {useId, useLayoutEffect, useMemo} from 'react';
 import {AlertDialog, Button, Flex, Heading, Popover, Text} from '@radix-ui/themes';
 import type {StoreEntry} from '../../orchestratorApi';
-import {newScopeWords, signInOf, tileLetter, type UpdateNewsFacts} from './appCard';
+import {newAccessOf, signInOf, tileLetter, type UpdateNewsFacts} from './appCard';
 
 /** What the card asks: an install, or an update that asks for more. */
 export type ConsentAsk =
@@ -107,19 +107,46 @@ function InstallSignIn({entry}: {entry: StoreEntry}) {
   }
 }
 
-/** What updating brings that the installed app did not ask for. */
+/** What an update that asks for more says first, once. */
+const ASKS_MORE = 'This version asks for more.';
+
+/**
+ * What updating brings that the installed app did not ask for: the new permissions in the card's
+ * words, then a key or a sign-in it newly asks with nothing to list, or — nothing else said — a
+ * sign-in not supported here. The first line opens with what the update asks.
+ */
 function UpdateNews({entry, news}: {entry: StoreEntry; news: UpdateNewsFacts}) {
   const name = entry.card.name;
-  const words = newScopeWords(entry.card, news.newScopes);
+  const access = newAccessOf(entry.card, news.newScopes);
+  const listed = access.words.length > 0;
+  const lines = [
+    ...(access.key
+      ? [`The next time you use it, ${name} will ask you to connect with a key.`]
+      : []),
+    ...(access.signIn && !listed
+      ? [`The next time you use it, ${name} will ask you to sign in.`]
+      : []),
+  ];
+  if (!listed && lines.length === 0 && access.unsupported) {
+    lines.push(`Signing in to ${name} that way isn’t supported here.`);
+  }
   return (
     <>
-      {words.length > 0 && (
+      {listed && (
         <Scopes
-          note={`This version asks for more. The next time you use it, ${name} will also ask to be able to`}
-          words={words}
+          note={`${ASKS_MORE} The next time you use it, ${name} will also ask to be able to`}
+          words={access.words}
           icon="plus"
         />
       )}
+      {lines.map((line, i) => (
+        <Scopes
+          key={line}
+          note={i === 0 && !listed ? `${ASKS_MORE} ${line}` : line}
+          words={[]}
+          icon="plus"
+        />
+      ))}
       {news.newLook && <p>It also brings a new look for its answers.</p>}
     </>
   );
