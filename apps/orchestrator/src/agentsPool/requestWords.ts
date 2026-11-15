@@ -6,7 +6,8 @@ type Metadata = Record<string, unknown> | undefined;
 /**
  * The person's local time in plain words (task-12.13 decision 47): "The person's local time is
  * Friday 9 October 2026, 14:20 (Asia/Seoul)." Undefined without a whole clock, or with a time or
- * a zone that does not read.
+ * a zone that does not read. The agent kit reads the zone from this sentence
+ * (`a2ui_agent_kit.local_time`), so its form is part of what apps rely on.
  */
 export function localTimeSentence(session: ClientSession | undefined): string | undefined {
   if (!session?.now || !session.timeZone) return undefined;
