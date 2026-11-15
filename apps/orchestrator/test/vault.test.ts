@@ -1066,6 +1066,43 @@ describe("the agent's requests for more access", () => {
     );
   });
 
+  test('a press that asked for more access is journaled a completed turn, as the client was told, its dispatch failed carrying the request', async () => {
+    const {base, client} = await boot({
+      apps: {
+        shop: {
+          card: oauthCard(),
+          admit: admitsTokens(),
+          script: sequence(deterministicScript, authRequired([{signIn: ['write']}])),
+        },
+      },
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    await collect(client, press('retry', 'shop.1', canvas));
+    await collect(client, action('shop.1', canvas));
+
+    await vi.waitFor(async () => {
+      const journal = await readFile(join(dir, JOURNAL_FILE), 'utf8');
+      const asked = journal
+        .trim()
+        .split('\n')
+        .map(line => JSON.parse(line) as Record<string, unknown>)
+        .filter(line => line.kind === 'action');
+      expect(asked.at(-1)).toMatchObject({
+        outcome: 'completed',
+        dispatch: [
+          {
+            source: 'shop.1',
+            outcome: 'failed',
+            endState: 'TASK_STATE_AUTH_REQUIRED',
+            authority: {keys: ['write'], escalation: true},
+          },
+        ],
+      });
+    });
+  });
+
   test('a later press in the fragment drops the request the earlier press left: no chip, journaled superseded, nothing held to send again (task-12.13 decision 39)', async () => {
     const {base, client} = await boot({
       apps: {

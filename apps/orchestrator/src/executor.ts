@@ -954,7 +954,9 @@ export class OrchestratorExecutor implements AgentExecutor {
     // A press that failed says so on its slot; the shell adds no words of its own (task-15.11
     // decision 31).
     bus.publish(finalStatus(ctx, state));
-    void run.drained.then(() => turn.close(outcome));
+    // A press that asked for more access closes as the client was told, completed; its dispatch
+    // stays failed with the request on it.
+    void run.drained.then(() => turn.close(escalated ? 'completed' : outcome));
   }
 
   /**

@@ -368,7 +368,7 @@ flowchart TD
 
 **A request for more access** goes one of two ways, in `#settleAuthority` (`executor.ts`):
 
-- **The fragment is on screen:** the slot keeps it, `slot.escalation` holds the scheme, the missing keys and their words, and the press that asked is kept as `keptPress`. `Attribution` draws the chip. Allow's `retry` sends `keptPress` again; Not now's `dismiss` drops both. A later press in that fragment drops both too, journaled `superseded`.
+- **The fragment is on screen:** the slot keeps it, `slot.escalation` holds the scheme, the missing keys and their words, and the press that asked is kept as `keptPress`. `Attribution` draws the chip. Allow's `retry` sends `keptPress` again; Not now's `dismiss` drops both. A later press in that fragment drops both too, journaled `superseded`. The press itself ends `completed`, to the client and on its journal line; its dispatch is journaled `failed`, the request on its `authority`.
 - **Nothing painted yet** (the first answer itself needed more): the slot takes the tile with the cause `more`, "Gmail needs more access to show it here.", with **Allow**.
 
 A slot waiting on Allow counts as **quiescent**: the merge doesn't hold for it.
