@@ -66,10 +66,15 @@ interface HeldAccount {
 
 /**
  * A fake stack holding Gmail, which asks sign-in, and Shop A, which does not, on a vault as `next`
- * and `accounts` say. Gives the orchestrator's address and each sign-in the agent's return reached,
- * as `<source sent> <code>`.
+ * and `accounts` say, beside each app of `others` asking sign-in with no fake account, its accounts
+ * as given. Gives the orchestrator's address and each sign-in the agent's return reached, as
+ * `<source sent> <code>`.
  */
-async function stack(next: number, accounts: HeldAccount[] = []) {
+async function stack(
+  next: number,
+  accounts: HeldAccount[] = [],
+  others: Record<string, HeldAccount[]> = {},
+) {
   const vault = {next, accounts: [...accounts]};
   const asked: string[] = [];
   const agent = await serve((_req, res, url) => {
@@ -100,6 +105,7 @@ async function stack(next: number, accounts: HeldAccount[] = []) {
       return json(res, [
         {id: 'gmail', cardUrl: `${agent}/.well-known/agent-card.json`},
         {id: 'shop-a', cardUrl: `${open}/.well-known/agent-card.json`},
+        ...Object.keys(others).map(id => ({id, cardUrl: `${agent}/.well-known/agent-card.json`})),
       ]);
     }
     if (url.pathname === '/auth/accounts.json') {
@@ -116,6 +122,17 @@ async function stack(next: number, accounts: HeldAccount[] = []) {
           })),
         },
         {appId: 'shop-a', signIn: 'none', accounts: []},
+        ...Object.entries(others).map(([appId, held]) => ({
+          appId,
+          signIn: 'supported',
+          accounts: held.map(account => ({
+            source: `${appId}.${account.n}`,
+            label: account.label,
+            kind: 'oauth',
+            permissions: [],
+            lapsed: account.lapsed === true,
+          })),
+        })),
       ]);
     }
     if (url.pathname === '/auth/start') {
@@ -214,6 +231,29 @@ test('two named accounts signed in again land on the accounts the first run adde
     {source: 'gmail.3', as: 'you', label: 'you label', held: true},
     {source: 'gmail.4', as: 'personal', label: 'personal label', held: true},
   ]);
+});
+
+test('an app with no fake account, Shop C signed in by device code by hand, is left as the vault holds it', async () => {
+  const {orchestrator, asked} = await stack(1, [], {
+    'shop-c': [{n: 1, identity: 'member', label: 'Member One'}],
+  });
+
+  const signedIn = await signIn(orchestrator, 'canvas-1');
+
+  expect(asked).toEqual(['gmail code-you']);
+  expect(signedIn).toEqual([{source: 'gmail.1', as: 'you', label: 'you label', held: false}]);
+  expect(await heldBeside(orchestrator, signedIn)).toEqual([
+    {source: 'shop-c.1', label: 'Member One', lapsed: false},
+  ]);
+});
+
+test('an app with no fake account and no live account held stops the run, saying to sign it in by hand', async () => {
+  for (const held of [[], [{n: 1, identity: 'member', label: 'Member One', lapsed: true}]]) {
+    const {orchestrator} = await stack(1, [], {'shop-c': held});
+    await expect(signIn(orchestrator, 'canvas-1')).rejects.toThrow(
+      /no fake account named for 'shop-c'.*no live account.*sign it in by hand/,
+    );
+  }
 });
 
 test('the accounts held beside the run are read from the vault, lapsed where they are', async () => {

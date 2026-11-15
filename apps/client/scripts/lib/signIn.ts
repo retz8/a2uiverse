@@ -58,12 +58,19 @@ export interface HeldBeside {
   lapsed: boolean;
 }
 
-/** The accounts each app signs in as: the beat's own, otherwise the app's one account. */
-export function accountsFor(app: string, named: Accounts = {}): string[] {
+/** The accounts an app signs in as: the beat's own, otherwise its one account; none when it has none. */
+function fakeAccountsFor(app: string, named: Accounts): string[] | undefined {
   if (named[app]) return named[app];
   if (SIGN_IN_AS[app]) return [SIGN_IN_AS[app]];
   if (DEMO_KEYS[app]) return [DEMO_KEYS[app]];
-  throw new Error(`no fake account named for '${app}' — add it to SIGN_IN_AS`);
+  return undefined;
+}
+
+/** The accounts each app signs in as: the beat's own, otherwise the app's one account. */
+export function accountsFor(app: string, named: Accounts = {}): string[] {
+  const accounts = fakeAccountsFor(app, named);
+  if (!accounts) throw new Error(`no fake account named for '${app}' — add it to SIGN_IN_AS`);
+  return accounts;
 }
 
 /** The agent's sign-in address with the non-interactive entry naming `account`. */
@@ -137,7 +144,9 @@ const locationOf = (res: Response, what: string): string => {
  * Sign every installed app that asks sign-in into the orchestrator at `orchestrator`, from
  * `canvas`, as `named` says or as its one account. Each goes out under the bare app id, the vault
  * numbering it: an identity it holds lands on its own number, refreshed if it had lapsed, and is
- * otherwise left as it is; any other is added under the next number.
+ * otherwise left as it is; any other is added under the next number. An app with no fake account,
+ * as Shop C, the hand-written agent in Go that signs in by device code, is left as the vault holds
+ * it when the vault holds a live account for it; with none, or only a lapsed one, the run stops.
  */
 export async function signIn(
   orchestrator: string,
@@ -145,11 +154,23 @@ export async function signIn(
   named: Accounts = {},
 ): Promise<SignedIn[]> {
   const origin = await publicOriginOf(orchestrator);
+  const live = new Set(
+    (await accountsRead(orchestrator))
+      .filter(app => app.accounts.some(account => !account.lapsed))
+      .map(app => app.appId),
+  );
   const signedIn: SignedIn[] = [];
   for (const app of await installedApps(orchestrator)) {
     const card = await cardOf(app.cardUrl);
     if (!card.security?.length) continue;
-    for (const as of accountsFor(app.id, named)) {
+    const accounts = fakeAccountsFor(app.id, named);
+    if (!accounts) {
+      if (live.has(app.id)) continue;
+      throw new Error(
+        `no fake account named for '${app.id}', and the orchestrator holds no live account for it — sign it in by hand first, or add it to SIGN_IN_AS`,
+      );
+    }
+    for (const as of accounts) {
       signedIn.push(await signInOne(orchestrator, origin, canvas, app.id, as));
     }
   }
@@ -164,14 +185,21 @@ export async function heldBeside(
   orchestrator: string,
   signedIn: readonly SignedIn[],
 ): Promise<HeldBeside[]> {
-  const res = await fetch(`${orchestrator}/auth/accounts.json`);
-  if (!res.ok) throw new Error(`the accounts read answered ${res.status}`);
-  const apps = (await res.json()) as {accounts: HeldBeside[]}[];
+  const apps = await accountsRead(orchestrator);
   const run = new Set(signedIn.map(account => account.source));
   return apps
     .flatMap(app => app.accounts)
     .filter(account => !run.has(account.source))
     .map(({source, label, lapsed}) => ({source, label, lapsed}));
+}
+
+/** The vault's accounts, app by app, as the App Library reads them. */
+async function accountsRead(
+  orchestrator: string,
+): Promise<{appId: string; accounts: HeldBeside[]}[]> {
+  const res = await fetch(`${orchestrator}/auth/accounts.json`);
+  if (!res.ok) throw new Error(`the accounts read answered ${res.status}`);
+  return (await res.json()) as {appId: string; accounts: HeldBeside[]}[];
 }
 
 /** What a run says it signed in, and what the vault holds besides. */
