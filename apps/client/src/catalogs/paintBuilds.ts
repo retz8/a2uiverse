@@ -12,7 +12,7 @@
  * there just before its create (task-16.7 decision 2): a catalog the processor does not hold comes
  * in through `addCatalog`; another build of one it holds takes the held one's place.
  */
-import {linkCatalogs, MessageProcessor} from '@a2ui/web_core/v0_9';
+import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage, A2uiMessageListWrapper, Catalog} from '@a2ui/web_core/v0_9';
 import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {capturePaint, rebuildMessages} from '../canvas/history/paintCopy';
@@ -83,9 +83,10 @@ export class BuildProcessor extends MessageProcessor<ReactCatalogComponent> {
     const at = held.findIndex(catalog => catalog.id === build.id);
     if (at === -1) return this.addCatalog(build.catalog);
     if (held[at] === build.catalog) return;
-    // In the held one's place, linked to the others as `addCatalog` links a catalog; changed in
-    // place, since the processor's RPC handler holds the same list.
-    held.splice(0, held.length, ...linkCatalogs(held.with(at, build.catalog)));
+    // In the held one's place, changed in place, since the processor's RPC handler holds the same
+    // list. Nothing is linked: no catalog the platform loads refers into another, and upstream
+    // removed cross-catalog references (a2ui-project/a2ui#3575).
+    held.splice(at, 1, build.catalog);
   }
 
   /** A surface on screen in another build of the same catalog, re-created in `build` as it stands. */

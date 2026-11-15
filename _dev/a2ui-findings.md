@@ -248,8 +248,7 @@ each canvas's processor is built before the catalogs it will need are known.
 A2UIVerse carries PR #3304 as a local patch on `@a2ui/web_core` 0.14.0. A second build of a catalog
 the processor holds — the same id, a newer artifact — cannot come in through `addCatalog`, which
 refuses the id: the client puts the new build in the held one's place in the processor's own list,
-linked to the held catalogs with `linkCatalogs` as `addCatalog` links them, and a surface created
-before keeps the build it was created in.
+as loaded, and a surface created before keeps the build it was created in.
 
 ### Reproduction
 

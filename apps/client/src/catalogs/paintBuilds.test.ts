@@ -29,24 +29,24 @@ const tree = (surfaceId: string, text: string) =>
 const data = (surfaceId: string, greeting: string) =>
   msg({updateDataModel: {surfaceId, path: '/', value: {greeting}}});
 
-const buildOf = (artifact: string) =>
-  resolveCatalog(
-    new Catalog<ReactCatalogComponent>(
-      DEMO,
-      basicCatalog.protocolVersion,
-      [...basicCatalog.components.values()],
-      [...basicCatalog.functions.values()],
-    ),
-    undefined,
-    artifact,
+/** A catalog of the basic catalog's components and functions under `id`. */
+const catalogOf = (id: string) =>
+  new Catalog<ReactCatalogComponent>(
+    id,
+    basicCatalog.protocolVersion,
+    [...basicCatalog.components.values()],
+    [...basicCatalog.functions.values()],
   );
 
-function canvas() {
+const buildOf = (artifact: string) => resolveCatalog(catalogOf(DEMO), undefined, artifact);
+
+/** A canvas whose processor starts holding `held`, the demo catalog's two builds loaded. */
+function canvas(held: Catalog<ReactCatalogComponent>[] = []) {
   const first = buildOf('sha256-first');
   const second = buildOf('sha256-second');
   const loaded = new Map([first, second].map(b => [b.build!, b]));
   const book = createPaintBuilds(artifact => loaded.get(artifact));
-  const processor = new BuildProcessor([], book);
+  const processor = new BuildProcessor(held, book);
   /** Delivers messages the way the gate does: each one assigned its build. */
   const deliver = (build: typeof first | undefined, ...messages: A2uiMessage[]) => {
     for (const message of messages) if (build) book.assign(message, build);
@@ -75,6 +75,21 @@ describe('a paint drawn in its build', () => {
     deliver(first, create('c'), tree('c', 'three'));
     expect(processor.model.getSurface('c')!.defaultCatalog).toBe(first.catalog);
     expect(processor.model.getSurface('b')!.defaultCatalog).toBe(second.catalog);
+  });
+
+  it('swaps a build in beside the other catalogs it holds and draws in it as loaded, the others held as they were', () => {
+    const other = catalogOf('urn:catalog:other');
+    const {first, second, processor, deliver} = canvas([other]);
+    deliver(first, create('a'), tree('a', 'one'));
+    deliver(second, create('b'), tree('b', 'two'));
+    const held = (processor as unknown as {catalogs: Catalog<ReactCatalogComponent>[]}).catalogs;
+    expect(held).toHaveLength(2);
+    expect(held[0]).toBe(other);
+    expect(held[1]).toBe(second.catalog);
+    const drawn = processor.model.getSurface('b')!;
+    expect(drawn.defaultCatalog).toBe(second.catalog);
+    expect(drawn.componentsModel.get('note')!.properties.text).toBe('two');
+    expect(processor.model.getSurface('a')!.defaultCatalog).toBe(first.catalog);
   });
 
   it('moves a surface to the newer build a change to its components is assigned, its tree and data kept', () => {
