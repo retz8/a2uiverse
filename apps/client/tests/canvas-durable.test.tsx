@@ -235,7 +235,7 @@ describe('Phase 9’s recorded beats over the deterministic roster', () => {
     async () => {
       const r = await replay(getBeatFixture(24)!);
       const first = r.canvas(0)!;
-      expect(first.history.combination()).toMatchObject({circleci: 0, linear: 1});
+      expect(first.history.combination()).toMatchObject({'circleci.1': 0, 'linear.1': 1});
       expect(r.seen.working).toContain(0);
       expect(first.store.getState().mergeFollowingStep).toBe(false);
     },
