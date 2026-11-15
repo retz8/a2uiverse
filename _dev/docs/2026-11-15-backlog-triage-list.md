@@ -41,7 +41,7 @@ In this order.
    3. The beat recorder leaves an installed app with no fake account, such as Shop C, the hand-written agent in Go that signs in by device code, as it is when the orchestrator already holds an account for it, where today it stops (`accountsFor` in [`apps/client/scripts/lib/signIn.ts`](../../apps/client/scripts/lib/signIn.ts)).
    4. The kit's recorder keeps one turn per task, so two accounts of one app answering at once in one agent both stay on record (`agent-kit/src/a2ui_agent_kit/recorder.py` of `a2uiverse-apps`).
    5. The marketplace's log lines carry their time ([`apps/marketplace/src/log.ts`](../../apps/marketplace/src/log.ts)), and a publish's hello-fragment smoke test is timed on its own ([`apps/marketplace/src/marketplace.ts`](../../apps/marketplace/src/marketplace.ts)).
-8. Client work ahead of Phase 21, the move to A2UI v1.0:
+8. [DONE] (platform 303bcc1, 20e5e1c) Client work ahead of Phase 21, the move to A2UI v1.0:
    1. The client's `linkCatalogs` call dropped ([`apps/client/src/catalogs/paintBuilds.ts`](../../apps/client/src/catalogs/paintBuilds.ts)): upstream's `main` removes `linkCatalogs`, `withPeerCatalogs` and `Catalog.peerCatalogs`, unreleased, and a test first shows a swapped build drawn the same without the call.
    2. Stellify refuses at pack a named import that a lent specifier does not export at the host's version ([`packages/stellify/src/bundle.ts`](../../packages/stellify/src/bundle.ts)): today an import of `basicCatalog` from `@a2ui/react/v0_9`, gone since react 0.13.0, packs clean and the catalog fails only in the client. About a session.
 
