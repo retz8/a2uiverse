@@ -426,11 +426,12 @@ Only the latest step owns the merge line: a later step ends the "working" an ear
 
 **Body text renders its Markdown, and only the safe part.** `SurfaceFrame` hands every surface the page's one Markdown renderer (`catalogs/markdown.ts`) through `@a2ui/react`'s `MarkdownContext`. `A2uiSurface` also passes it to web_core, which keeps it for the whole page, so the basic catalog's custom-element `Text` renders through it too. It draws what the basic catalog's `Text` promises: emphasis, lists and paragraphs, with raw HTML escaped, a link drawn as its text and an image as its alt text. So `**Free** shipping` reads bold, and nothing a vendor's string carries reaches the page as markup. A text that is one paragraph comes back inline, so it sits exactly as a plain text does; web_core gives a paragraph inside its `Text` a size and line height of its own, which would make a row of one-line texts taller. Several paragraphs, or a list, come back as blocks.
 
-**The collision detector** (`canvas/composition/collisionDetector.ts`) catches the ways CSS can collide silently. It checks five rules across every installed catalog:
+**The collision detector** (`canvas/composition/collisionDetector.ts`) catches the ways CSS can collide silently. It checks six rules across every installed catalog:
 
 | Rule                | The problem                                                                              |
 | ------------------- | ---------------------------------------------------------------------------------------- |
 | global write        | a custom property defined at `:root`, `html` or `body` lands outside every boundary, and the last catalog loaded wins the page |
+| page rule           | any other property a catalog writes at `:root`, `html` or `body` styles the page itself, every catalog's surfaces under it, since the loader keeps such a rule page-wide; Primer's `body{margin:0}` and its dialog's scroll lock on `body` are accepted, the client's page already set that way |
 | unsatisfied read    | a catalog's own stylesheets read a variable none of its sheets defines, without a fallback, so it looks right only by accident of what else is installed |
 | duplicate class     | two catalogs ship the same class name                                                    |
 | duplicate keyframes | two catalogs ship the same `@keyframes` name                                             |

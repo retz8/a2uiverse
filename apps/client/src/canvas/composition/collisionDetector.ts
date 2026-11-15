@@ -2,8 +2,9 @@
  * The collision detector's analysis half.
  *
  * Phase 2 puts several catalogs — several design systems — on one page at once. CSS is global by
- * nature, so three things can go wrong silently: two catalogs defining the same custom property
- * at a scope that escapes their own subtree; two catalogs shipping the same class, keyframe or
+ * nature, so four things can go wrong silently: two catalogs defining the same custom property
+ * at a scope that escapes their own subtree; a catalog's rule aimed at the page itself, which
+ * styles every other catalog's surfaces with it; two catalogs shipping the same class, keyframe or
  * `@font-face` family name; and a catalog reading a variable it never defines, so its appearance depends on whichever
  * neighbour happens to be installed. None of these throw. None are visible to a vendor testing
  * its catalog alone — they exist only in composition.
@@ -17,12 +18,17 @@
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 
-/** Selectors that put a declaration outside every fragment boundary on the page. */
-const GLOBAL_SELECTOR = /^\s*(:root|html|body)\s*$/;
+/**
+ * Selectors that put a declaration outside every fragment boundary on the page: aimed at `:root`,
+ * `html` or `body`, as the client's loader keeps a rule page-wide.
+ */
+const GLOBAL_SELECTOR = /^\s*(:root|html|body)(?![\w-])/;
 
 export interface StyleFacts {
   /** Custom property → the selectors it is defined under. */
   definitions: Map<string, Set<string>>;
+  /** Any other property written at a selector aimed at the page itself → those selectors. */
+  pageDeclarations: Map<string, Set<string>>;
   /** Custom property → how many reads of it carried an explicit fallback, and how many did not. */
   reads: Map<string, {withFallback: number; bare: number}>;
   classes: Set<string>;
@@ -33,6 +39,7 @@ export interface StyleFacts {
 
 const emptyFacts = (): StyleFacts => ({
   definitions: new Map(),
+  pageDeclarations: new Map(),
   reads: new Map(),
   classes: new Set(),
   keyframes: new Set(),
@@ -82,13 +89,24 @@ export function analyzeCss(css: string, into: StyleFacts = emptyFacts()): StyleF
 }
 
 function recordDeclaration(declaration: string, stack: string[], into: StyleFacts) {
+  // The innermost selector that is not an at-rule is what this declaration is scoped to.
+  const owner = [...stack].reverse().find(s => !s.startsWith('@')) ?? '';
   const defined = /(--[\w-]+)\s*:/.exec(declaration);
   if (defined) {
-    // The innermost selector that is not an at-rule is what this declaration is scoped to.
-    const owner = [...stack].reverse().find(s => !s.startsWith('@')) ?? '';
     const selectors = into.definitions.get(defined[1]) ?? new Set<string>();
     for (const part of owner.split(',')) selectors.add(part.trim());
     into.definitions.set(defined[1], selectors);
+  } else {
+    const property = /^\s*([a-zA-Z][\w-]*)\s*:/.exec(declaration)?.[1];
+    const page = owner
+      .split(',')
+      .map(part => part.trim())
+      .filter(part => GLOBAL_SELECTOR.test(part));
+    if (property && page.length > 0) {
+      const selectors = into.pageDeclarations.get(property) ?? new Set<string>();
+      for (const part of page) selectors.add(part);
+      into.pageDeclarations.set(property, selectors);
+    }
   }
   for (const read of declaration.matchAll(/var\(\s*(--[\w-]+)\s*(,?)/g)) {
     const seen = into.reads.get(read[1]) ?? {withFallback: 0, bare: 0};
@@ -126,6 +144,7 @@ export interface CatalogStyles {
 
 export type Finding =
   | {rule: 'global-write'; pkg: string; name: string; selector: string}
+  | {rule: 'page-rule'; pkg: string; name: string; selector: string}
   | {rule: 'unsatisfied-read'; pkg: string; name: string}
   | {rule: 'duplicate-class'; name: string; pkgs: string[]}
   | {rule: 'duplicate-keyframes'; name: string; pkgs: string[]}
@@ -185,6 +204,13 @@ export function findCollisions(catalogs: CatalogStyles[]): Finding[] {
         if (GLOBAL_SELECTOR.test(selector)) {
           findings.push({rule: 'global-write', pkg: catalog.pkg, name, selector});
         }
+      }
+    }
+    // Any other declaration there styles the page itself, every catalog's surfaces under it: a
+    // margin, an overflow, a font the whole page takes.
+    for (const [name, selectors] of catalog.facts.pageDeclarations) {
+      for (const selector of selectors) {
+        findings.push({rule: 'page-rule', pkg: catalog.pkg, name, selector});
       }
     }
     // A bare read of a variable the catalog never defines inherits whatever a neighbour set:

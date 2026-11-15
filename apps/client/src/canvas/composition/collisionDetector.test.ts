@@ -57,6 +57,29 @@ describe('the detector itself', () => {
     ]);
   });
 
+  it('fails any declaration aimed at the page itself, not only a custom property', () => {
+    const findings = findCollisions([
+      synthetic(
+        'reset-catalog',
+        `body { margin: 0 }
+         body[data-locked] { overflow: hidden !important; }
+         html[data-theme=dark] { --text-primary: white; }
+         .scope { margin: 4px; }
+         .scope body { margin: 2px; }`,
+      ),
+    ]);
+    expect(findings).toEqual([
+      {
+        rule: 'global-write',
+        pkg: 'reset-catalog',
+        name: '--text-primary',
+        selector: 'html[data-theme=dark]',
+      },
+      {rule: 'page-rule', pkg: 'reset-catalog', name: 'margin', selector: 'body'},
+      {rule: 'page-rule', pkg: 'reset-catalog', name: 'overflow', selector: 'body[data-locked]'},
+    ]);
+  });
+
   it('permits two catalogs defining the same name, each scoped to itself', () => {
     const findings = findCollisions([
       synthetic('a-catalog', '.a-scope { --text-primary: red; }'),
@@ -159,6 +182,11 @@ describe('the detector itself', () => {
  * Owner github-catalog: Primer's ProgressBar sheet writes `--progress-bg` and
  * `--progressBar-track-bgColor` on `:root` inside its `@media (forced-colors: active)` block — the
  * page's in high-contrast mode.
+ *
+ * Owner github-catalog: Primer's BaseStyles sheet writes `body{margin:0}`, which the client's own
+ * page already sets; its Dialog sheet writes `overflow` and `padding-right` on
+ * `body[data-dialog-scroll-disabled]`, the page's scroll locked while a Primer dialog is open,
+ * which the client's page already holds unscrolled.
  */
 const ACCEPTED: Array<(finding: Finding) => boolean> = [
   finding =>
@@ -169,6 +197,21 @@ const ACCEPTED: Array<(finding: Finding) => boolean> = [
     finding.rule === 'global-write' &&
     finding.pkg === 'github-catalog' &&
     finding.name === '--progressBar-track-bgColor',
+  finding =>
+    finding.rule === 'page-rule' &&
+    finding.pkg === 'github-catalog' &&
+    finding.name === 'margin' &&
+    finding.selector === 'body',
+  finding =>
+    finding.rule === 'page-rule' &&
+    finding.pkg === 'github-catalog' &&
+    finding.name === 'overflow' &&
+    finding.selector === 'body[data-dialog-scroll-disabled]',
+  finding =>
+    finding.rule === 'page-rule' &&
+    finding.pkg === 'github-catalog' &&
+    finding.name === 'padding-right' &&
+    finding.selector === 'body[data-dialog-scroll-disabled]',
 ];
 
 describe('the registry snapshot’s catalogs', () => {
