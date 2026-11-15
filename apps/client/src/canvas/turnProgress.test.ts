@@ -496,6 +496,31 @@ describe('the merge step on a step back (task-9.7 decision 4)', () => {
       expect(github().status).toBe('done');
     });
 
+    it('a resume that never reached A2UIVerse, or whose stream broke, is the source failed with no words, on the tile and on the row; working again from Try again', () => {
+      for (const status of ['unreached', 'lost'] as const) {
+        const store = signIn();
+        store.updatePress(store.addPress({kind: 'retry', sources: ['gmail.1']}), status);
+        expect(gmail(store)).toMatchObject({status: 'failed', text: 'Gmail'});
+        store.mergeAuthority(new Map([['gmail.1', 'more' as const]]));
+        expect(gmail(store)).toMatchObject({status: 'failed', text: 'Gmail'});
+
+        store.mergeEscalations(new Map([['github', true]]));
+        store.updatePress(store.addPress({kind: 'retry', sources: ['github']}), status);
+        const github = () =>
+          turnProgress(store.getState()).sources.find(step => step.source === 'github')!;
+        expect(github()).toMatchObject({status: 'failed', text: 'GitHub'});
+        store.addPress({kind: 'retry', sources: ['github']});
+        expect(github()).toMatchObject({status: 'working', text: 'GitHub'});
+      }
+    });
+
+    it('a sign-in window open on the tile again says signing in over a resume left unanswered', () => {
+      const store = signIn();
+      store.updatePress(store.addPress({kind: 'retry', sources: ['gmail.1']}), 'unreached');
+      store.setSigningIn('gmail.1', true);
+      expect(gmail(store)).toMatchObject({status: 'locked', text: 'Gmail signing in'});
+    });
+
     it('a press running in the fragment shows the source working over its waiting words, which come back once it ends (task-12.13 decision 38)', () => {
       const store = signIn();
       store.mergeEscalations(new Map([['github', true]]));

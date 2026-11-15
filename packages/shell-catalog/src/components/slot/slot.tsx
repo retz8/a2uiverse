@@ -34,6 +34,7 @@ import {
   landedLines,
   LOST_WORDS,
   retryStatus,
+  signedInWords,
   UNREACHED_WORDS,
   type PressLine,
 } from './press-lines.js';
@@ -475,16 +476,27 @@ export function SlotView({
     }
 
     if (state === 'authority' && !shell && source !== undefined && retry !== 'sent') {
-      const note =
-        retry === 'unreached' ? UNREACHED_WORDS : retry === 'lost' ? LOST_WORDS : undefined;
-      if (note) announcement = note;
+      const asked = authority ?? {cause: 'signIn', scopes: []};
+      // Signed in, the resume left standing — it never reached A2UIVerse, or its stream broke —
+      // unless a sign-in window is open on the slot again.
+      const resend =
+        (retry === 'unreached' || retry === 'lost') &&
+        asked.cause !== 'unsupported' &&
+        !signingIn(source)
+          ? retry
+          : undefined;
+      if (resend && asked.cause !== 'unsupported')
+        announcement = resendWords(nameOf(source), asked.cause, resend);
       return (
         <div data-slot={source} data-slot-state="authority" style={{...weighted, ...reservedStyle}}>
           <AuthorityTile
             app={nameOf(source)}
-            authority={authority ?? {cause: 'signIn', scopes: []}}
+            authority={asked}
             waiting={signingIn(source)}
-            note={note}
+            resend={resend}
+            onTryAgain={
+              onPress ? button => press({kind: 'retry', sources: [source]}, button) : undefined
+            }
             enabled={enabled}
             handOff={button => {
               if (button.ownerDocument.activeElement === button) focusLine.current = true;
@@ -909,13 +921,15 @@ export function continueHref(url: string | undefined): string | undefined {
  * the scopes under "<App> will be able to" when the card named any, Sign in, and that it opens in
  * a new window; waiting, the statement turns to finishing in the window that opened, then the
  * spinner line, and under it Open the sign-in again and Cancel. The quiet form is one line in
- * either state, so nothing moves.
+ * either state, so nothing moves. Once the sign-in finished and its resume stands unanswered, the
+ * tile is the resend form in place of the request (`AuthorityResend`).
  */
 function AuthorityTile({
   app,
   authority,
   waiting,
-  note,
+  resend,
+  onTryAgain,
   enabled,
   handOff,
   receive,
@@ -925,8 +939,10 @@ function AuthorityTile({
   app: string;
   authority: SlotAuthority;
   waiting: boolean;
-  /** A resume press that never reached the orchestrator, or whose stream broke. */
-  note?: string;
+  /** The resume, sent once the sign-in finished: it never reached A2UIVerse, or its stream broke. */
+  resend?: 'unreached' | 'lost';
+  /** Try again on the resend form: the resume sent once more, from the pressed button. */
+  onTryAgain?: (button: HTMLElement) => void;
   enabled: boolean;
   /** A pressed button that held focus: the control replacing it takes the focus. */
   handOff: (button: HTMLElement) => void;
@@ -939,12 +955,6 @@ function AuthorityTile({
     handOff(button);
     onSignIn?.(kind);
   };
-  const noteText = note && (
-    <Text as="span" size="1" color="gray" data-slot-press-note="">
-      {note}
-    </Text>
-  );
-
   if (authority.cause === 'unsupported') {
     return (
       <Flex direction="column" align="start" gap="4" data-authority="unsupported">
@@ -960,6 +970,20 @@ function AuthorityTile({
           </Button>
         )}
       </Flex>
+    );
+  }
+
+  if (resend) {
+    return (
+      <AuthorityResend
+        app={app}
+        asked={authority.cause}
+        quiet={authority.quiet === true}
+        resend={resend}
+        enabled={enabled}
+        receive={receive}
+        onTryAgain={onTryAgain}
+      />
     );
   }
 
@@ -1034,7 +1058,6 @@ function AuthorityTile({
                 </Link>
               </>
             )}
-            {noteText}
           </>
         )}
       </Flex>
@@ -1105,7 +1128,6 @@ function AuthorityTile({
             {again ? 'Sign in again' : press}
             <ExternalLinkIcon aria-hidden />
           </Button>
-          {noteText}
         </Flex>
       )}
       <Text as="span" size="1" color="gray">
@@ -1113,6 +1135,109 @@ function AuthorityTile({
           ? `Opens a page to paste your ${app} key`
           : `Opens ${app}’s sign-in in a new window`}
       </Text>
+    </Flex>
+  );
+}
+
+/** What a sign-in the resume answered is asked for: every cause but one A2UIVerse can't sign in. */
+type Asked = Exclude<SlotAuthority['cause'], 'unsupported'>;
+
+/** The resend form's words, spoken as drawn: what the sign-in got and that the resume didn't go. */
+function resendWords(app: string, asked: Asked, resend: 'unreached' | 'lost'): string {
+  return resend === 'lost' ? LOST_WORDS : `${signedInWords(app, asked)} ${UNREACHED_WORDS}`;
+}
+
+/**
+ * The sign-in tile once its sign-in finished and the resume stands unanswered, in place of the
+ * request: what the sign-in got — signed in, connected, the access held — and that the resume
+ * didn't reach A2UIVerse, with Try again sending it once more and no second sign-in. A stream
+ * that broke after A2UIVerse answered says so with no press, as the pending slot's does: what the
+ * resume started may already be running. The quiet form is one line, as the quiet tile is.
+ */
+function AuthorityResend({
+  app,
+  asked,
+  quiet,
+  resend,
+  enabled,
+  receive,
+  onTryAgain,
+}: {
+  app: string;
+  asked: Asked;
+  quiet: boolean;
+  resend: 'unreached' | 'lost';
+  enabled: boolean;
+  /** The control that replaced a pressed button: it takes the focus, once. */
+  receive: (element: HTMLElement | null) => void;
+  onTryAgain?: (button: HTMLElement) => void;
+}) {
+  const tryAgain = resend === 'unreached' ? onTryAgain : undefined;
+  if (quiet) {
+    return (
+      <Flex
+        role="group"
+        aria-label={app}
+        align="center"
+        gap="2"
+        wrap="wrap"
+        data-authority="resend"
+        style={{minHeight: 28}}
+      >
+        <Text size="2" color="gray">
+          {resendWords(app, asked, resend)}
+        </Text>
+        {tryAgain && (
+          <>
+            <span aria-hidden style={dotStyle} />
+            <Link asChild size="2" weight="medium">
+              <button
+                type="button"
+                style={linkButtonStyle}
+                disabled={!enabled}
+                ref={receive}
+                onClick={event => tryAgain(event.currentTarget)}
+              >
+                Try again
+              </button>
+            </Link>
+          </>
+        )}
+      </Flex>
+    );
+  }
+  if (resend === 'lost') {
+    return (
+      <Flex direction="column" align="start" gap="4" data-authority="resend">
+        <Text as="p" size="2">
+          {LOST_WORDS}
+        </Text>
+      </Flex>
+    );
+  }
+  return (
+    <Flex direction="column" align="start" gap="4" data-authority="resend">
+      <Flex direction="column" gap="1">
+        <Text as="p" size="3" weight="bold">
+          {signedInWords(app, asked)}
+        </Text>
+        <Text as="p" size="2">
+          {UNREACHED_WORDS}
+        </Text>
+      </Flex>
+      {tryAgain && (
+        <Button
+          size="2"
+          variant="outline"
+          color="gray"
+          disabled={!enabled}
+          ref={receive}
+          onClick={event => tryAgain(event.currentTarget)}
+        >
+          <UpdateIcon aria-hidden />
+          Try again
+        </Button>
+      )}
     </Flex>
   );
 }

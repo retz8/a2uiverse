@@ -56,8 +56,11 @@ describe('columnState', () => {
     store.setMerge({merged: ['github']});
     store.mergeSlotStates(new Map([['gmail.1', 'authority' as const]]));
     expect(columnState(store.getState(), 'gmail.1')).toBe('authority');
-    store.addPress({kind: 'retry', sources: ['gmail.1']});
+    const resume = store.addPress({kind: 'retry', sources: ['gmail.1']});
     expect(columnState(store.getState(), 'gmail.1')).toBe('pending');
+    // Signed in, the resume never reached A2UIVerse: unavailable, as the progress line's ✕ says.
+    store.updatePress(resume, 'unreached');
+    expect(columnState(store.getState(), 'gmail.1')).toBe('failed');
   });
 
   it('a source whose account is asked for more access reads so (task-12.13 decision 50)', () => {

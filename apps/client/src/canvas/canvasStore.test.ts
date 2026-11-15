@@ -319,6 +319,36 @@ describe('the slot’s install and update (task 15.9)', () => {
     expect(appActOf(store.getState(), {gap: 'camera prices'})).toBeUndefined();
   });
 
+  it('a resend left unanswered stands until Not now or an action inside its fragment, which the orchestrator drops the kept press at', () => {
+    for (const status of ['unreached', 'lost'] as const) {
+      const store = createCanvasStore();
+      for (const source of ['github', 'gmail.1'])
+        store.updatePress(store.addPress({kind: 'retry', sources: [source]}), status);
+      store.beginPaint('surface-action', 'github');
+      expect(store.getState().presses.map(press => press.operation.sources[0])).toEqual([
+        'gmail.1',
+      ]);
+      store.addPress({kind: 'dismiss', sources: ['gmail.1']});
+      expect(store.getState().presses.map(press => press.operation)).toEqual([
+        {kind: 'dismiss', sources: ['gmail.1']},
+      ]);
+    }
+  });
+
+  it('a press of another kind, and an action in another fragment, leave the resend standing', () => {
+    const store = createCanvasStore();
+    store.updatePress(store.addPress({kind: 'retry', sources: ['github']}), 'unreached');
+    store.addPress({kind: 'include', sources: ['github']});
+    store.addPress({kind: 'dismiss', sources: ['gmail.1']});
+    store.beginPaint('surface-action', 'gmail.1');
+    store.endPaint();
+    store.beginPaint('utterance');
+    expect(store.getState().presses[0]).toMatchObject({
+      operation: {kind: 'retry', sources: ['github']},
+      status: 'unreached',
+    });
+  });
+
   it('the composition retiring takes the update facts and the slots’ presses with it', () => {
     const store = createCanvasStore();
     store.mergeUpdates(new Map([['shop-b', NEEDS]]));

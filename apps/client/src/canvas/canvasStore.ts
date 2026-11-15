@@ -112,13 +112,21 @@ export interface PaintedMerge extends MergeFacts {
  * A press the reader made (task-8.5 decision 8): `sent` from the click until the paint catches up,
  * `running` while its stream stays open after that, `unreached` when it never reached the
  * orchestrator, `lost` when its stream broke after it had answered. The last two stand until the
- * next press of the same kind or the composition's retirement.
+ * next press of the same kind or the composition's retirement — a Retry also until Not now or an
+ * action inside its source's fragment, at which the orchestrator drops the press it kept for the
+ * slot (SPEC §8), so the Retry no longer stands for anything.
  */
 export interface Press {
   key: number;
   operation: CompositionOperation;
   status: 'sent' | 'running' | 'unreached' | 'lost';
 }
+
+/** A Retry of `source` left standing: it never reached the orchestrator, or its stream broke. */
+export const unansweredRetryOf = (press: Press, source: string) =>
+  press.operation.kind === 'retry' &&
+  press.operation.sources[0] === source &&
+  (press.status === 'unreached' || press.status === 'lost');
 
 /** A notice as the stack renders it: ordered, and resolved against the roster. */
 export interface RenderedNotice extends Notice {
@@ -367,8 +375,17 @@ export function createCanvasStore(): CanvasStore {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    beginPaint: (cause, source) =>
-      set({inFlight: {cause, ...(source !== undefined ? {source} : {})}, error: null}),
+    beginPaint: (cause, source) => {
+      const presses =
+        source === undefined
+          ? state.presses
+          : state.presses.filter(press => !unansweredRetryOf(press, source));
+      set({
+        inFlight: {cause, ...(source !== undefined ? {source} : {})},
+        error: null,
+        ...(presses.length !== state.presses.length ? {presses} : {}),
+      });
+    },
     settleInFlight: source => {
       if (state.inFlight?.source === source && !state.inFlight.settled)
         set({inFlight: {...state.inFlight, settled: true}});
@@ -456,10 +473,13 @@ export function createCanvasStore(): CanvasStore {
       const same = (press: Press) =>
         press.operation.kind === operation.kind &&
         (operation.kind !== 'retry' || press.operation.sources[0] === operation.sources[0]);
+      const dismissed = operation.kind === 'dismiss' ? operation.sources[0] : undefined;
       set({
         presses: [
           ...state.presses.filter(
-            press => !(same(press) && (press.status === 'unreached' || press.status === 'lost')),
+            press =>
+              !(same(press) && (press.status === 'unreached' || press.status === 'lost')) &&
+              !(dismissed !== undefined && unansweredRetryOf(press, dismissed)),
           ),
           {key, operation, status: 'sent'},
         ],

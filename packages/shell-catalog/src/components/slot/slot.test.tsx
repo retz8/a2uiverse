@@ -1,7 +1,7 @@
-import {act, render, screen} from '@testing-library/react';
+import {act, render, screen, within} from '@testing-library/react';
 import type {ReactNode} from 'react';
 import {expect, test} from 'vitest';
-import {UPDATE_STATES} from '@a2uiverse/sdk';
+import {UPDATE_STATES, type CompositionOperation} from '@a2uiverse/sdk';
 import type {ShellAction} from '../../functions/shell-actions';
 import {PressStateContext, type PressRecord} from '../../press-state';
 import {SignInContext, type SignInRequest} from '../../sign-in';
@@ -11,7 +11,7 @@ import {SynthesisStreamingContext} from '../../synthesis-streaming';
 import {renderTree, SURFACE_ID} from '../../testing/render';
 import {collapsedLines, landedLines, LOST_WORDS, UNREACHED_WORDS} from './press-lines';
 import {collapseLine, continueHref, SlotView} from './slot';
-import {SlotApi, updateLineOf} from './slot.schema';
+import {SlotApi, updateLineOf, type SlotAuthority} from './slot.schema';
 
 test('pending renders a loading line naming nobody — the marker above names the source', () => {
   render(<SlotView source="gmail" label="Gmail" />);
@@ -1052,28 +1052,104 @@ test('while the sign-in window is open the tile says to finish there, with Open 
   expect(screen.queryByText(/Finish signing in/)).toBeNull();
 });
 
-test('signed in, the resume Retry draws the pending line; one that never reached brings the tile back saying so (task-12.3 decision 10)', () => {
-  const tile = (status: PressRecord['status']) => (
+/** The authority tile with the slot's resume press standing at `status`. */
+function resumed(
+  status: PressRecord['status'],
+  authority: SlotAuthority,
+  handlers: {onPress?: (operation: CompositionOperation) => void; onSignIn?: () => void} = {},
+) {
+  return (
     <PressStateContext.Provider
       value={{enabled: true, presses: [{operation: {kind: 'retry', sources: ['gmail.1']}, status}]}}
     >
       <SlotView
         source="gmail.1"
         state="authority"
-        authority={{cause: 'signIn', scopes: []}}
+        authority={authority}
         nameOf={gmailName}
-        onSignIn={() => {}}
+        onSignIn={handlers.onSignIn ?? (() => {})}
+        onPress={handlers.onPress ?? (() => {})}
       />
     </PressStateContext.Provider>
   );
-  const {rerender} = render(tile('sent'));
+}
+
+test('signed in, the resume Retry draws the pending line; one that never reached says the sign-in held and offers Try again, no second sign-in', () => {
+  const pressed: CompositionOperation[] = [];
+  let signIns = 0;
+  const handlers = {
+    onPress: (op: CompositionOperation) => pressed.push(op),
+    onSignIn: () => signIns++,
+  };
+  const signIn: SlotAuthority = {cause: 'signIn', scopes: []};
+  const {rerender} = render(resumed('sent', signIn, handlers));
   expect(screen.getByText('Loading…')).toBeInTheDocument();
   expect(screen.queryByText(/Sign in to Gmail/)).toBeNull();
-  rerender(tile('unreached'));
-  expect(screen.getByText('Sign in to Gmail to show it here.')).toBeInTheDocument();
-  expect(screen.getAllByText(UNREACHED_WORDS).length).toBeGreaterThan(0);
-  rerender(tile('lost'));
-  expect(screen.getAllByText(LOST_WORDS).length).toBeGreaterThan(0);
+
+  rerender(resumed('unreached', signIn, handlers));
+  const tile = document.querySelector('[data-authority="resend"]') as HTMLElement;
+  expect(tile).toHaveTextContent(`You’re signed in to Gmail.${UNREACHED_WORDS}`);
+  expect(screen.queryByText('Sign in to Gmail to show it here.')).toBeNull();
+  expect(screen.queryByRole('button', {name: /Sign in/})).toBeNull();
+  expect(screen.getByRole('status')).toHaveTextContent(
+    `You’re signed in to Gmail. ${UNREACHED_WORDS}`,
+  );
+  act(() => screen.getByRole('button', {name: 'Try again'}).click());
+  expect(pressed).toEqual([{kind: 'retry', sources: ['gmail.1']}]);
+  expect(signIns).toBe(0);
+
+  rerender(resumed('lost', signIn, handlers));
+  expect(document.querySelector('[data-authority="resend"]')).toHaveTextContent(LOST_WORDS);
+  expect(screen.queryByRole('button')).toBeNull();
+  expect(screen.getByRole('status')).toHaveTextContent(LOST_WORDS);
+});
+
+test('a resume left unanswered names what the sign-in was for — signed in again, connected, the access held — on the tile and on its quiet line', () => {
+  const leads: [SlotAuthority['cause'], string][] = [
+    ['again', 'You’re signed in to Gmail.'],
+    ['connect', 'Gmail is connected.'],
+    ['more', 'Gmail has the access now.'],
+  ];
+  for (const [cause, lead] of leads) {
+    const {unmount} = render(resumed('unreached', {cause, scopes: ['Read your mail']}));
+    expect(document.querySelector('[data-authority="resend"]')).toHaveTextContent(
+      `${lead}${UNREACHED_WORDS}`,
+    );
+    expect(screen.queryByText('Read your mail')).toBeNull();
+    expect(screen.queryByRole('button', {name: /Sign in|Connect|Allow/})).toBeNull();
+    unmount();
+  }
+
+  const pressed: CompositionOperation[] = [];
+  const {unmount} = render(
+    resumed(
+      'unreached',
+      {cause: 'signIn', quiet: true, scopes: []},
+      {onPress: op => pressed.push(op)},
+    ),
+  );
+  const line = screen.getByRole('group', {name: 'Gmail'});
+  expect(line).toHaveTextContent(`You’re signed in to Gmail. ${UNREACHED_WORDS}`);
+  expect(line).not.toHaveTextContent('Not signed in');
+  act(() => within(line).getByRole('button', {name: 'Try again'}).click());
+  expect(pressed).toEqual([{kind: 'retry', sources: ['gmail.1']}]);
+  unmount();
+
+  render(resumed('lost', {cause: 'more', quiet: true, scopes: []}));
+  expect(screen.getByRole('group', {name: 'Gmail'})).toHaveTextContent(LOST_WORDS);
+  expect(screen.queryByRole('button')).toBeNull();
+});
+
+test('a sign-in window open on the tile again draws the waiting form over a resume left unanswered', () => {
+  render(
+    <SignInContext.Provider value={source => source === 'gmail.1'}>
+      {resumed('unreached', {cause: 'signIn', scopes: []})}
+    </SignInContext.Provider>,
+  );
+  expect(
+    screen.getByText('Finish signing in to Gmail in the window that opened.'),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('button', {name: 'Try again'})).toBeNull();
 });
 
 test('the sign-in buttons draw disabled where no press can be made', () => {

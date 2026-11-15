@@ -8,7 +8,7 @@
 import {parseSourceId} from '@a2uiverse/sdk';
 import {UPDATE_SHORT_WORDS, UPDATED_SHORT_WORDS, updateLineOf} from '@a2uiverse/shell-catalog';
 import {appActOf, type CanvasState, type JoinNouns, type RosterEntry} from './canvasStore';
-import {retrying} from './composition/columnState';
+import {retrying, retryUnanswered} from './composition/columnState';
 import {SHELL_SOURCE} from './composition/roster';
 
 /**
@@ -49,13 +49,15 @@ export function running(state: CanvasState): boolean {
 /**
  * A source's sign-in in the progress line's words (task-12.8 decision 7), the reference canvas's:
  * its window open, a request for more access on its row, or its tile's cause. None once its
- * resume or its Not now is pressed.
+ * resume or its Not now is pressed, nor once the resume stands unanswered: the sign-in finished,
+ * and the slot says the resume didn't reach A2UIVerse.
  */
 export function signInWords(state: CanvasState, source: string): string | undefined {
   if (retrying(state, source)) return undefined;
   // A pasted key or token says connecting (task-12.13 decision 30).
   const connect = state.authority.get(source) === 'connect';
   if (state.signingIn.has(source)) return connect ? 'connecting' : 'signing in';
+  if (retryUnanswered(state, source)) return undefined;
   const dismissed = state.presses.some(
     press =>
       press.status === 'sent' &&
@@ -170,6 +172,10 @@ const sourceStatus = (
   const retried = retrying(state, source);
   const painted = state.slotStates.get(source);
   if (painted === 'failed' && !retried) return 'failed';
+  // Signed in, its resume never reached A2UIVerse or lost its stream: the tile or the request on
+  // its row says so beside Try again, the step its ✕.
+  const signedIn = painted === 'authority' || state.escalations.has(source);
+  if (signedIn && retryUnanswered(state, source)) return 'failed';
   // An action inside its fragment is that source working again, until its stream ends (task-9.9
   // decision 25): the line names no action, only the source it went to. So is its resend, over an
   // answer it showed before (task-15.11 decision 43).

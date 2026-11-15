@@ -31,6 +31,7 @@ import {SlotContentContext} from '../../slot-content.js';
 import {weightStyle} from '../shared/layout.js';
 import {useModelProperties} from '../shared/model-properties.js';
 import {OPEN_AGAIN_WORDS, WAITING_WORDS} from '../shared/SignInWaiting.js';
+import {LOST_WORDS, retryStatus, signedInWords, UNREACHED_WORDS} from '../slot/press-lines.js';
 import type {PressHandler} from '../slot/slot.js';
 import {AttributionApi, type AttributionProps} from './attribution.schema.js';
 
@@ -50,8 +51,11 @@ import {AttributionApi, type AttributionProps} from './attribution.schema.js';
  * reopens it (decision 5). Focus stays where it was; the request is said politely. Allow starts
  * the sign-in through the host; while its window is open the card keeps the scopes and says to
  * finish there, with Cancel (decision 3). Not now raises `dismiss`. A `retry` or `dismiss` sent
- * for the source hides the chip and the card at once (decision 10). The arrows stay live while a
- * request waits (decision 9).
+ * for the source hides the chip and the card at once (decision 10). Allow's resend — the `retry`
+ * sent once the sign-in finished — that never reached A2UIVerse turns the chip to "Not sent" and
+ * opens the card on the access held, that the resend didn't reach A2UIVerse, Try again raising
+ * the `retry` once more and Not now; one whose stream broke says the connection was lost, with no
+ * press. The arrows stay live while a request waits (decision 9).
  *
  * The fragment's way back rides the marker's row (SPEC §6.5, task 9.5), at its right edge
  * (task-9.9 decision 15): a back arrow when the host says there is a step to go back to, a
@@ -120,6 +124,8 @@ export function AttributionView({
         p.operation.sources[0] === source,
     );
   const request = escalation && !answered ? escalation : undefined;
+  const retry = source === undefined ? undefined : retryStatus(presses, source);
+  const resend = retry === 'unreached' || retry === 'lost' ? retry : undefined;
   const stands = history ?? (source === undefined ? undefined : resolveHistory(source));
   const arrows = onPress && source !== undefined ? stands : undefined;
   const back = arrows?.back;
@@ -186,8 +192,14 @@ export function AttributionView({
               app={displayName}
               scopes={request.scopes}
               waiting={source !== undefined && signingIn(source)}
+              resend={resend}
               enabled={enabled}
               onSignIn={onSignIn}
+              onTryAgain={
+                onPress && source !== undefined
+                  ? () => onPress({kind: 'retry', sources: [source]})
+                  : undefined
+              }
               onDismiss={
                 onPress && source !== undefined
                   ? () => onPress({kind: 'dismiss', sources: [source]})
@@ -247,31 +259,47 @@ const truncateStyle: CSSProperties = {
  * arrows, and its card floating over the fragment's top at the row's right edge, no wider than
  * the slot. The card's content is the consent in plain words: the app needs more access, what it
  * will also be able to do, Allow and Not now, and that Allow opens its sign-in in a new window.
+ * Once Allow's resend stands unanswered, the chip and the card say so in place of the request
+ * (`ResendCard`), the chip with no lock: the access is no longer missing.
  */
 function Escalation({
   app,
   scopes,
   waiting,
+  resend: unanswered,
   enabled,
   onSignIn,
+  onTryAgain,
   onDismiss,
 }: {
   app: string;
   scopes: string[];
   waiting: boolean;
+  /** Allow's resend, sent once the sign-in finished: it never reached A2UIVerse, or its stream broke. */
+  resend?: 'unreached' | 'lost';
   enabled: boolean;
   onSignIn?: (kind: 'start' | 'cancel') => void;
+  onTryAgain?: () => void;
   onDismiss?: () => void;
 }) {
+  // A sign-in window open on the request again draws its waiting form over the resend.
+  const resend = waiting ? undefined : unanswered;
   const [cardOpen, setCardOpen] = useState(true);
   const chipRef = useRef<HTMLButtonElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const cardId = useId();
   const leadId = useId();
-  const lead = `${app} needs more access to finish this.`;
-  // A new request opens the card again, though the last one was folded away: adjusted while
-  // rendering, as React advises for state that follows a prop.
-  const requestKey = scopes.join('\n');
+  const lead =
+    resend === 'lost'
+      ? LOST_WORDS
+      : resend === 'unreached'
+        ? signedInWords(app, 'more')
+        : `${app} needs more access to finish this.`;
+  const spoken = resend === 'unreached' ? `${lead} ${UNREACHED_WORDS}` : lead;
+  // A new request opens the card again, though the last one was folded away, and so does its
+  // resend left unanswered: adjusted while rendering, as React advises for state that follows a
+  // prop.
+  const requestKey = [resend ?? 'asking', ...scopes].join('\n');
   const [shownKey, setShownKey] = useState(requestKey);
   if (shownKey !== requestKey) {
     setShownKey(requestKey);
@@ -314,11 +342,19 @@ function Escalation({
         onClick={() => setCardOpen(open => !open)}
         onKeyDown={fold}
       >
-        <LockClosedIcon aria-hidden />
-        Needs access
+        {resend === 'lost' ? (
+          'Connection lost'
+        ) : resend === 'unreached' ? (
+          'Not sent'
+        ) : (
+          <>
+            <LockClosedIcon aria-hidden />
+            Needs access
+          </>
+        )}
       </Button>
       <span role="status" style={visuallyHidden}>
-        {lead}
+        {spoken}
       </span>
       {cardOpen && (
         <div
@@ -333,74 +369,157 @@ function Escalation({
           <Text as="p" size="2" weight="bold" id={leadId}>
             {lead}
           </Text>
-          <Flex direction="column" gap="2">
-            <Text as="span" size="1" color="gray">
-              It will also be able to
-            </Text>
-            <ul style={scopeListStyle}>
-              {scopes.map(scope => (
-                <li key={scope} style={scopeItemStyle}>
-                  <CheckIcon
-                    aria-hidden
-                    style={{flex: 'none', marginTop: 2, color: 'var(--gray-10)'}}
-                  />
-                  <Text size="2">{scope}</Text>
-                </li>
-              ))}
-            </ul>
-          </Flex>
-          {waiting ? (
-            <Flex direction="column" align="start" gap="3">
-              <Flex align="center" gap="2">
-                <Spinner size="1" />
-                <Text as="span" size="1" color="gray">
-                  {WAITING_WORDS}
-                </Text>
-              </Flex>
-              {onSignIn && (
-                <Flex align="center" gap="2" wrap="wrap">
-                  {/* A window closed or lost behind the canvas: a new one (task-12.13 decision 26). */}
-                  <Button size="1" variant="outline" color="gray" onClick={() => onSignIn('start')}>
-                    {OPEN_AGAIN_WORDS}
-                  </Button>
-                  <Button
-                    size="1"
-                    variant="outline"
-                    color="gray"
-                    onClick={() => onSignIn('cancel')}
-                  >
-                    Cancel
-                  </Button>
-                </Flex>
-              )}
-            </Flex>
+          {resend ? (
+            <ResendCard
+              resend={resend}
+              enabled={enabled}
+              onTryAgain={onTryAgain}
+              onDismiss={onDismiss}
+            />
           ) : (
-            <>
-              <Flex align="center" gap="3" wrap="wrap">
-                {onSignIn && (
-                  <Button size="1" disabled={!enabled} onClick={() => onSignIn('start')}>
-                    Allow
-                  </Button>
-                )}
-                {onDismiss && (
-                  <Button
-                    size="1"
-                    variant="outline"
-                    color="gray"
-                    disabled={!enabled}
-                    onClick={() => onDismiss()}
-                  >
-                    Not now
-                  </Button>
-                )}
-              </Flex>
-              <Text as="span" size="1" color="gray">
-                Allow opens {app}’s sign-in in a new window
-              </Text>
-            </>
+            <RequestCard
+              app={app}
+              scopes={scopes}
+              waiting={waiting}
+              enabled={enabled}
+              onSignIn={onSignIn}
+              onDismiss={onDismiss}
+            />
           )}
         </div>
       )}
+    </>
+  );
+}
+
+/**
+ * The request card's body under its lead: what the app will also be able to do, then Allow and
+ * Not now and that Allow opens a new window — or, while the sign-in window is open, finishing
+ * there, with Open the sign-in again and Cancel.
+ */
+function RequestCard({
+  app,
+  scopes,
+  waiting,
+  enabled,
+  onSignIn,
+  onDismiss,
+}: {
+  app: string;
+  scopes: string[];
+  waiting: boolean;
+  enabled: boolean;
+  onSignIn?: (kind: 'start' | 'cancel') => void;
+  onDismiss?: () => void;
+}) {
+  return (
+    <>
+      <Flex direction="column" gap="2">
+        <Text as="span" size="1" color="gray">
+          It will also be able to
+        </Text>
+        <ul style={scopeListStyle}>
+          {scopes.map(scope => (
+            <li key={scope} style={scopeItemStyle}>
+              <CheckIcon
+                aria-hidden
+                style={{flex: 'none', marginTop: 2, color: 'var(--gray-10)'}}
+              />
+              <Text size="2">{scope}</Text>
+            </li>
+          ))}
+        </ul>
+      </Flex>
+      {waiting ? (
+        <Flex direction="column" align="start" gap="3">
+          <Flex align="center" gap="2">
+            <Spinner size="1" />
+            <Text as="span" size="1" color="gray">
+              {WAITING_WORDS}
+            </Text>
+          </Flex>
+          {onSignIn && (
+            <Flex align="center" gap="2" wrap="wrap">
+              {/* A window closed or lost behind the canvas: a new one (task-12.13 decision 26). */}
+              <Button size="1" variant="outline" color="gray" onClick={() => onSignIn('start')}>
+                {OPEN_AGAIN_WORDS}
+              </Button>
+              <Button size="1" variant="outline" color="gray" onClick={() => onSignIn('cancel')}>
+                Cancel
+              </Button>
+            </Flex>
+          )}
+        </Flex>
+      ) : (
+        <>
+          <Flex align="center" gap="3" wrap="wrap">
+            {onSignIn && (
+              <Button size="1" disabled={!enabled} onClick={() => onSignIn('start')}>
+                Allow
+              </Button>
+            )}
+            {onDismiss && (
+              <Button
+                size="1"
+                variant="outline"
+                color="gray"
+                disabled={!enabled}
+                onClick={() => onDismiss()}
+              >
+                Not now
+              </Button>
+            )}
+          </Flex>
+          <Text as="span" size="1" color="gray">
+            Allow opens {app}’s sign-in in a new window
+          </Text>
+        </>
+      )}
+    </>
+  );
+}
+
+/**
+ * The card's body once Allow's resend stands unanswered, under the lead that the access is held:
+ * that the resend didn't reach A2UIVerse, with Try again and Not now. A stream that broke after
+ * A2UIVerse answered has no body — its lead says so — and no press: what the resend started may
+ * already be running.
+ */
+function ResendCard({
+  resend,
+  enabled,
+  onTryAgain,
+  onDismiss,
+}: {
+  resend: 'unreached' | 'lost';
+  enabled: boolean;
+  onTryAgain?: () => void;
+  onDismiss?: () => void;
+}) {
+  if (resend === 'lost') return null;
+  return (
+    <>
+      <Text as="p" size="2">
+        {UNREACHED_WORDS}
+      </Text>
+      <Flex align="center" gap="3" wrap="wrap">
+        {onTryAgain && (
+          <Button size="1" disabled={!enabled} onClick={() => onTryAgain()}>
+            Try again
+          </Button>
+        )}
+        {onDismiss && (
+          <Button
+            size="1"
+            variant="outline"
+            color="gray"
+            disabled={!enabled}
+            onClick={() => onDismiss()}
+          >
+            Not now
+          </Button>
+        )}
+      </Flex>
     </>
   );
 }

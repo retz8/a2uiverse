@@ -322,7 +322,8 @@ test('an arrow pressed from the keyboard hands focus on when it leaves the row: 
 
 /* ── The escalation on the attribution row (task 12.3) ──────────────────────── */
 
-import {act, fireEvent} from '@testing-library/react';
+import {act, fireEvent, within} from '@testing-library/react';
+import {LOST_WORDS, UNREACHED_WORDS} from '../slot/press-lines';
 import {SignInContext, type SignInRequest} from '../../sign-in';
 
 const MERGE = 'Merge pull requests and push to your repositories';
@@ -427,6 +428,70 @@ test('a retry or a dismiss sent for the source hides the chip and the card at on
     expect(screen.queryByRole('dialog')).toBeNull();
     unmount();
   }
+});
+
+/** The request on the row with Allow's resend for `source` standing at `status`. */
+function resent(
+  status: 'unreached' | 'lost',
+  props: Parameters<typeof escalated>[0] = {},
+  source = 'github.1',
+) {
+  return (
+    <PressStateContext.Provider
+      value={{enabled: true, presses: [{operation: {kind: 'retry', sources: [source]}, status}]}}
+    >
+      {escalated(props)}
+    </PressStateContext.Provider>
+  );
+}
+
+test('Allow’s resend that never reached A2UIVerse: the chip says Not sent, its card that the access is held, with Try again and Not now', () => {
+  const pressed: CompositionOperation[] = [];
+  const kinds: string[] = [];
+  render(
+    resent('unreached', {onPress: op => pressed.push(op), onSignIn: kind => kinds.push(kind)}),
+  );
+  expect(screen.queryByRole('button', {name: 'Needs access'})).toBeNull();
+  const chip = screen.getByRole('button', {name: 'Not sent'});
+  expect(chip).toHaveAttribute('aria-expanded', 'true');
+  expect(chip.querySelector('svg')).toBeNull();
+  const card = screen.getByRole('dialog', {name: 'GitHub has the access now.'});
+  expect(card).toHaveTextContent(`GitHub has the access now.${UNREACHED_WORDS}`);
+  expect(card).not.toHaveTextContent(MERGE);
+  expect(card).not.toHaveTextContent('Allow opens');
+  expect(within(card).queryByRole('button', {name: 'Allow'})).toBeNull();
+  expect(screen.getByRole('status')).toHaveTextContent(
+    `GitHub has the access now. ${UNREACHED_WORDS}`,
+  );
+  act(() => within(card).getByRole('button', {name: 'Try again'}).click());
+  act(() => within(card).getByRole('button', {name: 'Not now'}).click());
+  expect(pressed).toEqual([
+    {kind: 'retry', sources: ['github.1']},
+    {kind: 'dismiss', sources: ['github.1']},
+  ]);
+  expect(kinds).toEqual([]);
+});
+
+test('Allow’s resend whose stream broke: the card says the connection was lost, with no press', () => {
+  render(resent('lost'));
+  const chip = screen.getByRole('button', {name: 'Connection lost'});
+  expect(chip.querySelector('svg')).toBeNull();
+  const card = screen.getByRole('dialog', {name: LOST_WORDS});
+  expect(within(card).queryAllByRole('button')).toHaveLength(0);
+  expect(screen.getByRole('status')).toHaveTextContent(LOST_WORDS);
+});
+
+test('the card opens again on a resend left unanswered, though the request was folded away; a resend for another source leaves the request as it is', () => {
+  const {rerender} = render(escalated());
+  act(() => screen.getByRole('button', {name: 'Needs access'}).click());
+  expect(screen.queryByRole('dialog')).toBeNull();
+  rerender(resent('unreached'));
+  expect(screen.getByRole('dialog', {name: 'GitHub has the access now.'})).toBeInTheDocument();
+  rerender(resent('unreached', {}, 'gmail.1'));
+  expect(screen.getByRole('button', {name: 'Needs access'})).toBeInTheDocument();
+  expect(
+    screen.getByRole('dialog', {name: 'GitHub needs more access to finish this.'}),
+  ).toBeInTheDocument();
 });
 
 test('the arrows stay live while a request waits (task-12.3 decision 9)', () => {

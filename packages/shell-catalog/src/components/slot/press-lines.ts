@@ -41,6 +41,16 @@ export const LOST_WORDS = 'Lost the connection to A2UIVerse. Ask again to see wh
 export const UNUPDATED_WORDS = 'The merged view couldn’t be updated.';
 export const UNMADE_WORDS = 'The merged view couldn’t be made.';
 
+/**
+ * What a finished sign-in got, by what it was asked for — a sign-in or one again, a pasted key or
+ * token, more access: said where its resume then never reached A2UIVerse.
+ */
+export function signedInWords(app: string, asked: 'signIn' | 'again' | 'connect' | 'more'): string {
+  if (asked === 'connect') return `${app} is connected.`;
+  if (asked === 'more') return `${app} has the access now.`;
+  return `You’re signed in to ${app}.`;
+}
+
 /** `a`, `a and b`, `a, b and c`. */
 export function listed(names: readonly string[]): string {
   return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;

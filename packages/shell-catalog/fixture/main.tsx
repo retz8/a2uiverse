@@ -515,9 +515,24 @@ const AUTHORITY_TILES: {
     props: {source: 'acme-wiki', authority: {cause: 'unsupported'}},
   },
   {
-    label: 'the resume Retry never reached',
+    label: 'signed in, the resume never reached: Try again',
     props: {source: 'gmail.1', authority: {cause: 'signIn', scopes: GMAIL_SCOPES}},
     presses: [{operation: {kind: 'retry', sources: ['gmail.1']}, status: 'unreached'}],
+  },
+  {
+    label: 'more access held, the resume never reached',
+    props: {source: 'gmail.1', authority: {cause: 'more', scopes: GMAIL_SCOPES}},
+    presses: [{operation: {kind: 'retry', sources: ['gmail.1']}, status: 'unreached'}],
+  },
+  {
+    label: 'connected, the resume never reached, the quiet line',
+    props: {source: 'shop-b.1', authority: {cause: 'connect', quiet: true, scopes: []}},
+    presses: [{operation: {kind: 'retry', sources: ['shop-b.1']}, status: 'unreached'}],
+  },
+  {
+    label: 'signed in, the resume lost its stream',
+    props: {source: 'gmail.1', authority: {cause: 'signIn', scopes: GMAIL_SCOPES}},
+    presses: [{operation: {kind: 'retry', sources: ['gmail.1']}, status: 'lost'}],
   },
 ];
 
@@ -549,6 +564,7 @@ function AuthorityMatrix() {
                 state="authority"
                 nameOf={authorityName}
                 onSignIn={logSignIn}
+                onPress={logPress}
                 onOpenAppLibrary={() => console.log('[fixture shell action] openAppLibrary')}
               />
             </SignInContext.Provider>
@@ -605,6 +621,33 @@ function AuthorityMatrix() {
               </AttributionView>
             </div>
           </SignInContext.Provider>
+        </Cell>
+      ))}
+      {(['unreached', 'lost'] as const).map(status => (
+        <Cell
+          key={status}
+          label={
+            status === 'unreached'
+              ? 'escalation, Allow’s resend never reached: Try again'
+              : 'escalation, Allow’s resend lost its stream'
+          }
+        >
+          <PressStateContext.Provider
+            value={{enabled: true, presses: [press('retry', ['github.1'], status)]}}
+          >
+            <div style={{minHeight: 200}}>
+              <AttributionView
+                displayName="GitHub"
+                source="github.1"
+                escalation={{scopes: ['Merge pull requests and push to your repositories']}}
+                history={{back: {step: 0, title: 'Review requests'}}}
+                onPress={logPress}
+                onSignIn={logSignIn}
+              >
+                <Fragment label="Keep the AuthVault in an owner-only file #42" />
+              </AttributionView>
+            </div>
+          </PressStateContext.Provider>
         </Cell>
       ))}
       <Cell label="the merge collapsed: its home source needs sign-in">

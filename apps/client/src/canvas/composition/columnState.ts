@@ -2,14 +2,15 @@
  * A reserved column's state, by the source the column is marked to (task-8.5 decision 12): what the
  * client tells the shell catalog's `Table` through `SlotStateContext`. The authored cells once the
  * source is in the merge; unavailable once it failed; not signed in while it waits on a sign-in
- * (task-12.8 decision 7); as its line says while it waits on an update (task-15.8 decision 4);
+ * (task-12.8 decision 7), unavailable once signed in when the resume never reached A2UIVerse or
+ * lost its stream; as its line says while it waits on an update (task-15.8 decision 4);
  * loading while it loads, while its Retry runs — its resume after a sign-in or an update among
  * them — and while it is being included; not included while it waits for Include. A source that answered in
  * words with no screen keeps the authored cells too. Every word is the shell catalog's; the client
  * only says which.
  */
 import {type SourceSlotState, updateSlotState} from '@a2uiverse/shell-catalog';
-import type {CanvasState} from '../canvasStore';
+import {unansweredRetryOf, type CanvasState} from '../canvasStore';
 
 type ColumnInputs = Pick<CanvasState, 'merge' | 'slotStates' | 'placement' | 'presses'> &
   Partial<Pick<CanvasState, 'authority' | 'updates'>>;
@@ -22,6 +23,15 @@ export function retrying({presses}: Pick<CanvasState, 'presses'>, source: string
       press.operation.sources[0] === source &&
       (press.status === 'sent' || press.status === 'running'),
   );
+}
+
+/**
+ * Whether the reader's Retry of this source stands unanswered: it never reached A2UIVerse, or its
+ * stream broke after A2UIVerse had answered. On a sign-in it is the resume sent once the sign-in
+ * finished — the sign-in tile's, or Allow's on the request for more access.
+ */
+export function retryUnanswered({presses}: Pick<CanvasState, 'presses'>, source: string): boolean {
+  return presses.some(press => unansweredRetryOf(press, source));
 }
 
 /**
@@ -44,6 +54,7 @@ export function columnState(state: ColumnInputs, source: string): SourceSlotStat
   const painted = slotStates.get(source);
   if (painted === 'failed' && !retrying(state, source)) return 'failed';
   if (painted === 'authority' && !retrying(state, source)) {
+    if (retryUnanswered(state, source)) return 'failed';
     // A pasted key or token: the column says not connected (task-12.13 decision 32); an account
     // asked for more access, so (task-12.13 decision 50).
     const cause = authority?.get(source);
