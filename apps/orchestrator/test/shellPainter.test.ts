@@ -107,6 +107,37 @@ describe('paintLayout', () => {
     expect(byId.get('cal-card')!.child).toBe('attribution-cal');
   });
 
+  test('a Row or Column inside a Row or Column shares its parent’s axis as a Slot does, weight 1 when the Planner wrote none (task-6.4 decision 2)', () => {
+    const nested: LayoutSurface = {
+      dispatch: [
+        {source: 'github', request: 'a'},
+        {source: 'gmail', request: 'b'},
+        {source: 'shell', request: 'merge'},
+      ],
+      tree: {
+        components: [
+          {id: 'root', component: 'Column', children: ['top', 'note']},
+          {id: 'top', component: 'Row', children: ['merged', 'sources', 'side']},
+          {id: 'merged', component: 'Slot', source: 'shell'},
+          {id: 'sources', component: 'Column', children: ['gh', 'gm']},
+          {id: 'gh', component: 'Slot', source: 'github'},
+          {id: 'gm', component: 'Slot', source: 'gmail'},
+          {id: 'side', component: 'Column', children: [], weight: 3},
+          {id: 'note', component: 'Text', text: 'Your day'},
+        ],
+      },
+      dataModel: {},
+    };
+    const ids = new Map(
+      paintLayout(compositionFrom(nested, new Sources(registry), 'my day')).map(c => [c.id, c]),
+    );
+    expect(ids.get('top')).toMatchObject({weight: 1});
+    expect(ids.get('sources')).toMatchObject({weight: 1});
+    expect(ids.get('side')).toMatchObject({weight: 3});
+    expect(ids.get('root')).not.toHaveProperty('weight');
+    expect(ids.get('note')).not.toHaveProperty('weight');
+  });
+
   test('writes state and label on a vendor Slot and leaves its weight where the model put it', () => {
     expect(byId.get('gh')).toEqual({
       id: 'gh',

@@ -81,7 +81,8 @@ function updateComponentsPart(state: CompositionState): Part {
  * marker over the fragment, one box of the layout — that names the source, the account's label
  * beside the app's name when its app has more than one account (phase-12 decision 22), holds the
  * slot as its child and carries the slot's weight; its parent names the wrapper where it named the
- * slot. The synthesis slot is shell content, bare, and so is a gap slot, painted with its offer —
+ * slot. A `Row` or `Column` inside a `Row` or `Column` takes weight 1 when the Planner wrote none,
+ * as a slot does. The synthesis slot is shell content, bare, and so is a gap slot, painted with its offer —
  * each app offered as the entry this plan's search returned draws it, or the cause of none
  * (task-15.4 decision 8). A gap `useApp` filled is painted as what it became, its id kept: the
  * app's slot under its source, the account choice, or — an offer with no request — the
@@ -118,12 +119,25 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
   }
   const rewire = (value: unknown): unknown =>
     typeof value === 'string' && wrapperOf.has(value) ? wrapperOf.get(value) : value;
+  // A `Row` or `Column` inside a `Row` or `Column` shares its parent's axis as a `Slot` does,
+  // weight 1 when the Planner wrote none (task-6.4 decision 2); the basic catalog gives `weight`
+  // no default, and sets it only on a direct child of a `Row` or `Column`.
+  const inFlex = new Set(
+    components
+      .filter(c => (c.component === 'Row' || c.component === 'Column') && Array.isArray(c.children))
+      .flatMap(c => c.children as unknown[]),
+  );
+  const sharesAxis = (component: ShellComponent): boolean =>
+    (component.component === 'Row' || component.component === 'Column') &&
+    inFlex.has(component.id) &&
+    typeof component.weight !== 'number';
 
   const painted: ShellComponent[] = [];
   for (const component of components) {
     if (component.component !== 'Slot') {
       painted.push({
         ...component,
+        ...(sharesAxis(component) ? {weight: 1} : {}),
         ...(typeof component.child === 'string' ? {child: rewire(component.child)} : {}),
         ...(Array.isArray(component.children) ? {children: component.children.map(rewire)} : {}),
       });
