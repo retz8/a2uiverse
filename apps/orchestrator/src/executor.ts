@@ -732,7 +732,12 @@ export class OrchestratorExecutor implements AgentExecutor {
       if (signal.aborted) return closed();
       await breakOff();
       done();
-      throw err;
+      // A call that threw — the Router's or the Planner's: a broken turn, its final in plain
+      // words, the error on the plan's line beside a malformed plan's findings.
+      logLine(
+        `plan task=${ctx.taskId} failed — ${err instanceof Error ? err.message : String(err)}`,
+      );
+      throw new Error(PLAN_FAILED_WORDS);
     }
     if (signal.aborted) return closed();
     const planMs = Date.now() - openedAt;
@@ -2411,6 +2416,9 @@ function syntheticTask(ctx: RequestContext): Task {
 
 /** How many received message ids are remembered for refusing a repeat. */
 const RECEIVED_IDS_KEPT = 256;
+
+/** The final of a turn whose plan could not be asked for: a call that threw, in the person's words. */
+const PLAN_FAILED_WORDS = 'A2UIVerse couldn’t answer that just now. Ask again in a moment.';
 
 /** A fragment source's stream has ended (task-8.7 decision 25): the stamp says so, nothing else rides it. */
 function settledMarker(ctx: WireContext, source: string): WireStatusUpdate {

@@ -742,15 +742,31 @@ describe('orchestrator', () => {
     });
   });
 
-  test('a broken plan is a broken turn: failed final, journaled failed', async () => {
-    const {client} = await boot({planner: new ThrowingPlanner(new Error('no plan today'))});
-    const events = await collect(client, utterance('anything'));
-    const final = events.at(-1)!;
-    expect(endsTurn(final)).toBe(true);
-    expect(stateOf(final)).toBe(TaskState.TASK_STATE_FAILED);
-    const [line] = await journalLines(1);
-    expect(line.outcome).toBe('failed');
-    expect(line.kind).toBe('utterance');
+  test('a Planner call that throws is a broken turn: the final in plain words, the error on the plan’s log line, journaled failed', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      const {client} = await boot({
+        planner: new ThrowingPlanner(new Error('Failed after 3 attempts. Last error: Overloaded')),
+      });
+      const events = await collect(client, utterance('anything'));
+      const taskId = taskIdOf(events[0]!);
+      const final = events.at(-1)!;
+      expect(endsTurn(final)).toBe(true);
+      expect(stateOf(final)).toBe(TaskState.TASK_STATE_FAILED);
+      expect(wordsIn(final)).toEqual([
+        'A2UIVerse couldn’t answer that just now. Ask again in a moment.',
+      ]);
+      const lines = log.mock.calls.map(c => String(c[0]));
+      const planLine = lines.find(l => l.includes(`plan task=${taskId} failed`));
+      expect(planLine).toContain(
+        `plan task=${taskId} failed — Failed after 3 attempts. Last error: Overloaded`,
+      );
+      const [line] = await journalLines(1);
+      expect(line.outcome).toBe('failed');
+      expect(line.kind).toBe('utterance');
+    } finally {
+      log.mockRestore();
+    }
   });
 
   test('both attempts refused is a broken turn: the final in plain words, the findings on the plan’s log line, the journal keeps the attempts (task-18.2 decisions 2, 4, 6)', async () => {
@@ -3977,7 +3993,9 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
     });
     const events = await collect(client, utterance('both'));
     expect(stateOf(finalOf(events))).toBe(TaskState.TASK_STATE_FAILED);
-    expect(wordsIn(finalOf(events))).toEqual(['quota exceeded']);
+    expect(wordsIn(finalOf(events))).toEqual([
+      'A2UIVerse couldn’t answer that just now. Ask again in a moment.',
+    ]);
     expect(events.filter(isShellPaint).map(a2uiDatas).at(-1)).toEqual([
       {version: 'v0.9', deleteSurface: {surfaceId: 'shell:main'}},
     ]);
