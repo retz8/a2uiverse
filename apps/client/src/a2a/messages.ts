@@ -15,6 +15,7 @@ import type {
 } from '@a2uiverse/sdk';
 import {
   A2UI_CLIENT_CAPABILITIES_KEY,
+  A2UI_CLIENT_DATA_MODEL_KEY,
   A2UI_VERSIONS,
   a2uiMessagesIn,
   a2uiPart,
@@ -154,12 +155,6 @@ function sendRequest(
  * agent is reached by echoing a fragment's version that is not reached without it.
  */
 export const CLIENT_A2UI_VERSION = 'v0.9' as const;
-
-/**
- * A2A message-metadata key under which the client's current data model rides
- * (surfaces created with `sendDataModel: true`), per the spec's A2A binding.
- */
-export const A2UI_CLIENT_DATA_MODEL_KEY = 'a2uiClientDataModel';
 
 /** Whether a data part's `version` is one the platform speaks, `v0.9` or `v0.9.1` (task-19.3 decision 1). */
 const isSpokenVersion = (version: unknown): boolean =>

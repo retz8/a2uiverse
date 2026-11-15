@@ -2,6 +2,8 @@ import {readFileSync} from 'node:fs';
 import {describe, expect, test} from 'vitest';
 import {SERVER_CAPABILITIES_SCHEMA, SERVER_CAPABILITIES_SCHEMA_V09} from './a2ui/spec.generated';
 import {
+  A2UI_CLIENT_CAPABILITIES_KEY,
+  A2UI_CLIENT_DATA_MODEL_KEY,
   A2UI_EXTENSION_URIS,
   A2UI_VERSIONS,
   BASIC_CATALOG_ID,
@@ -22,6 +24,11 @@ import {
   SUPPORTED_HOST_INTERFACES,
   underEachVersion,
 } from './catalog';
+
+test('the message-metadata keys, as the A2UI extension specification spells them', () => {
+  expect(A2UI_CLIENT_CAPABILITIES_KEY).toBe('a2uiClientCapabilities');
+  expect(A2UI_CLIENT_DATA_MODEL_KEY).toBe('a2uiClientDataModel');
+});
 
 const GITHUB = 'https://example.com/github/catalog.json';
 const GMAIL = 'https://example.com/gmail/catalog.json';

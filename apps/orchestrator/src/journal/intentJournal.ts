@@ -1,6 +1,7 @@
 import {appendFile, mkdir} from 'node:fs/promises';
 import {dirname} from 'node:path';
 import type {Message} from '@a2a-js/sdk';
+import {A2UI_CLIENT_DATA_MODEL_KEY} from '@a2uiverse/sdk';
 import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {Embedder} from '@a2uiverse/embedder';
 import type {PublisherJournalEntry} from '../marketplace/publisher.js';
@@ -89,7 +90,7 @@ export class IntentJournal implements RegistryJournal {
   open(turn: OpenTurn): JournalTurn {
     const {kind, descriptor, payload} = describe(turn.message, turn.source);
     const metadata = turn.message.metadata ?? {};
-    const dataModel = metadata.a2uiClientDataModel;
+    const dataModel = metadata[A2UI_CLIENT_DATA_MODEL_KEY];
     const entry: JournalEntry = {
       turnId: turn.turnId,
       clientContextId: turn.clientContextId,

@@ -1,8 +1,5 @@
 import type {Message} from '@a2a-js/sdk';
-import {parseSurfaceId} from '@a2uiverse/sdk';
-
-/** A2UI-standard metadata key the client sends its data model under. */
-export const A2UI_CLIENT_DATA_MODEL_KEY = 'a2uiClientDataModel';
+import {A2UI_CLIENT_DATA_MODEL_KEY, parseSurfaceId} from '@a2uiverse/sdk';
 
 type Metadata = Message['metadata'];
 

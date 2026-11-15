@@ -38,6 +38,12 @@ export const A2UI_EXTENSION_URIS: Readonly<Record<A2uiVersion, string>> = {
 /** The metadata key a client's capabilities ride under on every message to an agent (A2UI). */
 export const A2UI_CLIENT_CAPABILITIES_KEY = 'a2uiClientCapabilities';
 
+/**
+ * The metadata key a client's data model rides under — the surfaces created with
+ * `sendDataModel: true` — on a message to an agent (A2UI's data model sync).
+ */
+export const A2UI_CLIENT_DATA_MODEL_KEY = 'a2uiClientDataModel';
+
 /** Catalog ids by A2UI version: what a card declares per version, what the hub advertises per version. */
 export type CatalogIdsByVersion = Readonly<Record<A2uiVersion, readonly string[]>>;
 

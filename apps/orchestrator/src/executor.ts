@@ -2,6 +2,7 @@ import {randomUUID} from 'node:crypto';
 import {TaskState, type Message, type Part, type Task} from '@a2a-js/sdk';
 import type {AgentExecutor, ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
 import {
+  A2UI_CLIENT_DATA_MODEL_KEY,
   a2uiPart,
   clipPaintMetaTitle,
   parseSourceId,
@@ -30,7 +31,6 @@ import type {Compositions} from './composition/compositions.js';
 import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify.js';
 import {composeFragment, retask, withoutFailureWords} from './composition/fragmentRelay.js';
 import {changeAccount, firesResynthesis, seenOf, watchOf} from './composition/integrity.js';
-import {A2UI_CLIENT_DATA_MODEL_KEY} from './composition/partition.js';
 import {
   synthesisEnvelope,
   synthesisParts,
