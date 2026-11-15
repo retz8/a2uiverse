@@ -5,7 +5,7 @@ The items of the [Backlog in `_dev/TODO.md`](../TODO.md#backlog) to take up, rea
 ## Workflow
 
 1. Items are done in order, one at a time, one session per item, a fresh session each time where possible.
-2. Each item is grilled, with no spec written afterward, and implemented directly on `main`.
+2. When an item is started, Claude recommends skipping the grill if the task is small enough. Otherwise the item is grilled, with no spec written afterward. Either way it is implemented directly on `main`.
 3. Once an item is done and confirmed by the user, it is marked done here, and its Backlog line is removed from `_dev/TODO.md`, with nothing recorded.
 4. Every commit is an off-phase commit, such as `fix: …` or `chore: …`, never `fix(backlog): …`.
 
