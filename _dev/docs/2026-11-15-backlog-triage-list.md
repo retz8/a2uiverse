@@ -58,7 +58,7 @@ Checked group by group, each item decided, after the Do now list is all done.
 ### Group 2
 
 4. [DONE] (platform 8400800) The Planner's and Synthesizer's model calls carry no time limit: a hung call holds its canvas's turn open until the canvas is closed. No hang has been seen (slowest synthesis 18.9 s, slowest plan 7.2 s), and the Backlog line takes it up only if one is; decide whether to add one now. Each model request runs at most the apps' hard cap, 300 s by default.
-5. GitHub's canned tools hold no write (`STUB_TOOLS` in `github/agent/app/tools.py` of `a2uiverse-apps` are `list_pull_requests` and `get_pull_request`), so its request for more access never arises in `stub`; decide whether to add one.
+5. [DONE] (`a2uiverse-apps` e7ec1e0) GitHub's canned tools hold no write (`STUB_TOOLS` in `github/agent/app/tools.py` of `a2uiverse-apps` are `list_pull_requests` and `get_pull_request`), so its request for more access never arises in `stub`; decide whether to add one. The canned `submit_pull_request_review` writes nothing and needs `github.write`; its run in a `stub` sitting is the next such sitting's.
 6. Gmail's thread view paints "Draft a reply" (`draft-reply`), which the deterministic corpus does not answer; decide between recording the draft turn into the corpus and dropping the button from the deterministic thread view.
 
 ### Group 3
