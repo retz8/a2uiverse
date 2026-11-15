@@ -864,7 +864,17 @@ describe('on the wire', () => {
     auth.endAll();
     await collect(client, press('retry', 'shop.1', canvas));
     const twice = await signIn(base, canvas, 'shop.1');
-    expect(twice.outcome).toMatchObject({state: 'failed', reason: 'that account is already added'});
+    expect(twice.outcome).toMatchObject({
+      state: 'failed',
+      reason: 'that account is already added',
+      cause: 'accountHeld',
+      label: 'bob@example.com',
+    });
+    const said = shownText(await twice.callback!.text());
+    expect(said).toContain('That account is already added');
+    expect(said).toContain(
+      'bob@example.com is already added to Shop. Close this window and sign in with a different account.',
+    );
   });
 });
 
@@ -1292,6 +1302,50 @@ describe('the merge, key accounts, uninstall, secrets', () => {
     expect(vendors[0]!.requests.at(-1)!.apiKey).toBe('demo-key');
   });
 
+  test('a slot whose key account was signed out, given another account’s key: refused, the window naming the account that holds it', async () => {
+    const keyCard: Partial<AgentCard> = {
+      securitySchemes: {key: {type: 'apiKey', in: 'header', name: 'X-Api-Key'}},
+      security: [{key: []}],
+    };
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card: keyCard, admit: () => true}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    const origin = new URL(base).origin;
+    const connect = async (source: string, key: string, name?: string) => {
+      const attempt = randomBytes(16).toString('base64url');
+      const start = await fetch(
+        `${base}/auth/start?attempt=${attempt}&canvas=${canvas}&source=${source}`,
+        {redirect: 'manual'},
+      );
+      const cookie = (start.headers.get('set-cookie') ?? '').split(';')[0]!;
+      const posted = await fetch(`${base}/auth/key`, {
+        method: 'POST',
+        headers: {cookie, origin, 'Content-Type': 'application/x-www-form-urlencoded'},
+        body: new URLSearchParams({attempt, key, ...(name === undefined ? {} : {name})}).toString(),
+      });
+      const outcome = (await (await fetch(`${base}/auth/attempts/${attempt}`)).json()) as {
+        state: string;
+        cause?: string;
+        label?: string;
+      };
+      return {page: shownText(await posted.text()), outcome};
+    };
+    await connect('shop.1', 'key-a');
+    await connect('shop', 'key-b', 'Work key');
+    await fromPage(base, '/auth/sign-out', {source: 'shop.1'});
+    await collect(client, press('retry', 'shop.1', canvas));
+
+    const held = await connect('shop.1', 'key-b');
+    expect(held.outcome).toMatchObject({state: 'failed', cause: 'keyHeld', label: 'Work key'});
+    expect(held.page).toContain('That key is already added');
+    expect(held.page).toContain(
+      'This key is already added to Shop, as Work key. Close this window and connect with a different key.',
+    );
+    expect(orchestrator.vault.accountsOf('shop')).toEqual([{n: 2, label: 'Work key'}]);
+  });
+
   test('a key account is named on the token page, else after its app, else with the day it was connected (task-14.11 decision 36)', async () => {
     const keyCard: Partial<AgentCard> = {
       securitySchemes: {key: {type: 'apiKey', in: 'header', name: 'X-Api-Key'}},
@@ -1573,7 +1627,15 @@ describe("the App Library's side (task 14.3)", () => {
     const events = await collect(client, press('retry', 'shop.1', canvas));
     expect(slotOf(events, 'shop.1')).toMatchObject({state: 'authority'});
     const held = await signIn(base, canvas, 'shop.1');
-    expect(held.outcome).toMatchObject({state: 'failed', reason: 'that account is already added'});
+    expect(held.outcome).toMatchObject({
+      state: 'failed',
+      reason: 'that account is already added',
+      cause: 'accountHeld',
+      label: 'bob@example.com',
+    });
+    expect(shownText(await held.callback!.text())).toContain(
+      'bob@example.com is already added to Shop. Close this window and sign in with a different account.',
+    );
     auth.account = {sub: 'sub-cy', email: 'cy@example.com'};
     const back = await signIn(base, canvas, 'shop.1');
     expect(back.outcome).toMatchObject({
@@ -1837,7 +1899,7 @@ describe('device-code sign-in (task 20.6)', () => {
     ).toBeTruthy();
   });
 
-  test('more access by device code signed in as a different account: the code page carries the words, and says them once reloaded', async () => {
+  test('more access by device code signed in as a different account: the code page reloads into the words', async () => {
     const {base, client} = await boot({
       apps: {
         shop: {
@@ -1862,8 +1924,8 @@ describe('device-code sign-in (task 20.6)', () => {
     });
     const words =
       'Close this window, then press Allow again and sign in to Shop as ada@example.com.';
-    expect(other.page).toContain('id="end-otherAccount"');
-    expect(other.page).toContain(words);
+    // The page reloads on a failure carrying a cause, and is drawn in its words.
+    expect(other.page).toContain("cause ? location.reload() : end('failed')");
     const reloaded = await (
       await fetch(other.location!, {headers: {cookie: other.cookie!}})
     ).text();

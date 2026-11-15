@@ -182,7 +182,7 @@ export interface Attempt {
   state: 'pending' | 'signedIn' | 'failed' | 'expired';
   /**
    * The source the sign-in ended as, its label and whether it was held; the reason it failed.
-   * Failed with a cause, the label is the account's the sign-in was asked for.
+   * Failed with a cause, the label of the account the cause names.
    */
   result?: string;
   label?: string;
@@ -245,10 +245,11 @@ export type Started =
   | {kind: 'refused'; reason: string};
 
 /**
- * A failure the person is told of in words: more access signed in as another identity than the
- * account's, the outcome naming the account it was asked for by its label.
+ * A failure the person is told of in words, the outcome naming an account by its label: more
+ * access signed in as another identity than the account's, naming the account it was asked for;
+ * an identity, or a pasted key, another of the app's accounts holds, naming that account.
  */
-export type FailureCause = 'otherAccount';
+export type FailureCause = 'otherAccount' | 'accountHeld' | 'keyHeld';
 
 /**
  * What the client polls. Signed in, the source the sign-in ended as, the account's label, the
@@ -905,9 +906,8 @@ export class AuthVault implements AccountStore {
             asked !== undefined ? 'otherAccount' : undefined,
           );
         }
-        if (apps.accounts.some(held => held.sub === claims!.sub && held.n !== attempt.n)) {
-          return this.#fail(attempt, 'that account is already added');
-        }
+        const other = apps.accounts.find(held => held.sub === claims!.sub && held.n !== attempt.n);
+        if (other) return this.#failHeld(attempt, other, 'accountHeld');
         rebound = true;
       }
       const bound = attempt.purpose === 'again' || attempt.purpose === 'escalation';
@@ -917,7 +917,7 @@ export class AuthVault implements AccountStore {
         const held = apps.accounts.find(other => other.sub === claims!.sub);
         // A signed-out number comes back as itself, never onto another account (decision 5).
         if (attempt.restore && held && held.n !== attempt.n) {
-          return this.#fail(attempt, 'that account is already added');
+          return this.#failHeld(attempt, held, 'accountHeld');
         }
         account = held ?? (attempt.restore ? this.#account(attempt.appId, attempt.n) : undefined);
       }
@@ -1019,7 +1019,7 @@ export class AuthVault implements AccountStore {
     } else {
       account = apps.accounts.find(held => held.keyHash === keyHash);
       if (attempt.restore && account && account.n !== attempt.n) {
-        return this.#fail(attempt, 'that account is already added');
+        return this.#failHeld(attempt, account, 'keyHeld');
       }
       if (!account && attempt.restore) account = this.#account(attempt.appId, attempt.n);
     }
@@ -1104,6 +1104,12 @@ export class AuthVault implements AccountStore {
     });
     logLine(`🔑 ${attempt.result} signed in (${attempt.purpose})`);
     return attempt;
+  }
+
+  /** An identity or a key another of the app's accounts holds: refused, naming that account. */
+  #failHeld(attempt: Attempt, held: VaultAccount, cause: 'accountHeld' | 'keyHeld'): Attempt {
+    attempt.label = held.label;
+    return this.#fail(attempt, 'that account is already added', cause);
   }
 
   #fail(attempt: Attempt, reason: string, cause?: FailureCause): Attempt {

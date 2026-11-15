@@ -151,8 +151,7 @@ export function signInStartUrl(
  * How a sign-in attempt stands, as the orchestrator answers the poll: pending, signed in as a
  * source — with the account's label and whether the account was already held — failed with a
  * reason, expired, or `unknown` once the orchestrator no longer has it; the app's name on every
- * answer it has the attempt for. Failed with a cause, the label is the account's the sign-in was
- * asked for.
+ * answer it has the attempt for. Failed with a cause, the label of the account the cause names.
  */
 export interface AttemptOutcome {
   state: 'pending' | 'signedIn' | 'failed' | 'expired' | 'unknown';
@@ -163,8 +162,12 @@ export interface AttemptOutcome {
   /** Signed in again as another identity: the account re-bound to it (task-12.13 decision 24). */
   rebound?: boolean;
   reason?: string;
-  /** More access signed in as another account than the one it was asked for. */
-  cause?: 'otherAccount';
+  /**
+   * A failure the person is told of: more access signed in as another account than the one it
+   * was asked for, named by the label; an account, or a pasted key, another account holds, that
+   * account named by the label.
+   */
+  cause?: 'otherAccount' | 'accountHeld' | 'keyHeld';
 }
 
 /** A poll gets this long before it counts as lost; the next one goes out regardless. */

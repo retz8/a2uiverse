@@ -5,6 +5,7 @@
  * term. The scheme's description is the vendor's, shown as plain text under whose it is — nothing
  * in it rendered, no address in it made live.
  */
+import type {FailureCause} from './vault.js';
 
 const STYLE = `
 :root { color-scheme: light dark; --ink: #1c2024; --soft: #60646c; --line: #d9d9e0;
@@ -75,30 +76,49 @@ interface Content {
 
 /**
  * What an end page says of the sign-in: the app's name, whether it was a pasted key or token,
- * and — more access signed in as another account — the label of the account it was asked for.
+ * and a failure the person is told of, with the label of the account it names.
  */
 export interface EndAbout {
   app?: string;
   connect?: boolean;
-  otherAccount?: string;
+  failure?: {cause: FailureCause; label: string};
+}
+
+/** A failure in the person's words: what happened, and what to do instead. */
+function failureContent(app: string, failure: {cause: FailureCause; label: string}): Content {
+  const label = escapeHtml(failure.label);
+  const content = (title: string, line: string): Content => ({
+    title,
+    body: `<h1>${title}</h1><p>${line}</p>`,
+  });
+  switch (failure.cause) {
+    case 'otherAccount':
+      return content(
+        'That was a different account',
+        `Close this window, then press Allow again and sign in to ${app} as ${label}.`,
+      );
+    case 'accountHeld':
+      return content(
+        'That account is already added',
+        `${label} is already added to ${app}. Close this window and sign in with a different account.`,
+      );
+    case 'keyHeld':
+      return content(
+        'That key is already added',
+        `This key is already added to ${app}, as ${label}. Close this window and connect with a different key.`,
+      );
+  }
 }
 
 /**
  * The end a sign-in came to: one heading, one line. Ended well, it says it closes in five
  * seconds, with Close now beside the count. A pasted key or token says connected (task-12.13
- * decisions 30, 31). More access signed in as another account says which to sign in as.
+ * decisions 30, 31). A failure the person is told of says what happened and what to do.
  */
 function endContent(ended: boolean, about: EndAbout): Content {
   const app = about.app ? escapeHtml(about.app) : undefined;
   const connect = about.connect === true;
-  if (!ended && app && about.otherAccount) {
-    return {
-      title: 'That was a different account',
-      body:
-        '<h1>That was a different account</h1>' +
-        `<p>Close this window, then press Allow again and sign in to ${app} as ${escapeHtml(about.otherAccount)}.</p>`,
-    };
-  }
+  if (!ended && app && about.failure) return failureContent(app, about.failure);
   if (!ended) {
     return connect
       ? {
@@ -161,10 +181,10 @@ export function endPage(ended: boolean, about: EndAbout = {}): string {
 export function codeEndPage(
   state: 'signedIn' | 'failed' | 'expired',
   app: string,
-  otherAccount?: string,
+  failure?: EndAbout['failure'],
 ): string {
   if (state === 'expired') return page(EXPIRED.title, EXPIRED.body);
-  return endPage(state === 'signedIn', {app, ...(otherAccount ? {otherAccount} : {})});
+  return endPage(state === 'signedIn', {app, ...(failure ? {failure} : {})});
 }
 
 /**
@@ -172,9 +192,8 @@ export function codeEndPage(
  * button that opens the app's page in a second window under the popup rule — the address with the
  * code in it where the server gave one, the line under it saying what to check — then the wait.
  * It asks the orchestrator how the attempt stands, as the canvas does, and turns into how it
- * ended: signed in, closing itself; didn't finish; or the code ran out. More access, naming the
- * account it is asked for, says too that the sign-in was another account. It shows no address and
- * offers no new code.
+ * ended: signed in, closing itself; didn't finish; or the code ran out. A failure carrying a
+ * cause reloads the page, drawn then in its words. It shows no address and offers no new code.
  */
 export function codePage(params: {
   app: string;
@@ -185,17 +204,12 @@ export function codePage(params: {
   complete: boolean;
   /** Where the attempt's outcome is asked. */
   outcomeUrl: string;
-  /** More access: the label of the account it is asked for. */
-  account?: string;
 }): string {
   const app = escapeHtml(params.app);
   const ended = {
     signedIn: endContent(true, {app: params.app}),
     failed: endContent(false, {app: params.app}),
     expired: EXPIRED,
-    ...(params.account
-      ? {otherAccount: endContent(false, {app: params.app, otherAccount: params.account})}
-      : {}),
   };
   const templates = Object.entries(ended)
     .map(
@@ -245,8 +259,7 @@ export function codePage(params: {
     "  try { const answer = await fetch(outcomeUrl, {cache: 'no-store'});",
     "    const {state, cause} = answer.status === 404 ? {state: 'unknown'} : await answer.json();",
     "    if (state === 'signedIn' || state === 'expired') end(state);",
-    "    else if (state !== 'pending')",
-    "      end(cause === 'otherAccount' && document.getElementById('end-otherAccount') ? 'otherAccount' : 'failed');",
+    "    else if (state !== 'pending') cause ? location.reload() : end('failed');",
     '  } catch { /* lost on the way: asked again */ } };',
     'const asking = setInterval(ask, 1000);',
   ].join('\n');

@@ -332,6 +332,43 @@ describe('more access signed in as another account', () => {
   });
 });
 
+describe('an account or a key another account holds', () => {
+  it('says on the canvas which account holds it and to use a different one, until a sign-in on the slot succeeds', async () => {
+    const {signIn, add, answer} = setup();
+    const a = add('a');
+    signIn.request(a.runtime, {kind: 'start', source: 'gmail.1'});
+    answer(0, {
+      state: 'failed',
+      app: 'Gmail',
+      reason: 'that account is already added',
+      cause: 'accountHeld',
+      label: 'bob@example.com',
+    });
+    await tick();
+    expect(a.pressed).toEqual([]);
+    expect(a.runtime.store.getState().accountNotice).toBe(
+      'bob@example.com is already added to Gmail. Sign in with a different account.',
+    );
+    signIn.request(a.runtime, {kind: 'start', source: 'gmail.1'});
+    answer(1, {state: 'signedIn', source: 'gmail.1', label: 'cy@example.com'});
+    await tick();
+    expect(a.runtime.store.getState().accountNotice).toBeNull();
+
+    signIn.request(a.runtime, {kind: 'start', source: 'shop-b.1'});
+    answer(2, {
+      state: 'failed',
+      app: 'Shop B',
+      reason: 'that account is already added',
+      cause: 'keyHeld',
+      label: 'Shop B · connected Oct 17',
+    });
+    await tick();
+    expect(a.runtime.store.getState().accountNotice).toBe(
+      'That key is already added to Shop B, as Shop B · connected Oct 17. Connect with a different key.',
+    );
+  });
+});
+
 describe('signed in again as another identity', () => {
   it('resumes the slot and says on its canvas who it is signed in as now (task-12.13 decision 24)', async () => {
     const {signIn, add, answer} = setup();

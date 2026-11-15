@@ -24,8 +24,8 @@
  *   and the add-account tile's `retry` lists it there. While its window is open the tile waits as
  *   the authority tile does, keyed by the bare app id (task-12.13 decisions 26, 27).
  * - Failed or expired, the slot's tile goes back as it was, the reason to the console (decision 3).
- *   More access signed in as another account is said on the canvas, naming the account to sign in
- *   as, until a sign-in on that slot succeeds.
+ *   A failure carrying a cause is said on the canvas — more access signed in as another account,
+ *   or an account or a key another account holds — until a sign-in on that slot succeeds.
  */
 import type {SignInRequest} from '@a2uiverse/shell-catalog';
 import {readAttempt, signInStartUrl, type AttemptOutcome} from '../orchestratorApi';
@@ -100,9 +100,21 @@ export function mintAttemptId(): string {
     .replace(/=+$/, '');
 }
 
-/** What the progress line says of more access signed in as another account than the one asked. */
-export function otherAccountNoticeOf(outcome: AttemptOutcome, source: string): string {
-  return `That was a different ${outcome.app ?? source} account. Press Allow again and sign in as ${outcome.label}.`;
+/** What the progress line says of a failed sign-in carrying a cause; nothing for any other. */
+export function failureNoticeOf(outcome: AttemptOutcome, source: string): string | undefined {
+  const app = outcome.app ?? source;
+  const {label} = outcome;
+  if (outcome.state !== 'failed' || !label) return undefined;
+  switch (outcome.cause) {
+    case 'otherAccount':
+      return `That was a different ${app} account. Press Allow again and sign in as ${label}.`;
+    case 'accountHeld':
+      return `${label} is already added to ${app}. Sign in with a different account.`;
+    case 'keyHeld':
+      return `That key is already added to ${app}, as ${label}. Connect with a different key.`;
+    default:
+      return undefined;
+  }
 }
 
 /** What the progress line says of an added account (task-12.8 decision 6). */
@@ -122,8 +134,8 @@ export function createSignIn({
   /** The sources signed in during this page load (decision 4). */
   const remembered = new Set<string>();
   const attempts = new Map<string, Attempt>();
-  /** Per canvas and source, the wrong-account line said there, until a sign-in on it succeeds. */
-  const otherAccountSaid = new Map<string, string>();
+  /** Per canvas and source, the failure said there, until a sign-in on it succeeds. */
+  const failureSaid = new Map<string, string>();
   const slotKey = (attempt: Attempt) => `${attempt.canvas}\n${attempt.source}`;
 
   /**
@@ -151,8 +163,8 @@ export function createSignIn({
   const signedIn = (attempt: Attempt, outcome: AttemptOutcome) => {
     if (outcome.source) remembered.add(outcome.source);
     const runtime = runtimeOf(attempt.canvas);
-    const said = otherAccountSaid.get(slotKey(attempt));
-    otherAccountSaid.delete(slotKey(attempt));
+    const said = failureSaid.get(slotKey(attempt));
+    failureSaid.delete(slotKey(attempt));
     if (said !== undefined && runtime?.store.getState().accountNotice === said) {
       runtime.store.showAccountNotice(null);
     }
@@ -199,9 +211,9 @@ export function createSignIn({
       console.info(
         `[A2UI:sign-in] ${attempt.source}: ${outcome.state}${outcome.reason ? ` (${outcome.reason})` : ''}`,
       );
-      if (outcome.state === 'failed' && outcome.cause === 'otherAccount' && outcome.label) {
-        const notice = otherAccountNoticeOf(outcome, attempt.source);
-        otherAccountSaid.set(slotKey(attempt), notice);
+      const notice = failureNoticeOf(outcome, attempt.source);
+      if (notice !== undefined) {
+        failureSaid.set(slotKey(attempt), notice);
         runtimeOf(attempt.canvas)?.store.showAccountNotice(notice);
       }
       return settle(attempt);

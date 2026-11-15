@@ -25,7 +25,13 @@ import {logLine} from '../log.js';
 import {callerOf} from '../writeGuard.js';
 import {codeEndPage, codePage, endPage, keyPage, refusedPage} from './pages.js';
 import {clientDocument, isSecureOrLocal, type ClientIdentity} from './oauth.js';
-import {KEY_NAME_MAX, type Attempt, type AuthVault, type SlotAsk} from './vault.js';
+import {
+  KEY_NAME_MAX,
+  type Attempt,
+  type AuthVault,
+  type FailureCause,
+  type SlotAsk,
+} from './vault.js';
 
 export const AUTH_ROUTE_PREFIX = '/auth';
 export const CLIENT_DOCUMENT_PATH = '/client.json';
@@ -49,6 +55,13 @@ export interface AuthRoutesDeps {
   installed(): readonly string[];
   /** The write guard: the JSON content type, then an allowed origin or the write token. */
   guard: RequestHandler;
+}
+
+/** A failed attempt's cause with the label of the account it names, for the end page's words. */
+function failureOf(attempt: Attempt): {failure?: {cause: FailureCause; label: string}} {
+  return attempt.cause && attempt.label
+    ? {failure: {cause: attempt.cause, label: attempt.label}}
+    : {};
 }
 
 export function authRoutes(deps: AuthRoutesDeps): Router {
@@ -80,7 +93,7 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
   const about = (attempt: Attempt) => ({
     app: deps.app(attempt.appId).name,
     connect: attempt.scheme.kind !== 'oauth',
-    ...(attempt.cause === 'otherAccount' && attempt.label ? {otherAccount: attempt.label} : {}),
+    ...failureOf(attempt),
   });
 
   router.get(CLIENT_DOCUMENT_PATH, (_req, res) => {
@@ -135,15 +148,9 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
     const app = deps.app(attempt.appId).name;
     // Reloaded, the page shows the same code; once ended, how it ended (task-20.6 decision 3).
     if (attempt.state !== 'pending') {
-      const other = attempt.cause === 'otherAccount' ? attempt.label : undefined;
-      return html(res, 200, codeEndPage(attempt.state, app, other));
+      return html(res, 200, codeEndPage(attempt.state, app, failureOf(attempt).failure));
     }
     if (!attempt.device) return html(res, 400, refusedPage());
-    // More access: the account it is asked for, named should another account sign in.
-    const account =
-      attempt.purpose === 'escalation'
-        ? deps.vault.accountsOf(attempt.appId).find(held => held.n === attempt.n)?.label
-        : undefined;
     return html(
       res,
       200,
@@ -153,7 +160,6 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
         opens: attempt.device.verificationUri,
         complete: attempt.device.complete,
         outcomeUrl: `${AUTH_ROUTE_PREFIX}/attempts/${encodeURIComponent(attempt.id)}`,
-        ...(account ? {account} : {}),
       }),
     );
   });
