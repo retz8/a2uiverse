@@ -6,14 +6,14 @@ The items of the [Backlog in `_dev/TODO.md`](../TODO.md#backlog) to take up, rea
 
 1. Items are done in order, one at a time, one session per item, a fresh session each time where possible.
 2. When an item is started, Claude recommends skipping the grill if the task is small enough. Otherwise the item is grilled, with no spec written afterward. Either way it is implemented directly on `main`.
-3. Once an item is done and confirmed by the user, it is marked done here, and its Backlog line is removed from `_dev/TODO.md`, with nothing recorded.
+3. Once an item is done and confirmed by the user, it is marked [DONE] here, and its Backlog line is removed from `_dev/TODO.md`, with nothing recorded.
 4. Every commit is an off-phase commit, such as `fix: …` or `chore: …`, never `fix(backlog): …`.
 
 ## Do now
 
 In this order.
 
-1. Done in `a2uiverse-apps` 82821e9. `pnpm verify` in `a2uiverse-apps` runs no Python agent's tests. Its script is `turbo run build typecheck test check && pnpm lint && pnpm format:check`, and no `package.json` in the repository runs `pytest`, so each agent's `uv run pytest` runs apart; the prompt goldens failed under it while the gate was green. Under an hour. Before item 3.
+1. [DONE] (`a2uiverse-apps` 82821e9) `pnpm verify` in `a2uiverse-apps` runs no Python agent's tests. Its script is `turbo run build typecheck test check && pnpm lint && pnpm format:check`, and no `package.json` in the repository runs `pytest`, so each agent's `uv run pytest` runs apart; the prompt goldens failed under it while the gate was green. Under an hour. Before item 3.
 2. The name the privacy gate guards is in the platform's beat 24 and in 12 fixtures and beats of `a2uiverse-apps`. The gate is [`apps/client/scripts/check-fixture-privacy.ts`](../../apps/client/scripts/check-fixture-privacy.ts), its needles read from `A2UI_FIXTURE_FORBIDDEN`. Beat 24, [`beat-24-step-unseen.json`](../../apps/client/recordings/beats/beat-24-step-unseen.json), a step back to a paint not seen before, holds it as the assignee in Linear's deterministic `open-issue.json`. In `a2uiverse-apps` it is in Linear's stub `user.json`, `users.json`, `list-issues.json` and `get-issue.json`, its beats 2 and 3, its deterministic `open-issue.json` and `confirm-change.json`, and, as the sender's name, Gmail's stub `get-thread.json` and `search-threads.json` of both fake accounts. The fix:
    1. the stub fixtures given a made-up name;
    2. Linear's beats recorded again against its stub, a model painting over the recorded data with nothing reaching Linear, and its deterministic fixtures derived from them (`linear/agent/README.md` of `a2uiverse-apps`);
