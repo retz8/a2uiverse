@@ -38,10 +38,10 @@ This project targets a single protocol version at a time.
 - Do not hardcode schema contents; read them from the `upstream/main` ref dynamically.
 - **Protocol deviations** are recorded in the protocol delta register in SPEC.md §14, tagged *local convention* or *upstream candidate*. Add every new deviation there.
 - **How to read the spec.** From the `upstream/main` ref of `../A2UI`, never its working tree, which is usually on a feature branch:
-  - list a tree: `git -C ../A2UI ls-tree -r --name-only upstream/main specification/`
+  - list a tree: `git -C ../A2UI ls-tree -r --name-only upstream/main specification/ catalogs/`
   - read a file in full: `git -C ../A2UI show upstream/main:specification/v0_9_1/json/server_to_client.json`
-  - search: `git -C ../A2UI grep <pattern> upstream/main -- specification/`
-- **Critical sources of truth** under `specification/<version>/`, each read in full for the targeted version: the JSON schemas (`json/server_to_client.json` for stream envelopes, `client_to_server.json` for action events, `common_types.json` for the dynamic binding primitives and the other `$defs`); the catalogs (`catalogs/<name>/catalog.json`, bundled under the version for v0.9 and v0.9.1 and under the repo's `catalogs/` from v1.0; the basic catalog is the structural reference when authoring one); the protocol semantics (`docs/a2ui_protocol.md`); the SDK architecture (`docs/sdks_spec.md`: the core SDK, the inference SDK, the framework adapters); the basic catalog implementation guide (`docs/basic_catalog_implementation_guide.md`); custom functions (`docs/a2ui_custom_functions.md`); the conformance suite (`test/`) the sdk's validator is measured against.
+  - search: `git -C ../A2UI grep <pattern> upstream/main -- specification/ catalogs/`
+- **Critical sources of truth**, each read in full for the targeted version. Under `specification/<version>/`: the JSON schemas (`json/server_to_client.json` for stream envelopes, `client_to_server.json` for action events, `common_types.json` for the dynamic binding primitives and the other `$defs`); the protocol semantics (`docs/a2ui_protocol.md`); the SDK architecture (`docs/sdks_spec.md`: the core SDK, the inference SDK, the framework adapters); custom functions (`docs/a2ui_custom_functions.md`); the conformance suite (`test/`) the sdk's validator is measured against. Under the repo's `catalogs/<name>/<version>/`, the version folder `v0_9`, `v0_9_1` or `v1`: the catalogs (`catalog.json`; the basic catalog is the structural reference when authoring one) and the basic catalog implementation guide (`catalogs/basic/<version>/basic_catalog_implementation_guide.md`).
 
 ---
 
