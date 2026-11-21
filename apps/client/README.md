@@ -154,7 +154,7 @@ The code is in `src/catalogs/`. The tests and e2e load the **registry snapshot**
 
 `@a2ui/react` is patched locally (`patches/@a2ui__react@0.14.0.patch`) so that what the renderer can't draw stays quiet: a child still on its way, a type the catalog doesn't have and a child reference that can't be resolved each draw a quiet, themed stand-in marked `data-a2ui-placeholder`, never upstream's developer text, and the rest of the fragment stands. `src/canvas/composition/rendererPatch.test.tsx` fails if a version bump drops it; regenerate the patch with `pnpm patch @a2ui/react@<version>`.
 
-`@a2ui/web_core` is patched locally (`patches/@a2ui__web_core@0.14.0.patch`) with `addCatalog`, upstream's [PR #3304](https://github.com/a2ui-project/a2ui/pull/3304): a `MessageProcessor` takes its catalogs in its constructor alone, and the client adds each catalog it loads at runtime through it. The client puts another build of a catalog the processor holds in the held one's place in its list, linked to the others as `addCatalog` links them. `src/catalogs/host.test.ts` fails without it; the patch is dropped once upstream ships `addCatalog`.
+`@a2ui/web_core` is patched locally (`patches/@a2ui__web_core@0.14.0.patch`) with `addCatalog`, upstream's [PR #3304](https://github.com/a2ui-project/a2ui/pull/3304): a `MessageProcessor` takes its catalogs in its constructor alone, and the client adds each catalog it loads at runtime through it. The client puts another build of a catalog the processor holds in the held one's place in its list, linked to nothing: no catalog the platform loads refers into another. `src/catalogs/host.test.ts` fails without it; the patch is dropped once upstream ships `addCatalog`.
 
 <details>
 <summary><b>On-demand scripts</b></summary>

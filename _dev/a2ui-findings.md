@@ -221,7 +221,9 @@ starts; a client that learns of one later has no supported way to render it.
 
 **Reported:** `a2ui-project/a2ui` issue
 [#3303](https://github.com/a2ui-project/a2ui/issues/3303), PR
-[#3304](https://github.com/a2ui-project/a2ui/pull/3304) (in review).
+[#3304](https://github.com/a2ui-project/a2ui/pull/3304).
+
+**Resolved:** #3304 merged 2026-11-20.
 
 ### Issue
 
@@ -259,24 +261,20 @@ creates the surface on 0.14.0.
 
 ### Fix
 
-`addCatalog(catalog)` on `MessageProcessor` (`add_catalog` in Python), in web_core, Python core and
-Dart core (PR #3304):
+`addCatalog(catalog)` on `MessageProcessor` (`add_catalog` in Python), in web_core, Python core,
+Dart core and Swift core, as #3304 landed:
 
-- it rejects a catalog whose id the processor already holds with `A2uiCatalogError`;
-- it links the new catalog and the held catalogs to each other with `linkCatalogs`, as the
-  constructor does, so cross-catalog `$ref`s resolve in both directions; the catalog passed in is not
-  changed;
-- it writes the result into the processor's list in place, which the `RpcHandler` shares.
+- it rejects a catalog whose id the processor already holds with `A2uiCatalogError`
+  (`A2UICatalogError` in Swift);
+- it appends the catalog, as given, to the processor's own list. The constructor copies the list it
+  is given, so the caller's list is not changed. Nothing is linked: #3575 removed cross-catalog
+  `$ref` resolution.
 
-`createSurface` and `getRendererCapabilities` read the list each time, so they see the catalog from
-the next call on. Surfaces created before the call keep the catalogs they were created with, left as
-an open question in the issue. Dart's processor cached validators, child-reference fields and
-composition rules by catalog id; since a linked copy replaces a held catalog of the same id while
-earlier surfaces keep the old one, they now belong to the catalog instance, held in `Expando`s that
-do not keep a catalog alive, so a copy no surface uses any more is collected with its entries. The
-shared conformance suite `conformance/core/add_catalog.yaml` runs in the web_core, Python and Dart
-harnesses. Swift core has no `addCatalog` and no cross-catalog linking, and does not load the suite;
-the PR leaves Swift as an open question.
+`createSurface` messages, renderer function calls and `getRendererCapabilities` see the catalog from
+the next call on. Surfaces created before the call keep the catalogs they were created with.
+`MessageProcessor.catalogs` lists the added catalog too; in web_core it is a getter that returns a
+copy of the list, and in Dart it cannot be modified. The shared conformance suite
+`conformance/core/add_catalog.yaml` runs in the web_core, Python, Dart and Swift harnesses.
 
 ### Prior art
 
