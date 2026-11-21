@@ -1315,3 +1315,61 @@ Commit `c712e0fee` ("POTENTIALLY BREAKING CHANGE refactor: IANA convention requi
 application/a2ui+json", pull request [#1493](https://github.com/a2ui-project/a2ui/pull/1493), merged
 2026-05-29) renamed the string. No issue or pull request reports the v0.9 text and the helper
 disagreeing, searched on 2026-11-13.
+
+---
+
+## 32. No way to put another build of a held catalog in a processor (web_core, Python core, Dart core, Swift core)
+
+**Component:** `MessageProcessor` at `upstream/main` `5ff1b05f0`:
+`typescript/core/web_core/src/processing/message-processor.ts` (`catalogs`, line 305; `addCatalog`,
+line 320), `python/a2ui_core/src/a2ui/core/processing/message_processor.py` (`add_catalog`, line
+241), `dart/a2ui_core/lib/src/processing/processor.dart` (`catalogs`, line 106; `addCatalog`, line
+309) and `swift/core/Sources/A2UICore/Processing/MessageProcessor.swift` (`addCatalog`, line 121).
+
+**Severity:** missing capability. A client whose catalogs never change under one id is unaffected; a
+client that loads a newer build of a catalog its processor holds has no supported way to create
+surfaces in it.
+
+**Reported:** not filed.
+
+### Issue
+
+`addCatalog` (#3304, finding 14) adds a catalog whose id the processor does not hold, and rejects
+one it holds with `A2uiCatalogError`. No method replaces or removes a catalog, and the list cannot be
+changed from outside: in web_core it is the private `registeredCatalogs` and `catalogs` returns a
+copy, in Dart `catalogs` is an `UnmodifiableListView`, and in Swift the list and the id map are
+private. Only Python's `catalogs` is the processor's own list, open to change. The one way left to
+create surfaces in a newer build is a new processor, which drops every surface the old one holds.
+
+In A2UIVerse's registry a catalog keeps its id across builds: a newer build is a newer artifact under
+the same id. Each paint is drawn in the build the gate assigned to it, so a surface on screen keeps
+its build beside a newer one of its catalog (task-15.6 decisions 1 to 6), and the build is put in the
+processor's list just before its create (task-16.7 decision 2). With PR #3304 carried as a local
+patch on `@a2ui/web_core` 0.14.0, `BuildProcessor`'s `#hold` (`apps/client/src/catalogs/paintBuilds.ts`)
+reads the private list through a cast and splices the newer build into the held one's place. Against
+the merged web_core the same cast reads the copy `catalogs` returns, so the splice changes nothing
+the processor reads.
+
+### Reproduction
+
+```ts
+const processor = new MessageProcessor([build1]);
+processor.addCatalog(build2); // same id: A2uiCatalogError: Catalog already registered: <id>
+```
+
+Not run for this finding: read from `addCatalog` at `5ff1b05f0`.
+
+### Fix
+
+A method that puts a catalog in the place of the held one with the same id, as `replaceCatalog` or
+an option on `addCatalog`: `createSurface` messages, renderer function calls and
+`getRendererCapabilities` see the new build from the next call on, and surfaces created before keep
+the build they were created with, as they do for `addCatalog`. Or `removeCatalog(id)`, after which
+`addCatalog` takes the new build; a `createSurface` naming the id between the two calls fails.
+Whether upstream wants a catalog to change under one id at all is the first question to ask; if not,
+the client gives each build an id of its own and rewrites the `catalogId` of each create it assigns.
+
+### Prior art
+
+No issue or pull request proposes replacing or removing a catalog in a processor (searched
+`replaceCatalog`, `removeCatalog`, `remove_catalog` and catalog updates on 2026-11-21).
