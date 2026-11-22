@@ -1,6 +1,6 @@
 # scripts
 
-The launcher, which starts the apps from an [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) checkout and installs them into the orchestrator, and the secret sweep, run after a sitting.
+The launcher, which starts the apps from an [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) checkout and installs them into the orchestrator, the secret sweep, run after a sitting, and the upstream readings, which the daily "Upstream releases" workflow runs.
 
 ## Quick start
 
@@ -19,7 +19,10 @@ pnpm dev:agents [flags]       # the apps only, installed into an orchestrator yo
 pnpm agents:list [--tier <tiers>] [--publish]   # what a launch would run; exits non-zero on what would stop one
 pnpm sweep:secrets [flags]    # after a sitting: every token and key searched for in what it left, counts only
 pnpm test:scripts             # the scripts' own tests
+node scripts/upstream-readings.mjs --upstream <clone>   # each @a2ui and @a2a-js package on npm beside the version used
 ```
+
+The `<clone>` is a clone of `a2ui-project/a2ui`; the workflow makes one with `git clone --filter=blob:none --no-checkout`.
 
 | Flag of `dev:all` and `dev:agents` | What it does                                                                                         |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
