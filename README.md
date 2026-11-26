@@ -203,8 +203,8 @@ A2UIVerse speaks the A2UI protocol at v0.9 and v0.9.1 and the A2A protocol at 0.
 | ---------------- | ------- | ------------------------------------------------------------------------------------------------------------ |
 | `@a2ui/web_core` | 0.14.0  | the client, the shell catalog, the orchestrator, the sdk and Stellify; lent to the apps' catalogs at runtime |
 | `@a2ui/react`    | 0.14.0  | the client and the shell catalog; lent to the apps' catalogs at runtime                                      |
-| `a2ui-agent-sdk` | 0.11.0  | the agent kit in `a2uiverse-apps`                                                                            |
-| `a2ui-core`      | 0.6.0   | the agent kit                                                                                                |
+| `a2ui-agent-sdk` | 0.12.1  | the agent kit in `a2uiverse-apps`                                                                            |
+| `a2ui-core`      | 0.7.1   | the agent kit                                                                                                |
 | `@a2a-js/sdk`    | 1.3.0   | the client, the orchestrator, the marketplace and Stellify                                                   |
 | `a2a-sdk`        | 1.3.0   | the agent kit, which takes any 1.x from 1.3.0                                                                |
 

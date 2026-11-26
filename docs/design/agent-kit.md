@@ -600,7 +600,7 @@ In `a2uiverse-apps/agent-kit/src/a2ui_agent_kit/`:
 | `preview_credential.py`        | A token from the running agent for Stellify's preview, signed in as one of its made-up accounts |
 | `testing.py`                   | Run an executor in-process, or the agent on its ports signed in as a vault would, for tests     |
 
-The kit pins upstream's A2UI packages exactly, in `pyproject.toml`: `a2ui-agent-sdk` 0.11.0 and `a2ui-core` 0.6.0 beneath it, and the Python A2A SDK at `a2a-sdk[http-server,grpc,signing]>=1.3.0,<2.0.0`. Upstream's A2A toolkit `a2ui-a2a` requires `a2a-sdk` below 0.4.0, so the kit writes its own part in its place. The kit's tests drive an agent over real sockets on each of the six paths with the Python A2A SDK's own client (`tests/test_six_paths.py`).
+The kit pins upstream's A2UI packages exactly, in `pyproject.toml`: `a2ui-agent-sdk` 0.12.1 and `a2ui-core` 0.7.1 beneath it, and the Python A2A SDK at `a2a-sdk[http-server,grpc,signing]>=1.3.0,<2.0.0`. Upstream's A2A toolkit `a2ui-a2a` requires `a2a-sdk` below 0.4.0, so the kit writes its own part in its place. The kit's tests drive an agent over real sockets on each of the six paths with the Python A2A SDK's own client (`tests/test_six_paths.py`).
 
 The scaffolder is `a2uiverse-apps/create-a2ui-agent/`: `src/cli.ts` (flags and the flow), `src/prompts.ts` (the walkthrough), `src/scaffold.ts` (composing templates), `src/generate.ts` (the three generated files), `src/kit.ts` (the pin), `src/ports.ts`, and `templates/`. Its drift gate is `test/scaffold-run.test.ts`.
 
