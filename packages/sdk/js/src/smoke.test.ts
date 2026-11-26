@@ -162,7 +162,7 @@ describe('checkPaint', () => {
     const {findings} = checkPaint(streamed({child: 'sort-label'}), check);
     expect(findings).toHaveLength(1);
     expect(findings[0]).toMatch(
-      /^surface "main": .*\/action \(sort\): Expected object, received undefined/,
+      /^surface "main": .*\/components\/3\/action \(sort\): Invalid input$/,
     );
   });
 

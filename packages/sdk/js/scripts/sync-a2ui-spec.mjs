@@ -31,7 +31,7 @@ const SPEC_FILES = [
   // v0.9's, read beside v0.9.1's since a card is read per version (task 19.1): the reader validates
   // against one version part, and a test holds the two schemas' parts equal.
   'specification/v0_9/json/server_capabilities.json',
-  'specification/v0_9_1/catalogs/basic/catalog.json',
+  'catalogs/basic/v0_9_1/catalog.json',
 ];
 const CONFORMANCE = 'conformance/core/validator_v0_9.yaml';
 

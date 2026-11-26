@@ -769,7 +769,7 @@ var A2UI_EXTENSION_URIS = {
   "v0.9.1": "https://a2ui.org/a2a-extension/a2ui/v0.9.1"
 };
 var A2UI_CLIENT_CAPABILITIES_KEY = "a2uiClientCapabilities";
-var HOST_INTERFACE_VERSION = "0.14.0";
+var HOST_INTERFACE_VERSION = "0.16.1";
 var SUPPORTED_HOST_INTERFACES = [HOST_INTERFACE_VERSION];
 function checkHostInterface(version, supported = SUPPORTED_HOST_INTERFACES) {
   if (supported.includes(version))
@@ -1014,7 +1014,7 @@ var MESSAGE_TYPES = ["createSurface", "updateComponents", "updateDataModel", "de
 var isObject2 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 var categoryOf = (error) => error instanceof A2uiRecursionError ? "RecursionError" : error instanceof A2uiIntegrityError ? "IntegrityError" : "ValidationError";
 var messageOf2 = (error) => error instanceof Error ? error.message : String(error);
-var isZodIssue = (value) => isObject2(value) && Array.isArray(value.path) && typeof value.message === "string";
+var isErrorDetail = (value) => isObject2(value) && typeof value.path === "string" && typeof value.message === "string";
 function issueText(issue) {
   const label = `${issue.path.length > 0 ? issue.path.join(".") : "root"}: `;
   const parts = formatZodIssue(issue).split("; ").map((part) => part.startsWith(label) ? part.slice(label.length) : part);
@@ -1052,14 +1052,17 @@ function componentFindings(error, component, base, componentId) {
     return [{ category: "ValidationError", path: `${base}/component`, ...tag, message }];
   }
   const details = error.details;
-  const issues = Array.isArray(details) ? details.filter(isZodIssue) : [];
-  if (issues.length === 0) {
+  const failures = Array.isArray(details) ? details.filter(isErrorDetail) : [];
+  if (failures.length === 0) {
     return [{ category: categoryOf(error), path: base, ...tag, message }];
   }
   const byPath = /* @__PURE__ */ new Map();
-  for (const issue of issues) {
-    const path = `${base}${issue.path.map((part) => `/${part}`).join("")}`;
-    byPath.set(path, [...byPath.get(path) ?? [], issueText(issue)]);
+  for (const failure of failures) {
+    const path = `${base}${failure.path === "/" ? "" : failure.path}`;
+    const texts = byPath.get(path) ?? [];
+    if (!texts.includes(failure.message))
+      texts.push(failure.message);
+    byPath.set(path, texts);
   }
   return [...byPath].map(([path, texts]) => ({
     category: "ValidationError",

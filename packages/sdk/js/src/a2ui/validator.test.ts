@@ -10,7 +10,7 @@ import {createA2uiValidator, formatA2uiFinding} from './validator';
 
 const basic = JSON.parse(
   readFileSync(
-    new URL('../../../a2ui-spec/specification/v0_9_1/catalogs/basic/catalog.json', import.meta.url),
+    new URL('../../../a2ui-spec/catalogs/basic/v0_9_1/catalog.json', import.meta.url),
     'utf8',
   ),
 ) as A2uiCatalogSchema;
@@ -97,11 +97,16 @@ describe('the schema', () => {
     );
   });
 
-  test('a prop the component does not declare is refused by name', () => {
+  test('a prop the component does not declare is refused by name, at the key', () => {
     const components = clone(valid);
     components[1] = {id: 'title', component: 'Text', text: 'Inbox', colour: 'red'};
-    expect(validator.validate(surface(components)).map(f => f.message)).toEqual([
-      "Unrecognized key(s) in object: 'colour'",
+    expect(validator.validate(surface(components))).toEqual([
+      {
+        category: 'ValidationError',
+        path: '/1/updateComponents/components/1/colour',
+        componentId: 'title',
+        message: "Unrecognized key(s) in object: 'colour'",
+      },
     ]);
   });
 

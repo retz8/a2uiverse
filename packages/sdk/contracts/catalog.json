@@ -20,7 +20,7 @@
     "rule": "A catalog package's entry exports CATALOG, a Catalog from @a2ui/web_core built for @a2ui/react's React catalog model; its id is the catalog id. Provider, when exported, is a React component taking children — the one Provider of SPEC §9.2, wrapping every fragment of the catalog; absent, a passthrough wraps them. Every other export is ignored."
   },
   "hostInterfaces": {
-    "0.14.0": {
+    "0.16.1": {
       "global": "__a2uiverse_host__",
       "specifiers": [
         "react",

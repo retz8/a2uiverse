@@ -14,7 +14,11 @@
  */
 import {Ajv2020} from 'ajv/dist/2020.js';
 import {Catalog, type CatalogApi} from '@a2ui/web_core/catalog';
-import {A2uiIntegrityError, A2uiRecursionError} from '@a2ui/web_core/errors';
+import {
+  A2uiIntegrityError,
+  A2uiRecursionError,
+  type A2uiErrorDetail,
+} from '@a2ui/web_core/errors';
 import {formatZodIssue, MessageProcessor} from '@a2ui/web_core/processing';
 import {ComponentModel, SurfaceComponentsModel} from '@a2ui/web_core/state';
 import {
@@ -66,8 +70,9 @@ const categoryOf = (error: unknown): A2uiFindingCategory =>
 const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-const isZodIssue = (value: unknown): value is ZodIssue =>
-  isObject(value) && Array.isArray(value.path) && typeof value.message === 'string';
+/** One failure web_core carries on a component's error: a JSON Pointer under the component, and its words. */
+const isErrorDetail = (value: unknown): value is A2uiErrorDetail =>
+  isObject(value) && typeof value.path === 'string' && typeof value.message === 'string';
 
 /**
  * A Zod issue in web_core's wording, without the dotted path each of its parts leads with — the
@@ -117,14 +122,16 @@ function componentFindings(
     return [{category: 'ValidationError', path: `${base}/component`, ...tag, message}];
   }
   const details = (error as {details?: unknown}).details;
-  const issues = Array.isArray(details) ? details.filter(isZodIssue) : [];
-  if (issues.length === 0) {
+  const failures = Array.isArray(details) ? details.filter(isErrorDetail) : [];
+  if (failures.length === 0) {
     return [{category: categoryOf(error), path: base, ...tag, message}];
   }
   const byPath = new Map<string, string[]>();
-  for (const issue of issues) {
-    const path = `${base}${issue.path.map(part => `/${part}`).join('')}`;
-    byPath.set(path, [...(byPath.get(path) ?? []), issueText(issue)]);
+  for (const failure of failures) {
+    const path = `${base}${failure.path === '/' ? '' : failure.path}`;
+    const texts = byPath.get(path) ?? [];
+    if (!texts.includes(failure.message)) texts.push(failure.message);
+    byPath.set(path, texts);
   }
   return [...byPath].map(([path, texts]) => ({
     category: 'ValidationError',

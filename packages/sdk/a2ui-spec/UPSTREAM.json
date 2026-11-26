@@ -1,14 +1,14 @@
 {
   "repository": "a2ui-project/a2ui",
   "ref": "upstream/main",
-  "commit": "409ded29ccac3eebc541979ae5320771703248e8",
+  "commit": "7a776e7a476b61215ec68c6511f3b8f1921d6e24",
   "files": [
     "specification/v0_9_1/json/common_types.json",
     "specification/v0_9_1/json/server_capabilities.json",
     "specification/v0_9_1/json/client_capabilities.json",
     "specification/v0_9/json/server_capabilities.json",
-    "specification/v0_9_1/catalogs/basic/catalog.json",
+    "catalogs/basic/v0_9_1/catalog.json",
     "conformance/core/validator_v0_9.yaml",
-    "specification/v0_9/catalogs/basic/catalog.json"
+    "catalogs/basic/v0_9/catalog.json"
   ]
 }

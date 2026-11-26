@@ -111,7 +111,7 @@ export function checkCatalogExports(
  * The A2UI runtime release — `@a2ui/react` and `@a2ui/web_core` — the one interface lent today is
  * named by (task-11.2 decision 2, amended by task 16.4).
  */
-export const HOST_INTERFACE_VERSION = '0.14.0';
+export const HOST_INTERFACE_VERSION = '0.16.1';
 
 /**
  * The host interfaces the platform supplies, by the A2UI runtime release each lends: an artifact built

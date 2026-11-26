@@ -28,7 +28,7 @@ describe('packing the fixture catalog', () => {
       catalogId: CATALOG_ID,
       entry: 'index.js',
       schema: 'catalog.json',
-      hostInterface: '0.14.0',
+      hostInterface: '0.16.1',
       files: expect.any(Object),
       package: {name: 'star-catalog', version: '1.2.3'},
       packedBy: {tool: '@a2uiverse/stellify', version: toolVersion},
@@ -85,7 +85,7 @@ describe('packing the fixture catalog', () => {
         : await import(specifier);
     }
     (globalThis as Record<string, unknown>).__a2uiverse_host__ = {
-      version: '0.14.0',
+      version: '0.16.1',
       modules,
       loadStylesheet: async (url: string) => {
         await new Promise(resolve => setTimeout(resolve, 5));
@@ -126,7 +126,7 @@ describe('packing the fixture catalog', () => {
     const asked: string[] = [];
     const finish = new Map<string, () => void>();
     (globalThis as Record<string, unknown>).__a2uiverse_host__ = {
-      version: '0.14.0',
+      version: '0.16.1',
       modules,
       loadStylesheet: (url: string) =>
         new Promise<void>(resolve => {

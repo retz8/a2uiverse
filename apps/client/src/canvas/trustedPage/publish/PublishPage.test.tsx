@@ -202,7 +202,7 @@ const DESCRIPTOR = JSON.stringify({
   catalogId: LINEAR_CATALOG,
   entry: 'index.js',
   schema: 'catalog.json',
-  hostInterface: '0.14.0',
+  hostInterface: '0.16.1',
   files: {},
   package: {name: 'linear-catalog', version: '0.4.0'},
 });

@@ -6,7 +6,7 @@ import {createA2uiValidator} from './validator';
 
 const basic = JSON.parse(
   readFileSync(
-    new URL('../../../a2ui-spec/specification/v0_9_1/catalogs/basic/catalog.json', import.meta.url),
+    new URL('../../../a2ui-spec/catalogs/basic/v0_9_1/catalog.json', import.meta.url),
     'utf8',
   ),
 ) as A2uiCatalogSchema;

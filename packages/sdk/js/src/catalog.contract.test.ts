@@ -60,7 +60,7 @@ test('the export contract: CATALOG required, Provider optional', () => {
 test('the host-module interfaces keyed by the A2UI runtime release: one today, the global, eight specifiers, the loader', () => {
   expect(Object.keys(contract.hostInterfaces)).toEqual([HOST_INTERFACE_VERSION]);
   expect(Object.keys(contract.hostInterfaces)).toEqual([...SUPPORTED_HOST_INTERFACES]);
-  expect(HOST_INTERFACE_VERSION).toBe('0.14.0');
+  expect(HOST_INTERFACE_VERSION).toBe('0.16.1');
   const lent = contract.hostInterfaces[HOST_INTERFACE_VERSION];
   expect(lent.global).toBe(HOST_INTERFACE_GLOBAL);
   expect(lent.specifiers).toEqual([...HOST_SPECIFIERS]);

@@ -433,13 +433,19 @@ describe('the app id', () => {
 
 describe('the host interface an artifact was built against (task-11.4 decision 4)', () => {
   test('one the platform supplies passes', () => {
-    expect(SUPPORTED_HOST_INTERFACES).toEqual(['0.14.0']);
-    expect(checkHostInterface('0.14.0')).toEqual([]);
+    expect(SUPPORTED_HOST_INTERFACES).toEqual(['0.16.1']);
+    expect(checkHostInterface('0.16.1')).toEqual([]);
   });
 
   test('any other is refused, naming what the platform supplies', () => {
     expect(checkHostInterface('1.0')).toEqual([
-      'host interface "1.0" is not one the platform supplies (it supplies "0.14.0")',
+      'host interface "1.0" is not one the platform supplies (it supplies "0.16.1")',
+    ]);
+  });
+
+  test('the interface before it, 0.14.0, is refused (task-21.2 decision 3)', () => {
+    expect(checkHostInterface('0.14.0')).toEqual([
+      'host interface "0.14.0" is not one the platform supplies (it supplies "0.16.1")',
     ]);
   });
 });

@@ -96,6 +96,15 @@ describe('gateArtifact', () => {
     ]);
   });
 
+  test('an artifact packed for host interface 0.14.0 is refused, the platform supplying 0.16.1 (task-21.2 decision 3)', async () => {
+    const files = await artifact(GMAIL, {hostInterface: '0.14.0'});
+    const result = await gateArtifact(files, 0);
+    expect(result.findings).toEqual([
+      `catalog artifact 1 (${GMAIL}): host interface "0.14.0" is not one the platform supplies (it supplies "0.16.1")`,
+    ]);
+    expect(result.artifact).toBeUndefined();
+  });
+
   test("a schema whose id is not the descriptor's", async () => {
     const files = await artifact(GMAIL, {schema: {catalogId: CALENDAR, components: {}}});
     expect((await gateArtifact(files, 0)).findings).toEqual([
