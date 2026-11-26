@@ -1381,3 +1381,85 @@ the client gives each build an id of its own and rewrites the `catalogId` of eac
 
 No issue or pull request proposes replacing or removing a catalog in a processor (searched
 `replaceCatalog`, `removeCatalog`, `remove_catalog` and catalog updates on 2026-11-21).
+
+---
+
+## 33. `@a2ui/web_core` and `a2ui-core` read `"format": "uri"` differently: a URL with no scheme passes one and fails the other (web_core, Python core)
+
+**Component:** at `7a776e7a4`, the commit `@a2ui/web_core` 0.16.1 was released from:
+`typescript/core/web_core/src/catalog/schema_loader.ts`, line 511, and `executeOpenUrl` in
+`typescript/core/web_core/src/common/basic_functions.ts`, line 647;
+`python/a2ui_core/src/a2ui/core/validation/schema_validator.py`, lines 139 to 146, and
+`StrictBaseModel` in `python/a2ui_core/src/a2ui/core/schema/common_types.py`, lines 115 to 118, which
+reads `_URI_RE` from `python/a2ui_core/src/a2ui/core/schema/_json_schema.py`, line 40. The same lines
+are in the published `a2ui-core` 0.7.1.
+
+**Severity:** the two reference SDKs disagree on one schema keyword. A paint whose `openUrl` names a
+URL with no scheme is valid for a renderer on `@a2ui/web_core` and invalid for an agent on
+`a2ui-core`, and on a web renderer the press opens a page on the renderer's own site.
+
+**Reported:** not filed.
+
+### Issue
+
+Pull request [#4187](https://github.com/a2ui-project/a2ui/pull/4187) (merged 2026-11-16, for issue
+[#4173](https://github.com/a2ui-project/a2ui/issues/4173)) made both SDKs judge `"format": "uri"`,
+which the v0.9 basic catalog puts on `openUrl.args.url`. The two judge it by different rules.
+
+`a2ui-core` requires a scheme, on its JSON-loaded catalogs and on the ones defined in code alike:
+
+```python
+_URI_RE: Final[regex.Pattern[str]] = regex.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:\S*\Z")
+```
+
+Its changelog for 0.7.0 calls this "RFC 3986 scheme-prefixed URI syntax". `@a2ui/web_core`'s
+`Catalog.fromJson` asks only that the string, trimmed, be non-empty and hold no whitespace:
+
+```ts
+s.refine(v => v.trim().length > 0 && !/\s/.test(v.trim()), 'Invalid URI')
+```
+
+so `example.com/page` and `www.example.com` pass, and so does `" https://example.com "`, which
+`a2ui-core` refuses for its spaces. web_core's 0.16.0 changelog, under the same pull request, gives
+"pass a scheme-prefixed URI to `openUrl.url`" as the migration, which its own check does not need.
+
+When such a URL is pressed, `executeOpenUrl` resolves it against the page:
+`new URL(target, window.location.href)`. A relative URL then names a page on the renderer's own
+origin, which passes the `http:`/`https:` check and opens, where the agent meant another site.
+
+### Reproduction
+
+The same `Button` through each SDK's validator over the v0.9 basic catalog's `catalog.json` at
+`7a776e7a4`, loaded from JSON (`Catalog.fromJson` and `PayloadValidator` under `STRICT_VALIDATION`
+in `@a2ui/web_core` 0.16.1; `Catalog.from_json` and `PayloadValidator` in `a2ui-core` 0.7.1):
+
+```json
+{"id": "go", "component": "Button", "child": "label",
+ "action": {"functionCall": {"call": "openUrl", "args": {"url": "example.com/page"}}}}
+```
+
+| `url` | `@a2ui/web_core` 0.16.1 | `a2ui-core` 0.7.1 |
+| --- | --- | --- |
+| `https://example.com/page` | accepted | accepted |
+| `example.com/page` | accepted | refused |
+| `www.example.com` | accepted | refused |
+| `" https://example.com "` | accepted | refused |
+
+Run on 2026-11-26. `a2ui-core` refuses each as an `A2uiValidationError` whose message names the
+component's unevaluated properties rather than the URL. Its `OpenUrlArgs` model, the catalog defined
+in code, says "Field 'url' must be a valid URI, got 'example.com/page'". The press on a web renderer
+is read from `executeOpenUrl`, not run.
+
+### Fix
+
+One rule in both SDKs. Taking `a2ui-core`'s, the JSON Schema `uri` format, which names an absolute
+URI, web_core's refinement becomes the same regular expression. A renderer that wants to accept a
+relative URL from an agent says so in the specification, and `a2ui-core` relaxes to it.
+
+### Prior art
+
+Issue #4173 and pull request #4187 are the change itself. No issue or pull request reports the two
+SDKs disagreeing (searched "format uri", "openUrl scheme", "Invalid URI" and "scheme-prefixed" on
+2026-11-26). Issue [#4045](https://github.com/a2ui-project/a2ui/issues/4045) (open) proposes a URL
+policy across the SDKs, and pull request [#3199](https://github.com/a2ui-project/a2ui/pull/3199)
+(open) adds `mailto` and `tel` to the specification's `openUrl` scheme list.
