@@ -199,15 +199,15 @@ Each model and its effort is a default, set by a variable:
 
 A2UIVerse speaks the A2UI protocol at v0.9 and v0.9.1 and the A2A protocol at 0.3 and 1.0, on the packages the two projects publish:
 
-| Package          | Version | Used by                                                                                             |
-| ---------------- | ------- | --------------------------------------------------------------------------------------------------- |
-| `@a2ui/web_core` | 0.14.0  | the client, the shell catalog, the orchestrator and Stellify; lent to the apps' catalogs at runtime |
-| `@a2ui/web_core` | 0.16.1  | the sdk                                                                                             |
-| `@a2ui/react`    | 0.14.0  | the client and the shell catalog; lent to the apps' catalogs at runtime                             |
-| `a2ui-agent-sdk` | 0.12.1  | the agent kit in `a2uiverse-apps`                                                                   |
-| `a2ui-core`      | 0.7.1   | the agent kit                                                                                       |
-| `@a2a-js/sdk`    | 1.3.0   | the client, the orchestrator, the marketplace and Stellify                                          |
-| `a2a-sdk`        | 1.3.0   | the agent kit, which takes any 1.x from 1.3.0                                                       |
+| Package          | Version | Used by                                                                                   |
+| ---------------- | ------- | ----------------------------------------------------------------------------------------- |
+| `@a2ui/web_core` | 0.14.0  | the client, the shell catalog and the orchestrator; lent to the apps' catalogs at runtime |
+| `@a2ui/web_core` | 0.16.1  | the sdk and Stellify                                                                      |
+| `@a2ui/react`    | 0.14.0  | the client and the shell catalog; lent to the apps' catalogs at runtime                   |
+| `a2ui-agent-sdk` | 0.12.1  | the agent kit in `a2uiverse-apps`                                                         |
+| `a2ui-core`      | 0.7.1   | the agent kit                                                                             |
+| `@a2a-js/sdk`    | 1.3.0   | the client, the orchestrator, the marketplace and Stellify                                |
+| `a2a-sdk`        | 1.3.0   | the agent kit, which takes any 1.x from 1.3.0                                             |
 
 `@a2ui/web_core` and `@a2ui/react` carry local patches, described in the [client README](apps/client/README.md#upstream-patches).
 
