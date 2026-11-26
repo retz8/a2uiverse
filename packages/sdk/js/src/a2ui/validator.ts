@@ -14,11 +14,7 @@
  */
 import {Ajv2020} from 'ajv/dist/2020.js';
 import {Catalog, type CatalogApi} from '@a2ui/web_core/catalog';
-import {
-  A2uiIntegrityError,
-  A2uiRecursionError,
-  type A2uiErrorDetail,
-} from '@a2ui/web_core/errors';
+import {A2uiIntegrityError, A2uiRecursionError, type A2uiErrorDetail} from '@a2ui/web_core/errors';
 import {formatZodIssue, MessageProcessor} from '@a2ui/web_core/processing';
 import {ComponentModel, SurfaceComponentsModel} from '@a2ui/web_core/state';
 import {
