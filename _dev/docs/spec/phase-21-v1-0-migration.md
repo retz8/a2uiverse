@@ -24,11 +24,11 @@ A card whose A2UI entries are all for versions older than v1.0 is refused at pub
 
 ### 3. The targets are today's releases, at exact versions
 
-`@a2ui/web_core` and `@a2ui/react` 0.16.1 in both repos, from 0.14.0; `a2ui-agent-sdk` 0.12.1, from 0.11.0, and `a2ui-core` 0.7.1, from 0.6.0, in `a2uiverse-apps`. Pinned exactly. `a2ui-a2a` is not a dependency: its published 0.4.0 requires `a2a-sdk` below 0.4.0, and the agent kit keeps its own part-building.
+`@a2ui/web_core` and `@a2ui/react` 0.16.1 in both repos, from 0.14.0; `a2ui-agent-sdk` 0.12.1, from 0.11.0, and `a2ui-core` 0.7.1, from 0.6.0, in `a2uiverse-apps`. Pinned exactly. A later release is taken under decision 17. `a2ui-a2a` is not a dependency: its published 0.4.0 requires `a2a-sdk` below 0.4.0, and the agent kit keeps its own part-building.
 
 ### 4. The wire is what the pinned releases speak
 
-The platform, the agent kit and every fixture write v1.0 as `@a2ui/web_core` 0.16.1 reads it, bare child ids and action objects included. Where the v1.0 schema is stricter than the release, A2UIVerse authors the schema's form: `updateDataModel` always carries `value`, `null` to delete, and bindings and calls are written `@path` and `@call` alone. Upstream's unreleased changes to the v1.0 wire, the `@child`, `@action` and `@functionCall` keys of pull request #4171 with its dual-read #4170 first among them, are the trigger for a later upgrade, one Backlog line.
+The platform, the agent kit and every fixture write v1.0 as `@a2ui/web_core` 0.16.1 reads it, bare child ids and action objects included. Where the v1.0 schema is stricter than the release, A2UIVerse authors the schema's form: `updateDataModel` always carries `value`, `null` to delete, and bindings and calls are written `@path` and `@call` alone. Upstream's unreleased changes to the v1.0 wire, the `@child`, `@action` and `@functionCall` keys of pull request #4171 with its dual-read #4170 first among them, are taken under decision 17 when a release carries them while the phase runs; released after the phase, they are the trigger for a later upgrade, one Backlog line.
 
 ### 5. Accept everything a v1.0 agent may send, use none of v1.0's additions
 
@@ -85,6 +85,10 @@ The exact list is the acceptance task's own spec.
 ### 16. The records say what is true on v1.0
 
 SPEC is amended wherever a decision changes it. The delta register and the two findings files are checked again against v1.0 and the pinned releases: a row whose cause is gone leaves, and one that still holds is restated in v1.0's words. The specs and plans of earlier phases and `_dev/TODO-done.md` stay as written. CLAUDE.md §2's Authority Rule and its list of sources move to v1.0 at the flip, the root README's sentence on v0.9 and v0.9.1 agents is rewritten for v1.0, and each design record and README is updated with the change that alters it.
+
+### 17. The upstream check at every sub-task start
+
+Each sub-task starts with the upstream check: the releases on npm and PyPI of the packages A2UIVerse uses, beside the versions it pins, and the upstream pull requests it waits on. The sub-task's spec opens with what the check read: `upstream/main`'s commit and date, and the event it found, or that it found none. Two events move a pin: a new release of a package A2UIVerse uses, and a release carrying the fix for something A2UIVerse is held by, a local patch or a finding. The sub-task that starts absorbs the move, the packages already moved to the older release among it, in both repos.
 
 ## Invariants
 
