@@ -133,7 +133,9 @@ v0.9.1 guide's own `a2uiClientCapabilities` example fails its schema.
 
 **Reported:** `a2ui-project/a2ui` issue
 [#3134](https://github.com/a2ui-project/a2ui/issues/3134), PR
-[#3135](https://github.com/a2ui-project/a2ui/pull/3135) (in review).
+[#3135](https://github.com/a2ui-project/a2ui/pull/3135).
+
+**Resolved:** #3135 merged 2026-11-25.
 
 ### Issue
 
@@ -182,18 +184,24 @@ fails with `'v0.9' is a required property`.
 
 ### Fix
 
-Rename the root key of both v0.9.1 capability schemas from `v0.9` to `v0.9.1`. Swift core embeds
-the v0.9.1 `client_capabilities.json` as `V09ClientCapabilitiesSchema`, which serves v0.9 and
-v0.9.1, and picks up the change when it is built.
+The v0.9.1 capabilities keyed `v0.9.1`, in the spec and the Python agent SDK, as #3135 landed:
 
-In the Python resolver, v0.9 and v0.9.1 catalogs read the `v0.9.1` entry and fall back to the `v0.9`
-entry. The resolver takes the key from the registered catalogs' protocol version, and
-`BasicCatalog("v0.9.1")` returns the v0.9 basic catalog, which reports v0.9. Renaming only the v0.9.1
-row would leave an agent on the basic catalog reading `v0.9`, and would reject an agent that
-registers the basic catalog beside its own v0.9.1 catalog.
-
-The opposite direction — keep `v0.9`, and have the guide, web_core, Python core and Dart core write
-`v0.9` for v0.9.1 — is also consistent.
+- both v0.9.1 capability schemas require a `v0.9.1` key in place of `v0.9`. In
+  `client_capabilities.json` the entry's shape is `$defs/Capabilities`, which the required `v0.9.1`
+  entry and an optional `v0.9` entry beside it both reference, so a client that supports both
+  versions sends both and each is checked. Swift core embeds the v0.9.1 `client_capabilities.json`
+  as `V09ClientCapabilitiesSchema`, which serves v0.9 and v0.9.1, and picks up the change when it is
+  built;
+- the v0.9.1 evolution guide lists the key among the changes from v0.9, in its own section;
+- in `resolve_catalogs`, v0.9 and v0.9.1 catalogs read the `v0.9.1` entry, and the `v0.9` entry when
+  there is no `v0.9.1` entry or it activates no registered catalog. `BasicCatalog("v0.9.1")` returns
+  the v0.9 basic catalog, which reports v0.9, so the v0.9 row reads `v0.9.1` too; renaming only the
+  v0.9.1 row would leave an agent on the basic catalog reading `v0.9`;
+- an inline catalog takes the protocol version of the entry that declares it, not the version of
+  the first registered catalog;
+- the Direct JSON format's `check_catalogs` and `schema_to_prompt` compare catalogs' release lines
+  (`release_line` in `inference_formats/_shared`), on which v0.9 and v0.9.1 are one, so a v0.9.1
+  inline catalog beside the v0.9 basic catalog is accepted.
 
 ### Prior art
 
