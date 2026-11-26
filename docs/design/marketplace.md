@@ -258,7 +258,7 @@ Stellify posts `{appId, cardUrl, catalogs: [{files}]}` to `POST /publish` with t
 2. Checks **who owns `shop-a`**: no one yet, so on. Another publisher's id would be refused here, alone, before anything is fetched.
 3. **Fetches the live card** from the URL given (10 seconds), reads it through the card's one reading, and requires on it a `version`, a `description` and an interface the platform speaks.
 4. Reads the catalog ids the card declares and checks **who owns each**. Shop A's is unclaimed, so on.
-5. Runs the **static gate** over the artifact — descriptor, every file at its hash, host interface `0.14.0`, the schema compiling under its own id — and checks **coverage both ways**: every declared id handed, public, or already held by the marketplace for this publisher; every artifact handed for a declared id.
+5. Runs the **static gate** over the artifact — descriptor, every file at its hash, host interface `0.16.1`, the schema compiling under its own id — and checks **coverage both ways**: every declared id handed, public, or already held by the marketplace for this publisher; every artifact handed for a declared id.
 6. Applies the **version rule**: a first publish, nothing to compare.
 7. Applies the **preview rule**: Shop A's card requires no sign-in, so no preview may be handed — the marketplace will capture it.
 8. Runs the **smoke test**: one request, _"What cameras do you have?"_, advertising `[basic, shop-a's catalog]`. The agent answers with the `list` surface above and completes. Every check over the paint passes.
@@ -523,7 +523,7 @@ The orchestrator's Planner reads the marketplace too, when a question needs some
 | A sign-in app published with no preview | `the card requires sign-in: publish needs the preview `stellify preview` captures with your own credential` |
 | A preview handed for an open app, or at another version | `a preview is only taken for an app whose card requires sign-in …`; `the preview was captured at version "0.1.0", the card is at "0.2.0"` |
 | A build removes something | `catalog artifact 1 (…): components/Video: removed`; the row stays where it was |
-| A build packed for another host interface | `catalog artifact 1 (…): host interface "0.9.1" is not one the platform supplies (it supplies "0.14.0")`, `422`; Stellify 0.11.0 packs for `0.14.0` |
+| A build packed for another host interface | `catalog artifact 1 (…): host interface "0.9.1" is not one the platform supplies (it supplies "0.16.1")`, `422`; Stellify 0.11.0 packs for `0.16.1` |
 | The card changed at a published version | `the card changed, but version "0.1.0" is already published: a changed card carries a version this app id has never published` |
 | The agent never finishes, fails, or paints nothing | `the agent never finished: the stream ended with its task still working`, naming the last state the stream carried, or `… the stream ended before any answer` when it carried nothing; `the agent ended the task as failed: …`; `the answer paints nothing: no createSurface` |
 | The agent paints outside its entitlement | `surface "list" is painted in catalog "…", outside its entitlement`; stamped for the other version, `surface "list" is painted in catalog "…" stamped v0.9, which its card declares for v0.9.1 only` |

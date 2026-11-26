@@ -122,7 +122,7 @@ The **descriptor**, `artifact.json`, names everything:
   "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
   "entry": "index.js",
   "schema": "catalog.json",
-  "hostInterface": "0.14.0",
+  "hostInterface": "0.16.1",
   "files": {
     "catalog.json": "sha256-Oh2nkmMlLbWW3dMdYNClrCyQ6PQCTX6Ta8rkWBIxcLQ=",
     "dist/primer-scoped.css": "sha256-wUxytl+aoj55Eo3DO4U/78JsiZffBgRd0Hd/uzQ0jNo=",
@@ -143,13 +143,13 @@ GitHub's catalog imports React, the A2UI runtime and zod. If its bundle carried 
 
 ```ts
 interface HostInterface {
-  version: string;                             // "0.14.0": the A2UI runtime release it lends
+  version: string;                             // "0.16.1": the A2UI runtime release it lends
   modules: Record<HostSpecifier, unknown>;     // the client's own module for each specifier lent
   loadStylesheet(url: string): Promise<void>;  // the sheet held to its build's surfaces, resolved once applied
 }
 ```
 
-It lends exactly eight imports: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `@a2ui/web_core/v0_9/basic_catalog` and `zod`. A catalog built on the basic catalog shares the page's, as it shares React. Everything else a catalog imports, Primer included, is bundled into its own `index.js`. The interface's version is the release of `@a2ui/react` and `@a2ui/web_core` it lends, `0.14.0`. An artifact names the interface version it was built against, and one the platform doesn't supply is refused at publish, at install and at load.
+It lends exactly eight imports: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `@a2ui/web_core/v0_9/basic_catalog` and `zod`. A catalog built on the basic catalog shares the page's, as it shares React. Everything else a catalog imports, Primer included, is bundled into its own `index.js`. The interface's version is the release of `@a2ui/react` and `@a2ui/web_core` it lends, `0.16.1`. An artifact names the interface version it was built against, and one the platform doesn't supply is refused at publish, at install and at load.
 
 The vendor never writes code against this interface: Stellify rewrites the imports in the bundle, never in the vendor's source ([Packing](#packing-what-stellify-does) shows how).
 
@@ -295,7 +295,7 @@ var require_react = __commonJS({
 });
 ```
 
-That read takes any name, so a name the client doesn't lend would pack clean and be `undefined` in the client, as `basicCatalog` from `@a2ui/react/v0_9` is since 0.13.0. Once the entry packs, Stellify bundles it once more with each host import standing in as a module that exports only the names the sdk lists for it (`HOST_EXPORTS`), and each import esbuild finds no export for, named or read through `import * as`, is a finding: `"basicCatalog" is not exported by "@a2ui/react/v0_9" as the host lends it, at host interface 0.14.0`. The shipped bundle keeps the runtime read. The list is written from the client's own modules by `pnpm --filter @a2uiverse/client write:host-exports`, and a client test fails when it and what the client lends differ.
+That read takes any name, so a name the client doesn't lend would pack clean and be `undefined` in the client, as `basicCatalog` from `@a2ui/react/v0_9` is since 0.13.0. Once the entry packs, Stellify bundles it once more with each host import standing in as a module that exports only the names the sdk lists for it (`HOST_EXPORTS`), and each import esbuild finds no export for, named or read through `import * as`, is a finding: `"basicCatalog" is not exported by "@a2ui/react/v0_9" as the host lends it, at host interface 0.16.1`. The shipped bundle keeps the runtime read. The list is written from the client's own modules by `pnpm --filter @a2uiverse/client write:host-exports`, and a client test fails when it and what the client lends differ.
 
 **The stylesheet rewrite.** A catalog imports its CSS the way any React package does, and each Primer component imports its own sheet. A browser can't import CSS as a module, and a vendor shouldn't have to change how it writes styles. So each stylesheet import, static or dynamic, becomes a load through the host, resolved against the module's own URL:
 
@@ -355,7 +355,7 @@ Both must be empty. `public` is the basic catalog alone. A card that declares no
 
 1. `artifact.json` is there, parses, and conforms to the descriptor's JSON Schema; its entry and its schema are among its files.
 2. Every listed file is there with its hash, and nothing unlisted is.
-3. The host interface is one the platform supplies, `0.14.0`.
+3. The host interface is one the platform supplies, `0.16.1`.
 4. The schema parses, its `catalogId` is the descriptor's, and it compiles as an A2UI catalog.
 
 What only running code can show, like what the module exports and whether `CATALOG.id` agrees, is the client's check, when it loads the artifact.
