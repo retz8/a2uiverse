@@ -236,6 +236,17 @@ describe('the config', () => {
 });
 
 describe('refusals', () => {
+  test('a pack for a host interface the platform does not supply, naming the one it does', async () => {
+    const result = await stellify(copyFixture(), {hostInterface: '0.14.0'});
+    expect(result.findings).toEqual([
+      {
+        file: 'package.json',
+        reason: `host interface "0.14.0" is not one the platform supplies; it supplies "${HOST_INTERFACE_VERSION}"`,
+      },
+    ]);
+    expect(result.descriptor).toBeNull();
+  });
+
   test('a specifier under a host package the host does not lend, with the list', async () => {
     const dir = copyFixture();
     edit(dir, 'lib/catalog.js', s => `import {renderToString} from 'react-dom/server';\n${s}`);
