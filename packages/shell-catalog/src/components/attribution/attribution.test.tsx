@@ -549,7 +549,6 @@ test('a repaint that drops the request takes the chip and its card away (_dev/a2
     </Provider>,
   );
   expect(screen.getByRole('button', {name: 'Needs access'})).toBeInTheDocument();
-  // The model tells its listeners in turn, so the marker hears of the repaint after a microtask.
   await act(async () =>
     processor.processMessages([
       {

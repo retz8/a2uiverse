@@ -888,8 +888,7 @@ test('a fact the runtime stops painting leaves the slot with its repaint (_dev/a
     {...merged, collapse: {cause: 'unmade'}, working: {sources: []}},
   ]);
   expect(container.textContent).toContain('Making the merged view…');
-  // The repaint only drops `working`: nothing else the slot was painted with changes. The model
-  // tells its listeners in turn, so the slot hears of it after a microtask.
+  // The repaint only drops `working`: nothing else the slot was painted with changes.
   await act(async () =>
     processor.processMessages([
       {

@@ -366,11 +366,11 @@ importers:
         version: 3.3.0(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@a2ui/react':
-        specifier: 0.14.0
-        version: 0.14.0(patch_hash=c6371f25887ca1ab41a5ef8b0378b9243ff9949a443f05ead5eec1c4911b94cf)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+        specifier: 0.16.1
+        version: 0.16.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2ui/web_core':
-        specifier: 0.14.0
-        version: 0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc)
+        specifier: 0.16.1
+        version: 0.16.1
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.10.0(@testing-library/dom@10.4.1)
@@ -550,12 +550,25 @@ packages:
     peerDependencies:
       '@a2ui/web_core': ^0.14.0
 
+  '@a2ui/markdown-it@0.2.4':
+    resolution: {integrity: sha512-7gqKNyIxkFfkjtxXuDtJ0Lu07NFtf15x1JdyXC7VE0Q+tpk4LjD2RL+GRM19SyDFPc3dbN7bTQnD+wnsmMY/Sg==}
+    peerDependencies:
+      '@a2ui/web_core': ^0.16.1
+
   '@a2ui/react@0.14.0':
     resolution: {integrity: sha512-kew3gVx4/U4qZ41FwyanDndCuBsx3s+5kPzjBt5N9w8E6UKSfwJpOmWD3Vy5WN5bxuiQKmorN+Ozh59ZLrwkMA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
+      zod: ^3.25.76
+
+  '@a2ui/react@0.16.1':
+    resolution: {integrity: sha512-5KYlQn+3WAuYtmbXi1Wfv4C//YQqw8EsSs1dV2cVss3Ga9sl239Zj2XZ9gIXgqxsKtjANq5lgXDUPhU3GJRuSw==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      react: ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
       zod: ^3.25.76
 
   '@a2ui/web_core@0.14.0':
@@ -2576,6 +2589,9 @@ packages:
   dompurify@3.4.11:
     resolution: {integrity: sha512-zhlUV12GsaRzMsf9q5M254YhA4+VuF0fG+QFqu6aYpoGlKtz+w8//jBcGVYBgQkR5GHjUomejY84AV+/uPbWdw==}
 
+  dompurify@3.5.0:
+    resolution: {integrity: sha512-LYC0ZkE8P1V42JsRYTwMdme/2ET8SpOc5AA2eOFjP/IadvRd2fwiT4TVz5vkfy0XUx12aS2UaRkTnfVPNOv9vw==}
+
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
@@ -3886,10 +3902,26 @@ snapshots:
       dompurify: 3.4.11
       markdown-it: 14.3.0
 
+  '@a2ui/markdown-it@0.2.4(@a2ui/web_core@0.16.1)':
+    dependencies:
+      '@a2ui/web_core': 0.16.1
+      dompurify: 3.5.0
+      markdown-it: 14.3.0
+
   '@a2ui/react@0.14.0(patch_hash=c6371f25887ca1ab41a5ef8b0378b9243ff9949a443f05ead5eec1c4911b94cf)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)':
     dependencies:
       '@a2ui/markdown-it': 0.2.2(@a2ui/web_core@0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc))
       '@a2ui/web_core': 0.14.0(patch_hash=42505a4ea524367f346c465d61fcffc8558d1270e1a3b76216ec1500826c39fc)
+      clsx: 2.1.1
+      markdown-it: 14.3.0
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      zod: 3.25.76
+
+  '@a2ui/react@0.16.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)':
+    dependencies:
+      '@a2ui/markdown-it': 0.2.4(@a2ui/web_core@0.16.1)
+      '@a2ui/web_core': 0.16.1
       clsx: 2.1.1
       markdown-it: 14.3.0
       react: 19.2.8
@@ -5821,6 +5853,10 @@ snapshots:
   dom-accessibility-api@0.6.3: {}
 
   dompurify@3.4.11:
+    optionalDependencies:
+      '@types/trusted-types': 2.0.7
+
+  dompurify@3.5.0:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
 

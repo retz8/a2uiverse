@@ -36,6 +36,16 @@ test('accessibility label and description become aria attributes', () => {
   expect(el).toHaveAttribute('aria-description', 'Sends it');
 });
 
+test('the label is on the button once, and the element hosting it is left unlabelled (task-21.4 decision 2)', () => {
+  const {container} = renderTree(button({accessibility: {label: 'Save the form'}}));
+  const labelled = container.querySelectorAll('[aria-label="Save the form"]');
+  expect(labelled).toHaveLength(1);
+  expect(labelled[0]).toBe(screen.getByRole('button', {name: 'Save the form'}));
+  const host = container.querySelector('a2ui-react-button')!;
+  expect(host).not.toHaveAttribute('aria-label');
+  expect(host).not.toHaveAttribute('role', 'group');
+});
+
 test('a failing check disables the button', () => {
   renderTree(
     button({

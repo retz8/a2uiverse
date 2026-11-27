@@ -1,5 +1,10 @@
 import {useContext, useRef, type CSSProperties, type MutableRefObject} from 'react';
-import {createComponentImplementation} from '@a2ui/react/v0_9';
+import {useA2uiSurface, useNodeView} from '@a2ui/react';
+import {
+  createComponentImplementation,
+  type NodeViewProps,
+  type ReactComponentImplementation,
+} from '@a2ui/react/v0_9';
 import {CheckIcon, ExternalLinkIcon, LockClosedIcon, UpdateIcon} from '@radix-ui/react-icons';
 import {Button, Flex, Link, Spinner, Table, Text} from '@radix-ui/themes';
 import {parseSourceId, type CompositionOperation} from '@a2uiverse/sdk';
@@ -11,7 +16,6 @@ import {SignInContext, type SignInHandler, type SignInKind} from '../../sign-in.
 import {SlotContentContext} from '../../slot-content.js';
 import {SlotStateContext, UPDATE_SLOT_STATES, type SourceSlotState} from '../../slot-state.js';
 import {weightStyle} from '../shared/layout.js';
-import {useModelProperties} from '../shared/model-properties.js';
 import {dotStyle, linkButtonStyle} from '../shared/quiet-line.js';
 import {
   CONNECT_AGAIN_WORDS,
@@ -1384,14 +1388,19 @@ const reservedStyle: CSSProperties = {
 };
 
 /**
- * Catalog entry, bound to the host's handlers: the generic binder resolves props, then renders
- * SlotView, whose offer raises `openStore` — on an app's view from its name, on the gap's words
- * from More in the Store and Search the Store, naming the slot (task-15.8 decision 8) — and the
- * host's app act for Install, Update and Show it here, and whose presses — Retry on the failure tile,
- * Include and Try again on the merged view's lines — raise the host's press from this slot's
- * surface. The authority tile's Sign in and Cancel raise the host's sign-in handler, its Manage
- * apps `openAppLibrary`. Without a press handler no press button is drawn, without a sign-in
- * handler no Sign in. Sources are named by the host's lookup of their app, the app id without one.
+ * Catalog entry, bound to the host's handlers: the binder resolves props, then renders SlotView,
+ * whose offer raises `openStore` — on an app's view from its name, on the gap's words from More in
+ * the Store and Search the Store, naming the slot (task-15.8 decision 8) — and the host's app act
+ * for Install, Update and Show it here, and whose presses — Retry on the failure tile, Include and
+ * Try again on the merged view's lines — raise the host's press from this slot's surface. The
+ * authority tile's Sign in and Cancel raise the host's sign-in handler, its Manage apps
+ * `openAppLibrary`. Without a press handler no press button is drawn, without a sign-in handler no
+ * Sign in. Sources are named by the host's lookup of their app, the app id without one.
+ *
+ * The surface draws it through its `view` (task-21.4 decision 4): the props the node holds, its
+ * component id from the node, its surface the enclosing one. `render`, which the interface still
+ * requires (`_dev/a2ui-findings.md` §34), is the factory's, and with no component id to name it
+ * raises nothing.
  */
 export function createSlotComponent(
   onShellAction: ShellActionHandler,
@@ -1406,16 +1415,15 @@ export function createSlotComponent(
     onAppAct?: AppActHandler;
     sourceName?: SourceName;
   } = {},
-) {
-  return createComponentImplementation(SlotApi, ({context}) => {
-    // Read from the component's own model, not the binder's resolved props, so a prop the runtime
-    // stops painting — `working`, `late`, `retrying` — leaves the slot. Every Slot prop is a
-    // literal the runtime paints and repaints, so the model is the whole truth.
-    const props = useModelProperties<SlotProps>(context.componentModel);
-    // Every press names the surface it was raised on; a slot whose data context holds no surface —
-    // one over a bare data model — raises nothing (task-16.6 decision 8).
-    const surfaceId = context.dataContext.surface?.id;
-    const componentId = context.componentModel.id;
+): ReactComponentImplementation {
+  function SlotEntry({props, componentId}: {props: SlotProps; componentId?: string}) {
+    const surface = useA2uiSurface();
+    // Every press names the surface and the component it was raised on; with either unknown it
+    // raises nothing (task-16.6 decision 8).
+    const from =
+      surface !== undefined && componentId !== undefined
+        ? {surfaceId: surface.id, componentId}
+        : undefined;
     return (
       <SlotView
         source={props.source}
@@ -1445,11 +1453,10 @@ export function createSlotComponent(
         offered={props.offered}
         update={props.update}
         onOpenStore={({query, app}) => {
-          if (surfaceId === undefined) return;
+          if (from === undefined) return;
           onShellAction({
             name: 'openStore',
-            surfaceId,
-            componentId,
+            ...from,
             ...(query ? {query} : {}),
             ...(app ? {app} : {}),
           });
@@ -1457,14 +1464,13 @@ export function createSlotComponent(
         onAppAct={
           onAppAct &&
           (({kind, appId, anchor}) => {
-            if (surfaceId === undefined) return;
+            if (from === undefined) return;
             const gap = props.gap ?? props.offered?.gap;
             onAppAct({
               kind,
               appId,
               ...(gap !== undefined ? {gap} : {source: props.source!}),
-              surfaceId,
-              componentId,
+              ...from,
               anchor,
             });
           })
@@ -1472,37 +1478,47 @@ export function createSlotComponent(
         onPress={
           onPress &&
           (operation => {
-            if (surfaceId === undefined) return;
-            onPress({operation, surfaceId, componentId});
+            if (from === undefined) return;
+            onPress({operation, ...from});
           })
         }
         onSignIn={
           onSignIn && (props.source ?? props.addAccount) !== undefined
             ? kind => {
-                if (surfaceId === undefined) return;
+                if (from === undefined) return;
                 onSignIn({
                   kind,
                   // The add-account tile's sign-in is the bare app's (task-12.13 decision 27).
                   source: (props.source ?? props.addAccount)!,
-                  surfaceId,
-                  componentId,
+                  ...from,
                 });
               }
             : undefined
         }
         onOpenAppLibrary={() => {
-          if (surfaceId === undefined) return;
+          if (from === undefined) return;
           // Manage apps lands on the app's own view (task-14.5 decision 9).
           const app = props.source === undefined ? undefined : parseSourceId(props.source)?.appId;
           onShellAction({
             name: 'openAppLibrary',
-            surfaceId,
-            componentId,
+            ...from,
             ...(app ? {app} : {}),
           });
         }}
         nameOf={source => sourceName?.(source) ?? source}
       />
     );
-  });
+  }
+
+  function SlotNodeView({node, buildChild}: NodeViewProps) {
+    const {viewProps} = useNodeView(node, buildChild);
+    return <SlotEntry props={viewProps as SlotProps} componentId={node.componentId} />;
+  }
+
+  return {
+    ...createComponentImplementation(SlotApi, ({props}) => (
+      <SlotEntry props={props as SlotProps} />
+    )),
+    view: SlotNodeView,
+  };
 }

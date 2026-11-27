@@ -10,10 +10,9 @@
  */
 import {
   BASIC_COMPONENTS,
-  BASIC_FUNCTIONS,
   Catalog,
   type ComponentApi,
-  type FunctionImplementation,
+  V09_SPEC_FUNCTIONS,
 } from '@a2ui/web_core/v0_9';
 import {CATALOG_ID, CATALOG_PROTOCOL_VERSION} from './catalog-id.js';
 import {AttributionApi} from './components/attribution/attribution.schema.js';
@@ -133,7 +132,7 @@ export const SCHEMA_CATALOG: Catalog<ComponentApi> = new Catalog<ComponentApi>(
     ...SHELL_COMPONENT_APIS,
   ],
   [
-    ...(BASIC_FUNCTIONS as FunctionImplementation[]),
+    ...V09_SPEC_FUNCTIONS,
     ...operatorFunctions,
     ...relationFunctions,
     ...shellActionFunctions(() => {}),

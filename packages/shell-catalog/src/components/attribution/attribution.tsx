@@ -10,7 +10,12 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import {createComponentImplementation} from '@a2ui/react/v0_9';
+import {useA2uiSurface, useNodeView} from '@a2ui/react';
+import {
+  createComponentImplementation,
+  type NodeViewProps,
+  type ReactComponentImplementation,
+} from '@a2ui/react/v0_9';
 import {sourceName, type CompositionOperation} from '@a2uiverse/sdk';
 import {
   ArrowLeftIcon,
@@ -29,7 +34,6 @@ import {PressStateContext} from '../../press-state.js';
 import {SignInContext, type SignInHandler} from '../../sign-in.js';
 import {SlotContentContext} from '../../slot-content.js';
 import {weightStyle} from '../shared/layout.js';
-import {useModelProperties} from '../shared/model-properties.js';
 import {OPEN_AGAIN_WORDS, WAITING_WORDS} from '../shared/SignInWaiting.js';
 import {LOST_WORDS, retryStatus, signedInWords, UNREACHED_WORDS} from '../slot/press-lines.js';
 import type {PressHandler} from '../slot/slot.js';
@@ -612,23 +616,35 @@ function Arrow({
 }
 
 /**
- * Catalog entry, bound to the host's press and sign-in handlers (tasks 9.5, 12.3): the generic
- * binder resolves props, then renders AttributionView around its child, when it has one; an
- * arrow's step, Not now's `dismiss` and Allow's sign-in carry the surface and component that
- * raised them, as a slot's press does.
+ * Catalog entry, bound to the host's press and sign-in handlers (tasks 9.5, 12.3): the binder
+ * resolves props, then renders AttributionView around its child, when it has one; an arrow's step,
+ * Not now's `dismiss` and Allow's sign-in carry the surface and component that raised them, as a
+ * slot's press does.
+ *
+ * The surface draws it through its `view` (task-21.4 decision 4): the props the node holds, its
+ * component id from the node, its surface the enclosing one. `render`, which the interface still
+ * requires (`_dev/a2ui-findings.md` §34), is the factory's, and with no component id to name it
+ * raises nothing.
  */
 export function createAttributionComponent({
   onPress,
   onSignIn,
-}: {onPress?: PressHandler; onSignIn?: SignInHandler} = {}) {
-  return createComponentImplementation(AttributionApi, ({buildChild, context}) => {
-    // Read from the component's own model, not the binder's resolved props, so a request the
-    // runtime stops painting — `escalation` after Not now or Allow — takes its chip away. Every
-    // Attribution prop is a literal the runtime paints and repaints.
-    const props = useModelProperties<AttributionProps>(context.componentModel);
-    // A marker whose data context holds no surface — one over a bare data model — raises nothing.
-    const surfaceId = context.dataContext.surface?.id;
-    const componentId = context.componentModel.id;
+}: {onPress?: PressHandler; onSignIn?: SignInHandler} = {}): ReactComponentImplementation {
+  function AttributionEntry({
+    props,
+    buildChild,
+    componentId,
+  }: {
+    props: AttributionProps;
+    buildChild: (id: string) => ReactNode;
+    componentId?: string;
+  }) {
+    const surface = useA2uiSurface();
+    // A marker raises nothing with its surface or its component unknown.
+    const from =
+      surface !== undefined && componentId !== undefined
+        ? {surfaceId: surface.id, componentId}
+        : undefined;
     return (
       <AttributionView
         displayName={props.displayName}
@@ -640,21 +656,39 @@ export function createAttributionComponent({
         onSignIn={
           onSignIn && props.source !== undefined
             ? kind => {
-                if (surfaceId === undefined) return;
-                onSignIn({kind, source: props.source!, surfaceId, componentId});
+                if (from === undefined) return;
+                onSignIn({kind, source: props.source!, ...from});
               }
             : undefined
         }
         onPress={
           onPress &&
           (operation => {
-            if (surfaceId === undefined) return;
-            onPress({operation, surfaceId, componentId});
+            if (from === undefined) return;
+            onPress({operation, ...from});
           })
         }
       >
         {props.child === undefined ? undefined : buildChild(props.child)}
       </AttributionView>
     );
-  });
+  }
+
+  function AttributionNodeView({node, buildChild}: NodeViewProps) {
+    const {viewProps, viewBuildChild} = useNodeView(node, buildChild);
+    return (
+      <AttributionEntry
+        props={viewProps as AttributionProps}
+        buildChild={viewBuildChild}
+        componentId={node.componentId}
+      />
+    );
+  }
+
+  return {
+    ...createComponentImplementation(AttributionApi, ({props, buildChild}) => (
+      <AttributionEntry props={props as AttributionProps} buildChild={buildChild} />
+    )),
+    view: AttributionNodeView,
+  };
 }
