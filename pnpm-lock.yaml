@@ -475,9 +475,6 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
-      '@a2ui/react':
-        specifier: 0.14.0
-        version: 0.14.0(patch_hash=c6371f25887ca1ab41a5ef8b0378b9243ff9949a443f05ead5eec1c4911b94cf)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2uiverse/card':
         specifier: workspace:*
         version: link:../card
