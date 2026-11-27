@@ -1523,3 +1523,68 @@ reports `render` still required (searched "render deprecated view", "ReactCompon
 render", "view required render optional" and "deprecate render" on 2026-11-27). Pull request
 [#4431](https://github.com/a2ui-project/a2ui/pull/4431) (open) edits the interface's file and leaves
 both fields as they are.
+
+---
+
+## 35. `@a2ui/web_core` deprecates `ComponentNode.context`, and the props it names in its place lose a binding inside a function call and a template list's path (web_core)
+
+**Component:** at `7a776e7a4`, the commit `@a2ui/web_core` 0.16.1 was released from, and unchanged on
+`upstream/main` at `36725eee0` (2026-11-26): `ComponentNode` in
+`typescript/core/web_core/src/resolution/component-node.ts`, lines 100 and 104, and
+`wrapDynamicValues` in `typescript/core/web_core/src/resolution/node-resolver.ts`, lines 824 to 847.
+
+**Severity:** a host that reads which data paths a component binds, as A2UIVerse's navigation does,
+has no route to them all from the node once `context` is removed. It has to go around the node to
+the surface's component model.
+
+**Reported:** not filed.
+
+### Issue
+
+Pull request [#3841](https://github.com/a2ui-project/a2ui/pull/3841) (merged 2026-11-04, released in
+0.16.0) deprecates `ComponentNode.context`: "Read resolved values from props; adapters get the
+surface from their ambient context. Removed in the next breaking release." The context was a host's
+route from a node to the component's model, `context.componentModel.properties`, which holds the
+payload's bindings as written, and to the component's scoped data context.
+
+The props it names in their place keep a binding's path only where the payload binds a property
+directly: `wrapDynamicValues` gives such a property a `WritableBinding` that holds the authored path,
+before scope resolution. A `{path}` inside a function call's arguments becomes a `ResolvedBinding`
+holding only the call's result, and a template child list, `{path, componentId}`, becomes its child
+nodes, `wrapDynamicValues` passing over a record with a `componentId` by name. The node keeps its
+component id and its data path, and names neither its surface nor its component model.
+
+### Reproduction
+
+One surface on the v0.9 basic catalog, through `MessageProcessor` and `NodeResolver` in
+`@a2ui/web_core` 0.16.1, its data model `{shop: {name: 'Aperture'}, items: [{name: 'Lumen'}]}`:
+
+| Component            | The property in the payload                                         | The same property in `node.props`                 |
+| -------------------- | ------------------------------------------------------------------- | ------------------------------------------------- |
+| `title`              | `text: {call: 'formatString', args: {value: {path: '/shop/name'}}}` | `ResolvedBinding`, value `"Aperture"`, no path    |
+| `list`               | `children: {path: '/items', componentId: 'row'}`                    | the child node `row`, no path                     |
+| `row`, at `/items/0` | `text: {path: 'name'}`                                              | `WritableBinding`, value `"Lumen"`, path `"name"` |
+
+Run on 2026-11-27.
+
+### Fix
+
+The node names every data path its properties bind, a path inside a call's arguments and a template
+list's among them, or names the component model it was resolved from.
+
+A2UIVerse's binding index (`apps/client/src/canvas/navigation/bindingIndex.ts`) no longer reads
+`context` (task-21.5 decision 6). Each fragment boundary registers its surface with the index; the
+index reads a component's bindings from the surface's component model by the node's component id,
+and resolves each path against the node's data path, the component's base path, with
+`DataContext.resolvePath`. Over every recorded beat, 5,838 components on 163 surfaces, the new read
+and the read through `context` agreed on every component and every data path.
+
+### Prior art
+
+Issue [#3095](https://github.com/a2ui-project/a2ui/issues/3095) (open, 2026-10-08) proposes removing
+`context` from the node, adapters reading `node.componentId` and `node.dataPath` and views
+`node.props` alone; it does not mention a reader of the node's bindings. Pull request
+[#2879](https://github.com/a2ui-project/a2ui/pull/2879) (merged 2026-09-30) put the context on the
+node. No issue or pull request asks for a node's binding paths (searched "ComponentNode context",
+"context deprecated", "WritableBinding path", "data paths component binds" and "componentModel
+ComponentNode" on 2026-11-27).
