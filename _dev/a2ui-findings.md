@@ -1588,3 +1588,68 @@ Issue [#3095](https://github.com/a2ui-project/a2ui/issues/3095) (open, 2026-10-0
 node. No issue or pull request asks for a node's binding paths (searched "ComponentNode context",
 "context deprecated", "WritableBinding path", "data paths component binds" and "componentModel
 ComponentNode" on 2026-11-27).
+
+## 36. `@a2ui/web_core` builds a property declared as a union of a component id and another string as a child, whatever was written (web_core)
+
+**Component:** at `7a776e7a4`, the commit `@a2ui/web_core` 0.16.1 was released from, and unchanged on
+`upstream/main` at `36725eee0` (2026-11-26): `classifyExplicitProperty` in
+`typescript/core/web_core/src/resolution/ref-fields.ts`, lines 932 to 945, and the `single` case of
+`NodeResolver` in `typescript/core/web_core/src/resolution/node-resolver.ts`, lines 595 to 601.
+
+**Severity:** a catalog that lets one property hold either an icon's id or text loses the text, and
+one that lets it hold an id or a keyword such as `none` loses the keyword. The component receives a
+child's id it cannot tell from a real one, and the value the agent wrote is gone from the props.
+
+**Reported:** not filed.
+
+### Issue
+
+Pull request [#3938](https://github.com/a2ui-project/a2ui/pull/3938) (merged 2026-11-11, released in
+0.16.0) has `extractRefFields` classify the options of a `ZodUnion` and merge their kinds. A union
+with a `CommonSchemas.ComponentId` option is classified `single`, the kind of a plain
+`ComponentId`, whatever its other options are. `NodeResolver` then turns every non-empty string at a
+`single` key into a child node: the string is taken as the component id, and a string that names no
+component becomes a placeholder node. `@a2ui/react` hands the component that node's id.
+
+On 0.14.0 a union was not classified, and the property arrived as written. A catalog that declared
+`z.union([CommonSchemas.ComponentId, z.string()])` told an id from text by looking the string up in
+the surface; on 0.16.1 there is nothing left to look up.
+
+### Reproduction
+
+One surface through `MessageProcessor` and `NodeResolver` in `@a2ui/web_core` 0.16.1, a catalog of
+two components: `Icon`, and `Menu` with `icon: ComponentId`, `trailingVisual` and
+`items[].trailingVisual` as `z.union([ComponentId, z.string()])`, and `overflowIcon` as
+`z.union([ComponentId, z.literal('none')])`. The surface holds `Icon`s with the ids `glyph` and
+`pin`.
+
+| Property                  | Written | In `node.props`                                       |
+| ------------------------- | ------- | ----------------------------------------------------- |
+| `icon`                    | `glyph` | a child node, component id `glyph`, type `Icon`       |
+| `trailingVisual`          | `⌘C`    | a child node, component id `⌘C`, type `Placeholder`   |
+| `overflowIcon`            | `none`  | a child node, component id `none`, type `Placeholder` |
+| `items[0].trailingVisual` | `⌘C`    | a child node, component id `⌘C`, type `Placeholder`   |
+| `items[1].trailingVisual` | `pin`   | a child node, component id `pin`, type `Icon`         |
+
+Run on 2026-11-27.
+
+### Fix
+
+A union classifies as `single` only when every option can hold a component id, or the node keeps
+the written value beside the child it builds, so a component can tell a string that names no
+component from one that does.
+
+A2UIVerse's GitHub catalog declares `ActionBar.Menu`'s `trailingVisual` and `overflowIcon` as plain
+strings in its Zod schema (task-21.7 decision 4), its catalog schema unchanged. The component
+receives each as written and draws an id that names an `Icon` from that component's model.
+
+### Prior art
+
+Issue [#3783](https://github.com/a2ui-project/a2ui/issues/3783) (closed 2026-10-30) asked for child
+references in open and unannotated schemas to resolve, and #3938 closed it. Pull request
+[#4171](https://github.com/a2ui-project/a2ui/pull/4171) (open) writes a v1.0 child reference as an
+`@child` key, which would tell a reference from a string on the wire. No issue or pull request
+reports a union's other option being lost (searched "union ComponentId", "ComponentId union
+string", "child ref union", "Placeholder union", "classifyExplicitUnionOptions", "union child
+reference string literal", "ComponentId literal none", and web_core issues on unions and child
+references opened since 2026-11-03, on 2026-11-27).
