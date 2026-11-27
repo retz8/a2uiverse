@@ -708,7 +708,7 @@ All paths are under `apps/orchestrator/src/`.
 | Installed apps, the catalog table, install and uninstall (see [`app-install.md`](app-install.md)) | `registry/` (`registry.ts`, `store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `types.ts`); the card's reading, its fetch and the interfaces spoken, `packages/card/`, and the dial, `packages/smoke-transport/` (see [`card.md`](card.md)); who may write, `writeGuard.ts`; the static gate is the sdk's `gate.ts` |
 | The marketplace client, install by id, the update check and the automatic build update | `registry/marketplace.ts`, `registry/registry.ts` (`installFromMarketplace`), `registry/updates.ts` |
 | The update tile's finding, the check before a dispatch and the catch after the call | `registry/updateTile.ts`, `agentsPool/agentsPool.ts`; the tile's Retry fetching the live card again, `executor.ts` |
-| The shell catalog's schema face: its names, keep-sets, relation functions and update lines | `@a2uiverse/shell-catalog/schema`, which loads `@a2ui/web_core`; the orchestrator depends on web_core at `0.14.0` exactly, the version the shell catalog names as its peer |
+| The shell catalog's schema face: its names, keep-sets, relation functions and update lines | `@a2uiverse/shell-catalog/schema`, which loads `@a2ui/web_core`; the orchestrator depends on web_core at `0.16.1` exactly, the version the shell catalog names as its peer |
 | Embeddings, the corpus document, cosine and rank | `packages/embedder/` — the `@a2uiverse/embedder` package, shared with the marketplace |
 | Routing | `router/router.ts` |
 | The Planner | `planner/` (`planner.ts`, `validate.ts`, `prompt.ts`, `planner.md`, `examples.ts`, `readers.ts`, `platformReaders.ts`, `storeSearch.ts`, `planCache.ts`, `document.ts`) |
