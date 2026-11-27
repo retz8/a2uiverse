@@ -285,6 +285,43 @@ export function sampleTree(
   };
 }
 
+/** The child ids a value names where the schema types it a `ComponentId` or a `ChildList`. */
+function childIdsIn(fragment: JsonSchema, value: unknown): string[] {
+  if (fragment.$ref) {
+    switch (refName(fragment.$ref)) {
+      case 'ComponentId':
+        return typeof value === 'string' ? [value] : [];
+      case 'ChildList':
+        if (Array.isArray(value)) return value.filter(id => typeof id === 'string');
+        // A template names its one child by `componentId`.
+        if (value && typeof value === 'object') {
+          const {componentId} = value as {componentId?: unknown};
+          return typeof componentId === 'string' ? [componentId] : [];
+        }
+        return [];
+      default:
+        return [];
+    }
+  }
+  if (fragment.items && Array.isArray(value)) {
+    return value.flatMap(item => childIdsIn(fragment.items!, item));
+  }
+  if (fragment.properties && value && typeof value === 'object') {
+    return Object.entries(fragment.properties).flatMap(([prop, shape]) =>
+      childIdsIn(shape, (value as Record<string, unknown>)[prop]),
+    );
+  }
+  return [];
+}
+
+/** Every child id the sample's components name, a `Tabs` tab's `child` among them. */
+export function namedChildIds(schema: CatalogSchema, sample: Sample): string[] {
+  return sample.components.flatMap(component => {
+    const def = schema.components[component.component];
+    return def ? childIdsIn(ownProps(def), component) : [];
+  });
+}
+
 /** The whole sweep for one component: the seeded default, then one tree per enum value. */
 export function sweep(
   schema: CatalogSchema,

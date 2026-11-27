@@ -2,12 +2,19 @@
  * Render parity (task-5.9 decision 7): generated from `catalog.json`, for every component and
  * every value of every enum prop, a minimal valid tree renders through the real renderer under
  * the Provider — no error reported on the surface, rendered content inside each component's
- * element, no pending child, and no console error or warning (task-16.6 decision 6).
+ * element, every child the tree names defined in it (task-21.4 decision 6), and no console error
+ * or warning (task-16.6 decision 6).
  * The name-level parity between schema and runtime stays in `catalog.parity.test.ts`.
  */
 import {readFileSync} from 'node:fs';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
-import {componentNames, enumProps, sweep, type CatalogSchema} from '../fixture/matrix.js';
+import {
+  componentNames,
+  enumProps,
+  namedChildIds,
+  sweep,
+  type CatalogSchema,
+} from '../fixture/matrix.js';
 import {ICON_NAMES} from './components/icon/index.js';
 import {SlotContentContext} from './slot-content.js';
 import {componentElements, renderTree} from './testing/render.js';
@@ -37,6 +44,19 @@ afterEach(() => {
   consoleWarn.mockRestore();
 });
 
+test('the named-child check finds a child in every place the schema types one', () => {
+  const children = namedChildIds(schema, {
+    components: [
+      {id: 'root', component: 'Column', children: ['card', 'tabs', 'list']},
+      {id: 'card', component: 'Card', child: 'body'},
+      {id: 'tabs', component: 'Tabs', tabs: [{title: 'One', child: 'first'}]},
+      {id: 'list', component: 'List', children: {componentId: 'row', path: '/rows'}},
+    ],
+    data: {},
+  });
+  expect(children).toEqual(['card', 'tabs', 'list', 'body', 'first', 'row']);
+});
+
 test('the sweep covers every component the schema declares, with every enum value', () => {
   const names = componentNames(schema);
   expect(names).toContain('Text');
@@ -61,8 +81,9 @@ for (const name of componentNames(schema)) {
         for (const element of elements) {
           expect(drewContent(element), `${element.tagName.toLowerCase()} drew nothing`).toBe(true);
         }
-        // A child the tree names but never defined; the renderer reports it by its text alone.
-        expect(container.textContent).not.toContain('[Loading ');
+        // A child the tree names but never defined is drawn as nothing at all.
+        const defined = new Set(sample.components.map(component => component.id));
+        expect(namedChildIds(schema, sample).filter(id => !defined.has(id))).toEqual([]);
         expect(consoleError.mock.calls).toEqual([]);
         expect(consoleWarn.mock.calls).toEqual([]);
       });
