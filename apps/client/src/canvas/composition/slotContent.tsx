@@ -62,7 +62,7 @@ export function renderSlotContent(
     );
   }
   return (
-    <FragmentBoundary source={placed.source} surfaceId={placed.surfaceId}>
+    <FragmentBoundary source={placed.source} surface={surface}>
       {contained}
     </FragmentBoundary>
   );

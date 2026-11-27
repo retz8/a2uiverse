@@ -74,7 +74,7 @@ async function mountStorefront({boundary = true} = {}) {
       <BindingIndexContext.Provider value={index}>
         <div data-slot="shop-a">
           {boundary ? (
-            <FragmentBoundary source="shop-a" surfaceId={SURFACE}>
+            <FragmentBoundary source="shop-a" surface={surface}>
               {frame}
             </FragmentBoundary>
           ) : null}
@@ -234,13 +234,16 @@ describe('over the registry snapshot', () => {
       msg({updateDataModel: {surfaceId: SURFACE, value: {items: ITEMS}}}),
     ]);
     const index = createBindingIndex();
-    const fragment = (source: string, surfaceId: string) => (
-      <div data-slot={source}>
-        <FragmentBoundary source={source} surfaceId={surfaceId}>
-          <SurfaceFrame surface={processor.model.getSurface(surfaceId)!} />
-        </FragmentBoundary>
-      </div>
-    );
+    const fragment = (source: string, surfaceId: string) => {
+      const surface = processor.model.getSurface(surfaceId)!;
+      return (
+        <div data-slot={source}>
+          <FragmentBoundary source={source} surface={surface}>
+            <SurfaceFrame surface={surface} />
+          </FragmentBoundary>
+        </div>
+      );
+    };
     const view = render(
       <CatalogProvider catalogs={catalogs}>
         <BindingIndexContext.Provider value={index}>

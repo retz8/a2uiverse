@@ -19,6 +19,7 @@ import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {BASIC_CATALOG_ID, type PreviewDocument} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {applyA2uiMessages} from '../../../a2ui/applyMessages';
+import {logSurfaceErrors} from '../../../a2ui/surfaceErrors';
 import {
   CatalogProvider,
   isLoader,
@@ -89,6 +90,7 @@ function useSample(listing: StoreListing, catalogs: PageCatalogs, orchestrator: 
         if (!read.ok) throw new Error(`the preview could not be read: ${read.reason}`);
         const held = [...ownCatalogs(catalogs), ...loaded];
         const processor = new MessageProcessor<ReactCatalogComponent>(held.map(c => c.catalog));
+        logSurfaceErrors(processor);
         let failed = false;
         applyA2uiMessages(processor, read.value.messages as unknown as A2uiMessage[], {
           onMessageError: () => (failed = true),

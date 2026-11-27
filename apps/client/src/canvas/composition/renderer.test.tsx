@@ -1,12 +1,12 @@
 /**
- * The local patch to `@a2ui/react` 0.14.0's renderer (`patches/@a2ui__react@0.14.0.patch`; task-16.7
- * decision 1): where a component cannot be drawn — a child still on its way, a type the catalog
- * does not have, a child reference the renderer cannot resolve — it draws a quiet stand-in, never
- * the developer text upstream draws. Beside it, the radio groups of two pickers sharing a
- * component id, which upstream fixed (#2447): two surfaces on one canvas is the precondition for
- * both, which is why they are pinned here rather than in a vendor's own suite.
+ * What the client takes from `@a2ui/react`'s renderer where a fragment holds what it cannot draw
+ * — a child still on its way, a type the catalog does not have, a child reference the renderer
+ * cannot resolve: nothing is drawn there, the rest of the fragment stands, and the surface's
+ * errors reach the console (task-21.5 decisions 4, 5). Beside it, the radio groups of two pickers
+ * sharing a component id, which upstream fixed (#2447): two surfaces on one canvas is the
+ * precondition for both, which is why they are pinned here rather than in a vendor's own suite.
  */
-import {describe, it, expect} from 'vitest';
+import {afterEach, beforeEach, describe, it, expect, vi, type MockInstance} from 'vitest';
 import {z} from 'zod';
 import {act, fireEvent, render, waitFor, within} from '@testing-library/react';
 import {Catalog, componentId, MessageProcessor} from '@a2ui/web_core/v0_9';
@@ -14,6 +14,7 @@ import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
 import {createComponentImplementation, type ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {CATALOG_ID as SHELL_CATALOG_ID, createCatalog} from '@a2uiverse/shell-catalog';
+import {logSurfaceErrors} from '../../a2ui/surfaceErrors';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
 import {clientCatalogs} from '../../catalogs/clientCatalogs';
 
@@ -121,8 +122,8 @@ const Holder = createComponentImplementation(
   ({props, buildChild}) => <section>{buildChild(props.child)}</section>,
 );
 const LooseHolder = createComponentImplementation(
-  {name: 'LooseHolder', schema: z.object({child: z.string()})},
-  ({props, buildChild}) => <section>{buildChild(props.child)}</section>,
+  {name: 'LooseHolder', schema: z.object({target: z.string()})},
+  ({props, buildChild}) => <section>{buildChild(props.target)}</section>,
 );
 const Label = createComponentImplementation(
   {name: 'Label', schema: z.object({text: z.string()})},
@@ -130,26 +131,21 @@ const Label = createComponentImplementation(
 );
 const Stack = createComponentImplementation(
   {name: 'Stack', schema: z.object({children: z.array(componentId())})},
-  ({props, buildChild}) => (
-    <div>
-      {props.children.map(child =>
-        typeof child === 'string' ? buildChild(child) : buildChild(child.id, child.basePath),
-      )}
-    </div>
-  ),
+  ({props, buildChild}) => <div>{props.children.map(child => buildChild(child))}</div>,
 );
-const STAND_INS = new Catalog<ReactCatalogComponent>(
-  'urn:catalog:stand-ins',
+const UNDRAWABLE = new Catalog<ReactCatalogComponent>(
+  'urn:catalog:undrawable',
   'v0.9.1',
   [Holder, LooseHolder, Label, Stack],
   [],
 );
 
 /** A fragment beside each of the three things the renderer cannot draw. */
-function standIns() {
-  const processor = new MessageProcessor<ReactCatalogComponent>([STAND_INS]);
+function undrawable() {
+  const processor = new MessageProcessor<ReactCatalogComponent>([UNDRAWABLE]);
+  logSurfaceErrors(processor);
   processor.processMessages([
-    msg({createSurface: {surfaceId: 'github:mixed', catalogId: STAND_INS.id}}),
+    msg({createSurface: {surfaceId: 'github:mixed', catalogId: UNDRAWABLE.id}}),
     msg({
       updateComponents: {
         surfaceId: 'github:mixed',
@@ -160,7 +156,7 @@ function standIns() {
           {id: 'pending', component: 'Holder', child: 'later'},
           {id: 'alien', component: 'HolographicTable'},
           // Its child exists, but nothing marks the prop as a component id.
-          {id: 'loose', component: 'LooseHolder', child: 'known'},
+          {id: 'loose', component: 'LooseHolder', target: 'known'},
         ],
       },
     }),
@@ -172,36 +168,47 @@ function standIns() {
   );
 }
 
-describe('the stand-ins (task-16.7 decision 1)', () => {
-  it('draw quiet in all three places, the rest of the fragment standing', () => {
-    const {container} = standIns();
+describe('where the renderer cannot draw a component (task-21.5 decisions 4, 5)', () => {
+  let logged: MockInstance<typeof console.error>;
+  beforeEach(() => {
+    logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    logged.mockRestore();
+  });
+  /** What the client wrote to the console for the surface, by its error code. */
+  const surfaceErrors = () =>
+    logged.mock.calls
+      .filter(([tag]) => tag === '[A2UI:surface]')
+      .map(([, error]) => error as {code: string; message: string; surfaceId?: string});
 
-    // The fragment stays up: the known part rendered.
-    expect(container.textContent).toContain('Pull requests');
-    for (const kind of ['loading', 'unknown', 'unresolved']) {
-      const standIn = container.querySelector<HTMLElement>(`[data-a2ui-placeholder="${kind}"]`);
-      expect(standIn, kind).not.toBeNull();
-      expect(standIn!.style.color, kind).not.toBe('red');
-    }
-    // Nothing a person would read: no component id, no developer message.
-    for (const words of [
-      '[Loading',
-      'later',
-      'Unknown component',
-      'HolographicTable',
-      'Unresolved',
-    ])
-      expect(container.textContent).not.toContain(words);
+  it('draws nothing in all three places, the rest of the fragment standing', () => {
+    const {container} = undrawable();
+
+    // The fragment stays up: the known part drawn, and nothing beside it a person would read.
+    expect(container.textContent).toBe('Pull requests');
+    expect(container.querySelectorAll('p')).toHaveLength(1);
+    // The pending child and the unresolved reference leave their holders empty; the unknown type
+    // leaves no element at all.
+    const holders = container.querySelectorAll('section');
+    expect(holders).toHaveLength(2);
+    for (const holder of holders) expect(holder.childNodes).toHaveLength(0);
   });
 
-  it('name the unknown type on the element and on hover', () => {
-    const {container} = standIns();
-    const unknown = container.querySelector('[data-a2ui-placeholder="unknown"]')!;
-    expect(unknown.getAttribute('data-a2ui-component')).toBe('HolographicTable');
-    expect(unknown.getAttribute('title')).toBe('Unknown component: HolographicTable');
+  it('writes the unknown type and the unresolved reference to the console, not the pending child', async () => {
+    undrawable();
+    await waitFor(() => expect(surfaceErrors()).toHaveLength(2));
+    const [unknown, unresolved] = [...surfaceErrors()].sort((a, b) => a.code.localeCompare(b.code));
+    expect(unknown).toMatchObject({code: 'UNKNOWN_COMPONENT_TYPE', surfaceId: 'github:mixed'});
+    expect(unknown!.message).toContain('HolographicTable');
+    expect(unresolved).toMatchObject({
+      code: 'UNRESOLVED_CHILD_REFERENCE',
+      surfaceId: 'github:mixed',
+    });
+    expect(unresolved!.message).toContain("'known'");
   });
 
-  it('stand in for a pending child until it arrives', async () => {
+  it('draws a pending child once it arrives', async () => {
     const processor = new MessageProcessor<ReactCatalogComponent>([SHELL_CATALOG]);
     processor.processMessages([
       msg({createSurface: {surfaceId: 'shell:late', catalogId: SHELL_CATALOG_ID}}),
@@ -217,8 +224,7 @@ describe('the stand-ins (task-16.7 decision 1)', () => {
         <SurfaceFrame surface={processor.model.surfacesMap.get('shell:late')!} />
       </CatalogProvider>,
     );
-    expect(container.querySelector('[data-a2ui-placeholder="loading"]')).not.toBeNull();
-    expect(container.textContent).not.toContain('[Loading');
+    expect(container.textContent).toBe('');
 
     await act(async () =>
       processor.processMessages([
@@ -230,7 +236,6 @@ describe('the stand-ins (task-16.7 decision 1)', () => {
         }),
       ]),
     );
-    expect(container.querySelector('[data-a2ui-placeholder]')).toBeNull();
-    expect(container.textContent).toContain('Here now');
+    expect(container.textContent).toBe('Here now');
   });
 });

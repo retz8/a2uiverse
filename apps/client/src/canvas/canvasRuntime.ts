@@ -39,6 +39,7 @@ import {
 } from '../a2a/messages';
 import {createA2ASession} from '../a2a/session';
 import {streamUserMessage} from '../a2a/streamUserMessage';
+import {logSurfaceErrors} from '../a2ui/surfaceErrors';
 import {describeError} from '../shared/describeError';
 import {createCatalogGate, gateRunner, type CatalogLoadFailure} from '../catalogs/catalogGate';
 import type {ResolvedCatalog} from '../catalogs/clientCatalogs';
@@ -158,6 +159,7 @@ export function createCanvasRuntime({
   // The build each message is drawn in, assigned by the gate and read by the processors.
   const book = createPaintBuilds(artifactId => source.build(artifactId));
   const processor = new BuildProcessor(catalogs, book, action => actionHandler(action));
+  logSurfaceErrors(processor);
   // The evaluator dispatches to the shell catalog's operators; the synthesis surface is painted
   // against that catalog, so it is always among the installed ones.
   const shellCatalog = catalogs.find(c => c.id === SHELL_CATALOG_ID);

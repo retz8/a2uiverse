@@ -82,7 +82,7 @@ describe('a paint drawn in its build', () => {
     const {first, second, processor, deliver} = canvas([other]);
     deliver(first, create('a'), tree('a', 'one'));
     deliver(second, create('b'), tree('b', 'two'));
-    const held = (processor as unknown as {catalogs: Catalog<ReactCatalogComponent>[]}).catalogs;
+    const held = processor.catalogs;
     expect(held).toHaveLength(2);
     expect(held[0]).toBe(other);
     expect(held[1]).toBe(second.catalog);

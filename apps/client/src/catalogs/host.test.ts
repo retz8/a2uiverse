@@ -259,9 +259,8 @@ describe('a build’s stylesheet held to its own surfaces (task-14.11 decision 3
 describe('web_core and a catalog loaded after the processor was built (task-16.7 decision 2)', () => {
   const late = () => new Catalog('urn:catalog:late', 'v0.9.1', [], []);
 
-  it('takes a catalog through the patched addCatalog, from the next surface on', () => {
-    // web_core 0.14.0 links copies of the catalogs it is built over; `addCatalog` is upstream's
-    // PR #3304, carried as a patch. A web_core without it fails here.
+  it('takes a catalog through addCatalog, from the next surface on', () => {
+    // `addCatalog` is upstream's PR #3304, released in web_core 0.16.1.
     const processor = new MessageProcessor<A2uiWebCore.ComponentApi>([]);
     processor.addCatalog(late());
     processor.processMessages([

@@ -186,6 +186,46 @@ describe('a recorded merge over the fleet spread across the paths', () => {
   });
 });
 
+describe('the data model the client sends', () => {
+  it('holds the surfaces created by v0.9 and by v0.9.1 messages alike (upstream pull request 4077)', async () => {
+    // Beat 36: Gmail and Linear create their surfaces in v0.9 messages, GitHub and Calendar in
+    // v0.9.1, every one sending its data model.
+    const beat = getBeatFixture(36)!;
+    const {wiring, sent} = canvasAnswering(beat);
+    await wiring.sendUtterance(beat.prompt);
+    const runtime = wiring.viewed()!;
+    const created = new Map(
+      beat.turns[0]!.batches.filter(b => b.stamp?.role === 'fragment' && b.stamp.source !== 'shell')
+        .flatMap(b => b.messages)
+        .flatMap(m =>
+          'createSurface' in m ? [[m.createSurface.surfaceId, m.version] as const] : [],
+        ),
+    );
+    expect([...created.values()].sort()).toEqual(['v0.9', 'v0.9', 'v0.9.1', 'v0.9.1']);
+    for (const surfaceId of created.keys())
+      await expect.poll(() => runtime.processor.model.getSurface(surfaceId)).toBeDefined();
+    // web_core names each surface by the version of the message that created it.
+    for (const [surfaceId, version] of created)
+      expect(runtime.processor.model.getSurface(surfaceId)!.protocolVersion).toBe(version);
+
+    const [pressed] = created.keys();
+    await runtime.processor.model
+      .getSurface(pressed!)!
+      .dispatchAction({event: {name: 'open', context: {}}}, 'open');
+    await expect.poll(() => sent.length).toBe(2);
+    const dataModel = sent[1]!.message!.metadata?.a2uiClientDataModel as {
+      version: string;
+      surfaces: Record<string, unknown>;
+    };
+    expect(dataModel.version).toBe('v0.9');
+    expect(Object.keys(dataModel.surfaces).sort()).toEqual([...created.keys()].sort());
+    for (const surfaceId of created.keys())
+      expect(dataModel.surfaces[surfaceId]).toEqual(
+        runtime.processor.model.getSurface(surfaceId)!.dataModel.get('/'),
+      );
+  });
+});
+
 describe('a fragment in a version the platform does not speak', () => {
   it('is passed over: never drawn, never placed, nothing reported', async () => {
     const {wiring, sent} = canvasAnswering(fragmentIn('v1.0'));

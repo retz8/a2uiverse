@@ -17,6 +17,8 @@
  * in the canvas's binding index under its surface (task-16.7 decision 3).
  */
 import {useContext, useEffect, useRef, type ReactNode} from 'react';
+import type {SurfaceModel} from '@a2ui/web_core/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
 import {BindingIndexContext} from '../navigation/bindingIndex';
 
 /** The detector's anchor and the isolation hook; its value is the painting source's id. */
@@ -25,17 +27,20 @@ export const FRAGMENT_BOUNDARY_ATTR = 'data-a2ui-fragment';
 export interface FragmentBoundaryProps {
   /** The stamp's `source` — which app, and which account of it, painted what is inside. */
   source: string;
-  /** The namespaced surface id, for debugging and for the detector's DOM-ownership check. */
-  surfaceId: string;
+  /**
+   * The surface drawn inside: the binding index reads its components; its namespaced id is for
+   * debugging and for the detector's DOM-ownership check.
+   */
+  surface: SurfaceModel<ReactCatalogComponent>;
   children: ReactNode;
 }
 
-export function FragmentBoundary({source, surfaceId, children}: FragmentBoundaryProps) {
+export function FragmentBoundary({source, surface, children}: FragmentBoundaryProps) {
   const index = useContext(BindingIndexContext);
   const boundary = useRef<HTMLDivElement>(null);
   useEffect(
-    () => (index && boundary.current ? index.register(surfaceId, boundary.current) : undefined),
-    [index, surfaceId],
+    () => (index && boundary.current ? index.register(surface, boundary.current) : undefined),
+    [index, surface],
   );
   return (
     <div
@@ -43,7 +48,7 @@ export function FragmentBoundary({source, surfaceId, children}: FragmentBoundary
       className="fragment-boundary"
       role="group"
       aria-label={source}
-      data-surface={surfaceId}
+      data-surface={surface.id}
       {...{[FRAGMENT_BOUNDARY_ATTR]: source}}
     >
       {children}

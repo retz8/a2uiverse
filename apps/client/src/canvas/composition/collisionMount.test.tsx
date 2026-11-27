@@ -50,15 +50,14 @@ function everyCatalogMounted() {
   }
   return render(
     <CatalogProvider catalogs={CATALOGS}>
-      {RECORDS.map(record => (
-        <FragmentBoundary
-          key={record.appId}
-          source={record.appId}
-          surfaceId={`${record.appId}:probe`}
-        >
-          <SurfaceFrame surface={processor.model.surfacesMap.get(`${record.appId}:probe`)!} />
-        </FragmentBoundary>
-      ))}
+      {RECORDS.map(record => {
+        const surface = processor.model.surfacesMap.get(`${record.appId}:probe`)!;
+        return (
+          <FragmentBoundary key={record.appId} source={record.appId} surface={surface}>
+            <SurfaceFrame surface={surface} />
+          </FragmentBoundary>
+        );
+      })}
     </CatalogProvider>,
   );
 }

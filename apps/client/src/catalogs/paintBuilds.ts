@@ -48,11 +48,11 @@ export function createPaintBuilds(
 type Catalogs = Catalog<ReactCatalogComponent>[];
 
 /**
- * The list a processor resolves catalogs from, which its type keeps private: `addCatalog` (PR
- * #3304, carried as a patch) refuses an id the processor holds, and nothing else changes the list.
+ * The list a processor resolves catalogs from, which its type keeps private: `addCatalog` refuses
+ * an id the processor holds, `catalogs` hands back a copy, and nothing else changes the list.
  */
 const catalogsOf = (processor: MessageProcessor<ReactCatalogComponent>) =>
-  (processor as unknown as {catalogs: Catalogs}).catalogs;
+  (processor as unknown as {registeredCatalogs: Catalogs}).registeredCatalogs;
 
 /** A canvas's processor: each surface drawn in the build its messages were assigned. */
 export class BuildProcessor extends MessageProcessor<ReactCatalogComponent> {
@@ -84,8 +84,7 @@ export class BuildProcessor extends MessageProcessor<ReactCatalogComponent> {
     if (at === -1) return this.addCatalog(build.catalog);
     if (held[at] === build.catalog) return;
     // In the held one's place, changed in place, since the processor's RPC handler holds the same
-    // list. Nothing is linked: no catalog the platform loads refers into another, and upstream
-    // removed cross-catalog references (a2ui-project/a2ui#3575).
+    // list.
     held.splice(at, 1, build.catalog);
   }
 
