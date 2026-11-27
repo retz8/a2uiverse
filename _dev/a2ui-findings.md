@@ -1463,3 +1463,63 @@ SDKs disagreeing (searched "format uri", "openUrl scheme", "Invalid URI" and "sc
 2026-11-26). Issue [#4045](https://github.com/a2ui-project/a2ui/issues/4045) (open) proposes a URL
 policy across the SDKs, and pull request [#3199](https://github.com/a2ui-project/a2ui/pull/3199)
 (open) adds `mailto` and `tel` to the specification's `openUrl` scheme list.
+
+---
+
+## 34. `@a2ui/react` deprecates `render` in favour of `view`, and still requires `render` and leaves `view` optional (@a2ui/react)
+
+**Component:** at `7a776e7a4`, the commit `@a2ui/react` 0.16.1 was released from, and unchanged on
+`upstream/main` at `36725eee0` (2026-11-26): `ReactComponentImplementation` in
+`typescript/renderers/react/src/react_component_implementation.ts`, lines 79 and 86, and
+`ChildElement` and `NodeContent` in `typescript/renderers/react/src/node-view.tsx`, lines 402 and 489.
+
+**Severity:** a deprecation no implementation can follow. An entry written with `view` alone, as the
+deprecation asks, does not type-check, and cast past the type it draws nothing.
+
+**Reported:** not filed.
+
+### Issue
+
+Pull request [#3841](https://github.com/a2ui-project/a2ui/pull/3841) (merged 2026-11-04, released in
+0.16.0) deprecates `ReactComponentImplementation.render`: "Implement `view({node, buildChild})`
+instead." The interface it deprecates keeps `render` required and `view` optional:
+
+```ts
+render: React.FC<ReactRenderProps>;
+view?: React.FC<NodeViewProps>;
+```
+
+The surface also tells a React entry by its `render`. `ChildElement` takes an entry for a React
+implementation when `'render' in node.impl` and hosts any other as a Web Component, and
+`NodeContent` returns nothing for an entry with no `render` before it reads `view`. So `render`
+cannot be left out: an entry has to carry one that the surface never calls once `view` is there.
+
+### Reproduction
+
+One `Text` entry, its `view` drawing `<p>drawn {node.componentId}</p>`, through `MessageProcessor`
+and `A2uiSurface` in `@a2ui/react` 0.16.1 and `@a2ui/web_core` 0.16.1:
+
+| Entry | Type check | Drawn |
+| --- | --- | --- |
+| `{...TextApi, view}` | refused: `render` is missing | `<a2ui-react-text style="display: contents;"></a2ui-react-text>` |
+| `{...TextApi, render: () => null, view}` | accepted | `<a2ui-react-text-2 style="display: contents;"><p>drawn root</p></a2ui-react-text-2>` |
+
+Run on 2026-11-27.
+
+### Fix
+
+The interface takes an entry carrying `view`, `render` or both, and the surface tells a React entry by
+either field.
+
+A2UIVerse's shell catalog builds `Slot` and `Attribution` with `createComponentImplementation` and
+puts a `view` of its own in place of the one the factory returns, as its `Table` does, so the
+factory's `render` fills the field. That `render` draws the component from the binder's props and,
+with no component id to name a press by, raises nothing.
+
+### Prior art
+
+Pull request #3841 is the deprecation itself. No issue or pull request asks for `view` alone or
+reports `render` still required (searched "render deprecated view", "ReactComponentImplementation
+render", "view required render optional" and "deprecate render" on 2026-11-27). Pull request
+[#4431](https://github.com/a2ui-project/a2ui/pull/4431) (open) edits the interface's file and leaves
+both fields as they are.
