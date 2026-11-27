@@ -263,8 +263,6 @@ The facts come from props the orchestrator paints on the merged view's `Slot` (`
 
 Two accessibility details ride along. When the button that was pressed disappears, **focus moves to the line that replaced it** (a ref flag records that the button held focus, and the new line takes focus once). And the outcomes the progress line doesn't say are announced through a visually hidden `role="status"` region beside the slot.
 
-One more detail explains why `Slot` reads its props from the component's own model, again on every update of the model, instead of from the props the binder hands it. Upstream's binder merges each repaint over the last one, so a prop the orchestrator stops painting, like `working` once a press finishes, would otherwise keep its old value, and a repaint that only drops props hands the component nothing new to render. Every `Slot` prop is a literal the orchestrator repaints, so the model is the whole truth.
-
 ### Drawing a value: `DerivedValue`
 
 `DerivedValue` binds one prop, `cell`, to the cell object the client's evaluator writes (`{value, contributed, of, absent, join?, target?, names?}`; see [`synthesis.md`](synthesis.md#6-a-cell-is-a-value-that-says-how-sure-it-is)). From it the component draws:
@@ -338,7 +336,6 @@ A **request for more access** inside a fragment is painted on its `Attribution` 
 - **Not now** raises `{kind: "dismiss", sources: [source]}` through `onPress`.
 - A `retry` or a `dismiss` `sent` for the source hides the chip and the card at once, before the orchestrator's repaint drops `escalation`.
 - Allow's `retry` that never reached the orchestrator turns the chip to "Not sent", with no lock, and opens the card again on "GitHub has the access now." over "That didn't reach A2UIVerse.", with **Try again**, which raises the `retry` once more, and **Not now**. One whose stream broke turns the chip to "Connection lost" and the card to "Lost the connection to A2UIVerse. Ask again to see where this stands.", with no press.
-- `Attribution` reads `escalation`, like its other literal props, from its own component model, as `Slot` does: the binder's resolved props keep a dropped prop across a repaint ([upstream finding](../../_dev/a2ui-findings.md)).
 
 When an app has more than one account, the orchestrator paints the account's label as `account`, and the marker reads "Gmail · me@example.com" **at rest**, so two fragments of one app tell apart at a glance. A long label ends in an ellipsis; the whole of it is in the hover title and the accessible name.
 
@@ -369,7 +366,7 @@ Until the installed app's first answer the orchestrator keeps the offer on the s
 Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-that-must-agree) honest:
 
 - **Name-level parity** (`catalog.parity.test.ts`, and `schema.test.ts` for the React-free face): the catalog id matches everywhere; every component and every function in `catalog.json` has an implementation and the other way round; the declared functions are exactly upstream's, plus the operators, the relations and the three shell actions.
-- **Render-level parity** (`catalog.render-parity.test.tsx`), which is **generated from `catalog.json`**. `fixture/matrix.ts` walks every component and every enum prop, and for each value builds a minimal valid tree: required props sampled from their declared types, a small seed per component so the sample is readable, and the one prop being varied. Every case renders through the real renderer under the Provider, and the surface must report no error, every component's element must hold something it drew, and no child may be left pending, with no console error or warning. Add an enum value to `catalog.json` and it's tested automatically.
+- **Render-level parity** (`catalog.render-parity.test.tsx`), which is **generated from `catalog.json`**. `fixture/matrix.ts` walks every component and every enum prop, and for each value builds a minimal valid tree: required props sampled from their declared types, a small seed per component so the sample is readable, and the one prop being varied. Every case renders through the real renderer under the Provider, and the surface must report no error, every component's element must hold something it drew, and every child the tree names must be a component it defines, with no console error or warning. Add an enum value to `catalog.json` and it's tested automatically.
 
 `keep-sets.test.ts` checks the pruning: a merged view validates against the Synthesizer's pruned catalog while `Slot`, `Attribution` and `Button` don't, and a layout validates against the Planner's while `Attribution`, `DerivedValue` and `SortControl` don't. `scoped-css.test.ts` checks that no `:root` survived in the stylesheet.
 
@@ -386,7 +383,6 @@ Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-th
 | **Waiting drawn in place, in each surface's own shape** | The quiet line stays one line and the escalation card keeps its scopes; nothing moves while the reader is in the sign-in window | Three waiting shapes instead of one |
 | **The host computes, the catalog draws** | History, press state and slot state live in one place, the client | The catalog can't be smarter than what it's told |
 | **Every line's wording as a pure function** | The words are tested without rendering; one place to change them | The functions take many facts, and their priority order matters |
-| **`Slot` reads its own model, not the binder's props** | A prop the orchestrator stops painting really goes away | It works around upstream's binder instead of through it |
 | **No boundary drawn around an app's slot** | The layout reads as one page, not tiles; an app's own cards aren't boxed twice | The separation rests on the names and the whitespace |
 | **`Attribution` never data-bound, never a model's** | An app can't hide or rename who painted it | The orchestrator has to add it to every layout |
 | **One mark, the value's contrast; danger on its own channel** | Partial and guessed read as one statement; a failed build stands out only when it's certain | Guessed is carried visually by color alone; the tooltip and accessible name carry the rest |
