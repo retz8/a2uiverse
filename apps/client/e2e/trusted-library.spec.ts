@@ -323,7 +323,7 @@ test('L5 · an app’s view: its state, its two accounts, Add account, Uninstall
   page,
 }) => {
   const view = await openApp(page, 'gmail');
-  await expect(view.getByRole('heading', {name: 'Gmail'})).toBeVisible();
+  await expect(view.getByRole('heading', {name: 'Gmail', exact: true})).toBeVisible();
   await expect(view).toContainText('by a2uiverse-apps');
   await expect(view.getByTestId('library-state')).toContainText('A small update is ready');
   await expect(view.getByRole('button', {name: 'Update Gmail'})).toBeVisible();

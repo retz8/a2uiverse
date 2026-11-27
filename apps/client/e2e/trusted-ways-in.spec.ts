@@ -126,7 +126,7 @@ test('beat 30: the Planner’s button lands on the App Library at the app it nam
   await expect(overlay(page)).toHaveAttribute('data-app', 'github');
   const view = page.getByTestId('library-app-view');
   await expect(view).toHaveAttribute('data-app', 'github');
-  await expect(view.getByRole('heading', {name: 'GitHub'})).toBeVisible();
+  await expect(view.getByRole('heading', {name: 'GitHub', exact: true})).toBeVisible();
   await expect(view.getByTestId('library-account')).toHaveCount(1);
   await expect(page).toHaveURL(/[?&]page=library&app=github(&|$)/);
 });
