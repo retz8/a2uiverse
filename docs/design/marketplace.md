@@ -523,7 +523,7 @@ The orchestrator's Planner reads the marketplace too, when a question needs some
 | A sign-in app published with no preview | `the card requires sign-in: publish needs the preview `stellify preview` captures with your own credential` |
 | A preview handed for an open app, or at another version | `a preview is only taken for an app whose card requires sign-in …`; `the preview was captured at version "0.1.0", the card is at "0.2.0"` |
 | A build removes something | `catalog artifact 1 (…): components/Video: removed`; the row stays where it was |
-| A build packed for another host interface | `catalog artifact 1 (…): host interface "0.9.1" is not one the platform supplies (it supplies "0.16.1")`, `422`; Stellify 0.12.0 packs for `0.16.1` |
+| A build packed for another host interface | `catalog artifact 1 (…): host interface "0.9.1" is not one the platform supplies (it supplies "0.16.1")`, `422`; Stellify 0.13.0 packs for `0.16.1` |
 | The card changed at a published version | `the card changed, but version "0.1.0" is already published: a changed card carries a version this app id has never published` |
 | The agent never finishes, fails, or paints nothing | `the agent never finished: the stream ended with its task still working`, naming the last state the stream carried, or `… the stream ended before any answer` when it carried nothing; `the agent ended the task as failed: …`; `the answer paints nothing: no createSurface` |
 | The agent paints outside its entitlement | `surface "list" is painted in catalog "…", outside its entitlement`; stamped for the other version, `surface "list" is painted in catalog "…" stamped v0.9, which its card declares for v0.9.1 only` |
