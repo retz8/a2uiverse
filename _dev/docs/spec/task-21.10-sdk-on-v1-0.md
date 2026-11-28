@@ -56,7 +56,7 @@ The sdk exports one reading of a message's stamp: whether it is `"1.0"`, and if 
 
 ### 9. The validator's verdicts are upstream's, over several catalogs
 
-Beyond decision 8's gate the validator reports the verdicts of `@a2ui/web_core` 0.16.1 and carries no relaxation, as task 21.2's decision 2 had it. It takes several catalogs, each component judged against its own. It accepts v1.0's two agent-to-renderer function messages, `callRendererFunction` and `agentFunctionResponse`, as the release judges them.
+Beyond decision 8's gate the validator reports the verdicts of `@a2ui/web_core` 0.16.1 and carries one relaxation. A surface's tree is judged once, where the payload leaves it, and a component a later copy of its parent stopped referencing is left out of it, with what only it reaches; a component nothing the payload sent ever referenced is an orphan. It takes several catalogs, each component judged against its own. It accepts v1.0's two agent-to-renderer function messages, `callRendererFunction` and `agentFunctionResponse`, as the release judges them.
 
 ### 10. A schema-form check stands beside the validator
 
@@ -135,4 +135,4 @@ Seven more, read in upstream's source and not reproduced, go on the line of the 
 ## Invariants
 
 - No code of the sdk serves both wires.
-- Beyond decision 8's gate, the validator's verdicts are upstream's.
+- Beyond decision 8's gate and decision 9's one relaxation, the validator's verdicts are upstream's.
