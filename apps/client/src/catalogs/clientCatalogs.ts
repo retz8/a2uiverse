@@ -5,9 +5,10 @@
  * other catalog arrives through the loader at runtime.
  */
 import {Fragment, type ComponentType, type ReactNode} from 'react';
-import type {Catalog} from '@a2ui/web_core/v0_9';
-import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import type {Catalog} from '@a2ui/web_core/v1_0';
+import {basicCatalog} from '@a2ui/web_core/catalogs/basic/v1';
+import type {ReactCatalogComponent} from '@a2ui/react';
+import {frameComponents} from './catalogFrame';
 import {
   CATALOG_ID as SHELL_CATALOG_ID,
   createCatalog as createShellCatalog,
@@ -39,15 +40,20 @@ const BARE = Fragment as ComponentType<{children: ReactNode}>;
 const RESOLVED = new WeakMap<object, ResolvedCatalog>();
 
 /**
- * The catalog a surface was drawn in, as the client resolved it — its Provider and its build:
+ * A catalog a surface was drawn in, as the client resolved it — its Provider and its build:
  * whichever other build of its catalog the page holds beside it, a surface keeps its own.
  */
 export function resolvedOf(catalog: object): ResolvedCatalog | undefined {
   return RESOLVED.get(catalog);
 }
 
+/**
+ * A resolved catalog, kept by its object, its entries drawn in React framing themselves where a
+ * surface changes catalog (task-21.14 decision 2).
+ */
 function remember(resolved: ResolvedCatalog): ResolvedCatalog {
   RESOLVED.set(resolved.catalog, resolved);
+  frameComponents(resolved.catalog, resolvedOf);
   return resolved;
 }
 
@@ -66,7 +72,7 @@ export function resolveCatalog(
 }
 
 /**
- * The client's own catalogs: the shell catalog, bound to its host, and upstream's basic catalog
+ * The client's own catalogs: the shell catalog, bound to its host, and upstream's v1 basic catalog
  * as a default (task-11.5 decision 5), with no Provider.
  */
 export function clientCatalogs({

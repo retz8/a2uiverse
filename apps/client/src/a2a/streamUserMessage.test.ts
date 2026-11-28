@@ -1,6 +1,7 @@
 import {describe, it, expect, vi} from 'vitest';
 import {TaskState, type Part, type SendMessageRequest} from '@a2a-js/sdk';
-import type {A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import type {RendererDataModel} from './messages';
 import {dataPart, statusUpdateEvent, textPart, type A2AStreamEventData} from './messages';
 import type {A2AMessageSender} from './client';
 import {createA2ASession} from './session';
@@ -11,7 +12,7 @@ import {PAGE_SESSION} from './pageSession';
 const CLOCK = vi.hoisted(() => ({now: '2026-10-09T14:20:00+09:00', timeZone: 'Asia/Seoul'}));
 vi.mock('./clock', () => ({readClock: () => CLOCK}));
 
-const A2UI_DATA = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'cat'}};
+const A2UI_DATA = {version: '1.0', createSurface: {surfaceId: 's', catalogId: 'cat'}};
 const DATA_PART: Part = dataPart(A2UI_DATA);
 
 function statusUpdate(
@@ -76,7 +77,7 @@ describe('streamUserMessage', () => {
       statusUpdate([DATA_PART]),
       statusUpdate([DATA_PART], 'ctx-1', true),
     ]);
-    const applied: A2uiMessage[][] = [];
+    const applied: AgentToRendererMessage[][] = [];
 
     await streamUserMessage('show me open PRs', {getSender, apply: m => applied.push(m)});
 
@@ -113,19 +114,19 @@ describe('streamUserMessage', () => {
 
   it('sends the current client data model as message metadata when a supplier is given', async () => {
     const clientDataModel = {
-      version: 'v0.9',
+      version: '1.0',
       surfaces: {s: {prs: [{selected: true}]}},
-    } as unknown as A2uiClientDataModel;
+    } as unknown as RendererDataModel;
     const {getSender, sent} = fakeSender([statusUpdate([DATA_PART], 'ctx-1', true)]);
 
     await streamUserMessage('show selected', {
       getSender,
       apply: () => {},
-      getClientDataModel: () => clientDataModel,
+      getRendererDataModel: () => clientDataModel,
     });
 
     expect(sent[0].message!.metadata).toEqual({
-      a2uiClientDataModel: clientDataModel,
+      a2uiRendererDataModel: clientDataModel,
       a2uiverse: {session: PAGE_SESSION, ...CLOCK},
     });
   });
@@ -136,7 +137,7 @@ describe('streamUserMessage', () => {
     await streamUserMessage('hi', {
       getSender,
       apply: () => {},
-      getClientDataModel: () => undefined,
+      getRendererDataModel: () => undefined,
     });
 
     expect(sent[0].message!.metadata).toEqual({a2uiverse: {session: PAGE_SESSION, ...CLOCK}});

@@ -5,14 +5,14 @@
  */
 import {describe, it, expect} from 'vitest';
 import {render, screen} from '@testing-library/react';
-import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import {MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import {
   CATALOG_ID as SHELL_CATALOG_ID,
   createCatalog,
   SlotContentContext,
 } from '@a2uiverse/shell-catalog';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
 import type {PlacedFragment} from '../canvasStore';
 import {FRAGMENT_BOUNDARY_ATTR} from './FragmentBoundary';
@@ -25,8 +25,8 @@ const SHELL_CATALOG = createCatalog({onShellAction: () => {}});
 
 const CATALOGS = await snapshotCatalogs();
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 
 /** The shell as the orchestrator paints it: one slot, wrapped in the attribution naming it. */
 function composedProcessor(slotState: 'pending' | 'failed' | 'collapsed' = 'pending') {

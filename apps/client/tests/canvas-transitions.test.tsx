@@ -3,8 +3,8 @@
  * cancellation, driven through the real store + turn runner + replay driver — zero LLM calls.
  */
 import {describe, it, expect, vi, afterEach} from 'vitest';
-import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import {MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {ReactCatalogComponent} from '@a2ui/react';
 import {createCanvasStore} from '../src/canvas/canvasStore';
 import {createTurnRunner} from '../src/canvas/turn/canvasTurn';
 import {replayBeatOnCanvas} from '../src/canvas/replayBeat';

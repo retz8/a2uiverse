@@ -66,9 +66,9 @@ const preview = (appId: string, text: string): PreviewDocument => ({
   version: '1.0.0',
   words: 'What cameras do you have?',
   messages: [
-    {version: 'v0.9', createSurface: {surfaceId: 'main', catalogId: BASIC_CATALOG_ID}},
+    {version: '1.0', createSurface: {surfaceId: 'main', catalogId: BASIC_CATALOG_ID}},
     {
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'main',
         components: [

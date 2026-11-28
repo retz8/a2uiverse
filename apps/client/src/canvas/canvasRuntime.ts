@@ -16,16 +16,15 @@
  *
  * The live processor is the live registry of this canvas — exactly what the agent may see of it.
  */
-import {BASIC_CATALOG_ID, CATALOG_LOAD_FAILED} from '@a2uiverse/sdk';
+import {A2UI_VERSION, BASIC_CATALOG_ID, CATALOG_LOAD_FAILED} from '@a2uiverse/sdk';
 import type {CompositionOperation, CompositionStamp, PaintMeta} from '@a2uiverse/sdk';
 import type {
   ActionListener,
-  A2uiClientAction,
-  A2uiClientDataModel,
   Catalog,
   MessageProcessor,
-} from '@a2ui/web_core/v0_9';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+  OutboundMessageListener,
+} from '@a2ui/web_core/v1_0';
+import type {ReactCatalogComponent} from '@a2ui/react';
 import {OPERATORS, RELATIONS, type ShellAction} from '@a2uiverse/shell-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2AMessageSender, GetSender} from '../a2a/client';
@@ -34,8 +33,11 @@ import {
   buildActionMessageParams,
   buildErrorMessageParams,
   buildOperationMessageParams,
-  CLIENT_A2UI_VERSION,
+  buildOutboundMessageParams,
   VALIDATION_FAILED,
+  type RendererAction,
+  type RendererDataModel,
+  type RendererOutbound,
 } from '../a2a/messages';
 import {createA2ASession} from '../a2a/session';
 import {streamUserMessage} from '../a2a/streamUserMessage';
@@ -158,7 +160,14 @@ export function createCanvasRuntime({
   const source = builds ?? fixedBuilds(catalogs);
   // The build each message is drawn in, assigned by the gate and read by the processors.
   const book = createPaintBuilds(artifactId => source.build(artifactId));
-  const processor = new BuildProcessor(catalogs, book, action => actionHandler(action));
+  // What the release sends an agent on its own, from the live processor or a turn's staging one.
+  const outboundListener: OutboundMessageListener = message => {
+    if ('rendererFunctionResponse' in message || 'callAgentFunction' in message)
+      sendOutbound(message);
+  };
+  const processor = new BuildProcessor(catalogs, book, action => actionHandler(action), {
+    outboundListener,
+  });
   logSurfaceErrors(processor);
   // The evaluator dispatches to the shell catalog's operators; the synthesis surface is painted
   // against that catalog, so it is always among the installed ones.
@@ -187,7 +196,7 @@ export function createCanvasRuntime({
   const ungated = createTurnRunner({
     processor,
     store,
-    createStaging: () => new BuildProcessor(catalogs, book),
+    createStaging: () => new BuildProcessor(catalogs, book, undefined, {outboundListener}),
     rebuild: book.rebuild,
     onFragmentFailure: failure => void reportFragmentFailure(failure),
     synthesis,
@@ -199,10 +208,8 @@ export function createCanvasRuntime({
     ...(onAuthority ? {onAuthority} : {}),
   });
   const runner = gateRunner(ungated, gate);
-  // In the client's version, as the message carries it: web_core names each surface by its
-  // catalog's own version, the shell catalog's `v0.9.1`.
-  const getClientDataModel = () =>
-    processor.getRendererDataModel(CLIENT_A2UI_VERSION) as A2uiClientDataModel | undefined;
+  const getRendererDataModel = () =>
+    processor.getRendererDataModel(A2UI_VERSION) as RendererDataModel | undefined;
 
   /**
    * Agent prose streams as chunks — a sentence splits mid-word across events — so it is
@@ -225,7 +232,7 @@ export function createCanvasRuntime({
         getSender,
         apply: turn.apply,
         session,
-        getClientDataModel,
+        getRendererDataModel,
         signal: turn.signal,
         onFirstEvent: () => {
           answered = true;
@@ -244,13 +251,18 @@ export function createCanvasRuntime({
     }
   };
 
-  const sendCausedAction = async (action: A2uiClientAction, cause: PaintCause) => {
+  const sendCausedAction = async (action: RendererAction, cause: PaintCause) => {
     const turn = runner.begin(cause);
     try {
       const sender = await getSender();
       await sendAndApply(
         sender,
-        buildActionMessageParams(action, session.get(), getClientDataModel(), supportedCatalogIds),
+        buildActionMessageParams(
+          action,
+          session.get(),
+          getRendererDataModel(),
+          supportedCatalogIds,
+        ),
         {
           apply: turn.apply,
           session,
@@ -366,7 +378,7 @@ export function createCanvasRuntime({
           operation,
           session.get(),
           supportedCatalogIds,
-          getClientDataModel(),
+          getRendererDataModel(),
         ),
         {
           apply: (messages, stamp, payload) => {
@@ -407,6 +419,45 @@ export function createCanvasRuntime({
   };
 
   /**
+   * What the release sends an agent on its own (task-21.14 decisions 6, 8, 9): a renderer
+   * function's answer, sent the moment the function returns, carrying the call's id as received,
+   * and a component's `callAgentFunction`, sent on as emitted. Each goes on a stream of its own
+   * beside the turn, as a press does, never held back behind a press in flight; it draws nothing
+   * and moves no progress line, and what the agent answers on that stream lands as any paint does.
+   */
+  const sendOutbound = (message: RendererOutbound) => {
+    void (async () => {
+      const stream = runner.beginSideStream();
+      try {
+        const sender = await getSideSender();
+        await sendAndApply(
+          sender,
+          buildOutboundMessageParams(
+            message,
+            session.get(),
+            getRendererDataModel(),
+            supportedCatalogIds,
+          ),
+          {
+            apply: stream.apply,
+            session,
+            signal: stream.signal,
+            onAgentText: (text, stamp) => {
+              if (stamp?.role === 'fragment' && stamp.source !== SHELL_SOURCE)
+                reportAgentText(text, stamp);
+            },
+            onPaintMeta: stream.acceptPaintMeta,
+          },
+        );
+      } catch (err) {
+        if (!stream.signal.aborted) console.error('[A2UI:a2a] a function message failed', err);
+      } finally {
+        stream.end();
+      }
+    })();
+  };
+
+  /**
    * A fragment the canvas could not render, reported to the hub — which owns slot lifecycle and
    * answers by repainting its own shell surface with that slot failed.
    *
@@ -436,7 +487,7 @@ export function createCanvasRuntime({
             message: failure.message,
           },
           session.get(),
-          getClientDataModel(),
+          getRendererDataModel(),
           supportedCatalogIds,
         ),
         {apply: stream.apply, session, signal: stream.signal},
@@ -471,7 +522,7 @@ export function createCanvasRuntime({
         buildErrorMessageParams(
           {code: CATALOG_LOAD_FAILED, surfaceId, message, catalogId},
           session.get(),
-          getClientDataModel(),
+          getRendererDataModel(),
           supportedCatalogIds,
         ),
         {apply: stream.apply, session, signal: stream.signal},
@@ -491,7 +542,7 @@ export function createCanvasRuntime({
    * more. Every raise is reported, an open page included — a second click is a second intent.
    */
   const reportShellAction = (action: ShellAction) => {
-    const clientAction: A2uiClientAction = {
+    const clientAction: RendererAction = {
       name: action.name,
       surfaceId: action.surfaceId,
       // A functionCall runs with no component in scope; a slot's own press names its slot.

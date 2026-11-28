@@ -4,15 +4,15 @@
  */
 import {describe, expect, it} from 'vitest';
 import {render, waitFor} from '@testing-library/react';
-import {Catalog, MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import {Catalog, MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {basicCatalog} from '@a2ui/web_core/catalogs/basic/v1';
+import type {ReactCatalogComponent} from '@a2ui/react';
 import {CatalogProvider, SurfaceFrame} from './CatalogContext';
 import {resolveCatalog} from './clientCatalogs';
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 
 /** A build of the basic catalog: a catalog object of its own, as each artifact's module holds. */
 const buildOf = (artifact: string) =>

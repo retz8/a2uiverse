@@ -9,7 +9,7 @@ import type {A2AMessageSender} from '../../src/a2a/client';
 import type {A2AStreamEventData} from '../../src/a2a/messages';
 import {BASIC_CATALOG_ID, type CompositionOperation} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
-import type {A2uiClientError} from '../../src/a2a/messages';
+import type {RendererError} from '../../src/a2a/messages';
 import {
   buildErrorMessageParams,
   buildOperationMessageParams,
@@ -100,7 +100,7 @@ export function drivePress(
 /** The client's report of a fragment it could not draw, as the canvas sends it. */
 export function driveReport(
   sender: A2AMessageSender,
-  error: A2uiClientError,
+  error: RendererError,
   contextId: string,
   catalogIds: string[],
   onEvent?: (e: TimedEvent) => void,

@@ -1,15 +1,15 @@
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {CLIENT_A2UI_VERSION} from '../a2a/messages';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {A2UI_VERSION} from '@a2uiverse/sdk';
 
 /** The slice of MessageProcessor the applier needs; MessageProcessor satisfies it structurally. */
 export interface A2uiMessageTarget {
-  processMessages(messages: A2uiMessage[]): void;
+  processMessages(messages: AgentToRendererMessage[]): void;
   readonly model: {getSurface(id: string): unknown};
 }
 
 export interface ApplyA2uiMessagesOptions {
   /** Called once per message that failed to process. Not called on success. */
-  onMessageError?: (error: unknown, message: A2uiMessage) => void;
+  onMessageError?: (error: unknown, message: AgentToRendererMessage) => void;
 }
 
 /**
@@ -33,7 +33,7 @@ export interface ApplyA2uiMessagesOptions {
  */
 export function applyA2uiMessages(
   target: A2uiMessageTarget,
-  messages: A2uiMessage[],
+  messages: AgentToRendererMessage[],
   options: ApplyA2uiMessagesOptions = {},
 ): void {
   for (const message of messages) {
@@ -52,19 +52,19 @@ export function applyA2uiMessages(
  * The liveness check runs per message rather than once per batch, so a surface created
  * earlier in this same batch is also repainted rather than throwing.
  */
-function expand(target: A2uiMessageTarget, message: A2uiMessage): A2uiMessage[] {
+function expand(
+  target: A2uiMessageTarget,
+  message: AgentToRendererMessage,
+): AgentToRendererMessage[] {
   const surfaceId = createSurfaceId(message);
   if (surfaceId === undefined || !target.model.getSurface(surfaceId)) return [message];
-  const remove = {
-    version: CLIENT_A2UI_VERSION,
-    deleteSurface: {surfaceId},
-  } as unknown as A2uiMessage;
+  const remove: AgentToRendererMessage = {version: A2UI_VERSION, deleteSurface: {surfaceId}};
   // One repaint intent, one try unit: the pair is handed over together so a failure
   // reports once rather than twice.
   return [remove, message];
 }
 
-function createSurfaceId(message: A2uiMessage): string | undefined {
+function createSurfaceId(message: AgentToRendererMessage): string | undefined {
   const payload = (message as {createSurface?: {surfaceId?: unknown}}).createSurface;
   if (!payload || typeof payload.surfaceId !== 'string') return undefined;
   return payload.surfaceId;

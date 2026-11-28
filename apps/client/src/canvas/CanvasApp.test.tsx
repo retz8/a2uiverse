@@ -30,9 +30,9 @@ afterEach(() => {
 });
 
 const SURFACE_MESSAGES = [
-  {version: 'v0.9', createSurface: {surfaceId: 'answer', catalogId: CATALOG_ID}},
+  {version: '1.0', createSurface: {surfaceId: 'answer', catalogId: CATALOG_ID}},
   {
-    version: 'v0.9',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'answer',
       components: [{id: 'root', component: 'Text', text: 'hello from the agent'}],
@@ -41,9 +41,9 @@ const SURFACE_MESSAGES = [
 ];
 
 const ACTIONABLE_MESSAGES = [
-  {version: 'v0.9', createSurface: {surfaceId: 'list', catalogId: CATALOG_ID}},
+  {version: '1.0', createSurface: {surfaceId: 'list', catalogId: CATALOG_ID}},
   {
-    version: 'v0.9',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'list',
       components: [
@@ -90,9 +90,9 @@ const GMAIL_STAMP = {source: 'gmail', role: 'fragment'};
 
 /** The layout surface with one slot, Gmail's, as the shell painter emits it. */
 const GMAIL_LAYOUT = [
-  {version: 'v0.9', createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}},
+  {version: '1.0', createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}},
   {
-    version: 'v0.9',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'shell:main',
       components: [
@@ -112,9 +112,9 @@ const GMAIL_LAYOUT = [
 
 /** Gmail's fragment: one button to press inside it. */
 const GMAIL_FRAGMENT = [
-  {version: 'v0.9', createSurface: {surfaceId: 'gmail:inbox', catalogId: CATALOG_ID}},
+  {version: '1.0', createSurface: {surfaceId: 'gmail:inbox', catalogId: CATALOG_ID}},
   {
-    version: 'v0.9',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'gmail:inbox',
       components: [
@@ -271,9 +271,9 @@ describe('CanvasApp', () => {
       // The declared marker names the paint a question; it rides its own DataPart, ahead of the
       // create, and moves nothing.
       {paintMeta: {surfaceId: 'which-repo', kind: 'question'}},
-      {version: 'v0.9', createSurface: {surfaceId: 'which-repo', catalogId: CATALOG_ID}},
+      {version: '1.0', createSurface: {surfaceId: 'which-repo', catalogId: CATALOG_ID}},
       {
-        version: 'v0.9',
+        version: '1.0',
         updateComponents: {
           surfaceId: 'which-repo',
           components: [
@@ -428,9 +428,9 @@ describe('CanvasApp', () => {
 });
 
 const BOUND_MESSAGES = [
-  {version: 'v0.9', createSurface: {surfaceId: 'filters', catalogId: CATALOG_ID}},
+  {version: '1.0', createSurface: {surfaceId: 'filters', catalogId: CATALOG_ID}},
   {
-    version: 'v0.9',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'filters',
       components: [
@@ -443,7 +443,7 @@ const BOUND_MESSAGES = [
       ],
     },
   },
-  {version: 'v0.9', updateDataModel: {surfaceId: 'filters', value: {urgent: false}}},
+  {version: '1.0', updateDataModel: {surfaceId: 'filters', value: {urgent: false}}},
 ];
 
 /** A sender that answers each send from `script`, each answer in its own context. */
@@ -609,7 +609,7 @@ describe('CanvasApp trail (task 9.6)', () => {
     const text = sent[2].message!.parts.find(p => p.content?.$case === 'text');
     expect(text?.content?.value).toBe('show my filters');
     expect(parentOf(sent[2])).toBe('ctx-1');
-    expect(metadataOf(sent[2])?.a2uiClientDataModel).toBeUndefined();
+    expect(metadataOf(sent[2])?.a2uiRendererDataModel).toBeUndefined();
   });
 
   it('an action inside a past canvas lands in it, on its own context; the live canvas is untouched (phase decision 4)', async () => {
@@ -661,7 +661,7 @@ describe('CanvasApp trail (task 9.6)', () => {
     expect(sent[2].message!.contextId).toBe('ctx-1');
     const part = sent[2].message!.parts[0];
     expect(dataOf(part) ?? {}).toEqual({
-      version: 'v0.9',
+      version: '1.0',
       operation: {kind: 'close', sources: []},
     });
 
@@ -674,9 +674,9 @@ describe('CanvasApp trail (task 9.6)', () => {
   it('the entry is labelled by the question until the Planner’s title arrives (decision 4)', async () => {
     const titled = [
       {paintMeta: {surfaceId: 'shell:main', title: 'Agent-titled view'}},
-      {version: 'v0.9', createSurface: {surfaceId: 'shell:main', catalogId: CATALOG_ID}},
+      {version: '1.0', createSurface: {surfaceId: 'shell:main', catalogId: CATALOG_ID}},
       {
-        version: 'v0.9',
+        version: '1.0',
         updateComponents: {
           surfaceId: 'shell:main',
           components: [{id: 'root', component: 'Text', text: 'the titled paint'}],
@@ -799,7 +799,7 @@ describe('CanvasApp shell surface', () => {
     await waitFor(() => expect(sent).toHaveLength(1));
     const part = sent[0].message!.parts[0];
     expect(dataOf(part) ?? {}).toEqual({
-      version: 'v0.9',
+      version: '1.0',
       operation: {kind: 'useAccount', sources: ['gmail.2']},
     });
   });
@@ -820,7 +820,7 @@ describe('CanvasApp shell surface', () => {
     await waitFor(() => expect(sent).toHaveLength(1));
     const part = sent[0].message!.parts[0];
     expect(dataOf(part) ?? {}).toMatchObject({
-      version: 'v0.9',
+      version: '1.0',
       action: {
         name: 'openStore',
         surfaceId: 'shell:main',
@@ -935,7 +935,7 @@ describe('CanvasApp, the trusted page (task 14.6)', () => {
     await waitFor(() => expect(sent).toHaveLength(1));
     const part = sent[0].message!.parts[0];
     expect(dataOf(part) ?? {}).toEqual({
-      version: 'v0.9',
+      version: '1.0',
       operation: {kind: 'retry', sources: ['gmail']},
     });
     // Not a turn: nothing in the history.

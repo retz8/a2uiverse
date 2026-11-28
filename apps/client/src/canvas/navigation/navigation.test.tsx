@@ -8,10 +8,10 @@
 import {afterEach, describe, expect, test, vi} from 'vitest';
 import {z} from 'zod';
 import {act, cleanup, render, waitFor} from '@testing-library/react';
-import {Catalog, DynamicStringSchema, MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
-import {createComponentImplementation, type ReactCatalogComponent} from '@a2ui/react/v0_9';
+import {Catalog, DynamicStringSchema, MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {basicCatalog} from '@a2ui/web_core/catalogs/basic/v1';
+import {createComponentImplementation, type ReactCatalogComponent} from '@a2ui/react';
 import type {CellTarget} from '@a2uiverse/shell-catalog';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
 import {clientCatalogs, resolveCatalog} from '../../catalogs/clientCatalogs';
@@ -38,8 +38,8 @@ const SHOP_A = resolveCatalog(
 const CATALOGS = [...clientCatalogs(), SHOP_A];
 const SURFACE = 'shop-a:list';
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 
 const ITEMS = [
   {id: 'lumen-x100', name: 'Lumen X100', price: 1299, stock: 4},

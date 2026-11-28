@@ -17,8 +17,8 @@
  * in the canvas's binding index under its surface (task-16.7 decision 3).
  */
 import {useContext, useEffect, useRef, type ReactNode} from 'react';
-import type {SurfaceModel} from '@a2ui/web_core/v0_9';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import type {SurfaceModel} from '@a2ui/web_core/v1_0';
+import type {ReactCatalogComponent} from '@a2ui/react';
 import {BindingIndexContext} from '../navigation/bindingIndex';
 
 /** The detector's anchor and the isolation hook; its value is the painting source's id. */

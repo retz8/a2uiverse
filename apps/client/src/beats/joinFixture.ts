@@ -67,7 +67,7 @@ function joinRow(id: string, skus: string[], name: string, relation: Relation) {
 export const JOIN_DOCUMENT: SynthesisDocument = {
   tree: {
     components: [
-      {id: 'root', component: 'Column', children: ['head', 'sort-offers', 'rows']},
+      {id: 'root', component: 'Column', children: ['head', 'sort_offers', 'rows']},
       {
         id: 'head',
         component: 'Row',
@@ -75,23 +75,28 @@ export const JOIN_DOCUMENT: SynthesisDocument = {
         align: 'center',
         children: ['heading', 'sort-rows'],
       },
-      {id: 'heading', component: 'Text', variant: 'h5', text: 'Cameras and their offers'},
-      {id: 'sort-rows', component: 'SortControl', sort: {path: '/sorts/0'}},
-      {id: 'sort-offers', component: 'SortControl', sort: {path: '/sorts/1'}},
+      {id: 'heading', component: 'Text', text: '##### Cameras and their offers'},
+      {id: 'sort_rows', component: 'SortControl', sort: {'@path': '/sorts/0'}},
+      {id: 'sort_offers', component: 'SortControl', sort: {'@path': '/sorts/1'}},
       {
         id: 'rows',
         component: 'Table',
         columns: ['Camera', SHOP_A_NAME, `${SHOP_B_NAME} offers`, 'Offers'],
         children: {path: '/rows', componentId: 'row'},
       },
-      {id: 'row', component: 'TableRow', children: ['c-name', 'c-a', 'c-offers', 'c-count']},
-      {id: 'c-name', component: 'DerivedValue', cell: {path: 'name'}},
-      {id: 'c-a', component: 'DerivedValue', cell: {path: 'priceA'}, format: {kind: 'number'}},
-      {id: 'c-offers', component: 'Column', children: {path: 'offers', componentId: 'offer'}},
-      {id: 'offer', component: 'Row', children: ['o-title', 'o-price']},
-      {id: 'o-title', component: 'DerivedValue', cell: {path: 'title'}},
-      {id: 'o-price', component: 'DerivedValue', cell: {path: 'price'}, format: {kind: 'number'}},
-      {id: 'c-count', component: 'DerivedValue', cell: {path: 'offerCount'}},
+      {id: 'row', component: 'TableRow', children: ['c_name', 'c_a', 'c_offers', 'c_count']},
+      {id: 'c_name', component: 'DerivedValue', cell: {'@path': 'name'}},
+      {id: 'c_a', component: 'DerivedValue', cell: {'@path': 'priceA'}, format: {kind: 'number'}},
+      {id: 'c_offers', component: 'Column', children: {path: 'offers', componentId: 'offer'}},
+      {id: 'offer', component: 'Row', children: ['o_title', 'o_price']},
+      {id: 'o_title', component: 'DerivedValue', cell: {'@path': 'title'}},
+      {
+        id: 'o_price',
+        component: 'DerivedValue',
+        cell: {'@path': 'price'},
+        format: {kind: 'number'},
+      },
+      {id: 'c_count', component: 'DerivedValue', cell: {'@path': 'offerCount'}},
     ],
   },
   dataModel: {

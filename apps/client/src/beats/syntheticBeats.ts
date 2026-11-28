@@ -2,7 +2,7 @@
  * Synthetic beat fixtures: hand-authored streams in the recorded `BeatFixture` format — two
  * plain paints, a validation-failure turn (partial paint → cleanup delete → final apology), a
  * declared question paint, a composed turn (shell layout, one slot filling,
- * one flipping to failed), a composed turn whose fragment's messages are in v0.9.1, a synthesis
+ * one flipping to failed), a synthesis
  * turn (two storefronts merged, then re-synthesized after an in-place reorder), a platform answer
  * (the shell answering from its own data model)
  * and a capability gap (the fixed tile). They are deliberately NOT in `recordings/beats/`
@@ -11,7 +11,8 @@
  * re-recorded through the orchestrator in 1.4. Phase 8's late-arrival and failure cases live in
  * `lateFailureBeats.ts`.
  */
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {A2UI_VERSION} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {GITHUB_CATALOG_ID as CATALOG_ID, SHOP_A_CATALOG_ID, SHOP_B_CATALOG_ID} from './catalogIds';
 import {getBeatFixture, type BeatFixture, type BeatTurn} from './beatFixtures';
@@ -34,8 +35,11 @@ import {
   type SynthesisDocument,
 } from './synthesisFixture';
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: A2UI_VERSION, ...m}) as unknown as AgentToRendererMessage;
+
+/** A component id for a source: a UAX #31 identifier, a hyphen or a dot in the source an underscore. */
+const idPart = (source: string) => source.replace(/[-.]/g, '_');
 
 const base = {
   model: 'synthetic',
@@ -61,18 +65,18 @@ interface LayoutSlot {
  * The layout surface as the shell painter emits it (task-6.4 decisions 1, 3, 11): the slots
  * laid along one axis, each vendor slot the `child` of an `Attribution` naming its source and
  * carrying its weight, the wrapper standing where the slot stood in the parent; the synthesis
- * slot bare. Ids are the model's — here `slot-<source>` and the painter's `attribution-` prefix.
+ * slot bare. Ids are the model's — here `slot_<source>` and the painter's `attribution_` prefix.
  */
 function layoutComponents(
   slots: readonly LayoutSlot[],
   axis: 'Row' | 'Column' = 'Column',
 ): Array<Record<string, unknown>> {
-  const idOf = (s: LayoutSlot) => `slot-${s.source}`;
+  const idOf = (s: LayoutSlot) => `slot_${idPart(s.source)}`;
   return [
     {
       id: 'root',
       component: axis,
-      children: slots.map(s => (s.shell ? idOf(s) : `attribution-${idOf(s)}`)),
+      children: slots.map(s => (s.shell ? idOf(s) : `attribution_${idOf(s)}`)),
     },
     ...slots.flatMap((s): Array<Record<string, unknown>> => {
       const weight = s.weight !== undefined ? {weight: s.weight} : {};
@@ -96,7 +100,7 @@ function layoutComponents(
       }
       return [
         {
-          id: `attribution-${idOf(s)}`,
+          id: `attribution_${idOf(s)}`,
           component: 'Attribution',
           displayName: s.name,
           source: s.source,
@@ -110,7 +114,10 @@ function layoutComponents(
 }
 
 /** The hub's first paint of a composed turn: createSurface, then the whole layout. */
-function layoutPaint(slots: readonly LayoutSlot[], axis?: 'Row' | 'Column'): A2uiMessage[] {
+function layoutPaint(
+  slots: readonly LayoutSlot[],
+  axis?: 'Row' | 'Column',
+): AgentToRendererMessage[] {
   return [
     msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
     msg({updateComponents: {surfaceId: 'shell:main', components: layoutComponents(slots, axis)}}),
@@ -118,7 +125,10 @@ function layoutPaint(slots: readonly LayoutSlot[], axis?: 'Row' | 'Column'): A2u
 }
 
 /** An in-turn shell repaint: the whole tree again, a slot's state flipped (task-6.4 decision 11). */
-function layoutRepaint(slots: readonly LayoutSlot[], axis?: 'Row' | 'Column'): A2uiMessage[] {
+function layoutRepaint(
+  slots: readonly LayoutSlot[],
+  axis?: 'Row' | 'Column',
+): AgentToRendererMessage[] {
   return [
     msg({updateComponents: {surfaceId: 'shell:main', components: layoutComponents(slots, axis)}}),
   ];
@@ -208,7 +218,6 @@ function plainPaint(name: string, surfaceId: string, prompt: string, heading: st
                   ],
                 },
               }),
-              msg({beginRendering: {surfaceId, root: 'root'}}),
             ],
             texts: [],
           },
@@ -274,7 +283,6 @@ export const COMPOSED_BEAT: BeatFixture = {
                 ],
               },
             }),
-            msg({beginRendering: {surfaceId: 'github:pr-list', root: 'root'}}),
           ],
           // Prose arrives in stream chunks — a sentence splits mid-word across events.
           texts: ['Here are the 4 P', 'Rs awaiting your review.'],
@@ -338,79 +346,7 @@ export const COMPOSED_SOLO_BEAT: BeatFixture = {
                 ],
               },
             }),
-            msg({beginRendering: {surfaceId: 'github:pr-list', root: 'root'}}),
           ],
-          texts: [],
-        },
-      ],
-    },
-  ],
-};
-
-/** A message as a v0.9.1 agent writes it: the message's version `v0.9.1`. */
-const msgV091 = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9.1', ...m}) as unknown as A2uiMessage;
-
-/**
- * A composed turn whose fragment's messages are in v0.9.1 (task-19.3 decision 6): the hub's layout
- * in v0.9, as the orchestrator writes its own paints, and GitHub's list in v0.9.1, as an app that
- * speaks only v0.9.1 writes every paint. Hand-built until a recording of one is taken.
- */
-export const V091_PAINT_BEAT: BeatFixture = {
-  ...base,
-  name: 'synthetic-v091-paint',
-  beat: 111,
-  title: 'Composed turn, a fragment in v0.9.1',
-  prompt: 'show me my pull requests',
-  turns: [
-    {
-      taskId: 'synthetic-v091-paint',
-      kind: 'utterance',
-      prompt: 'show me my pull requests',
-      action: null,
-      outcome: 'completed',
-      durationMs: 250,
-      batches: [
-        {
-          offsetMs: 0,
-          stamp: {source: 'shell', role: 'shell'},
-          messages: layoutPaint([GITHUB]),
-          texts: [],
-        },
-        {
-          offsetMs: 120,
-          stamp: {source: 'github', role: 'fragment'},
-          messages: [
-            msgV091({
-              createSurface: {
-                surfaceId: 'github:pr-list',
-                catalogId: CATALOG_ID,
-                sendDataModel: true,
-              },
-            }),
-            msgV091({
-              updateComponents: {
-                surfaceId: 'github:pr-list',
-                components: [
-                  {id: 'root', component: 'Stack', direction: 'vertical', children: ['h', 'open']},
-                  {id: 'h', component: 'Heading', text: 'Pull requests'},
-                  {
-                    id: 'open',
-                    component: 'Button',
-                    child: 'open-label',
-                    action: {event: {name: 'open-pull-request', context: {number: 42}}},
-                  },
-                  {id: 'open-label', component: 'Text', text: 'Fix the flaky test'},
-                ],
-              },
-            }),
-          ],
-          texts: [],
-        },
-        {
-          offsetMs: 140,
-          stamp: {source: 'github', role: 'fragment', settled: true},
-          messages: [],
           texts: [],
         },
       ],
@@ -458,7 +394,6 @@ export const COMPOSED_QUESTION_BEAT: BeatFixture = {
                 ],
               },
             }),
-            msg({beginRendering: {surfaceId: 'github:pr-list', root: 'root'}}),
           ],
           texts: [],
         },
@@ -622,19 +557,19 @@ const NAVIGATION_DOCUMENT: SynthesisDocument = {
         align: 'center',
         children: ['heading', 'sort'],
       },
-      {id: 'heading', component: 'Text', variant: 'h5', text: 'Cameras in both stores'},
-      {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
+      {id: 'heading', component: 'Text', text: '##### Cameras in both stores'},
+      {id: 'sort', component: 'SortControl', sort: {'@path': '/sorts/0'}},
       {
         id: 'rows',
         component: 'Table',
         columns: ['Camera', SHOP_A_NAME, SHOP_B_NAME, 'In stock'],
         children: {path: '/rows', componentId: 'row'},
       },
-      {id: 'row', component: 'TableRow', children: ['c-name', 'c-a', 'c-b', 'c-stock']},
-      {id: 'c-name', component: 'DerivedValue', cell: {path: 'name'}},
-      {id: 'c-a', component: 'DerivedValue', cell: {path: 'priceA'}, format: {kind: 'number'}},
-      {id: 'c-b', component: 'DerivedValue', cell: {path: 'priceB'}, format: {kind: 'number'}},
-      {id: 'c-stock', component: 'DerivedValue', cell: {path: 'inStock'}},
+      {id: 'row', component: 'TableRow', children: ['c_name', 'c_a', 'c_b', 'c_stock']},
+      {id: 'c_name', component: 'DerivedValue', cell: {'@path': 'name'}},
+      {id: 'c_a', component: 'DerivedValue', cell: {'@path': 'priceA'}, format: {kind: 'number'}},
+      {id: 'c_b', component: 'DerivedValue', cell: {'@path': 'priceB'}, format: {kind: 'number'}},
+      {id: 'c_stock', component: 'DerivedValue', cell: {'@path': 'inStock'}},
     ],
   },
   dataModel: {
@@ -865,8 +800,6 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
       return COMPOSED_SOLO_BEAT;
     case 'composed-question':
       return COMPOSED_QUESTION_BEAT;
-    case 'v091-paint':
-      return V091_PAINT_BEAT;
     case 'synthesis':
       return SYNTHESIS_BEAT;
     case 'navigation':
@@ -935,7 +868,6 @@ const OPEN_PULL_REQUEST: BeatTurn = {
             ],
           },
         }),
-        msg({beginRendering: {surfaceId: 'github:pr-list', root: 'root'}}),
       ],
       texts: [],
     },
@@ -1046,18 +978,18 @@ export const PLATFORM_ANSWER_BEAT: BeatFixture = {
                     id: 'apps',
                     component: 'Table',
                     columns: ['App', 'What it does'],
-                    children: {path: '/apps', componentId: 'app-row'},
+                    children: {path: '/apps', componentId: 'app_row'},
                   },
-                  {id: 'app-row', component: 'TableRow', children: ['app-name', 'app-skills']},
-                  {id: 'app-name', component: 'Text', text: {path: 'name'}},
-                  {id: 'app-skills', component: 'Text', text: {path: 'skills'}},
+                  {id: 'app_row', component: 'TableRow', children: ['app_name', 'app_skills']},
+                  {id: 'app_name', component: 'Text', text: {'@path': 'name'}},
+                  {id: 'app_skills', component: 'Text', text: {'@path': 'skills'}},
                   {
                     id: 'manage',
                     component: 'Button',
-                    child: 'manage-label',
-                    action: {functionCall: {call: 'openAppLibrary', args: {}}},
+                    child: 'manage_label',
+                    action: {functionCall: {'@call': 'openAppLibrary', args: {}}},
                   },
-                  {id: 'manage-label', component: 'Text', text: 'Manage apps'},
+                  {id: 'manage_label', component: 'Text', text: 'Manage apps'},
                 ],
               },
             }),

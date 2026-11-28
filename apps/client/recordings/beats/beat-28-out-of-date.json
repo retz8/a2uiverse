@@ -24,14 +24,14 @@
               }
             },
             {
-              "version": "v0.9",
+              "version": "1.0",
               "createSurface": {
                 "surfaceId": "shell:main",
-                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v1.0/catalog.json"
               }
             },
             {
-              "version": "v0.9",
+              "version": "1.0",
               "updateComponents": {
                 "surfaceId": "shell:main",
                 "components": [
@@ -59,16 +59,16 @@
                   {
                     "id": "library",
                     "component": "Button",
-                    "child": "library-label",
+                    "child": "library_label",
                     "action": {
                       "functionCall": {
-                        "call": "openAppLibrary",
+                        "@call": "openAppLibrary",
                         "args": {}
                       }
                     }
                   },
                   {
-                    "id": "library-label",
+                    "id": "library_label",
                     "component": "Text",
                     "text": "Open the App Library"
                   }
@@ -86,5 +86,8 @@
       "outcome": "completed",
       "durationMs": 11155
     }
+  ],
+  "convertedFrom": [
+    "v0.9"
   ]
 }

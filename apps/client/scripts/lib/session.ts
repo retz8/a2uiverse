@@ -11,8 +11,9 @@
  * paint it steps to, as the canvas sends them. A step is recorded as the arrow raises it, naming
  * the visit, and sent as the canvas sends it, naming the paint the visit holds.
  */
-import type {A2uiClientAction, A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
-import {DataModel} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import type {RendererAction, RendererDataModel} from '../../src/a2a/messages';
+import {DataModel} from '@a2ui/web_core/v1_0';
 import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {A2AMessageSender} from '../../src/a2a/client';
 import {
@@ -64,7 +65,7 @@ export class CanvasModel {
     for (const message of batch.messages) this.#applyMessage(message, vendor);
   }
 
-  #applyMessage(message: A2uiMessage, vendor: string | undefined) {
+  #applyMessage(message: AgentToRendererMessage, vendor: string | undefined) {
     const m = message as unknown as Record<string, Record<string, unknown> | undefined>;
     if (m.createSurface) {
       const surfaceId = m.createSurface.surfaceId as string;
@@ -163,13 +164,13 @@ export class CanvasModel {
   }
 
   /** The canvas's data model, as the processor reports it on every message. */
-  clientDataModel(): A2uiClientDataModel | undefined {
+  clientDataModel(): RendererDataModel | undefined {
     const surfaces: Record<string, unknown> = {};
     for (const [id, surface] of this.#surfaces) {
       if (surface.sendDataModel) surfaces[id] = surface.data.get('/');
     }
     return Object.keys(surfaces).length
-      ? ({version: 'v0.9', surfaces} as A2uiClientDataModel)
+      ? ({version: '1.0', surfaces} as RendererDataModel)
       : undefined;
   }
 
@@ -177,7 +178,7 @@ export class CanvasModel {
    * The action the reader raises on `source`'s fragment by the component whose event is `name`: on
    * the `item`th entry of the list it is templated over, its context resolved against that entry.
    */
-  action(source: string, name: string, item = 0): A2uiClientAction {
+  action(source: string, name: string, item = 0): RendererAction {
     for (const [surfaceId, surface] of this.#surfaces) {
       if (sourceOf(surfaceId) !== source) continue;
       const raiser = [...surface.components.values()].find(c => c.action?.event?.name === name);
@@ -195,7 +196,7 @@ export class CanvasModel {
         sourceComponentId: raiser.id,
         timestamp: new Date().toISOString(),
         context,
-      } as A2uiClientAction;
+      } as RendererAction;
     }
     throw new Error(`${source} shows nothing raising ${name}`);
   }

@@ -3,16 +3,16 @@
  * arrive, or a composition would visibly re-weight itself mid-turn.
  */
 import {describe, it, expect} from 'vitest';
-import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import {MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import type {ReactCatalogComponent} from '@a2ui/react';
 import {CATALOG_ID as SHELL_CATALOG_ID, createCatalog} from '@a2uiverse/shell-catalog';
 import {slotCountOf} from './slotCount';
 
 const SHELL_CATALOG = createCatalog({onShellAction: () => {}});
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 
 function shell(slots: string[]) {
   const processor = new MessageProcessor<ReactCatalogComponent>([SHELL_CATALOG]);

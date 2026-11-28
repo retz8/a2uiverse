@@ -4,9 +4,9 @@
  * turn — one runner per canvas (task 9.6).
  */
 import {describe, it, expect, vi} from 'vitest';
-import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import {MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {ReactCatalogComponent} from '@a2ui/react';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import {CATALOG_ID as SHELL_CATALOG_ID, createCatalog} from '@a2uiverse/shell-catalog';
 import type {CompositionStamp} from '@a2uiverse/sdk';
 import type {PaintCause} from './cause';
@@ -24,8 +24,8 @@ const {catalog: CATALOG, id: CATALOG_ID} = await snapshotCatalog('github-catalog
 
 const SHELL_CATALOG = createCatalog({onShellAction: () => {}});
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 
 /**
  * The hub's first paint of a turn, as the shell painter emits it (task-6.4 decision 3): the
@@ -193,7 +193,7 @@ describe('the build a held paint is drawn in (task-15.6 decision 6)', () => {
       store: createCanvasStore(),
       createStaging: () => new BuildProcessor(catalogs, book),
     });
-    const drawnIn = (build: ResolvedCatalog, ...messages: A2uiMessage[]) => {
+    const drawnIn = (build: ResolvedCatalog, ...messages: AgentToRendererMessage[]) => {
       for (const message of messages) book.assign(message, build);
       return messages;
     };
@@ -433,7 +433,7 @@ describe('paint meta', () => {
     const {store, runner} = setup();
     const turn = runner.begin(utterance('replayed'));
     turn.apply([
-      {paintMeta: {surfaceId: 's', title: 'Replayed title'}} as unknown as A2uiMessage,
+      {paintMeta: {surfaceId: 's', title: 'Replayed title'}} as unknown as AgentToRendererMessage,
       create('s'),
       textRoot('s', 'body'),
     ]);

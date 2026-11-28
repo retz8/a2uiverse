@@ -15,7 +15,7 @@ import {
 import {PAYLOAD} from '../../src/beats/synthesisFixture';
 import {batchOf} from './batch';
 
-const paint = {version: 'v0.9', createSurface: {surfaceId: 'shell:synthesis', catalogId: 'shell'}};
+const paint = {version: '1.0', createSurface: {surfaceId: 'shell:synthesis', catalogId: 'shell'}};
 
 function event(metadata: Record<string, unknown>, parts: Part[]): A2AStreamEventData {
   return statusUpdateEvent({

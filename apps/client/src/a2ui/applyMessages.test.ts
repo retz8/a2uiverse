@@ -3,24 +3,27 @@
  * genuine "Surface already exists" throw is exercised, not a stand-in for it.
  */
 import {describe, it, expect, vi, beforeEach, afterEach} from 'vitest';
-import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import {MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import {applyA2uiMessages} from './applyMessages';
 import {snapshotCatalog} from '../../tests/snapshot';
 
 const {catalog: CATALOG} = await snapshotCatalog('github-catalog');
 
-const create = (surfaceId: string, catalogId: string = CATALOG.id): A2uiMessage =>
-  ({version: 'v0.9', createSurface: {surfaceId, catalogId}}) as unknown as A2uiMessage;
+const create = (surfaceId: string, catalogId: string = CATALOG.id): AgentToRendererMessage =>
+  ({version: '1.0', createSurface: {surfaceId, catalogId}}) as unknown as AgentToRendererMessage;
 
-const components = (surfaceId: string, comps: unknown[]): A2uiMessage =>
+const components = (surfaceId: string, comps: unknown[]): AgentToRendererMessage =>
   ({
-    version: 'v0.9',
+    version: '1.0',
     updateComponents: {surfaceId, components: comps},
-  }) as unknown as A2uiMessage;
+  }) as unknown as AgentToRendererMessage;
 
-const data = (surfaceId: string, path: string, value: unknown): A2uiMessage =>
-  ({version: 'v0.9', updateDataModel: {surfaceId, path, value}}) as unknown as A2uiMessage;
+const data = (surfaceId: string, path: string, value: unknown): AgentToRendererMessage =>
+  ({
+    version: '1.0',
+    updateDataModel: {surfaceId, path, value},
+  }) as unknown as AgentToRendererMessage;
 
 const text = (id: string, value: string) => ({id, component: 'Text', text: value});
 

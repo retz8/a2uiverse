@@ -7,7 +7,7 @@ import {afterEach, describe, expect, it} from 'vitest';
 import {cleanup, render, screen, act} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {TaskState, type SendMessageRequest} from '@a2a-js/sdk';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {shellPart, type CompositionStamp} from '@a2uiverse/sdk';
 import type {A2AMessageSender} from '../../a2a/client';
@@ -26,8 +26,8 @@ afterEach(cleanup);
 const HOST_RELAY = createHostRelay();
 const BOUND_CATALOGS = await snapshotCatalogs(HOST_RELAY.host);
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
 const GITHUB: CompositionStamp = {source: 'github', role: 'fragment'};
 
@@ -147,7 +147,7 @@ describe('the way back on the canvas (task 9.7)', () => {
     expect(screen.queryByRole('button', {name: /^Back/})).toBeNull();
     expect(screen.getByRole('button', {name: 'Forward to PR #42'})).toBeInTheDocument();
     expect(sent.map(params => params.message!.parts[0])).toEqual([
-      shellPart({version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}}),
+      shellPart({version: '1.0', operation: {kind: 'step', sources: ['github'], step: 0}}),
     ]);
   });
 });

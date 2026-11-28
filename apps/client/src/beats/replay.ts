@@ -1,11 +1,11 @@
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import {applyA2uiMessages} from '../a2ui/applyMessages';
 import type {A2uiMessageTarget} from '../a2ui/applyMessages';
 import type {BeatTurn} from './beatFixtures';
 
 export interface ReplayResult {
   /** Every message that failed to apply, paired with the error it raised. */
-  failures: Array<{error: unknown; message: A2uiMessage}>;
+  failures: Array<{error: unknown; message: AgentToRendererMessage}>;
   /** Agent prose the turn carried, in arrival order. */
   texts: string[];
 }

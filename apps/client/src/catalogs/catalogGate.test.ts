@@ -1,21 +1,23 @@
 /**
- * The catalog gate (task-11.5 decisions 1, 2, 4): a batch whose builds are held passes at once;
- * one that creates a surface in a build not held waits for its load, and everything after it
- * waits behind it, in order; a catalog that fails to load takes its fragment's messages with it
- * and is reported, and a fresh create of the surface tries again. Each create is drawn in the
+ * The catalog gate (task-11.5 decisions 1, 2, 4; task-21.14 decisions 3 to 6): a batch whose
+ * builds are held passes at once; one that names a catalog not held — where it creates a surface,
+ * in a component's `@catalogId`, in a function call — waits for its load, and everything after it
+ * waits behind it, in order; a catalog a surface's components need that fails to load takes its
+ * fragment's messages with it and is reported, and a fresh create of the surface tries again; a
+ * call whose catalog fails is delivered for the release to answer. Each catalog is drawn in the
  * build the stamp names, else the table's, and a change to a surface's components is assigned the
  * build its catalog is named, a move whose build fails to load staying put (task-15.6 decisions 2
  * to 5).
  */
 import {describe, expect, it, vi} from 'vitest';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import type {CompositionStamp} from '@a2uiverse/sdk';
 import {createCatalogGate, type CatalogLoadFailure} from './catalogGate';
 import type {ResolvedCatalog} from './clientCatalogs';
 import {createPaintBuilds} from './paintBuilds';
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 const create = (surfaceId: string, catalogId: string) =>
   msg({createSurface: {surfaceId, catalogId}});
 const update = (surfaceId: string) =>
@@ -61,9 +63,13 @@ function gateOver(held: string[]) {
     onLoadFailure: failure => failures.push(failure),
   });
   const delivered: unknown[] = [];
-  const deliver = (messages: A2uiMessage[], stamp?: CompositionStamp) =>
+  const deliver = (messages: AgentToRendererMessage[], stamp?: CompositionStamp) =>
     delivered.push({messages, stamp});
-  const drawnIn = (message: A2uiMessage) => book.of(message)?.build;
+  const drawnIn = (message: AgentToRendererMessage) =>
+    book
+      .of(message)
+      ?.map(b => b.build)
+      .join(' ');
   return {gate, load, pending, failures, delivered, deliver, drawnIn};
 }
 
@@ -89,7 +95,9 @@ describe('the catalog gate', () => {
     expect(steps).toEqual([]);
     pending.get('urn:gmail')!.resolve();
     await flush();
-    expect(delivered.map(d => (d as {messages: A2uiMessage[]}).messages.length)).toEqual([1, 1]);
+    expect(delivered.map(d => (d as {messages: AgentToRendererMessage[]}).messages.length)).toEqual(
+      [1, 1],
+    );
     expect(steps).toEqual(['meta', 'end']);
     // Idle again: a held catalog passes at once.
     gate.apply(deliver, [update('gmail:inbox')], GMAIL);
@@ -121,7 +129,7 @@ describe('the catalog gate', () => {
     pending.get('urn:gmail')!.resolve();
     await flush();
     expect(load).toHaveBeenCalledTimes(2);
-    expect((delivered.at(-1) as {messages: A2uiMessage[]}).messages).toHaveLength(2);
+    expect((delivered.at(-1) as {messages: AgentToRendererMessage[]}).messages).toHaveLength(2);
   });
 });
 
@@ -187,5 +195,158 @@ describe('the build each message is drawn in (task 15.6)', () => {
     expect(load).not.toHaveBeenCalled();
     expect(delivered).toHaveLength(1);
     expect(drawnIn(changed)).toBeUndefined();
+  });
+});
+
+describe('a surface that mixes catalogs (task-21.14 decisions 3, 4)', () => {
+  /** A change whose `note` is drawn in `catalogId`. */
+  const naming = (surfaceId: string, catalogId: string) =>
+    msg({
+      updateComponents: {
+        surfaceId,
+        components: [
+          {id: 'root', component: 'Column', children: ['note']},
+          {id: 'note', component: 'Text', text: 'hi', '@catalogId': catalogId},
+        ],
+      },
+    });
+
+  it('draws a create whose own batch names a second catalog once, with both', async () => {
+    const {gate, delivered, deliver, pending, load, drawnIn} = gateOver(['urn:gmail']);
+    const created = create('gmail:inbox', 'urn:gmail');
+    gate.apply(deliver, [created, naming('gmail:inbox', 'urn:basic-extra')], GMAIL);
+    expect(load).toHaveBeenCalledExactlyOnceWith('urn:basic-extra', undefined);
+    expect(delivered).toHaveLength(0);
+    pending.get('urn:basic-extra')!.resolve();
+    await flush();
+    expect(delivered).toHaveLength(1);
+    expect(drawnIn(created)).toBe('urn:gmail urn:basic-extra');
+  });
+
+  it('draws a create naming no default catalog in the catalogs its components name', async () => {
+    const {gate, delivered, deliver, pending, drawnIn} = gateOver([]);
+    const created = msg({
+      createSurface: {
+        surfaceId: 'gmail:inbox',
+        components: [{id: 'root', component: 'Text', text: 'hi', '@catalogId': 'urn:gmail'}],
+        dataModel: {},
+      },
+    });
+    gate.apply(deliver, [created], GMAIL);
+    pending.get('urn:gmail')!.resolve();
+    await flush();
+    expect(delivered).toHaveLength(1);
+    expect(drawnIn(created)).toBe('urn:gmail');
+  });
+
+  it('loads a catalog a later batch first names on a surface on screen, assigning it to that change', async () => {
+    const {gate, deliver, pending, load, drawnIn} = gateOver(['urn:gmail']);
+    gate.apply(deliver, [create('gmail:inbox', 'urn:gmail')], GMAIL);
+    const joined = naming('gmail:inbox', 'urn:calendar');
+    gate.apply(deliver, [joined], GMAIL);
+    expect(load).toHaveBeenCalledWith('urn:calendar', undefined);
+    pending.get('urn:calendar')!.resolve();
+    await flush();
+    expect(drawnIn(joined)).toBe('urn:calendar');
+    // Named again, it is the surface's own: nothing more to load or assign.
+    const again = naming('gmail:inbox', 'urn:calendar');
+    gate.apply(deliver, [again], GMAIL);
+    expect(drawnIn(again)).toBeUndefined();
+  });
+
+  it('fails the fragment when a second catalog does not load: that batch and the surface’s later messages dropped, reported with that catalog', async () => {
+    const {gate, delivered, deliver, pending, failures, load} = gateOver(['urn:gmail']);
+    gate.apply(deliver, [create('gmail:inbox', 'urn:gmail')], GMAIL);
+    gate.apply(deliver, [naming('gmail:inbox', 'urn:calendar')], GMAIL);
+    gate.apply(deliver, [update('gmail:inbox'), update('shell:main')]);
+    pending.get('urn:calendar')!.reject(new Error('the entry threw'));
+    await flush();
+    expect(failures).toEqual([
+      {
+        surfaceId: 'gmail:inbox',
+        catalogId: 'urn:calendar',
+        message: 'the entry threw',
+        stamp: GMAIL,
+      },
+    ]);
+    expect(delivered.slice(1)).toEqual([
+      {messages: [], stamp: GMAIL},
+      {messages: [update('shell:main')], stamp: undefined},
+    ]);
+    // A fresh create — a Retry's answer — loads it again.
+    gate.apply(
+      deliver,
+      [create('gmail:inbox', 'urn:gmail'), naming('gmail:inbox', 'urn:calendar')],
+      GMAIL,
+    );
+    expect(load).toHaveBeenCalledTimes(2);
+    pending.get('urn:calendar')!.resolve();
+    await flush();
+    expect((delivered.at(-1) as {messages: AgentToRendererMessage[]}).messages).toHaveLength(2);
+  });
+
+  it('keeps a catalog the stamp names a build for on the surface where it was first used, a newer one a move', () => {
+    const {gate, deliver, drawnIn} = gateOver([
+      'urn:gmail',
+      'urn:calendar@sha256-old',
+      'urn:calendar@sha256-new',
+    ]);
+    const stamp = (build: string): CompositionStamp => ({
+      ...GMAIL,
+      builds: {'urn:calendar': build},
+    });
+    const created = create('gmail:inbox', 'urn:gmail');
+    gate.apply(deliver, [created, naming('gmail:inbox', 'urn:calendar')], stamp('sha256-old'));
+    expect(drawnIn(created)).toBe('urn:gmail urn:calendar@sha256-old');
+    const moved = update('gmail:inbox');
+    gate.apply(deliver, [moved], stamp('sha256-new'));
+    expect(drawnIn(moved)).toBe('urn:calendar@sha256-new');
+  });
+});
+
+describe('a renderer function call (task-21.14 decision 6)', () => {
+  const call = (catalogId: string, surfaceId?: string) =>
+    msg({
+      callRendererFunction: {
+        ...(surfaceId ? {surfaceId} : {}),
+        functionCallId: 'gmail:1',
+        callFunction: {'@call': 'now', catalogId, args: {}},
+      },
+    });
+
+  it('waits behind a held batch, in its place', async () => {
+    const {gate, delivered, deliver, pending} = gateOver(['urn:shell']);
+    gate.apply(deliver, [create('gmail:inbox', 'urn:gmail')], GMAIL);
+    const called = call('urn:shell', 'gmail:inbox');
+    gate.apply(deliver, [called], GMAIL);
+    expect(delivered).toHaveLength(0);
+    pending.get('urn:gmail')!.resolve();
+    await flush();
+    expect(delivered).toEqual([
+      {messages: [create('gmail:inbox', 'urn:gmail')], stamp: GMAIL},
+      {messages: [called], stamp: GMAIL},
+    ]);
+  });
+
+  it('loads its catalog first, and assigns it the call', async () => {
+    const {gate, deliver, pending, drawnIn} = gateOver([]);
+    const called = call('urn:gmail');
+    gate.apply(deliver, [called], GMAIL);
+    pending.get('urn:gmail')!.resolve();
+    await flush();
+    expect(drawnIn(called)).toBe('urn:gmail');
+  });
+
+  it('delivers a call whose catalog cannot load with no build, for the release to answer, the slot untouched', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const {gate, delivered, deliver, pending, failures, drawnIn} = gateOver([]);
+    const called = call('urn:gmail', 'gmail:inbox');
+    gate.apply(deliver, [called], GMAIL);
+    pending.get('urn:gmail')!.reject(new Error('unreachable'));
+    await flush();
+    expect(delivered).toEqual([{messages: [called], stamp: GMAIL}]);
+    expect(drawnIn(called)).toBeUndefined();
+    expect(failures).toEqual([]);
+    warn.mockRestore();
   });
 });

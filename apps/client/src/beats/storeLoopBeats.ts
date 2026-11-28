@@ -16,13 +16,14 @@
  *
  * Replayed for the reader's hand (`&byhand`), each press the reader makes is answered by the beat's.
  */
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {A2UI_VERSION} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {getBeatFixture, type BeatBatch, type BeatFixture, type BeatTurn} from './beatFixtures';
 import {SHOP_A_CATALOG_ID} from './catalogIds';
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: A2UI_VERSION, ...m}) as unknown as AgentToRendererMessage;
 
 const base = {
   model: 'synthetic',
@@ -125,7 +126,7 @@ const SHOP_B_WAITING: UpdateFacts = {
 function asShopBSlot(components: readonly Component[], slot: Record<string, unknown>): Component[] {
   const gap = components.find(c => c.component === 'Slot' && c.gap === SHOP_B_GAP);
   if (!gap) return [...components];
-  const wrapper = `attribution-${gap.id}`;
+  const wrapper = `attribution_${gap.id}`;
   const rewire = (value: unknown) => (value === gap.id ? wrapper : value);
   return components.flatMap((c): Component[] => {
     if (c === gap) {
@@ -265,9 +266,9 @@ const BUILDS_QUESTION = 'How are my builds doing?';
 
 /** CircleCI's slot alone under its marker, `slot` laid over it. */
 const circleciLayout = (slot: Record<string, unknown>): Component[] => [
-  {id: 'root', component: 'Column', children: ['attribution-circleci']},
+  {id: 'root', component: 'Column', children: ['attribution_circleci']},
   {
-    id: 'attribution-circleci',
+    id: 'attribution_circleci',
     component: 'Attribution',
     displayName: 'CircleCI',
     source: CIRCLECI_SOURCE,
@@ -327,18 +328,18 @@ function shopAQuestion(
   taskId: string,
   prompt: string,
   build: string,
-  paint: readonly A2uiMessage[],
+  paint: readonly AgentToRendererMessage[],
 ): BeatTurn {
   const layout: Component[] = [
-    {id: 'root', component: 'Column', children: ['attribution-shop-a']},
+    {id: 'root', component: 'Column', children: ['attribution_shop_a']},
     {
-      id: 'attribution-shop-a',
+      id: 'attribution_shop_a',
       component: 'Attribution',
       displayName: 'Shop A',
       source: SHOP_A_SOURCE,
-      child: 'shop-a',
+      child: 'shop_a',
     },
-    {id: 'shop-a', component: 'Slot', source: SHOP_A_SOURCE, state: 'pending', label: 'Shop A'},
+    {id: 'shop_a', component: 'Slot', source: SHOP_A_SOURCE, state: 'pending', label: 'Shop A'},
   ];
   return utterance(taskId, prompt, [
     shellBatch(0, layout, true),

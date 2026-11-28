@@ -1,27 +1,28 @@
 /**
- * The build each paint is drawn in (task 15.6): a create in the build assigned to it, a surface on
- * screen keeping its own beside a newer one, moved only by a change to its components assigned a
- * newer build — its tree and data carried over, no new paint — and a paint the way back returns to
- * restored in the build it was drawn in.
+ * The builds each paint is drawn in (task 15.6; task-21.14 decisions 3, 5): a create in the builds
+ * assigned to it, a surface on screen keeping its own beside a newer one, moved only by a change to
+ * its components assigned a build it does not hold — a newer one, or a catalog it draws in for the
+ * first time — its tree and data carried over, no new paint; and a paint the way back returns to
+ * restored with each component in its catalog and each catalog in the build it was drawn in.
  */
 import {describe, expect, it, vi} from 'vitest';
-import {Catalog, type A2uiMessage} from '@a2ui/web_core/v0_9';
-import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import {Catalog, type AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {basicCatalog} from '@a2ui/web_core/catalogs/basic/v1';
+import type {ReactCatalogComponent} from '@a2ui/react';
 import {capturePaint} from '../canvas/history/paintCopy';
 import {resolveCatalog} from './clientCatalogs';
 import {BuildProcessor, createPaintBuilds} from './paintBuilds';
 
 const DEMO = 'urn:catalog:demo';
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 const create = (surfaceId: string) => msg({createSurface: {surfaceId, catalogId: DEMO}});
 const tree = (surfaceId: string, text: string) =>
   msg({
     updateComponents: {
       surfaceId,
       components: [
-        {id: 'root', component: 'Text', text: {path: '/greeting'}},
+        {id: 'root', component: 'Text', text: {'@path': '/greeting'}},
         {id: 'note', component: 'Text', text},
       ],
     },
@@ -48,8 +49,8 @@ function canvas(held: Catalog<ReactCatalogComponent>[] = []) {
   const book = createPaintBuilds(artifact => loaded.get(artifact));
   const processor = new BuildProcessor(held, book);
   /** Delivers messages the way the gate does: each one assigned its build. */
-  const deliver = (build: typeof first | undefined, ...messages: A2uiMessage[]) => {
-    for (const message of messages) if (build) book.assign(message, build);
+  const deliver = (build: typeof first | undefined, ...messages: AgentToRendererMessage[]) => {
+    for (const message of messages) if (build) book.assign(message, [build]);
     processor.processMessages(messages);
   };
   return {first, second, book, processor, deliver};
@@ -140,7 +141,7 @@ describe('a paint the way back returns to', () => {
     const {first, second, book, processor, deliver} = canvas();
     deliver(first, create('a'), tree('a', 'one'));
     const copy = capturePaint(processor, 'a')!;
-    expect(copy.build).toBe('sha256-first');
+    expect(copy.builds).toEqual({[DEMO]: 'sha256-first'});
     processor.model.deleteSurface('a');
     deliver(second, create('b'), tree('b', 'two'));
     processor.processMessages(book.rebuild(copy));
@@ -161,6 +162,90 @@ describe('a paint the way back returns to', () => {
         },
       }),
     ]);
-    expect(capturePaint(processor, 'a')).not.toHaveProperty('build');
+    expect(capturePaint(processor, 'a')).not.toHaveProperty('builds');
+  });
+});
+
+describe('a surface that mixes catalogs (task-21.14 decisions 3, 5)', () => {
+  const OTHER = 'urn:catalog:other';
+  const otherBuild = (artifact: string) => resolveCatalog(catalogOf(OTHER), undefined, artifact);
+  /** A tree whose `note` is drawn in the other catalog. */
+  const mixed = (surfaceId: string, text: string) =>
+    msg({
+      updateComponents: {
+        surfaceId,
+        components: [
+          {id: 'root', component: 'Column', children: ['note']},
+          {id: 'note', component: 'Text', text, '@catalogId': OTHER},
+        ],
+      },
+    });
+
+  function mixedCanvas() {
+    const demo = buildOf('sha256-demo');
+    const one = otherBuild('sha256-one');
+    const two = otherBuild('sha256-two');
+    const loaded = new Map([demo, one, two].map(b => [b.build!, b]));
+    const book = createPaintBuilds(artifact => loaded.get(artifact));
+    const processor = new BuildProcessor([], book);
+    const deliver = (builds: typeof demo[], ...messages: AgentToRendererMessage[]) => {
+      for (const message of messages) book.assign(message, builds);
+      processor.processMessages(messages);
+    };
+    return {demo, one, two, book, processor, deliver};
+  }
+
+  it('draws a create with every catalog its batch names, each component in its own', () => {
+    const {demo, one, processor, deliver} = mixedCanvas();
+    deliver([demo, one], create('a'));
+    deliver([], mixed('a', 'one'));
+    const surface = processor.model.getSurface('a')!;
+    expect(surface.defaultCatalog).toBe(demo.catalog);
+    expect(surface.componentsModel.get('note')!.catalog).toBe(one.catalog);
+    expect(surface.componentsModel.get('root')!.catalog).toBe(demo.catalog);
+  });
+
+  it('re-creates a surface in place when a later change first names a catalog, its data kept and no paint counted', () => {
+    const {demo, one, processor, deliver} = mixedCanvas();
+    deliver([demo], create('a'), tree('a', 'one'), data('a', 'hi'));
+    const created = vi.fn();
+    processor.onSurfaceCreated(created);
+    deliver([one], mixed('a', 'joined'));
+    const surface = processor.model.getSurface('a')!;
+    expect(surface.componentsModel.get('note')!.catalog).toBe(one.catalog);
+    expect(surface.dataModel.get('/greeting')).toBe('hi');
+    expect(created).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps each catalog’s build beside a newer one, a newer build named for the second catalog moving the surface', () => {
+    const {demo, one, two, processor, deliver} = mixedCanvas();
+    deliver([demo, one], create('a'), mixed('a', 'first'));
+    // Another surface draws the other catalog in its newer build.
+    deliver([demo, two], create('b'), mixed('b', 'second'));
+    expect(processor.model.getSurface('a')!.componentsModel.get('note')!.catalog).toBe(
+      one.catalog,
+    );
+    expect(processor.model.getSurface('b')!.componentsModel.get('note')!.catalog).toBe(
+      two.catalog,
+    );
+    deliver([two], mixed('a', 'moved'));
+    const moved = processor.model.getSurface('a')!;
+    expect(moved.componentsModel.get('note')!.catalog).toBe(two.catalog);
+    expect(moved.componentsModel.get('note')!.properties.text).toBe('moved');
+    expect(moved.defaultCatalog).toBe(demo.catalog);
+  });
+
+  it('restores a mixed paint the way back returns to with each component in its catalog and build', () => {
+    const {demo, one, two, book, processor, deliver} = mixedCanvas();
+    deliver([demo, one], create('a'), mixed('a', 'first'));
+    const copy = capturePaint(processor, 'a')!;
+    expect(copy.builds).toEqual({[DEMO]: 'sha256-demo', [OTHER]: 'sha256-one'});
+    expect(copy.tree.note).toMatchObject({'@catalogId': OTHER});
+    processor.model.deleteSurface('a');
+    deliver([demo, two], create('b'), mixed('b', 'second'));
+    processor.processMessages(book.rebuild(copy));
+    const restored = processor.model.getSurface('a')!;
+    expect(restored.defaultCatalog).toBe(demo.catalog);
+    expect(restored.componentsModel.get('note')!.catalog).toBe(one.catalog);
   });
 });

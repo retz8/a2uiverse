@@ -4,7 +4,7 @@
  * progressive rendering is observable, instant for tests and the `&instant` param.
  */
 import {describe, it, expect, vi, afterEach} from 'vitest';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import {createCanvasStore} from './canvasStore';
 import type {TurnHandle} from './turn/canvasTurn';
 import type {PaintCause} from './turn/cause';
@@ -14,7 +14,7 @@ import type {BeatFixture, BeatTurn} from '../beats/beatFixtures';
 import type {A2AMessageSender} from '../a2a/client';
 import {buildOperationMessageParams, extractA2uiMessagesFromEvent} from '../a2a/messages';
 
-const msg = (id: number) => ({version: 'v0.9', marker: id}) as unknown as A2uiMessage;
+const msg = (id: number) => ({version: '1.0', marker: id}) as unknown as AgentToRendererMessage;
 
 function fixture(overrides: Partial<BeatFixture> = {}): BeatFixture {
   return {
@@ -48,7 +48,7 @@ function fixture(overrides: Partial<BeatFixture> = {}): BeatFixture {
 /** A runner double that mirrors the real one's store lifecycle around each turn. */
 function mockRunner(store: ReturnType<typeof createCanvasStore>) {
   const causes: PaintCause[] = [];
-  const applied: A2uiMessage[][] = [];
+  const applied: AgentToRendererMessage[][] = [];
   const begin = (cause: PaintCause): TurnHandle => {
     causes.push(cause);
     store.beginPaint();
@@ -381,7 +381,7 @@ describe('replayBeatOnCanvas', () => {
     });
 
     /** Sides whose press reads its answer from the attached sender, as the wiring's does. */
-    function sides(log: A2uiMessage[][]) {
+    function sides(log: AgentToRendererMessage[][]) {
       let sender: A2AMessageSender | null = null;
       const pressed: unknown[] = [];
       const value: ReplaySides = {
@@ -429,7 +429,7 @@ describe('replayBeatOnCanvas', () => {
     it('for the reader’s hand, the replay plays no press; the press the reader makes is answered by the recorded one, any other by nothing (task-15.10 decision 6)', async () => {
       const store = createCanvasStore();
       const runner = mockRunner(store);
-      const log: A2uiMessage[][] = [];
+      const log: AgentToRendererMessage[][] = [];
       const {value, pressed} = sides(log);
       const byHand = createReplayTransport();
       value.attachReplay(byHand.sender);

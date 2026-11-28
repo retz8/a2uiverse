@@ -14,7 +14,7 @@ const layout = (...components: Array<Record<string, unknown>>) =>
     stamp: {source: 'shell', role: 'shell'},
     messages: [
       {
-        version: 'v0.9',
+        version: '1.0',
         updateComponents: {
           surfaceId: 'shell:main',
           components: [{id: 'root', component: 'Column', children: ['slot']}, ...components],

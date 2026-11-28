@@ -45,9 +45,9 @@ const ENTRY = {
 /** The layout surface with one slot, the offer of Shop B for the gap. */
 function offerPaint(): A2AStreamEventData {
   const messages = [
-    {version: 'v0.9', createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}},
+    {version: '1.0', createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}},
     {
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'shell:main',
         components: [

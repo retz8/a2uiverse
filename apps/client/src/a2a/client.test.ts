@@ -155,7 +155,7 @@ describe("sendAndApply — an app's reply said once (task 18.5.2)", () => {
     stamped(
       source,
       dataPart({
-        version: 'v0.9',
+        version: '1.0',
         createSurface: {surfaceId: `${source}:default`, catalogId: 'basic'},
       }),
     );

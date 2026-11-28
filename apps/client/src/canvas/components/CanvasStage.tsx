@@ -5,8 +5,8 @@
  * keys the error boundary so a surface that threw on a half-streamed component retries per
  * applied batch rather than staying dead.
  */
-import type {MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import type {MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {ReactCatalogComponent} from '@a2ui/react';
 import {SurfaceFrame} from '../../catalogs/CatalogContext';
 import {SurfaceErrorBoundary} from '../../shared/SurfaceErrorBoundary';
 import {slotCountOf} from '../composition/slotCount';

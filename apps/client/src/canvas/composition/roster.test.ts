@@ -3,7 +3,7 @@
  * reach the client nowhere else.
  */
 import {describe, it, expect} from 'vitest';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import {
   authorityOf,
   escalationsOf,
@@ -15,8 +15,8 @@ import {
   updatesOf,
 } from './roster';
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 
 /**
  * As the shell painter emits it (task-6.4 decision 3): the model's tree and ids, each vendor
@@ -327,7 +327,7 @@ describe('slotStatesOf', () => {
 
 describe('mergeFactsOf', () => {
   const paint = (components: Record<string, unknown>[]) =>
-    [{version: 'v0.9', updateComponents: {surfaceId: 'shell:main', components}}] as never;
+    [{version: '1.0', updateComponents: {surfaceId: 'shell:main', components}}] as never;
 
   it('reads what the orchestrator painted on the merged view’s slot (task-8.4 decision 13)', () => {
     expect(

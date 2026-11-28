@@ -1,9 +1,9 @@
 import {describe, expect, it} from 'vitest';
-import {Catalog, ComponentModel} from '@a2ui/web_core/v0_9';
+import {Catalog, ComponentModel} from '@a2ui/web_core/v1_0';
 import {capturePaint, rebuildMessages, type CopySource} from './paintCopy';
 
 /** The catalog the surface's components were drawn in. */
-const CATALOG = new Catalog('https://example.test/catalog.json', 'v0.9.1', [], []);
+const CATALOG = new Catalog('https://example.test/catalog.json', '1.0', [], []);
 
 /** A live surface of real component models, as the processor holds them. */
 function sourceOf(components: ComponentModel[]): CopySource {

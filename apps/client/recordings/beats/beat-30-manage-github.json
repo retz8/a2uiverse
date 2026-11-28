@@ -24,14 +24,14 @@
               }
             },
             {
-              "version": "v0.9",
+              "version": "1.0",
               "createSurface": {
                 "surfaceId": "shell:main",
-                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v1.0/catalog.json"
               }
             },
             {
-              "version": "v0.9",
+              "version": "1.0",
               "updateComponents": {
                 "surfaceId": "shell:main",
                 "components": [
@@ -41,14 +41,13 @@
                     "children": [
                       "heading",
                       "explanation",
-                      "manage-button"
+                      "manage_button"
                     ]
                   },
                   {
                     "id": "heading",
                     "component": "Text",
-                    "variant": "h3",
-                    "text": "Manage GitHub accounts"
+                    "text": "### Manage GitHub accounts"
                   },
                   {
                     "id": "explanation",
@@ -57,12 +56,12 @@
                     "text": "You can manage your GitHub accounts in the App Library. That is where installed apps are configured — accounts can be added or removed, and permissions changed. GitHub currently has one account connected (retz8)."
                   },
                   {
-                    "id": "manage-button",
+                    "id": "manage_button",
                     "component": "Button",
-                    "child": "manage-button-label",
+                    "child": "manage_button_label",
                     "action": {
                       "functionCall": {
-                        "call": "openAppLibrary",
+                        "@call": "openAppLibrary",
                         "args": {
                           "app": "github"
                         }
@@ -70,7 +69,7 @@
                     }
                   },
                   {
-                    "id": "manage-button-label",
+                    "id": "manage_button_label",
                     "component": "Text",
                     "text": "Open GitHub in App Library"
                   }
@@ -88,5 +87,8 @@
       "outcome": "completed",
       "durationMs": 16732
     }
+  ],
+  "convertedFrom": [
+    "v0.9"
   ]
 }

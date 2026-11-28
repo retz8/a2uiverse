@@ -211,7 +211,7 @@ const preview = (appId: string): PreviewDocument => ({
   appId,
   version: '0.4.0',
   words: 'What’s assigned to me in Linear?',
-  messages: [{version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'x'}}],
+  messages: [{version: '1.0', createSurface: {surfaceId: 's', catalogId: 'x'}}],
   capturedBy: 'publisher',
   capturedAt: '2026-10-03T09:00:00Z',
 });

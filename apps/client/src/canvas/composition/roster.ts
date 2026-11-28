@@ -21,7 +21,7 @@
  * wrote on it (task-7.15), when the merge is over an entity. A gap slot is the offer, the
  * catalog's own: it names no source and enters no roster until an install makes it an app's slot.
  */
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import {sourceName} from '@a2uiverse/sdk';
 import {AUTHORITY_CAUSES, type AuthorityCause, type SlotUpdate} from '@a2uiverse/shell-catalog';
 import type {JoinNouns, PaintedMerge, PaintedSlotState, RosterEntry} from '../canvasStore';
@@ -83,7 +83,7 @@ export interface ShellPaintSlots {
 /** Every surface's root component id, fixed by the renderer. */
 const ROOT_ID = 'root';
 
-export function shellPaintSlots(messages: readonly A2uiMessage[]): ShellPaintSlots {
+export function shellPaintSlots(messages: readonly AgentToRendererMessage[]): ShellPaintSlots {
   const roster: RosterEntry[] = [];
   const unattributed: string[] = [];
   for (const message of messages) {
@@ -152,7 +152,7 @@ const PAINTED_STATES: readonly string[] = ['pending', 'failed', 'collapsed', 'au
  * holds. Sources the paint does not carry are absent, since a repaint may carry only what changed.
  */
 export function slotStatesOf(
-  messages: readonly A2uiMessage[],
+  messages: readonly AgentToRendererMessage[],
 ): Map<string, PaintedSlotState | null> {
   const states = new Map<string, PaintedSlotState | null>();
   for (const message of messages) {
@@ -177,7 +177,9 @@ export function slotStatesOf(
  * the authority tile's cause, or null when the slot is painted in any other state. Sources the
  * paint does not carry are absent.
  */
-export function authorityOf(messages: readonly A2uiMessage[]): Map<string, AuthorityCause | null> {
+export function authorityOf(
+  messages: readonly AgentToRendererMessage[],
+): Map<string, AuthorityCause | null> {
   const causes = new Map<string, AuthorityCause | null>();
   for (const raw of shellComponents(messages)) {
     if (raw.component !== SLOT || typeof raw.source !== 'string' || raw.content === 'shell')
@@ -201,7 +203,9 @@ export function authorityOf(messages: readonly A2uiMessage[]): Map<string, Autho
  * (task-15.8 decision 2) — or null when the slot carries none. The shell catalog validated them
  * on apply. Sources the paint does not carry are absent.
  */
-export function updatesOf(messages: readonly A2uiMessage[]): Map<string, SlotUpdate | null> {
+export function updatesOf(
+  messages: readonly AgentToRendererMessage[],
+): Map<string, SlotUpdate | null> {
   const updates = new Map<string, SlotUpdate | null>();
   for (const raw of shellComponents(messages)) {
     if (raw.component !== SLOT || typeof raw.source !== 'string' || raw.content === 'shell')
@@ -221,7 +225,7 @@ export function updatesOf(messages: readonly A2uiMessage[]): Map<string, SlotUpd
  * Whether each `Attribution` in a shell paint carries a request for more access (task-12.8
  * decision 7), by source. Sources the paint does not carry are absent.
  */
-export function escalationsOf(messages: readonly A2uiMessage[]): Map<string, boolean> {
+export function escalationsOf(messages: readonly AgentToRendererMessage[]): Map<string, boolean> {
   const asks = new Map<string, boolean>();
   for (const raw of shellComponents(messages)) {
     if (raw.component !== ATTRIBUTION || typeof raw.source !== 'string') continue;
@@ -231,7 +235,7 @@ export function escalationsOf(messages: readonly A2uiMessage[]): Map<string, boo
 }
 
 /** Every component a batch's `updateComponents` carry, in order. */
-function shellComponents(messages: readonly A2uiMessage[]): ShellComponent[] {
+function shellComponents(messages: readonly AgentToRendererMessage[]): ShellComponent[] {
   return messages.flatMap(message => {
     const update = (message as {updateComponents?: {components?: unknown}}).updateComponents;
     return update && Array.isArray(update.components)
@@ -250,7 +254,9 @@ const strings = (raw: unknown): string[] | undefined =>
  * catalog validated the props on apply; this reads them for the progress line and the columns.
  * Undefined when the paint carries no merged view's slot — a repaint says only what it carries.
  */
-export function mergeFactsOf(messages: readonly A2uiMessage[]): PaintedMerge | undefined {
+export function mergeFactsOf(
+  messages: readonly AgentToRendererMessage[],
+): PaintedMerge | undefined {
   let facts: PaintedMerge | undefined;
   for (const message of messages) {
     const update = (message as {updateComponents?: {components?: unknown}}).updateComponents;
@@ -280,7 +286,7 @@ export function mergeFactsOf(messages: readonly A2uiMessage[]): PaintedMerge | u
 
 /** The roster alone — see `ShellPaintSlots.roster`. */
 export function rosterFromShellMessages(
-  messages: readonly A2uiMessage[],
+  messages: readonly AgentToRendererMessage[],
 ): RosterEntry[] | undefined {
   return shellPaintSlots(messages).roster;
 }
@@ -302,6 +308,6 @@ export function rosterOfSurface(surface: MountedComponents): RosterEntry[] {
     id: model.id,
     component: model.type,
   }));
-  const paint = {updateComponents: {components}} as unknown as A2uiMessage;
+  const paint = {updateComponents: {components}} as unknown as AgentToRendererMessage;
   return shellPaintSlots([paint]).roster ?? [];
 }

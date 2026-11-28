@@ -4,20 +4,31 @@
  * is taken once, when the reader moves off the paint, and a restore takes the identical path a
  * live paint takes through the processor: catalog resolution, data binding, local functions,
  * action dispatch — never a second surface constructor.
+ *
+ * A surface may mix catalogs (task-21.14 decisions 1, 5): the copy keeps each component in the
+ * catalog it was drawn in, and each catalog the surface holds at the build it was drawn in.
  */
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {CLIENT_A2UI_VERSION} from '../../a2a/messages';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {A2UI_VERSION} from '@a2uiverse/sdk';
 import {resolvedOf} from '../../catalogs/clientCatalogs';
 import type {PaintCopy} from './fragmentHistory';
 
 /** The slice of SurfaceModel a copy reads; SurfaceModel satisfies it structurally. */
 export interface CopiableSurface {
-  /** Every v0.9 surface names its catalog; only from v1.0 can a surface have none. */
+  /** From v1.0 a surface may name no default catalog, each component naming its own. */
   readonly defaultCatalog: {readonly id: string} | undefined;
   readonly sendDataModel: boolean;
   componentsModel: {
     readonly entries: IterableIterator<
-      [string, {readonly type: string; readonly properties: Record<string, unknown>}]
+      [
+        string,
+        {
+          readonly type: string;
+          readonly properties: Record<string, unknown>;
+          readonly catalog: {readonly id: string} | undefined;
+          readonly metadata: unknown;
+        },
+      ]
     >;
   };
   dataModel: {get(path: string): unknown};
@@ -40,50 +51,63 @@ function jsonCopy(value: unknown): unknown {
 /** The surface as it stands now, or undefined when it is not live. */
 export function capturePaint(processor: CopySource, surfaceId: string): PaintCopy | undefined {
   const surface = processor.model.getSurface(surfaceId);
-  const catalog = surface?.defaultCatalog;
-  if (!surface || !catalog) return undefined;
+  if (!surface) return undefined;
+  const defaultId = surface.defaultCatalog?.id;
   const tree: Record<string, unknown> = {};
+  /** Each catalog the surface draws in, as the object it holds. */
+  const used = new Map<string, object>();
+  if (surface.defaultCatalog) used.set(surface.defaultCatalog.id, surface.defaultCatalog);
   // Read from the model's type and properties, not its `componentTree`: that spreads the
   // properties over the type, so a component with a prop of its own named `type` (Linear's
-  // StatusIcon) would come back under that prop's value.
+  // StatusIcon) would come back under that prop's value. The model keeps a component's catalog
+  // and metadata beside its properties; each is written back as the envelope key it came in.
   for (const [id, component] of surface.componentsModel.entries) {
-    tree[id] = jsonCopy({...component.properties, id, component: component.type});
+    const catalogId = component.catalog?.id;
+    if (component.catalog && catalogId !== undefined) used.set(catalogId, component.catalog);
+    tree[id] = jsonCopy({
+      ...component.properties,
+      id,
+      component: component.type,
+      ...(catalogId !== undefined && catalogId !== defaultId ? {'@catalogId': catalogId} : {}),
+      ...(component.metadata !== undefined ? {'@metadata': component.metadata} : {}),
+    });
   }
-  const build = resolvedOf(catalog)?.build;
+  const builds: Record<string, string> = {};
+  for (const [catalogId, catalog] of used) {
+    const build = resolvedOf(catalog)?.build;
+    if (build) builds[catalogId] = build;
+  }
   return {
     surfaceId,
-    catalogId: catalog.id,
+    ...(defaultId !== undefined ? {catalogId: defaultId} : {}),
     sendDataModel: surface.sendDataModel,
     tree,
     dataModel: jsonCopy(surface.dataModel.get('/')) ?? {},
-    ...(build ? {build} : {}),
+    ...(Object.keys(builds).length > 0 ? {builds} : {}),
   };
 }
 
-/**
- * The copy's three wire messages: create, the whole tree, the whole data model — in the client's
- * version, as the copy carries none of its own (task-19.3 decision 4).
- */
-export function rebuildMessages(copy: PaintCopy): A2uiMessage[] {
+/** The copy's three wire messages: create, the whole tree, the whole data model — stamped `1.0`. */
+export function rebuildMessages(copy: PaintCopy): AgentToRendererMessage[] {
   return [
     {
-      version: CLIENT_A2UI_VERSION,
+      version: A2UI_VERSION,
       createSurface: {
         surfaceId: copy.surfaceId,
-        catalogId: copy.catalogId,
+        ...(copy.catalogId !== undefined ? {catalogId: copy.catalogId} : {}),
         ...(copy.sendDataModel ? {sendDataModel: true} : {}),
       },
     },
     {
-      version: CLIENT_A2UI_VERSION,
+      version: A2UI_VERSION,
       updateComponents: {
         surfaceId: copy.surfaceId,
         components: Object.values(copy.tree).map(jsonCopy),
       },
     },
     {
-      version: CLIENT_A2UI_VERSION,
+      version: A2UI_VERSION,
       updateDataModel: {surfaceId: copy.surfaceId, value: jsonCopy(copy.dataModel) ?? {}},
     },
-  ] as unknown as A2uiMessage[];
+  ] as AgentToRendererMessage[];
 }

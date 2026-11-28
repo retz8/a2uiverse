@@ -8,8 +8,8 @@
  * Since task 5.10 there is one ref form, so there is one document: the by-hand positional
  * variants that drove the stale path are gone with the mechanism they exercised.
  */
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {A2uiComponent, SynthesisPayload} from '@a2uiverse/sdk';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {A2UI_VERSION, type A2uiComponent, type SynthesisPayload} from '@a2uiverse/sdk';
 
 /** A merged view as the orchestrator paints it: the model's tree, and the payload beside it. */
 export interface SynthesisDocument extends SynthesisPayload {
@@ -80,19 +80,24 @@ const CAMERA_COMPARISON = {
           align: 'center',
           children: ['heading', 'sort'],
         },
-        {id: 'heading', component: 'Text', variant: 'h5', text: 'Cameras in both stores'},
-        {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
+        {id: 'heading', component: 'Text', text: '##### Cameras in both stores'},
+        {id: 'sort', component: 'SortControl', sort: {'@path': '/sorts/0'}},
         {
           id: 'rows',
           component: 'Table',
           columns: ['Camera', 'Aperture & Co', 'Northlight', 'Best price'],
           children: {path: '/rows', componentId: 'row'},
         },
-        {id: 'row', component: 'TableRow', children: ['c-name', 'c-a', 'c-b', 'c-best']},
-        {id: 'c-name', component: 'DerivedValue', cell: {path: 'name'}},
-        {id: 'c-a', component: 'DerivedValue', cell: {path: 'priceA'}, format: {kind: 'number'}},
-        {id: 'c-b', component: 'DerivedValue', cell: {path: 'priceB'}, format: {kind: 'number'}},
-        {id: 'c-best', component: 'DerivedValue', cell: {path: 'best'}, format: {kind: 'number'}},
+        {id: 'row', component: 'TableRow', children: ['c_name', 'c_a', 'c_b', 'c_best']},
+        {id: 'c_name', component: 'DerivedValue', cell: {'@path': 'name'}},
+        {id: 'c_a', component: 'DerivedValue', cell: {'@path': 'priceA'}, format: {kind: 'number'}},
+        {id: 'c_b', component: 'DerivedValue', cell: {'@path': 'priceB'}, format: {kind: 'number'}},
+        {
+          id: 'c_best',
+          component: 'DerivedValue',
+          cell: {'@path': 'best'},
+          format: {kind: 'number'},
+        },
       ],
     },
     dataModel: {
@@ -148,14 +153,14 @@ export const PAYLOAD: SynthesisPayload = {dataModel: DOCUMENT.dataModel, sorts: 
 /** Shop A's list reversed in place — a reorder the keyed refs ride out unchanged. */
 export const SHOP_A_REVERSED: ShopAItem[] = [...SHOP_A_ITEMS].reverse();
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: A2UI_VERSION, ...m}) as unknown as AgentToRendererMessage;
 
 /** Shop A's fragment: a heading over its `items`, each named and priced. */
 export function shopAMessages(
   catalogId: string,
   items: readonly ShopAItem[] = SHOP_A_ITEMS,
-): A2uiMessage[] {
+): AgentToRendererMessage[] {
   return listMessages(SHOP_A, catalogId, SHOP_A_NAME, 'items', 'name', {items: clone(items)});
 }
 
@@ -163,7 +168,7 @@ export function shopAMessages(
 export function shopBMessages(
   catalogId: string,
   products: readonly ShopBProduct[] = SHOP_B_PRODUCTS,
-): A2uiMessage[] {
+): AgentToRendererMessage[] {
   return listMessages(SHOP_B, catalogId, SHOP_B_NAME, 'products', 'title', {
     products: clone(products),
   });
@@ -180,7 +185,7 @@ export function listMessages(
   list: string,
   nameField: string,
   data: unknown,
-): A2uiMessage[] {
+): AgentToRendererMessage[] {
   return [
     msg({createSurface: {surfaceId, catalogId}}),
     msg({
@@ -190,9 +195,9 @@ export function listMessages(
           {id: 'root', component: 'Column', children: ['h', 'list']},
           {id: 'h', component: 'Text', text: title},
           {id: 'list', component: 'Column', children: {path: `/${list}`, componentId: 'row'}},
-          {id: 'row', component: 'Row', children: ['row-name', 'row-price']},
-          {id: 'row-name', component: 'Text', text: {path: nameField}},
-          {id: 'row-price', component: 'Text', text: {path: 'price'}},
+          {id: 'row', component: 'Row', children: ['row_name', 'row_price']},
+          {id: 'row_name', component: 'Text', text: {'@path': nameField}},
+          {id: 'row_price', component: 'Text', text: {'@path': 'price'}},
         ],
       },
     }),
@@ -201,7 +206,10 @@ export function listMessages(
 }
 
 /** The synthesis surface's paint: create against the shell catalog, then the model's tree verbatim. */
-export function synthesisMessages(document: SynthesisDocument, catalogId: string): A2uiMessage[] {
+export function synthesisMessages(
+  document: SynthesisDocument,
+  catalogId: string,
+): AgentToRendererMessage[] {
   return [
     msg({createSurface: {surfaceId: SYNTHESIS_SURFACE, catalogId}}),
     msg({
