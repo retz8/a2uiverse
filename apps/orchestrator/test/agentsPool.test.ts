@@ -1257,6 +1257,14 @@ describe('the credential bar on a surface that mixes catalogs (task-21.13 decisi
     const {events, record} = await drain(pool.dispatch('github', turn()));
     expect(record).toMatchObject({outcome: 'failed', cause: 'credential'});
     expect(vendor.requests).toHaveLength(2);
+    // The request and its repair alike: the capabilities under 1.0, the one v1.0 extension
+    // (task-21.13 decision 2).
+    for (const request of vendor.requests) {
+      expect(request.message.metadata?.a2uiRendererCapabilities).toEqual({
+        '1.0': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
+      });
+      expect(request.extensionsHeader).toBe('https://a2ui.org/a2a-extension/a2ui/v1.0');
+    }
     expect(events.flatMap(datasOf)).not.toContainEqual(paint(true)[1]);
   });
 

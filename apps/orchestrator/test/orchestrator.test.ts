@@ -615,6 +615,12 @@ describe('orchestrator', () => {
       version: '1.0',
       surfaces: {s1: {a: 1}},
     });
+    // A press carries the capabilities under 1.0 and asks for the one v1.0 extension, as the
+    // plan's request does (task-21.13 decision 2).
+    expect(wire.metadata?.a2uiRendererCapabilities).toEqual({
+      '1.0': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
+    });
+    expect(vendors.github!.requests.at(-1)!.extensionsHeader).toBe(A2UI_EXTENSION_URI);
 
     // The vendor's response comes back namespaced under its own surface.
     const created = events.flatMap(e =>
