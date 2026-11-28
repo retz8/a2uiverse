@@ -4,7 +4,7 @@
  * marketplace apps by itself, reports drift and answers the states as they stand.
  */
 import {rm} from 'node:fs/promises';
-import {afterEach, describe, expect, test} from 'vitest';
+import {afterEach, describe, expect, test, vi} from 'vitest';
 import type {AgentCard as LegacyCard} from '@a2a-js/sdk-v0_3';
 import {readCard} from '@a2uiverse/card';
 import {BASIC_CATALOG_ID, readUpdateState, type IndexEntry} from '@a2uiverse/sdk';
@@ -432,8 +432,8 @@ describe('the check (task-13.5 decisions 8, 9, 10)', () => {
     expect(outcome.states[0]).toMatchObject({state: 'ahead-of-store', catalogIds: [CALENDAR]});
     expect(outcome.reported).toEqual(['gmail']);
     await check.check();
-    await new Promise(resolve => setTimeout(resolve, 50));
-    expect(marketplace.reports).toEqual(['gmail', 'gmail']);
+    // The report is sent behind the answer: waited for.
+    await vi.waitFor(() => expect(marketplace.reports).toEqual(['gmail', 'gmail']));
   });
 
   test('each check fetches the live cards again: an agent moved since boot is judged on its card now, one not answering keeps the card held (task-13.8 decision 29)', async () => {
@@ -479,8 +479,8 @@ describe('the check (task-13.5 decisions 8, 9, 10)', () => {
     expect(outcome.states[0]).toMatchObject({state: 'up-to-date'});
     expect(outcome.reported).toEqual([]);
     expect(outcome.rechecked).toEqual(['gmail']);
-    await new Promise(resolve => setTimeout(resolve, 50));
-    expect(marketplace.reports).toEqual(['gmail']);
+    // The report is sent behind the answer: waited for.
+    await vi.waitFor(() => expect(marketplace.reports).toEqual(['gmail']));
   });
 
   test('concurrent checks coalesce onto the one in flight', async () => {
@@ -523,8 +523,8 @@ describe('the check of one app (task-15.5 decisions 5, 6, 11)', () => {
     });
     expect(check.last('gmail')).toEqual(found?.state);
     expect(marketplace.requests.slice(requests)).toEqual(['/apps/gmail/entry.json']);
-    await new Promise(resolve => setTimeout(resolve, 50));
-    expect(marketplace.reports).toEqual(['gmail']);
+    // The report is sent behind the answer: waited for.
+    await vi.waitFor(() => expect(marketplace.reports).toEqual(['gmail']));
   });
 
   test('a Store flag the live card no longer bears out is reported again', async () => {
@@ -539,8 +539,8 @@ describe('the check of one app (task-15.5 decisions 5, 6, 11)', () => {
     });
     await registry.installFromMarketplace('gmail');
     expect((await check.forApp('gmail'))?.state).toMatchObject({state: 'up-to-date'});
-    await new Promise(resolve => setTimeout(resolve, 50));
-    expect(marketplace.reports).toEqual(['gmail']);
+    // The report is sent behind the answer: waited for.
+    await vi.waitFor(() => expect(marketplace.reports).toEqual(['gmail']));
   });
 
   test('the Store unreached: unknown, no publisher, nothing reported', async () => {
