@@ -833,47 +833,72 @@ on `a2a-sdk` 1.x; neither changes the specification's text. No issue or pull req
 
 ---
 
-## 29. The list the specification requires in `data` is written by no upstream helper and read by no upstream agent (spec, a2ui-a2a, samples)
+## 29. The list the specification requires in `data` is written by no upstream helper or agent SDK and read by no upstream agent (spec, a2ui-agent-sdk, @a2ui/agent, a2ui-a2a, samples)
 
-**Component:** at `upstream/main` `8bf644a37`: `specification/v0_9_1/docs/a2ui_extension_specification.md`,
-lines 178 to 186, with the same text in the v0.9 and v1.0 files;
-`python/a2ui_a2a/src/a2ui/a2a/parts.py`, `create_a2ui_part` (line 62) and `get_a2ui_messages`;
-`samples/agent/node/restaurant_finder/src/a2a.ts`, lines 75 to 84;
-`samples/agent/adk/restaurant_finder/agent_executor.py`, lines 78 to 95;
-`samples/client/lit/shell/client.ts`, lines 60 to 89.
+**Component:** at `7a776e7a4`, the commit `@a2ui/web_core` 0.16.1 and `@a2ui/agent` 0.2.1 were
+released from: `specification/v1_0/extensions/a2a/docs/a2ui_extension_specification.md`, lines 181
+to 191, with the same text in the v0.9 and v0.9.1 files;
+`typescript/agents/a2ui_agent/src/rpc/renderer-to-agent-message-processor.ts`, `processMessage`
+(line 144); `python/a2ui_agent/src/a2ui/rpc/processor.py`,
+`RendererToAgentMessageProcessor.process_message` (line 168); `python/a2ui_a2a/src/a2ui/a2a/parts.py`,
+`create_a2ui_parts` (line 147) and `get_a2ui_messages` (line 124);
+`samples/agent/node/restaurant_finder/src/a2a.ts`, `readInboundMessage` (line 65);
+`samples/agent/adk/restaurant_finder/agent_executor.py`, lines 80 to 94;
+`samples/client/lit/shell/client.ts`, lines 81 to 84 and 111 to 115.
 
-**Severity:** specification and implementations disagree. A client that follows the specification
-loses every press on upstream's own agents.
+**Severity:** specification and implementations disagree, on v1.0 as on v0.9.1. A renderer that
+follows the specification loses every press on upstream's agents, and an agent built on either agent
+SDK refuses it.
 
 **Reported:** not filed.
 
 ### Issue
 
-The specification: "The `data` field of the `DataPart` contains a list of A2UI JSON messages (e.g.,
-`createSurface`, `updateComponents`, `action`). It MUST be an array of messages." Its processing rules
-build on the list, and its client-to-server example wraps one `action` in an array.
+The v1.0 extension specification: "The `data` field of the `DataPart` contains a list of A2UI JSON
+messages (e.g., `createSurface`, `updateComponents`, `action`). It MUST be an array of messages." Its
+processing rules and both of its examples build on the list.
 
 The code at the same commit carries one message per part:
 
-1. `create_a2ui_part(a2ui_data: dict[str, Any], …)` puts one message in `DataPart.data`, and
-   `get_a2ui_messages` documents it: "Each A2UI `DataPart` carries one A2UI message".
-2. The Node restaurant finder takes a press with `data.version === version && data.action`. Given a
+1. `@a2ui/agent` 0.2.1's `RendererToAgentMessageProcessor.processMessage` refuses a list: "A renderer
+   message must be a JSON object, got an array."
+2. `a2ui-agent-sdk` 0.12.1's `RendererToAgentMessageProcessor.process_message` refuses one: "A
+   renderer-to-agent message must be an object, got list."
+3. `a2ui_a2a`'s `create_a2ui_parts` writes one message per part, and `get_a2ui_messages` documents
+   it: "Each A2UI `DataPart` carries one A2UI message".
+4. The Node restaurant finder takes a press with `data.version === version && data.action`. Given a
    list, no action is found and the press is dropped with nothing said.
-3. The ADK restaurant finder takes one with `part.root.data.get("version")` and
+5. The ADK restaurant finder takes one with `part.root.data.get("version")` and
    `"action" in part.root.data`. Given a list, `.get` raises.
-4. The Lit sample client sends a press as one object in `data`.
+6. The Lit sample client sends a press as one object in `data`, and reads each data part as one
+   message.
 
 A list also cannot ride A2A 0.3 as written: 0.3 types a data part's `data` as an object
-(`types/src/types.ts` at A2A `v0.3.0`, lines 799 to 809), and the 0.3 layer of an A2A 1.x SDK wraps a
-list as `{"value": [...]}` with `data_part_compat` set in the part's metadata.
+(`types/src/types.ts` at A2A `v0.3.0`, lines 799 to 809), the A2A Python SDK `a2ui_a2a` pins,
+`a2a-sdk` 0.3.25, cannot build a data part holding a list, and the 0.3 layer of an A2A 1.x SDK wraps
+a list as `{"value": [...]}` with `data_part_compat` set in the part's metadata.
 
 A2UIVerse reads one message or a bare list, each entry judged on its own, and writes one message per
 part, since that is what every agent read here takes.
 
 ### Reproduction
 
-From the same scratch agent, one data part holding a list of two messages, on each wire
-(`python-1.0-list.json`, `python-0.3-list.json`):
+Run on 2026-11-28 from `../a2ui-upstream/` at `7a776e7a4`, with its own environment:
+
+```text
+a2ui_a2a create_a2ui_parts([create, delete]): 2 parts; ['dict', 'dict']
+a2a-sdk 0.3.25 DataPart(data=[...]): refused, Input should be a valid dictionary [type=dict_type, …, input_type=list]
+a2ui-agent-sdk RendererToAgentMessageProcessor.process_message([action]): raises A2uiValidationError: A renderer-to-agent message must be an object, got list.
+@a2ui/agent RendererToAgentMessageProcessor.processMessage([action]): throws A2uiValidationError: A renderer message must be a JSON object, got an array.
+```
+
+The Node restaurant finder, run with `STUB_LLM=true`, sent `message/send` with
+`a2uiRendererCapabilities` at `1.0` and one data part holding a `submit_booking` press: as one
+message the task ends `completed`, the booking taken; as a list of that one message it ends
+`input-required`, the press unread.
+
+On the wire, recorded on 2026-11-13 at `upstream/main` `8bf644a37` from a scratch agent sending one
+data part that holds a list of two messages (`python-1.0-list.json`, `python-0.3-list.json`):
 
 ```text
 A2A 1.0  {"data": [{"createSurface": {…}, "version": "v0.9"}, {"updateComponents": {…}, "version": "v0.9"}],
@@ -885,14 +910,12 @@ A2A 0.3  {"data": {"value": [{"version": "v0.9", "createSurface": {…}}, {"vers
 The client of `@a2a-js/sdk` 1.3.0 unwraps the 0.3 form, so a reader on that SDK sees a bare list from
 both. A reader on an A2A 0.3 SDK sees the object holding `value`.
 
-For the readers, the two lines of each sample quoted above are the reproduction: neither branch runs
-when `part.data` is a list.
-
 ### Fix
 
-Choose one and say it in the specification: one message per part on every A2A version, as the helper
-and the samples already do; or a list on A2A 1.0 with the readers changed to take one, and one message
-per part on A2A 0.3. Either way the helper, the samples and the text would agree.
+Choose one and say it in the specification: one message per part on every A2A version, as both agent
+SDKs, the helper and the samples already do; or a list on A2A 1.0 with the processors and the readers
+changed to take one, and one message per part on A2A 0.3. Either way the text and the code would
+agree.
 
 ### Prior art
 
@@ -901,9 +924,12 @@ an array, which they can't do", closed 2026-05-14) raised the conflict with A2A'
 closed once "the underlying libraries now all support lists in a data part". Issues
 [#234](https://github.com/a2ui-project/a2ui/issues/234) and
 [#549](https://github.com/a2ui-project/a2ui/issues/549), both closed, asked for a list of messages as
-one unit. `docs/public/concepts/actions.md`, line 413, says the list came with A2A v1.0. No issue or
-pull request reports that the helper and the samples still carry one message per part, searched on
-2026-11-13.
+one unit. At `8bf644a37`, `docs/public/concepts/actions.md`, line 413, said the list came with A2A
+v1.0; at `7a776e7a4` the page is `docs/site/src/content/docs/concepts/actions-and-functions.mdx` and
+the sentence is gone. No issue or
+pull request reports that the helper, the agent SDKs' processors and the samples still carry one
+message per part (searched on 2026-11-13; and "DataPart array messages", "data part list of
+messages", "MUST be an array of messages", "one message per part", on 2026-11-28).
 
 ---
 
@@ -1348,52 +1374,6 @@ reports a union's other option being lost (searched "union ComponentId", "Compon
 string", "child ref union", "Placeholder union", "classifyExplicitUnionOptions", "union child
 reference string literal", "ComponentId literal none", and web_core issues on unions and child
 references opened since 2026-11-03, on 2026-11-27).
-
----
-
-## 37. The v1.0 extension specification requires a list of messages in a part's `data`, and the released agent SDKs and upstream's samples carry one message per part (spec, a2ui-agent-sdk, @a2ui/agent, a2ui-a2a, samples)
-
-**Component:** at `7a776e7a4`, the commit `@a2ui/web_core` 0.16.1 and `@a2ui/agent` 0.2.1 were released from: `specification/v1_0/extensions/a2a/docs/a2ui_extension_specification.md`, lines 181 to 191; `typescript/agents/a2ui_agent/src/rpc/renderer-to-agent-message-processor.ts`, `processMessage` (line 144); `python/a2ui_agent/src/a2ui/rpc/processor.py`, `RendererToAgentMessageProcessor.process_message` (line 168); `python/a2ui_a2a/src/a2ui/a2a/parts.py`, `create_a2ui_parts` (line 147) and `get_a2ui_messages` (line 124); `samples/agent/node/restaurant_finder/src/a2a.ts`, `readInboundMessage` (line 65); `samples/client/lit/shell/client.ts`, lines 81 to 84 and 111 to 115.
-
-**Severity:** specification and implementations disagree on v1.0. A renderer that follows the specification loses every press on upstream's agents, and an agent built on either agent SDK refuses it.
-
-**Reported:** not filed.
-
-### Issue
-
-The v1.0 extension specification: "The `data` field of the `DataPart` contains a list of A2UI JSON messages (e.g., `createSurface`, `updateComponents`, `action`). It MUST be an array of messages." Its processing rules and both of its examples build on the list.
-
-The released code at the same commit carries one message per part:
-
-1. `@a2ui/agent` 0.2.1's `RendererToAgentMessageProcessor.processMessage` refuses a list: "A renderer message must be a JSON object, got an array."
-2. `a2ui-agent-sdk` 0.12.1's `RendererToAgentMessageProcessor.process_message` refuses one: "A renderer-to-agent message must be an object, got list."
-3. `a2ui_a2a`'s `create_a2ui_parts` writes one message per part, and `get_a2ui_messages` reads a part's `data` as one message.
-4. The A2A Python SDK `a2ui_a2a` pins, `a2a-sdk` 0.3.25, cannot build a data part whose `data` is a list.
-5. The Node restaurant finder reads a press only from a `data` that holds `version` and `action`, so a list is read as no press at all.
-6. The Lit sample client sends a press as one object in `data`, and reads each data part as one message.
-
-Finding 29 recorded the same disagreement at v0.9.1 on `upstream/main` `8bf644a37`. On v1.0 it holds for both agent SDKs, whose renderer-message processors were added since.
-
-### Reproduction
-
-Run on 2026-11-28 from `../a2ui-upstream/` at `7a776e7a4`, with its own environment.
-
-```text
-a2ui_a2a create_a2ui_parts([create, delete]): 2 parts; ['dict', 'dict']
-a2a-sdk 0.3.25 DataPart(data=[...]): refused, Input should be a valid dictionary [type=dict_type, …, input_type=list]
-a2ui-agent-sdk RendererToAgentMessageProcessor.process_message([action]): raises A2uiValidationError: A renderer-to-agent message must be an object, got list.
-@a2ui/agent RendererToAgentMessageProcessor.processMessage([action]): throws A2uiValidationError: A renderer message must be a JSON object, got an array.
-```
-
-The Node restaurant finder, run with `STUB_LLM=true`, sent `message/send` with `a2uiRendererCapabilities` at `1.0` and one data part holding a `submit_booking` press: as one message the task ends `completed`, the booking taken; as a list of that one message it ends `input-required`, the press unread.
-
-### Fix
-
-Choose one and say it in the v1.0 specification: one message per part, as both agent SDKs, the helper and the samples do; or a list, with the processors and the samples changed to take one. Either way the text and the code would agree.
-
-### Prior art
-
-Issue [#645](https://github.com/a2ui-project/a2ui/issues/645) ("A2UI spec requires DataParts to contain an array, which they can't do", closed 2026-05-14) was closed once "the underlying libraries now all support lists in a data part". Finding 29 gives the earlier issues. No issue or pull request reports the agent SDKs' processors refusing a list (searched "DataPart array messages", "data part list of messages", "MUST be an array of messages", "one message per part", on 2026-11-28).
 
 ---
 

@@ -98,9 +98,9 @@ The names of the sdk's exports say renderer and agent where the protocol does (p
 
 On the flip branch 21.10 changes the sdk's two READMEs and the contract files, and the sentences elsewhere that state a fact wholly the sdk's: the host-module interface's name and specifiers in the app-install design record (`docs/design/app-install.md`), the marketplace design record (`docs/design/marketplace.md`) and Stellify's README, and the extension contract's file name in `docs/design/synthesis.md` and `docs/design/a2ui-on-a2a.md`. The design records' passages on behaviour across packages wait for the sub-tasks that finish their subject. SPEC waits for the records sub-task 21.22, whose line takes a note naming the rows that leave and the rows restated.
 
-### 20. Three findings are written, each once reproduced on the pinned release
+### 20. Three findings, each once reproduced on the pinned release
 
-1. The v1.0 extension specification requires a part's `data` to be an array of messages, while the released agent SDKs and upstream's reference renderer write and read one message per part.
+1. The v1.0 extension specification requires a part's `data` to be an array of messages, while the released agent SDKs and upstream's reference renderer write and read one message per part: finding 29, restated at v1.0 and the pinned release.
 2. `@a2ui/web_core` 0.16.1 accepts a v0.9-style binding and passes a v0.9-style call unchecked on a v1.0 surface, where the v1.0 schema rejects both.
 3. Its `MessageProcessor` accepts a `v0.9` `updateComponents` on a surface created at `1.0`.
 
