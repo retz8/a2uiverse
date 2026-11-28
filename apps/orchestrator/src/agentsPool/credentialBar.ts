@@ -7,6 +7,7 @@
 import {randomUUID} from 'node:crypto';
 import {TaskState, type Message, type Part} from '@a2a-js/sdk';
 import {
+  A2UI_VERSION,
   BASIC_CATALOG_ID,
   a2uiPart,
   credentialInputIn,
@@ -49,9 +50,10 @@ export function repairOf(sent: Message, found: CredentialFinding): Message {
 
 /**
  * The first credential input among the components an event paints, if any, each matched against
- * the options of the catalog its surface was created in (task-12.7 decision 1). `catalogs` holds
- * the source's surfaces by the vendor's own ids, each with its catalog: a create in the event is
- * learned before the updates after it are read.
+ * the options of its own catalog (task-12.7 decision 1; task-21.13 decision 5): the one its
+ * `@catalogId` names, otherwise the one its surface was created in. `catalogs` holds the source's
+ * surfaces by the vendor's own ids, each with its catalog: a create in the event is learned before
+ * the updates after it are read.
  */
 export function credentialIn(
   event: VendorEvent,
@@ -67,20 +69,24 @@ export function credentialIn(
     ) {
       catalogs.set(create.surfaceId, create.catalogId);
     }
-    const update = message.updateComponents;
-    if (!isObject(update) || !Array.isArray(update.components)) continue;
-    const surfaceId = typeof update.surfaceId === 'string' ? update.surfaceId : undefined;
-    const catalogId = surfaceId !== undefined ? catalogs.get(surfaceId) : undefined;
-    const found = credentialInputIn(update.components, optionsFor(catalogId));
-    if (found) return found;
+    for (const body of [create, message.updateComponents]) {
+      if (!isObject(body) || !Array.isArray(body.components)) continue;
+      const surfaceId = typeof body.surfaceId === 'string' ? body.surfaceId : undefined;
+      const surfaceCatalog = surfaceId !== undefined ? catalogs.get(surfaceId) : undefined;
+      for (const component of body.components) {
+        const own = isObject(component) ? component['@catalogId'] : undefined;
+        const catalogId = typeof own === 'string' ? own : surfaceCatalog;
+        const found = credentialInputIn([component], optionsFor(catalogId));
+        if (found) return found;
+      }
+    }
   }
   return undefined;
 }
 
-/** A surface an answer created as it was relayed, with the A2UI version it was created under. */
+/** A surface an answer created as it was relayed. */
 export interface CreatedSurface {
   surfaceId: string;
-  version: string;
 }
 
 /** The surfaces an event creates, by the vendor's own ids. */
@@ -89,8 +95,7 @@ export function createdIn(event: VendorEvent): CreatedSurface[] {
   for (const message of a2uiMessagesOf(event)) {
     const create = message.createSurface;
     if (!isObject(create) || typeof create.surfaceId !== 'string') continue;
-    const version = typeof message.version === 'string' ? message.version : 'v0.9';
-    created.push({surfaceId: create.surfaceId, version});
+    created.push({surfaceId: create.surfaceId});
   }
   return created;
 }
@@ -112,7 +117,9 @@ export function takeDown(shown: readonly CreatedSurface[]): VendorEvent {
         status: {
           state: TaskState.TASK_STATE_WORKING,
           message: agentMessage(
-            shown.map(({surfaceId, version}) => a2uiPart({version, deleteSurface: {surfaceId}})),
+            shown.map(({surfaceId}) =>
+              a2uiPart({version: A2UI_VERSION, deleteSurface: {surfaceId}}),
+            ),
             {taskId, contextId},
           ),
           timestamp: undefined,

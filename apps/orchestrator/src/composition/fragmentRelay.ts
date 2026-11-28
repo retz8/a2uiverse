@@ -113,6 +113,9 @@ function namespaceData(data: unknown, source: string): unknown {
 }
 
 function namespaceMessage(message: Data, source: string): Data {
+  const call = message.callRendererFunction;
+  if (typeof call === 'object' && call !== null)
+    return {...message, callRendererFunction: namespaceCall(call as Data, source)};
   for (const op of A2UI_OPS) {
     const body = message[op];
     if (typeof body !== 'object' || body === null) continue;
@@ -121,6 +124,22 @@ function namespaceMessage(message: Data, source: string): Data {
     return {...message, [op]: {...body, surfaceId: namespaceSurfaceId(source, surfaceId)}};
   }
   return message;
+}
+
+/**
+ * A renderer function call with its ids namespaced (task-21.13 decision 8): its `functionCallId`
+ * as `<source>:<functionCallId>`, the same rewrite as a surface id, so two sources' calls never
+ * meet on the canvas, and its `surfaceId` as every surface id when it names one.
+ */
+function namespaceCall(call: Data, source: string): Data {
+  const {functionCallId, surfaceId} = call;
+  return {
+    ...call,
+    ...(typeof functionCallId === 'string'
+      ? {functionCallId: namespaceSurfaceId(source, functionCallId)}
+      : {}),
+    ...(typeof surfaceId === 'string' ? {surfaceId: namespaceSurfaceId(source, surfaceId)} : {}),
+  };
 }
 
 /**

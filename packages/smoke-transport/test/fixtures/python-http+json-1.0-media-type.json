@@ -43,7 +43,7 @@
       "streaming": true,
       "extensions": [
         {
-          "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+          "uri": "https://a2ui.org/a2a-extension/a2ui/v1.0",
           "params": {
             "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
           },
@@ -107,13 +107,13 @@
     "url": "http://127.0.0.1:18741/rest/message:stream",
     "headers": {
       "a2a-version": "1.0",
-      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v1.0",
       "accept": "text/event-stream",
       "content-type": "application/json"
     },
     "body": {
       "message": {
-        "messageId": "918879e5-1b4e-4d6b-a67b-dd5d35424efa",
+        "messageId": "46c0d199-5c76-4c23-a9eb-2ec6346325ef",
         "role": "ROLE_USER",
         "parts": [
           {
@@ -121,11 +121,8 @@
           }
         ],
         "metadata": {
-          "a2uiClientCapabilities": {
-            "v0.9": {
-              "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
-            },
-            "v0.9.1": {
+          "a2uiRendererCapabilities": {
+            "1.0": {
               "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
             }
           }
@@ -137,7 +134,7 @@
   "response": {
     "status": 200,
     "contentType": "text/event-stream",
-    "body": "data: {\"task\": {\"id\": \"b47aa161-95ec-4d10-80f7-98e1e612d9f0\", \"contextId\": \"0545a9a0-3c2f-4c11-90d4-2aa9bb6962dd\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"918879e5-1b4e-4d6b-a67b-dd5d35424efa\", \"contextId\": \"0545a9a0-3c2f-4c11-90d4-2aa9bb6962dd\", \"taskId\": \"b47aa161-95ec-4d10-80f7-98e1e612d9f0\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"media-type\"}], \"metadata\": {\"a2uiClientCapabilities\": {\"v0.9\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}, \"v0.9.1\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}\r\n\r\ndata: {\"statusUpdate\": {\"taskId\": \"b47aa161-95ec-4d10-80f7-98e1e612d9f0\", \"contextId\": \"0545a9a0-3c2f-4c11-90d4-2aa9bb6962dd\", \"status\": {\"state\": \"TASK_STATE_COMPLETED\", \"message\": {\"messageId\": \"908ae150-2228-4bea-a9cc-b06134fa2aaa\", \"contextId\": \"0545a9a0-3c2f-4c11-90d4-2aa9bb6962dd\", \"taskId\": \"b47aa161-95ec-4d10-80f7-98e1e612d9f0\", \"role\": \"ROLE_AGENT\", \"parts\": [{\"data\": {\"createSurface\": {\"catalogId\": \"https://example.com/catalogs/fake/v1/catalog.json\", \"surfaceId\": \"s1\"}, \"version\": \"v0.9\"}, \"mediaType\": \"application/a2ui+json\"}, {\"data\": {\"updateComponents\": {\"components\": [{\"id\": \"root\", \"text\": \"hi\", \"component\": \"Text\"}], \"surfaceId\": \"s1\"}, \"version\": \"v0.9\"}, \"mediaType\": \"application/a2ui+json\"}]}, \"timestamp\": \"2026-11-14T00:24:05.471489Z\"}}}\r\n\r\n",
+    "body": "data: {\"task\": {\"id\": \"48fd45ad-462f-43aa-9674-1c1c19426385\", \"contextId\": \"1e221cc0-b610-4ac5-97ab-6d99d02877d5\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"46c0d199-5c76-4c23-a9eb-2ec6346325ef\", \"contextId\": \"1e221cc0-b610-4ac5-97ab-6d99d02877d5\", \"taskId\": \"48fd45ad-462f-43aa-9674-1c1c19426385\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"media-type\"}], \"metadata\": {\"a2uiRendererCapabilities\": {\"1.0\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}\r\n\r\ndata: {\"statusUpdate\": {\"taskId\": \"48fd45ad-462f-43aa-9674-1c1c19426385\", \"contextId\": \"1e221cc0-b610-4ac5-97ab-6d99d02877d5\", \"status\": {\"state\": \"TASK_STATE_COMPLETED\", \"message\": {\"messageId\": \"2c2424d0-7477-496b-b0c7-836467565eb0\", \"contextId\": \"1e221cc0-b610-4ac5-97ab-6d99d02877d5\", \"taskId\": \"48fd45ad-462f-43aa-9674-1c1c19426385\", \"role\": \"ROLE_AGENT\", \"parts\": [{\"data\": {\"version\": \"1.0\", \"createSurface\": {\"surfaceId\": \"s1\", \"catalogId\": \"https://example.com/catalogs/fake/v1/catalog.json\"}}, \"mediaType\": \"application/a2ui+json\"}, {\"data\": {\"updateComponents\": {\"components\": [{\"text\": \"hi\", \"component\": \"Text\", \"id\": \"root\"}], \"surfaceId\": \"s1\"}, \"version\": \"1.0\"}, \"mediaType\": \"application/a2ui+json\"}]}, \"timestamp\": \"2026-11-28T07:52:59.036326Z\"}}}\r\n\r\n",
     "closedByAgent": true
   }
 }

@@ -43,7 +43,7 @@
       "streaming": true,
       "extensions": [
         {
-          "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+          "uri": "https://a2ui.org/a2a-extension/a2ui/v1.0",
           "params": {
             "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
           },
@@ -107,7 +107,7 @@
     "url": "http://127.0.0.1:18741/",
     "headers": {
       "a2a-version": "1.0",
-      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v1.0",
       "accept": "text/event-stream",
       "content-type": "application/json"
     },
@@ -116,7 +116,7 @@
       "method": "SendStreamingMessage",
       "params": {
         "message": {
-          "messageId": "67ee3aba-1da1-4a66-85f9-d235eec9391b",
+          "messageId": "acb95c35-2ce6-49da-8391-afc9d2b9924e",
           "role": "ROLE_USER",
           "parts": [
             {
@@ -124,11 +124,8 @@
             }
           ],
           "metadata": {
-            "a2uiClientCapabilities": {
-              "v0.9": {
-                "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
-              },
-              "v0.9.1": {
+            "a2uiRendererCapabilities": {
+              "1.0": {
                 "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
               }
             }
@@ -142,7 +139,7 @@
   "response": {
     "status": 200,
     "contentType": "text/event-stream",
-    "body": "data: {\"result\": {\"task\": {\"id\": \"ac953207-9bf2-4dfd-a618-3ff13efb0418\", \"contextId\": \"9fb4e9ec-513a-4e20-890d-bf09cb4232d7\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"67ee3aba-1da1-4a66-85f9-d235eec9391b\", \"contextId\": \"9fb4e9ec-513a-4e20-890d-bf09cb4232d7\", \"taskId\": \"ac953207-9bf2-4dfd-a618-3ff13efb0418\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"list\"}], \"metadata\": {\"a2uiClientCapabilities\": {\"v0.9\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}, \"v0.9.1\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\ndata: {\"result\": {\"statusUpdate\": {\"taskId\": \"ac953207-9bf2-4dfd-a618-3ff13efb0418\", \"contextId\": \"9fb4e9ec-513a-4e20-890d-bf09cb4232d7\", \"status\": {\"state\": \"TASK_STATE_COMPLETED\", \"message\": {\"messageId\": \"63ef3b21-08ca-44cf-a02e-d8b3eb193532\", \"contextId\": \"9fb4e9ec-513a-4e20-890d-bf09cb4232d7\", \"taskId\": \"ac953207-9bf2-4dfd-a618-3ff13efb0418\", \"role\": \"ROLE_AGENT\", \"parts\": [{\"data\": [{\"createSurface\": {\"catalogId\": \"https://example.com/catalogs/fake/v1/catalog.json\", \"surfaceId\": \"s1\"}, \"version\": \"v0.9\"}, {\"updateComponents\": {\"components\": [{\"text\": \"hi\", \"id\": \"root\", \"component\": \"Text\"}], \"surfaceId\": \"s1\"}, \"version\": \"v0.9\"}], \"metadata\": {\"mimeType\": \"application/a2ui+json\"}}]}, \"timestamp\": \"2026-11-14T00:23:58.032277Z\"}}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\n",
+    "body": "data: {\"result\": {\"task\": {\"id\": \"dd334f88-cf09-4bc2-9f67-058606012a4e\", \"contextId\": \"89f50a13-68e6-4b47-92dc-b3ad4595c1e1\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"acb95c35-2ce6-49da-8391-afc9d2b9924e\", \"contextId\": \"89f50a13-68e6-4b47-92dc-b3ad4595c1e1\", \"taskId\": \"dd334f88-cf09-4bc2-9f67-058606012a4e\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"list\"}], \"metadata\": {\"a2uiRendererCapabilities\": {\"1.0\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\ndata: {\"result\": {\"statusUpdate\": {\"taskId\": \"dd334f88-cf09-4bc2-9f67-058606012a4e\", \"contextId\": \"89f50a13-68e6-4b47-92dc-b3ad4595c1e1\", \"status\": {\"state\": \"TASK_STATE_COMPLETED\", \"message\": {\"messageId\": \"e8cdd4f4-e7d6-4fe8-90ca-6b1a79af90f1\", \"contextId\": \"89f50a13-68e6-4b47-92dc-b3ad4595c1e1\", \"taskId\": \"dd334f88-cf09-4bc2-9f67-058606012a4e\", \"role\": \"ROLE_AGENT\", \"parts\": [{\"data\": [{\"createSurface\": {\"surfaceId\": \"s1\", \"catalogId\": \"https://example.com/catalogs/fake/v1/catalog.json\"}, \"version\": \"1.0\"}, {\"updateComponents\": {\"components\": [{\"text\": \"hi\", \"id\": \"root\", \"component\": \"Text\"}], \"surfaceId\": \"s1\"}, \"version\": \"1.0\"}], \"metadata\": {\"mimeType\": \"application/a2ui+json\"}}]}, \"timestamp\": \"2026-11-28T07:52:51.573595Z\"}}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\n",
     "closedByAgent": true
   }
 }

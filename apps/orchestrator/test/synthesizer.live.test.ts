@@ -10,6 +10,7 @@
 import {describe, expect, test} from 'vitest';
 import {loadConfig} from '../src/config.js';
 import {Partitions} from '../src/composition/partitions.js';
+import {paint} from './wireEvents.js';
 import {getModel, keyFor, parseModelName, reasoningFor} from '../src/model/getModel.js';
 import {readSynthesizerFiles, synthesizerSystemPrompt} from '../src/synthesizer/prompt.js';
 import {AiSdkSynthesisModel, Synthesizer} from '../src/synthesizer/synthesizer.js';
@@ -45,24 +46,15 @@ describe.skipIf(!live)('Synthesizer (live)', () => {
         {id: 'x200', name: 'X200', price: 1199},
       ],
     };
+    // Each surface painted as the private wire carries it, the way the unit suite builds them.
     const partitions = new Partitions();
-    const paint = (surface: string, data: unknown) => ({
-      kind: 'message' as const,
-      messageId: 'm',
-      role: 'agent' as const,
-      parts: [
-        {
-          kind: 'data' as const,
-          data: {version: 'v0.9', createSurface: {surfaceId: surface, catalogId: 'c'}},
-        },
-        {
-          kind: 'data' as const,
-          data: {version: 'v0.9', updateDataModel: {surfaceId: surface, value: data}},
-        },
-      ],
-    });
-    partitions.apply(paint('shop-a:list', a));
-    partitions.apply(paint('shop-b:list', b));
+    for (const [surfaceId, value] of [
+      ['shop-a:list', a],
+      ['shop-b:list', b],
+    ] as const) {
+      partitions.apply(paint({createSurface: {surfaceId, catalogId: 'c'}}));
+      partitions.apply(paint({updateDataModel: {surfaceId, value}}));
+    }
 
     const started = Date.now();
     const outcome = await synthesizer.synthesize(

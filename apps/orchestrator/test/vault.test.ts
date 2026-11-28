@@ -208,7 +208,7 @@ async function boot(options: {
 function utterance(text: string, session = 'page-1'): Message {
   return clientMessage([textPart(text)], {
     metadata: {
-      a2uiClientDataModel: {version: 'v0.9', surfaces: {}},
+      a2uiRendererDataModel: {version: '1.0', surfaces: {}},
       ...clientSessionMetadata(session),
     },
   });
@@ -219,7 +219,7 @@ function press(
   source: string,
   contextId: string,
 ): Message {
-  return clientMessage([dataPart(operationData({kind, sources: [source]}, 'v0.9'))], {
+  return clientMessage([dataPart(operationData({kind, sources: [source]}, '1.0'))], {
     contextId,
     metadata: clientSessionMetadata('page-1'),
   });
@@ -229,14 +229,14 @@ function action(source: string, contextId: string): Message {
   return clientMessage(
     [
       dataPart({
-        version: 'v0.9',
+        version: '1.0',
         action: {name: 'close', surfaceId: `${source}:s1`, sourceComponentId: 'b', context: {}},
       }),
     ],
     {
       contextId,
       metadata: {
-        a2uiClientDataModel: {version: 'v0.9', surfaces: {}},
+        a2uiRendererDataModel: {version: '1.0', surfaces: {}},
         ...clientSessionMetadata('page-1'),
       },
     },
@@ -747,7 +747,7 @@ describe('the store loop (task 15.4)', () => {
     const pressed = await collect(
       client,
       clientMessage(
-        [dataPart(operationData({kind: 'useApp', sources: ['shop'], gap: 'orders'}, 'v0.9'))],
+        [dataPart(operationData({kind: 'useApp', sources: ['shop'], gap: 'orders'}, '1.0'))],
         {contextId: canvas, metadata: clientSessionMetadata('page-1')},
       ),
     );

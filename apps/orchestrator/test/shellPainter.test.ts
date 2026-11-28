@@ -12,11 +12,16 @@ import {dataOf as partData} from '../src/a2a/parts.js';
 import {Sources} from '../src/accounts/accounts.js';
 import {chooseAccount, compositionFrom, fillGap} from '../src/composition/state.js';
 import {
-  paintLayout,
-  shellCreateParts,
+  shellCreateParts as paintCreateParts,
   shellEnvelope,
-  shellRepaintParts,
+  shellRepaintParts as paintRepaintParts,
 } from '../src/composition/shellPainter.js';
+import {paintChecked as paintLayout, partsChecked} from './paintChecked.js';
+
+const shellCreateParts = (...args: Parameters<typeof paintCreateParts>) =>
+  partsChecked(paintCreateParts(...args));
+const shellRepaintParts = (...args: Parameters<typeof paintRepaintParts>) =>
+  partsChecked(paintRepaintParts(...args));
 import type {LayoutSurface} from '../src/planner/document.js';
 import type {UpdateFinding} from '../src/registry/updateTile.js';
 import {cardFor, testRegistry} from './registryFixture.js';
@@ -40,12 +45,12 @@ const layout: LayoutSurface = {
   tree: {
     components: [
       {id: 'root', component: 'Column', children: ['heading', 'merged', 'sources', 'flights']},
-      {id: 'heading', component: 'Text', variant: 'h3', text: 'Your day'},
+      {id: 'heading', component: 'Text', text: '### Your day'},
       {id: 'merged', component: 'Slot', source: 'shell'},
-      {id: 'sources', component: 'Row', children: ['gh', 'gm', 'cal-card']},
+      {id: 'sources', component: 'Row', children: ['gh', 'gm', 'cal_card']},
       {id: 'gh', component: 'Slot', source: 'github', weight: 2},
       {id: 'gm', component: 'Slot', source: 'gmail'},
-      {id: 'cal-card', component: 'Card', child: 'cal'},
+      {id: 'cal_card', component: 'Card', child: 'cal'},
       {id: 'cal', component: 'Slot', source: 'calendar'},
       {id: 'flights', component: 'Slot', gap: 'flight booking'},
     ],
@@ -69,42 +74,41 @@ describe('paintLayout', () => {
       'heading',
       'merged',
       'sources',
-      'attribution-gh',
+      'attribution_gh',
       'gh',
-      'attribution-gm',
+      'attribution_gm',
       'gm',
-      'cal-card',
-      'attribution-cal',
+      'cal_card',
+      'attribution_cal',
       'cal',
       'flights',
     ]);
     expect(byId.get('heading')).toEqual({
       id: 'heading',
       component: 'Text',
-      variant: 'h3',
-      text: 'Your day',
+      text: '### Your day',
     });
   });
 
   test('wraps each vendor Slot in an Attribution that names it, holds it as child, and carries its weight', () => {
-    expect(byId.get('attribution-gh')).toEqual({
-      id: 'attribution-gh',
+    expect(byId.get('attribution_gh')).toEqual({
+      id: 'attribution_gh',
       component: 'Attribution',
       displayName: 'GitHub',
       source: 'github',
       child: 'gh',
       weight: 2,
     });
-    expect(byId.get('attribution-gm')).toEqual({
-      id: 'attribution-gm',
+    expect(byId.get('attribution_gm')).toEqual({
+      id: 'attribution_gm',
       component: 'Attribution',
       displayName: 'Gmail',
       source: 'gmail',
       child: 'gm',
     });
     // The parent now names the wrapper where it named the slot — in a children list and as a child.
-    expect(byId.get('sources')!.children).toEqual(['attribution-gh', 'attribution-gm', 'cal-card']);
-    expect(byId.get('cal-card')!.child).toBe('attribution-cal');
+    expect(byId.get('sources')!.children).toEqual(['attribution_gh', 'attribution_gm', 'cal_card']);
+    expect(byId.get('cal_card')!.child).toBe('attribution_cal');
   });
 
   test('a Row or Column inside a Row or Column shares its parent’s axis as a Slot does, weight 1 when the Planner wrote none (task-6.4 decision 2)', () => {
@@ -158,7 +162,7 @@ describe('paintLayout', () => {
       label: 'Synthesis',
       content: 'shell',
     });
-    expect(byId.has('attribution-merged')).toBe(false);
+    expect(byId.has('attribution_merged')).toBe(false);
     expect(byId.get('root')!.children).toEqual(['heading', 'merged', 'sources', 'flights']);
   });
 
@@ -271,7 +275,7 @@ describe('paintLayout', () => {
       gap: 'flight booking',
       offer: {apps: [], none: 'nothing'},
     });
-    expect(byId.has('attribution-flights')).toBe(false);
+    expect(byId.has('attribution_flights')).toBe(false);
   });
 });
 
@@ -310,19 +314,19 @@ describe('two accounts of one app (task 12.4)', () => {
   });
 
   test('attribution names the account by its label beside the app’s name; an app with one account names none (phase-12 decision 22)', () => {
-    expect(byId.get('attribution-work')).toEqual({
-      id: 'attribution-work',
+    expect(byId.get('attribution_work')).toEqual({
+      id: 'attribution_work',
       component: 'Attribution',
       displayName: 'Gmail',
       source: 'gmail.1',
       account: 'alice@example.com',
       child: 'work',
     });
-    expect(byId.get('attribution-home')).toMatchObject({
+    expect(byId.get('attribution_home')).toMatchObject({
       source: 'gmail.2',
       account: 'bob@example.com',
     });
-    expect(byId.get('attribution-gh')).not.toHaveProperty('account');
+    expect(byId.get('attribution_gh')).not.toHaveProperty('account');
   });
 
   test('each slot’s label is the source’s one name (task-12.4 decision 5)', () => {
@@ -374,7 +378,7 @@ describe('the account choice (task 12.6)', () => {
 
   test('unchosen, the slot is painted bare with the app’s name and each account by its label (decision 5)', () => {
     const painted = paintLayout(compositionFrom(asking, sources, 'reply to Bob'));
-    expect(painted.map(c => c.id)).toEqual(['root', 'ask', 'attribution-gh', 'gh']);
+    expect(painted.map(c => c.id)).toEqual(['root', 'ask', 'attribution_gh', 'gh']);
     expect(painted[1]).toEqual({
       id: 'ask',
       component: 'Slot',
@@ -394,9 +398,9 @@ describe('the account choice (task 12.6)', () => {
     expect(slot?.plan).toMatchObject({source: 'gmail.2', request: 'Draft a reply to Bob.'});
     expect([...state.slots.keys()]).toEqual(['github', 'gmail.2']);
     const byId = new Map(paintLayout(state).map(c => [c.id, c]));
-    expect(byId.get('root')).toMatchObject({children: ['attribution-ask', 'attribution-gh']});
-    expect(byId.get('attribution-ask')).toEqual({
-      id: 'attribution-ask',
+    expect(byId.get('root')).toMatchObject({children: ['attribution_ask', 'attribution_gh']});
+    expect(byId.get('attribution_ask')).toEqual({
+      id: 'attribution_ask',
       component: 'Attribution',
       displayName: 'Gmail',
       source: 'gmail.2',
@@ -442,7 +446,7 @@ describe('shellCreateParts', () => {
     // The shell's own paints, in the platform's one spelling of an A2UI part (decision 5).
     expect(parts[1]).toEqual(
       a2uiPart({
-        version: 'v0.9',
+        version: '1.0',
         createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID},
       }),
     );
@@ -460,13 +464,13 @@ describe('shellCreateParts', () => {
     const parts = shellCreateParts(compositionFrom(layout, new Sources(registry), 'x'));
     expect(parts).toHaveLength(2);
     expect(dataOf(parts[0]!)).toEqual({
-      version: 'v0.9',
+      version: '1.0',
       createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID},
     });
     expect((dataOf(parts[1]!).updateComponents as {surfaceId: string}).surfaceId).toBe(
       'shell:main',
     );
-    expect(componentsOf(parts[1]!).map(c => c.id)).toContain('attribution-gh');
+    expect(componentsOf(parts[1]!).map(c => c.id)).toContain('attribution_gh');
   });
 
   test('sends the literal data model on shell:main before the components, when the tree binds one', () => {
@@ -475,7 +479,7 @@ describe('shellCreateParts', () => {
       tree: {
         components: [
           {id: 'root', component: 'Column', children: ['line']},
-          {id: 'line', component: 'Text', text: {path: '/answer'}},
+          {id: 'line', component: 'Text', text: {'@path': '/answer'}},
         ],
       },
       dataModel: {answer: 'Two apps are installed.'},
@@ -564,9 +568,9 @@ describe('the add-account tile (task-12.13 decision 27)', () => {
     const state = compositionFrom(adding, sources, 'add another gmail account');
     state.adding.get('gmail')!.scopes = ['See your inbox'];
     const byId = new Map(paintLayout(state).map(c => [c.id, c]));
-    expect(byId.get('root')).toMatchObject({children: ['attribution-add']});
-    expect(byId.get('attribution-add')).toEqual({
-      id: 'attribution-add',
+    expect(byId.get('root')).toMatchObject({children: ['attribution_add']});
+    expect(byId.get('attribution_add')).toEqual({
+      id: 'attribution_add',
       component: 'Attribution',
       displayName: 'Gmail',
       child: 'add',
@@ -670,7 +674,7 @@ describe('the offer (task 15.4)', () => {
       },
     });
     expect(JSON.stringify(paintLayout(state))).not.toContain('Cameras in stock');
-    expect(painted(state).has('attribution-more')).toBe(false);
+    expect(painted(state).has('attribution_more')).toBe(false);
   });
 
   test('an offer asking nothing of its app — an install asked for — is marked so (task-15.11 decision 36)', async () => {
@@ -698,11 +702,11 @@ describe('the offer (task 15.4)', () => {
       state: 'pending',
     });
     const byId = painted(state);
-    expect(byId.get('shops')!.children).toEqual(['attribution-gh', 'attribution-more']);
+    expect(byId.get('shops')!.children).toEqual(['attribution_gh', 'attribution_more']);
     // Until the app's first answer the slot keeps the offer it came from, the marker waiting
     // (task-15.8 decision 2).
-    expect(byId.get('attribution-more')).toEqual({
-      id: 'attribution-more',
+    expect(byId.get('attribution_more')).toEqual({
+      id: 'attribution_more',
       component: 'Attribution',
       displayName: 'Shop B',
       source: 'shop-b',
@@ -747,14 +751,14 @@ describe('the offer (task 15.4)', () => {
     fillGap(answered.state, answered.sources, 'camera shop', 'shop-b', {name: 'Shop B'});
     answered.state.arrived.add('shop-b');
     expect(painted(answered.state).get('more')).not.toHaveProperty('offered');
-    expect(painted(answered.state).get('attribution-more')).not.toHaveProperty('fromOffer');
+    expect(painted(answered.state).get('attribution_more')).not.toHaveProperty('fromOffer');
 
     const signIn = await fresh();
     fillGap(signIn.state, signIn.sources, 'camera shop', 'shop-b', {name: 'Shop B'});
     signIn.state.slots.get('shop-b')!.state = 'authority';
     signIn.state.slots.get('shop-b')!.authority = {cause: 'signIn', words: []};
     expect(painted(signIn.state).get('more')).not.toHaveProperty('offered');
-    expect(painted(signIn.state).get('attribution-more')).not.toHaveProperty('fromOffer');
+    expect(painted(signIn.state).get('attribution_more')).not.toHaveProperty('fromOffer');
   });
 
   test('an offer with no request, filled: the installed line, bare, with an example question (decision 12)', async () => {
@@ -776,7 +780,7 @@ describe('the offer (task 15.4)', () => {
       gap: 'install shop-b',
       installed: {appId: 'shop-b', name: 'Shop B', example: 'Any Z6 in stock?'},
     });
-    expect(painted(state).has('attribution-install')).toBe(false);
+    expect(painted(state).has('attribution_install')).toBe(false);
   });
 
   test('an app holding two accounts by the press: the account choice holding the offer’s request, then the account’s slot (decision 11)', async () => {

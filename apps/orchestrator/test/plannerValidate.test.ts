@@ -5,7 +5,8 @@
  */
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
-import {createA2uiValidator, pruneCatalog, type A2uiCatalogSchema} from '@a2uiverse/sdk';
+import {pruneCatalog, type A2uiCatalogSchema} from '@a2uiverse/sdk';
+import {createTreeCheck} from '../src/authoring/treeCheck.js';
 import {LAYOUT_SURFACE_KEEP_SET} from '@a2uiverse/shell-catalog/schema';
 import {describe, expect, test} from 'vitest';
 import type {LayoutSurface} from '../src/planner/document.js';
@@ -24,7 +25,7 @@ const catalog = pruneCatalog(
   ) as A2uiCatalogSchema,
   LAYOUT_SURFACE_KEEP_SET,
 );
-const tree = createA2uiValidator({catalog});
+const tree = createTreeCheck(catalog, 'main');
 const shortlist = ['github', 'gmail', 'shell'];
 /** The apps the registry holds: GitHub, Gmail and Linear. */
 const installed = ['github', 'gmail', 'linear'];
@@ -65,7 +66,7 @@ const fanOut = (): LayoutSurface => ({
   tree: {
     components: [
       {id: 'root', component: 'Column', children: ['heading', 'merged', 'sources']},
-      {id: 'heading', component: 'Text', variant: 'h3', text: 'Your morning'},
+      {id: 'heading', component: 'Text', text: '### Your morning'},
       {id: 'merged', component: 'Slot', source: 'shell'},
       {id: 'sources', component: 'Row', children: ['gh', 'gm']},
       {id: 'gh', component: 'Slot', source: 'github', weight: 2},
@@ -81,23 +82,23 @@ const platformAnswer = (): LayoutSurface => ({
   tree: {
     components: [
       {id: 'root', component: 'Column', children: ['heading', 'apps', 'library']},
-      {id: 'heading', component: 'Text', variant: 'h3', text: 'Installed apps'},
+      {id: 'heading', component: 'Text', text: '### Installed apps'},
       {
         id: 'apps',
         component: 'Table',
         columns: ['App', 'What it does'],
         children: {path: '/apps', componentId: 'app'},
       },
-      {id: 'app', component: 'TableRow', children: ['app-name', 'app-does']},
-      {id: 'app-name', component: 'Text', text: {path: 'name'}},
-      {id: 'app-does', component: 'Text', text: {path: 'does'}},
+      {id: 'app', component: 'TableRow', children: ['app_name', 'app_does']},
+      {id: 'app_name', component: 'Text', text: {'@path': 'name'}},
+      {id: 'app_does', component: 'Text', text: {'@path': 'does'}},
       {
         id: 'library',
         component: 'Button',
-        child: 'library-label',
-        action: {functionCall: {call: 'openAppLibrary', args: {}}},
+        child: 'library_label',
+        action: {functionCall: {'@call': 'openAppLibrary', args: {}}},
       },
-      {id: 'library-label', component: 'Text', text: 'Manage apps'},
+      {id: 'library_label', component: 'Text', text: 'Manage apps'},
     ],
   },
   dataModel: {
@@ -165,8 +166,8 @@ describe('the tree through the A2UI validator', () => {
     doc.tree.components[6] = {
       id: 'library',
       component: 'Button',
-      child: 'library-label',
-      action: {functionCall: {call: 'openUrl', args: {url: 'https://x'}}},
+      child: 'library_label',
+      action: {functionCall: {'@call': 'openUrl', args: {url: 'https://x'}}},
     };
     expect(check(doc).join('\n')).toContain("Unrecognized function 'openUrl'");
   });
@@ -443,10 +444,10 @@ describe('what the Planner may write on a Slot', () => {
 
   test('ids the painter reserves for its wrappers are refused', () => {
     const doc = gap();
-    doc.tree.components[1] = {id: 'attribution-x', component: 'Slot', gap: 'flight booking'};
-    doc.tree.components[0] = {id: 'root', component: 'Column', children: ['attribution-x']};
+    doc.tree.components[1] = {id: 'attribution_x', component: 'Slot', gap: 'flight booking'};
+    doc.tree.components[0] = {id: 'root', component: 'Column', children: ['attribution_x']};
     expect(check(doc)).toEqual([
-      "/tree (attribution-x): ids beginning with 'attribution-' are the shell's",
+      "/tree (attribution_x): ids beginning with 'attribution_' are the shell's",
     ]);
   });
 });
@@ -470,7 +471,7 @@ describe('open the App Library on one app (task-14.5 decision 11)', () => {
   const opening = (args: Record<string, unknown>): LayoutSurface => {
     const answer = platformAnswer();
     const library = answer.tree.components.find(c => c.id === 'library')!;
-    (library as Record<string, unknown>).action = {functionCall: {call: 'openAppLibrary', args}};
+    (library as Record<string, unknown>).action = {functionCall: {'@call': 'openAppLibrary', args}};
     return answer;
   };
 
@@ -487,7 +488,9 @@ describe('open the App Library on one app (task-14.5 decision 11)', () => {
   test('open Publish passes, with no argument', () => {
     const answer = platformAnswer();
     const library = answer.tree.components.find(c => c.id === 'library')!;
-    (library as Record<string, unknown>).action = {functionCall: {call: 'openPublish', args: {}}};
+    (library as Record<string, unknown>).action = {
+      functionCall: {'@call': 'openPublish', args: {}},
+    };
     expect(check(answer)).toEqual([]);
   });
 });
@@ -671,10 +674,10 @@ describe('accounts (task 12.6)', () => {
       {
         id: 'add',
         component: 'Button',
-        child: 'add-label',
-        action: {functionCall: {call: 'addAccount', args: {app: 'gmail'}}},
+        child: 'add_label',
+        action: {functionCall: {'@call': 'addAccount', args: {app: 'gmail'}}},
       },
-      {id: 'add-label', component: 'Text', text: 'Add an account'},
+      {id: 'add_label', component: 'Text', text: 'Add an account'},
     ];
     expect(errors(doc).length).toBeGreaterThan(0);
   });
@@ -916,7 +919,7 @@ describe('one component on its own (task-17.9 decisions 3, 6)', () => {
       ]),
     ).toBe(false);
     expect(passes({id: 's', component: 'Slot', source: 'github', state: 'failed'})).toBe(false);
-    expect(passes({id: 'attribution-x', component: 'Text', text: 'x'})).toBe(false);
+    expect(passes({id: 'attribution_x', component: 'Text', text: 'x'})).toBe(false);
     expect(passes({id: 's', component: 'Slot', source: 'github', weight: 0})).toBe(false);
   });
 
@@ -949,5 +952,54 @@ describe('the data model on its own (task-17.9 decision 6)', () => {
     expect(validateDataModel({total: {op: 'sum', args: []}})).toBe(false);
     expect(validateDataModel({x: {surface: 'github:s', pointer: '/a'}})).toBe(false);
     expect(validateDataModel([1, 2])).toBe(false);
+  });
+});
+
+describe("v1.0's forms, each a finding the retry carries (task-21.13 decisions 15 to 17)", () => {
+  type Mutate = (doc: LayoutSurface) => void;
+  const at = (doc: LayoutSurface, i: number) => doc.tree.components[i] as Record<string, unknown>;
+  test.each<[string, Mutate, string]>([
+    [
+      'a binding written path',
+      doc => (at(doc, 4).text = {path: 'name'}),
+      '/tree/components/4/text',
+    ],
+    [
+      'a call written call',
+      doc => (at(doc, 6).action = {functionCall: {call: 'openAppLibrary', args: {}}}),
+      '/tree/components/6/action',
+    ],
+    [
+      'a heading variant',
+      doc => Object.assign(at(doc, 1), {text: 'Installed apps', variant: 'h3'}),
+      '/tree/components/1/variant',
+    ],
+    [
+      'a hyphenated id',
+      doc => {
+        at(doc, 3).children = ['app-name', 'app_does'];
+        at(doc, 4).id = 'app-name';
+      },
+      '/tree/components/4/id',
+    ],
+  ])('%s is refused', (_form, mutate, path) => {
+    const doc = platformAnswer();
+    mutate(doc);
+    const findings = check(doc);
+    expect(findings.some(finding => finding.startsWith(path))).toBe(true);
+  });
+
+  test('a hyphenated id is refused as each component is written', () => {
+    const checks = {
+      tree,
+      shortlist,
+      installed,
+      searches: searched,
+      dispatch: fanOut().dispatch,
+      before: [],
+    };
+    const passes = (component: unknown) => validateComponent(component, checks).ok;
+    expect(passes({id: 'app_name', component: 'Text', text: 'x'})).toBe(true);
+    expect(passes({id: 'app-name', component: 'Text', text: 'x'})).toBe(false);
   });
 });

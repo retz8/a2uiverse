@@ -66,7 +66,7 @@ function javascriptCard({signIn}) {
       streaming: true,
       extensions: [
         {
-          uri: 'https://a2ui.org/a2a-extension/a2ui/v0.9.1',
+          uri: 'https://a2ui.org/a2a-extension/a2ui/v1.0',
           params: {supportedCatalogIds: ['https://example.com/catalogs/fake/v1/catalog.json']},
         },
       ],

@@ -16,7 +16,8 @@ import type {LayoutSurface} from '../src/planner/document.js';
 import {extractTaggedBlock} from '../src/authoring/taggedBlock.js';
 import {PlanCache, planKey} from '../src/planner/planCache.js';
 import {ModelPlanner} from '../src/planner/planner.js';
-import {LAYOUT_SURFACE_TAG, readPlannerFiles} from '../src/planner/prompt.js';
+import {LAYOUT_SURFACE_TAG, plannerSystemPrompt, readPlannerFiles} from '../src/planner/prompt.js';
+import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {PlatformReaders} from '../src/planner/readers.js';
 import type {ShortlistEntry} from '../src/router/router.js';
 import {streaming} from './streamingModel.js';
@@ -219,6 +220,20 @@ describe('planKey — the whole request (decision 7)', () => {
 
   test('the same request is the same key', async () => {
     expect(await planKey(parts)).toBe(await planKey({...parts}));
+  });
+
+  test('a cache file written before the flip serves no entry: each key holds the shell catalog’s document, which changed (task-21.13 decision 14)', async () => {
+    const system = plannerSystemPrompt(readPlannerFiles());
+    expect(system).toContain(SHELL_CATALOG_ID);
+    // The prompt the Planner was briefed with before the flip named the v0.9.1 document.
+    const before = system.replaceAll(
+      SHELL_CATALOG_ID,
+      SHELL_CATALOG_ID.replace('/v1.0/', '/v0.9.1/'),
+    );
+    const stored = open(file());
+    stored.store(await planKey({...parts, system: before}), 'A plan from before the flip.');
+    await stored.flushed();
+    expect(open(file()).get(await planKey({...parts, system}))).toBeUndefined();
   });
 
   test('any part changed is another key: the system prompt, the turn, a tool, the model, the effort', async () => {

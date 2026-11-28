@@ -1,5 +1,5 @@
 import type {Message} from '@a2a-js/sdk';
-import {A2UI_CLIENT_DATA_MODEL_KEY, parseSurfaceId} from '@a2uiverse/sdk';
+import {A2UI_RENDERER_DATA_MODEL_KEY, parseSurfaceId} from '@a2uiverse/sdk';
 
 type Metadata = Message['metadata'];
 
@@ -8,11 +8,11 @@ type Metadata = Message['metadata'];
  * the surfaces its namespace owns, keys un-namespaced. Undefined when
  * nothing survives — the metadata entry is then omitted entirely.
  */
-export function filterClientDataModel(
+export function filterRendererDataModel(
   metadata: Metadata,
   source: string,
 ): Record<string, unknown> | undefined {
-  const model = metadata?.[A2UI_CLIENT_DATA_MODEL_KEY];
+  const model = metadata?.[A2UI_RENDERER_DATA_MODEL_KEY];
   if (typeof model !== 'object' || model === null) return undefined;
   const surfaces = (model as {surfaces?: unknown}).surfaces;
   if (typeof surfaces !== 'object' || surfaces === null) return undefined;
@@ -35,7 +35,7 @@ export function filterClientDataModel(
  */
 export function vendorMetadata(metadata: Metadata, source: string): Metadata {
   const out: NonNullable<Metadata> = {};
-  const model = filterClientDataModel(metadata, source);
-  if (model !== undefined) out[A2UI_CLIENT_DATA_MODEL_KEY] = model;
+  const model = filterRendererDataModel(metadata, source);
+  if (model !== undefined) out[A2UI_RENDERER_DATA_MODEL_KEY] = model;
   return Object.keys(out).length > 0 ? out : undefined;
 }

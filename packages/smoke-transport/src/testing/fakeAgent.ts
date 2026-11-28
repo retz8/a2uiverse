@@ -27,7 +27,7 @@ import {
   UserBuilder,
 } from '@a2a-js/sdk-v0_3/server/express';
 import {A2AService, grpcService} from '@a2a-js/sdk-v0_3/server/grpc';
-import {A2UI_EXTENSION_URIS} from '@a2uiverse/sdk';
+import {A2UI_EXTENSION_URI} from '@a2uiverse/sdk';
 
 /** The 0.3 shapes a test's script and card are written in. */
 export type {AgentCard, AgentExecutionEvent, Message, RequestContext, Task};
@@ -209,7 +209,7 @@ export function cardFor(agentUrl: string, options: CardOptions = {}): AgentCard 
       streaming: options.streaming ?? true,
       extensions: options.extensions ?? [
         {
-          uri: A2UI_EXTENSION_URIS['v0.9.1'],
+          uri: A2UI_EXTENSION_URI,
           ...(catalogs ? {params: {supportedCatalogIds: catalogs}} : {}),
         },
       ],
@@ -226,11 +226,11 @@ export const paintParts = (
   catalogId: string,
   {component = 'Text', text = 'hi'}: {component?: string; text?: string} = {},
 ): Message['parts'] => [
-  {kind: 'data', data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId}}},
+  {kind: 'data', data: {version: '1.0', createSurface: {surfaceId: 's1', catalogId}}},
   {
     kind: 'data',
     data: {
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {surfaceId: 's1', components: [{id: 'root', component, text}]},
     },
   },

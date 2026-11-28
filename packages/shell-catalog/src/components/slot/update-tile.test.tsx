@@ -322,6 +322,18 @@ test.each([
     'Its details couldn’t be confirmed, so nothing changed.',
     undefined,
   ],
+  [
+    'older',
+    'Shop B can’t be updated.',
+    'It’s built in an older format A2UIVerse no longer supports, so nothing changed.',
+    undefined,
+  ],
+  [
+    'newer',
+    'Shop B can’t be updated.',
+    'It’s built in a newer format than this A2UIVerse supports, so nothing changed.',
+    undefined,
+  ],
 ] as const)(
   'a refused update (%s) says why on the line in the Store’s words, with the Store’s press',
   (cause, lead, rest, press) => {

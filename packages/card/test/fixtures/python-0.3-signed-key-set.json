@@ -3,8 +3,8 @@
     {
       "kty": "EC",
       "crv": "P-256",
-      "x": "HILMrNTPtnWG8oKrFQn4FRWpzLdwfzxwRR-lhXnTUtA",
-      "y": "AO8hnYV1XYGhspulyZboVm8UCcNlbqDlPLnYpE1e85Y",
+      "x": "QNiUNgwtKVobqV88dG35XD7JFHz9IiN58jvJyxY5Euc",
+      "y": "w3FivfL1bp3vWPDXfjgyeZK7k1kqmxycrEx_M9iKSqQ",
       "kid": "es-1",
       "alg": "ES256"
     }

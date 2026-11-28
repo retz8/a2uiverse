@@ -26,7 +26,7 @@ import {
 import {jsonRpcHandler, restHandler} from '@a2a-js/sdk/server/express';
 import {A2AService, grpcService} from '@a2a-js/sdk/server/grpc';
 import {LegacyA2AService, legacyGrpcService} from '@a2a-js/sdk/compat/v0_3/server/grpc';
-import {A2UI_EXTENSION_URIS} from '@a2uiverse/sdk';
+import {A2UI_EXTENSION_URI} from '@a2uiverse/sdk';
 import {
   authRequiredBody,
   cardUrlOf,
@@ -237,7 +237,7 @@ export function cardForV1(urls: FakeBindingUrls, options: CardV1Options = {}): A
       ...(options.extendedCard ? {extendedAgentCard: true} : {}),
       extensions: [
         {
-          uri: A2UI_EXTENSION_URIS['v0.9.1'],
+          uri: A2UI_EXTENSION_URI,
           ...(catalogs ? {params: {supportedCatalogIds: catalogs}} : {}),
         },
       ],
@@ -277,9 +277,9 @@ export const paintPartsV1 = (
   catalogId: string,
   {component = 'Text', text = 'hi'}: {component?: string; text?: string} = {},
 ): Part[] => [
-  dataPartV1({version: 'v0.9', createSurface: {surfaceId: 's1', catalogId}}),
+  dataPartV1({version: '1.0', createSurface: {surfaceId: 's1', catalogId}}),
   dataPartV1({
-    version: 'v0.9',
+    version: '1.0',
     updateComponents: {surfaceId: 's1', components: [{id: 'root', component, text}]},
   }),
 ];

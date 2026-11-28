@@ -11,9 +11,9 @@ import {a2aSmokeRunner} from './smokeRunner.js';
 import {capturedFetch, capturedWire, type CapturedWire} from './testing/capturedWire.js';
 
 const CATALOG = 'https://example.com/catalogs/fake/v1/catalog.json';
-const CREATE = {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: CATALOG}};
+const CREATE = {version: '1.0', createSurface: {surfaceId: 's1', catalogId: CATALOG}};
 const UPDATE = {
-  version: 'v0.9',
+  version: '1.0',
   updateComponents: {surfaceId: 's1', components: [{id: 'root', component: 'Text', text: 'hi'}]},
 };
 const ASKED_WRITE = {securityRequirements: [{schemes: {signIn: {list: ['things.write']}}}]};
@@ -55,7 +55,7 @@ describe.each(['1.0', '0.3'])("an agent on Python's a2a-sdk 1.3.0, reached at A2
     // The A2A SDK spells the extensions header for each A2A version (decision 7).
     const header = version === '1.0' ? 'a2a-extensions' : 'x-a2a-extensions';
     const other = version === '1.0' ? 'x-a2a-extensions' : 'a2a-extensions';
-    expect(one.request.headers[header]).toContain('https://a2ui.org/a2a-extension/a2ui/v0.9.1');
+    expect(one.request.headers[header]).toBe('https://a2ui.org/a2a-extension/a2ui/v1.0');
     expect(one.request.headers[other]).toBeUndefined();
   });
 
@@ -138,7 +138,7 @@ describe.each(['1.0', '0.3'])("an agent on Python's a2a-sdk 1.3.0, reached at A2
     };
     const held = (JSON.parse(status.status.message.parts[0]!.text) as unknown[])[1];
     const action = {
-      version: 'v0.9',
+      version: '1.0',
       action: {
         name: 'open',
         surfaceId: 's1',
@@ -193,7 +193,7 @@ describe.each(['1.0', '0.3'])(
       );
       expect(one.request.headers['a2a-version']).toBe(version);
       const header = version === '1.0' ? 'a2a-extensions' : 'x-a2a-extensions';
-      expect(one.request.headers[header]).toContain('https://a2ui.org/a2a-extension/a2ui/v0.9.1');
+      expect(one.request.headers[header]).toBe('https://a2ui.org/a2a-extension/a2ui/v1.0');
     });
 
     test.each([['one'], ['media-type']])('%s: one message per part is read', async asked => {
@@ -239,7 +239,7 @@ describe.each(['1.0', '0.3'])(
         expect(held.metadata).toEqual({mimeType: 'application/a2ui+json'});
       } else {
         // The A2A SDK writes the 0.3 wire with A2A 0.3.0's codec, whose part holds no metadata.
-        expect(sent).toEqual({data: {data: expect.objectContaining({version: 'v0.9'})}});
+        expect(sent).toEqual({data: {data: expect.objectContaining({version: '1.0'})}});
         expect(sent.metadata).toBeUndefined();
         expect(held.metadata).toBeUndefined();
       }

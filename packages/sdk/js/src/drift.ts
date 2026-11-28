@@ -4,7 +4,12 @@
  * orchestrator runs this over the card it fetched at boot and reports; the marketplace runs it on
  * its own fetch before setting its flag, and at its boot over every entry.
  */
-import {PUBLIC_CATALOG_IDS, readSupportedCatalogIds, type CardWithExtensions} from './catalog.js';
+import {
+  PUBLIC_CATALOG_IDS,
+  readSupportedCatalogIds,
+  type CardWithExtensions,
+  type OtherA2uiVersions,
+} from './catalog.js';
 import type {Validation} from './validate.js';
 
 /** What the live card declares and the Store lacks. */
@@ -26,15 +31,16 @@ export interface EntryForDrift {
  * version not among the published ones — a live agent behind the index is not ahead of it. Exact
  * over the entry alone, since coverage at publish fills the entry's catalogs for every id the
  * published card declares. A malformed declaration, or one declaring A2UI but not v1.0, is a
- * finding, not drift; nothing when covered.
+ * finding, not drift, the second carrying the versions it declares as the card's read does
+ * (task-21.13 decision 12), so an install from the Store tells it apart; nothing when covered.
  */
 export function aheadOfStore(
   entry: EntryForDrift,
   liveCard: CardWithExtensions & {version: string},
   publicIds: readonly string[] = PUBLIC_CATALOG_IDS,
-): Validation<Drift | undefined> {
+): Validation<Drift | undefined> | {ok: false; errors: string[]; otherVersions: OtherA2uiVersions} {
   const read = readSupportedCatalogIds(liveCard);
-  if (!read.ok) return {ok: false, errors: read.errors};
+  if (!read.ok) return read;
   const catalogIds = read.value.filter(id => !(id in entry.catalogs) && !publicIds.includes(id));
   const version = entry.versions.includes(liveCard.version) ? undefined : liveCard.version;
   if (catalogIds.length === 0 && version === undefined) return {ok: true, value: undefined};

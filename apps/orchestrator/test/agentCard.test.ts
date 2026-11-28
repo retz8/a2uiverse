@@ -1,5 +1,5 @@
 import {describe, expect, test} from 'vitest';
-import {A2UI_EXTENSION_URIS, A2UI_VERSIONS} from '@a2uiverse/sdk';
+import {A2UI_EXTENSION_URI} from '@a2uiverse/sdk';
 import {buildAgentCard} from '../src/agentCard.js';
 
 describe('buildAgentCard', () => {
@@ -17,14 +17,11 @@ describe('buildAgentCard', () => {
     expect(card.capabilities?.streaming).toBe(true);
   });
 
-  test('declares one bare A2UI extension entry per version the platform speaks, none required (task-19.2 decision 5)', () => {
+  test('lists one A2UI entry, for v1.0, with no params, not required (task-21.13 decision 3)', () => {
     const extensions = card.capabilities?.extensions ?? [];
-    expect(extensions.map(e => e.uri)).toEqual(A2UI_VERSIONS.map(v => A2UI_EXTENSION_URIS[v]));
-    for (const [i, ext] of extensions.entries()) {
-      expect(ext.params).toBeUndefined();
-      expect(ext.required).toBe(false);
-      expect(ext.description).toContain(A2UI_VERSIONS[i]);
-    }
+    expect(extensions.map(e => e.uri)).toEqual([A2UI_EXTENSION_URI]);
+    expect(extensions[0]!.params).toBeUndefined();
+    expect(extensions[0]!.required).toBe(false);
   });
 
   test('carries the platform’s hand-authored skills beside palette, no union of app skills (phase-6 decision 1)', () => {

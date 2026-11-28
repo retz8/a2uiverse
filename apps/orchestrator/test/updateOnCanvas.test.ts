@@ -44,7 +44,7 @@ import {
 import {fixtureArtifact} from './registryFixture.js';
 
 const CAT_2 = 'cat2';
-const A2UI_V091_URI = 'https://a2ui.org/a2a-extension/a2ui/v0.9.1';
+const A2UI_V1_URI = 'https://a2ui.org/a2a-extension/a2ui/v1.0';
 
 let dir: string;
 let server: Server | undefined;
@@ -98,7 +98,7 @@ function paintsIn(painting: Painting): Script {
                   {
                     kind: 'data',
                     data: {
-                      version: 'v0.9',
+                      version: '1.0',
                       createSurface: {surfaceId: 's1', catalogId: painting.catalog},
                     },
                   },
@@ -116,7 +116,7 @@ const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 /** The agent's live card moved to `catalogs` at `version`, in place: the card it serves now. */
 function move(vendor: FakeVendor, catalogs: string[], version = '1.0.0'): AgentCard {
   vendor.card.version = version;
-  const a2ui = vendor.card.capabilities.extensions!.find(e => e.uri === A2UI_V091_URI)!;
+  const a2ui = vendor.card.capabilities.extensions!.find(e => e.uri === A2UI_V1_URI)!;
   a2ui.params = {supportedCatalogIds: catalogs};
   return copy(vendor.card);
 }
@@ -200,12 +200,12 @@ async function boot(options: {
 
 function utterance(text: string): Message {
   return clientMessage([textPart(text)], {
-    metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}},
+    metadata: {a2uiRendererDataModel: {version: '1.0', surfaces: {}}},
   });
 }
 
 function retry(source: string, contextId: string): Message {
-  return clientMessage([dataPart(operationData({kind: 'retry', sources: [source]}, 'v0.9'))], {
+  return clientMessage([dataPart(operationData({kind: 'retry', sources: [source]}, '1.0'))], {
     contextId,
   });
 }
@@ -214,11 +214,11 @@ function action(source: string, contextId: string): Message {
   return clientMessage(
     [
       dataPart({
-        version: 'v0.9',
+        version: '1.0',
         action: {name: 'open', surfaceId: `${source}:s1`, sourceComponentId: 'b', context: {}},
       }),
     ],
-    {contextId, metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}}},
+    {contextId, metadata: {a2uiRendererDataModel: {version: '1.0', surfaces: {}}}},
   );
 }
 

@@ -328,6 +328,8 @@ test.each([
   ['uninstalled', 'This app isn’t installed anymore.'],
   ['interface', 'This app now connects in a way A2UIVerse can’t use.'],
   ['unconfirmed', 'This app’s details couldn’t be confirmed, so it isn’t shown.'],
+  ['older', 'This app is built in an older format A2UIVerse no longer supports.'],
+  ['newer', 'This app is built in a newer format than this A2UIVerse supports.'],
 ] as const)(
   'with no vendor words the statement is the shell’s reason for %s, with no name in it',
   (cause, reason) => {
@@ -353,6 +355,22 @@ test('the catalog cause names no catalog and no source, and offers no Retry (tas
   expect(screen.queryByText(/Gmail/)).not.toBeInTheDocument();
   expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
 });
+
+test.each(['older', 'newer'] as const)(
+  'an app on another A2UI version (%s) offers no Retry (task-21.13 decision 6)',
+  cause => {
+    render(
+      <SlotView
+        source="shop-b"
+        state="failed"
+        label="Shop B"
+        failure={{cause}}
+        onPress={() => {}}
+      />,
+    );
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+  },
+);
 
 test.each([
   [{cause: 'load', catalogId: 'urn:catalog:gmail'}, 'Something went wrong loading this.'],

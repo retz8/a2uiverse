@@ -15,6 +15,7 @@ import {
   aheadOfStore,
   ARTIFACT_DESCRIPTOR_FILE,
   BASIC_CATALOG_ID,
+  BASIC_CATALOG_SCHEMA,
   basicCatalogOptions,
   type Drift,
   validateArtifactDescriptor,
@@ -26,11 +27,10 @@ import {
   checkAppId,
   checkCoverage,
   coverageErrors,
-  entitlementByVersionOf,
+  checkHostInterface,
   entitlementOf,
-  readCatalogIdsByVersion,
   readSupportedCatalogIds,
-  underEachVersion,
+  type OtherA2uiVersions,
   type ArtifactDescriptor,
   gateArtifact,
   type GatedArtifact,
@@ -236,6 +236,8 @@ export class Registry {
   readonly #descriptors = new Map<string, ArtifactDescriptor>();
   /** The options each artifact's schema declares, by artifact id: what the credential bar reads. */
   readonly #options = new Map<string, CatalogOptions>();
+  /** Each held artifact's catalog schema, by artifact id: what the entitlement rule reads a bare `catalogId` by. */
+  readonly #schemas = new Map<string, A2uiCatalogSchema>();
   /** Each record's stored card, read: at load, and when an install writes the record. */
   readonly #stored = new Map<string, AgentCard>();
   /** This run's cards: null when the startup fetch failed; absent before it ran. */
@@ -272,7 +274,6 @@ export class Registry {
             agentUrl: platformCard.supportedInterfaces[0]?.url ?? '',
             catalogs: [],
             entitlement: [SHELL_CATALOG_ID],
-            entitlementByVersion: underEachVersion([SHELL_CATALOG_ID]),
           },
           card: platformCard,
         }
@@ -368,10 +369,13 @@ export class Registry {
     for (const [id, card] of stored) this.#stored.set(id, card);
     this.#descriptors.clear();
     this.#options.clear();
+    this.#schemas.clear();
     for (const [id, descriptor] of descriptors) {
       this.#descriptors.set(id, descriptor);
       const schema = await readFile(join(this.#store.artifactsDir, id, descriptor.schema));
       this.#options.set(id, optionsOf(schema));
+      const parsed = parseSchema(schema);
+      if (parsed) this.#schemas.set(id, parsed);
     }
   }
 
@@ -388,6 +392,16 @@ export class Registry {
     if (catalogId === BASIC_CATALOG_ID) return basicCatalogOptions();
     if (catalogId !== undefined) return of(handed[catalogId]);
     return mergeCatalogOptions([basicCatalogOptions(), ...Object.values(handed).map(of)]);
+  }
+
+  /**
+   * A catalog's schema as the app paints in it (task-21.13 decision 4): the basic catalog's, or the
+   * one handed at the app's install under that id; undefined for any other.
+   */
+  catalogSchema(app: AppRecord, catalogId: string): A2uiCatalogSchema | undefined {
+    if (catalogId === BASIC_CATALOG_ID) return BASIC_CATALOG_SCHEMA;
+    const artifact = this.#records.get(app.id)?.catalogs[catalogId];
+    return artifact !== undefined ? this.#schemas.get(artifact) : undefined;
   }
 
   /**
@@ -706,7 +720,7 @@ export class Registry {
     const drift = aheadOfStore(entry, card.card);
     if (!drift.ok)
       return refuse(
-        'checks',
+        'otherVersions' in drift ? versionRefusal(drift.otherVersions) : 'checks',
         drift.errors.map(e => `the card's ${e}`),
         entry.cardUrl,
       );
@@ -868,8 +882,9 @@ export class Registry {
       });
       return {ok: false, findings: refusal, cause: 'no-interface'};
     }
-    // A card that could not be fetched, or read, is the app unreached, whatever else the gate found.
-    const cause: InstallRefusal = card ? 'checks' : 'app-unreached';
+    // A card that could not be fetched, or read, is the app unreached, whatever else the gate found;
+    // one declaring A2UI and not v1.0 is refused for its version (task-21.13 decision 12).
+    let cause: InstallRefusal = card ? 'checks' : 'app-unreached';
 
     const gated: GatedArtifact[] = [];
     const handed: string[] = [];
@@ -898,6 +913,7 @@ export class Registry {
         findings.push(...coverageErrors(checkCoverage(declared, [...counted.keys()])));
       } else {
         findings.push(...read.errors.map(e => `the card's ${e}`));
+        if (read.otherVersions) cause = versionRefusal(read.otherVersions);
       }
     }
 
@@ -966,6 +982,8 @@ export class Registry {
       this.#descriptors.set(artifact.id, artifact.descriptor);
       const schema = artifact.files.get(artifact.descriptor.schema);
       if (schema) this.#options.set(artifact.id, optionsOf(schema));
+      const parsed = parseSchema(schema);
+      if (parsed) this.#schemas.set(artifact.id, parsed);
     }
     const cardBefore = this.#stored.get(appId);
     await this.#commit(next);
@@ -1073,6 +1091,7 @@ export class Registry {
     for (const id of gone) {
       this.#descriptors.delete(id);
       this.#options.delete(id);
+      this.#schemas.delete(id);
     }
     // The disk mirrors the descriptors held: every named artifact, and nothing else.
     await this.#store.removeArtifactsExcept(new Set(this.#descriptors.keys()));
@@ -1173,23 +1192,34 @@ export class Registry {
   }
 
   #view(record: InstalledRecord): AppRecord {
-    const stored = this.#stored.get(record.id)!;
-    const card = this.card(record.id) ?? stored;
-    // The entitlement per version from the card as installed, fixed at install like the flat one
-    // (task-19.2 decision 1); the flat entitlement under both keys when the stored card's
-    // declaration does not read.
-    const declared = readCatalogIdsByVersion(stored);
+    const card = this.card(record.id) ?? this.#stored.get(record.id)!;
     return {
       id: record.id,
       displayName: card.name || record.id,
       agentUrl: spokenInterfaces(card)[0]?.url ?? '',
       catalogs: Object.keys(record.catalogs),
-      entitlement: [...record.entitlement],
-      entitlementByVersion: declared.ok
-        ? entitlementByVersionOf(declared.value)
-        : underEachVersion([...record.entitlement]),
+      entitlement: this.#entitlementOf(record),
     };
   }
+
+  /**
+   * An app's entitlement for the run (task-21.13 decision 13): the public catalog of the running
+   * platform, and each catalog on its record whose artifact is packed for the host-module
+   * interface the platform supplies — on a record from before the flip, the v1.0 basic catalog
+   * alone. The entitlement the record persists is never read.
+   */
+  #entitlementOf(record: InstalledRecord): string[] {
+    const usable = Object.entries(record.catalogs).filter(([, artifact]) => {
+      const descriptor = this.#descriptors.get(artifact);
+      return descriptor !== undefined && checkHostInterface(descriptor.hostInterface).length === 0;
+    });
+    return entitlementOf(usable.map(([catalogId]) => catalogId));
+  }
+}
+
+/** The refusal for a card that declares A2UI and not v1.0 (task-21.13 decision 12). */
+function versionRefusal(other: OtherA2uiVersions): InstallRefusal {
+  return other.allOlder ? 'older' : 'newer';
 }
 
 /** A marketplace artifact whose descriptor does not read: an install refused as failing the checks. */

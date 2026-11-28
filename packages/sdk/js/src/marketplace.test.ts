@@ -343,6 +343,18 @@ describe('the words of a refused install or update (task-14.7 decision 6, task-1
         rest: 'Its details couldn’t be confirmed, so nothing was installed.',
         press: 'none',
       },
+      older: {
+        tone: 'bad',
+        lead: 'Shop B can’t be installed.',
+        rest: 'It’s built in an older format A2UIVerse no longer supports, so nothing was installed.',
+        press: 'none',
+      },
+      newer: {
+        tone: 'bad',
+        lead: 'Shop B can’t be installed.',
+        rest: 'It’s built in a newer format than this A2UIVerse supports, so nothing was installed.',
+        press: 'none',
+      },
       checks: {
         tone: 'bad',
         lead: 'Shop B can’t be installed.',
@@ -384,6 +396,27 @@ describe('the words of a refused install or update (task-14.7 decision 6, task-1
       press: 'none',
     });
   });
+
+  test.each([
+    ['older', 'It’s built in an older format A2UIVerse no longer supports'],
+    ['newer', 'It’s built in a newer format than this A2UIVerse supports'],
+  ] as const)(
+    'an app on another A2UI version (%s): no press (task-21.13 decision 12)',
+    (cause, said) => {
+      expect(refusalOf(cause, 'Shop B', 'install')).toEqual({
+        tone: 'bad',
+        lead: 'Shop B can’t be installed.',
+        rest: `${said}, so nothing was installed.`,
+        press: 'none',
+      });
+      expect(refusalOf(cause, 'Shop B', 'update')).toEqual({
+        tone: 'bad',
+        lead: 'Shop B can’t be updated.',
+        rest: `${said}, so nothing changed.`,
+        press: 'none',
+      });
+    },
+  );
 
   test('an app whose details couldn’t be confirmed, updated: nothing changed (task-20.7 decision 13)', () => {
     expect(refusalOf('unconfirmed', 'Shop B', 'update')).toEqual({

@@ -1,5 +1,5 @@
 import {A2A_PROTOCOL_VERSION, AgentCard} from '@a2a-js/sdk';
-import {A2UI_EXTENSION_URIS, A2UI_VERSIONS} from '@a2uiverse/sdk';
+import {A2UI_EXTENSION_URI, A2UI_VERSION} from '@a2uiverse/sdk';
 
 /** The one binding the orchestrator's endpoint serves. */
 const JSON_RPC = 'JSONRPC';
@@ -12,9 +12,8 @@ const JSON_RPC = 'JSONRPC';
  * apps, and how apps are found and installed — the texts that let the Router rank a platform
  * question and the Planner tell one from a capability gap. No union of installed apps' skills:
  * every question is sent here regardless, and the Registry reader describes the apps on demand.
- * Its extensions are one bare entry per A2UI version the platform speaks, from the sdk's map
- * (task-19.2 decision 5): the claim's own card says both. Written as the card's JSON; the SDK's
- * codec fills what its in-memory shape requires.
+ * Its extensions are one A2UI entry, for v1.0, with no params (task-21.13 decision 3). Written as
+ * the card's JSON; the SDK's codec fills what its in-memory shape requires.
  */
 export function buildAgentCard(baseUrl: string): AgentCard {
   return AgentCard.fromJSON({
@@ -27,11 +26,13 @@ export function buildAgentCard(baseUrl: string): AgentCard {
     ],
     capabilities: {
       streaming: true,
-      extensions: A2UI_VERSIONS.map(version => ({
-        uri: A2UI_EXTENSION_URIS[version],
-        description: `Relays A2UI ${version} surfaces painted by installed apps.`,
-        required: false,
-      })),
+      extensions: [
+        {
+          uri: A2UI_EXTENSION_URI,
+          description: `Relays A2UI v${A2UI_VERSION} surfaces painted by installed apps.`,
+          required: false,
+        },
+      ],
     },
     defaultInputModes: ['text', 'text/plain'],
     defaultOutputModes: ['text', 'text/plain'],

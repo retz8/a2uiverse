@@ -8,14 +8,14 @@ import {fixture, trackedLegacyCards} from './trackedCards.js';
 describe('a card written for A2A 0.3', () => {
   const tracked = trackedLegacyCards();
 
-  test('the eleven tracked cards are the ones read', () => {
-    expect(tracked).toHaveLength(11);
+  test('the twelve tracked cards are the ones read', () => {
+    expect(tracked).toHaveLength(12);
   });
 
   test.each(tracked)(
     '%s reads, its one interface JSON-RPC at its own A2A version',
     (_name, raw) => {
-      const served = raw as {name: string; version: string; url: string; protocolVersion: string};
+      const served = raw as {name: string; version: string; url: string; protocolVersion?: string};
       const card = readCard(served);
       expect(card.name).toBe(served.name);
       expect(card.version).toBe(served.version);
@@ -24,7 +24,8 @@ describe('a card written for A2A 0.3', () => {
           url: served.url,
           protocolBinding: 'JSONRPC',
           tenant: '',
-          protocolVersion: served.protocolVersion,
+          // A card that names no A2A version is read at 0.3 (task-20.3 decision 1).
+          protocolVersion: served.protocolVersion ?? '0.3',
         },
       ]);
     },
@@ -162,7 +163,7 @@ describe('a card written in A2A 1.0’s shape', () => {
     expect(card.securitySchemes.signIn?.scheme?.$case).toBe('oauth2SecurityScheme');
     expect(card.capabilities?.extensions).toEqual([
       {
-        uri: 'https://a2ui.org/a2a-extension/a2ui/v0.9.1',
+        uri: 'https://a2ui.org/a2a-extension/a2ui/v1.0',
         description: '',
         required: false,
         params: {supportedCatalogIds: ['https://example.com/catalogs/fake/v1/catalog.json']},

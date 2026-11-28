@@ -10,7 +10,7 @@ import {join} from 'node:path';
 import type {AgentCard as LegacyAgentCard} from '@a2a-js/sdk-v0_3';
 import {fetchLiveCard, type LiveCard, type ServedCard} from '@a2uiverse/card';
 import {
-  A2UI_EXTENSION_URIS,
+  A2UI_EXTENSION_URI,
   ARTIFACT_DESCRIPTOR_FILE,
   HOST_INTERFACE_VERSION,
   hashArtifactFile,
@@ -54,7 +54,7 @@ export function cardFor(agentUrl: string, options: CardOptions = {}): LegacyAgen
       streaming: options.streaming ?? true,
       extensions: [
         {
-          uri: A2UI_EXTENSION_URIS['v0.9.1'],
+          uri: A2UI_EXTENSION_URI,
           ...(catalogs ? {params: {supportedCatalogIds: catalogs}} : {}),
         },
       ],
@@ -82,6 +82,7 @@ export async function fixtureArtifact(
 ): Promise<ArtifactFiles> {
   const schema = options.schema ?? {
     catalogId,
+    protocolVersion: '1.0',
     components: {
       Text: {type: 'object', properties: {text: {type: 'string'}}, required: ['text']},
     },

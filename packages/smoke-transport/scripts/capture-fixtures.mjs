@@ -20,10 +20,10 @@ import {Role} from '@a2a-js/sdk';
 import {ServiceParameters, withA2AExtensions} from '@a2a-js/sdk/client';
 import {fetchLiveCard, readCard} from '@a2uiverse/card';
 import {
-  A2UI_CLIENT_CAPABILITIES_KEY,
-  A2UI_EXTENSION_URIS,
+  A2UI_RENDERER_CAPABILITIES_KEY,
+  A2UI_EXTENSION_URI,
   a2uiPart,
-  clientCapabilities,
+  rendererCapabilities,
 } from '@a2uiverse/sdk';
 import {a2aSmokeRunner, Dialer} from '../dist/index.js';
 
@@ -57,7 +57,7 @@ const ASKED = [
 
 /** The press the `echo` request carries, in the platform's one spelling of an A2UI part. */
 const PRESS = a2uiPart({
-  version: 'v0.9',
+  version: '1.0',
   action: {
     name: 'open',
     surfaceId: 's1',
@@ -117,16 +117,14 @@ async function capture(served, asked) {
           taskId: '',
           role: Role.ROLE_USER,
           parts: asked === 'echo' ? [text(asked), PRESS] : [text(asked)],
-          metadata: {[A2UI_CLIENT_CAPABILITIES_KEY]: clientCapabilities([CATALOG])},
+          metadata: {[A2UI_RENDERER_CAPABILITIES_KEY]: rendererCapabilities([CATALOG])},
           extensions: [],
           referenceTaskIds: [],
         },
         configuration: undefined,
         metadata: undefined,
       },
-      serviceParameters: ServiceParameters.create(
-        withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS)),
-      ),
+      serviceParameters: ServiceParameters.create(withA2AExtensions(A2UI_EXTENSION_URI)),
       signal: left.signal,
     });
     taken = dialed.taken;
@@ -175,7 +173,7 @@ async function withScratchAgent(first, use) {
     let served;
     for (let attempt = 0; served === undefined; attempt++) {
       try {
-        served = await fetchLiveCard(cardUrl, {timeoutMs: 2000});
+        served = (await fetchLiveCard(cardUrl, {timeoutMs: 2000})).served;
       } catch (err) {
         if (attempt === 60) throw err;
         await new Promise(resolve => setTimeout(resolve, 500));

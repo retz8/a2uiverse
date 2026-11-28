@@ -43,7 +43,7 @@
       "streaming": true,
       "extensions": [
         {
-          "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+          "uri": "https://a2ui.org/a2a-extension/a2ui/v1.0",
           "params": {
             "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
           },
@@ -107,7 +107,7 @@
     "url": "http://127.0.0.1:18741/",
     "headers": {
       "a2a-version": "1.0",
-      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v1.0",
       "accept": "text/event-stream",
       "content-type": "application/json"
     },
@@ -116,7 +116,7 @@
       "method": "SendStreamingMessage",
       "params": {
         "message": {
-          "messageId": "e3f53f5c-f460-49f6-b7fb-ee8b50951417",
+          "messageId": "a30b76e0-2bd3-41de-98de-c14bf733b363",
           "role": "ROLE_USER",
           "parts": [
             {
@@ -124,7 +124,7 @@
             },
             {
               "data": {
-                "version": "v0.9",
+                "version": "1.0",
                 "action": {
                   "name": "open",
                   "surfaceId": "s1",
@@ -140,11 +140,8 @@
             }
           ],
           "metadata": {
-            "a2uiClientCapabilities": {
-              "v0.9": {
-                "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
-              },
-              "v0.9.1": {
+            "a2uiRendererCapabilities": {
+              "1.0": {
                 "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
               }
             }
@@ -158,7 +155,7 @@
   "response": {
     "status": 200,
     "contentType": "text/event-stream",
-    "body": "data: {\"result\": {\"task\": {\"id\": \"2dad54d2-a62b-4d2f-a5d9-4abd1355c2df\", \"contextId\": \"a57ab24b-5d05-4d79-ab70-9f266266009f\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"e3f53f5c-f460-49f6-b7fb-ee8b50951417\", \"contextId\": \"a57ab24b-5d05-4d79-ab70-9f266266009f\", \"taskId\": \"2dad54d2-a62b-4d2f-a5d9-4abd1355c2df\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"echo\"}, {\"data\": {\"action\": {\"surfaceId\": \"s1\", \"timestamp\": \"2026-11-13T00:00:00.000Z\", \"sourceComponentId\": \"root\", \"name\": \"open\", \"context\": {}}, \"version\": \"v0.9\"}, \"metadata\": {\"mimeType\": \"application/a2ui+json\"}, \"mediaType\": \"application/a2ui+json\"}], \"metadata\": {\"a2uiClientCapabilities\": {\"v0.9\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}, \"v0.9.1\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\ndata: {\"result\": {\"statusUpdate\": {\"taskId\": \"2dad54d2-a62b-4d2f-a5d9-4abd1355c2df\", \"contextId\": \"a57ab24b-5d05-4d79-ab70-9f266266009f\", \"status\": {\"state\": \"TASK_STATE_COMPLETED\", \"message\": {\"messageId\": \"b3e9ace6-2774-425a-a55e-05910765f2a3\", \"contextId\": \"a57ab24b-5d05-4d79-ab70-9f266266009f\", \"taskId\": \"2dad54d2-a62b-4d2f-a5d9-4abd1355c2df\", \"role\": \"ROLE_AGENT\", \"parts\": [{\"text\": \"[{\\\"text\\\": \\\"echo\\\"}, {\\\"data\\\": {\\\"action\\\": {\\\"surfaceId\\\": \\\"s1\\\", \\\"timestamp\\\": \\\"2026-11-13T00:00:00.000Z\\\", \\\"sourceComponentId\\\": \\\"root\\\", \\\"name\\\": \\\"open\\\", \\\"context\\\": {}}, \\\"version\\\": \\\"v0.9\\\"}, \\\"metadata\\\": {\\\"mimeType\\\": \\\"application/a2ui+json\\\"}, \\\"mediaType\\\": \\\"application/a2ui+json\\\"}]\"}]}, \"timestamp\": \"2026-11-14T00:24:01.064412Z\"}}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\n",
+    "body": "data: {\"result\": {\"task\": {\"id\": \"c95a578b-dfaa-4c17-963d-e134b1ff5c21\", \"contextId\": \"11d83f4d-ea10-4bae-9b98-6da897491844\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"a30b76e0-2bd3-41de-98de-c14bf733b363\", \"contextId\": \"11d83f4d-ea10-4bae-9b98-6da897491844\", \"taskId\": \"c95a578b-dfaa-4c17-963d-e134b1ff5c21\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"echo\"}, {\"data\": {\"action\": {\"sourceComponentId\": \"root\", \"surfaceId\": \"s1\", \"context\": {}, \"timestamp\": \"2026-11-13T00:00:00.000Z\", \"name\": \"open\"}, \"version\": \"1.0\"}, \"metadata\": {\"mimeType\": \"application/a2ui+json\"}, \"mediaType\": \"application/a2ui+json\"}], \"metadata\": {\"a2uiRendererCapabilities\": {\"1.0\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\ndata: {\"result\": {\"statusUpdate\": {\"taskId\": \"c95a578b-dfaa-4c17-963d-e134b1ff5c21\", \"contextId\": \"11d83f4d-ea10-4bae-9b98-6da897491844\", \"status\": {\"state\": \"TASK_STATE_COMPLETED\", \"message\": {\"messageId\": \"69fa84bc-8870-4528-ab09-55d8f35745f0\", \"contextId\": \"11d83f4d-ea10-4bae-9b98-6da897491844\", \"taskId\": \"c95a578b-dfaa-4c17-963d-e134b1ff5c21\", \"role\": \"ROLE_AGENT\", \"parts\": [{\"text\": \"[{\\\"text\\\": \\\"echo\\\"}, {\\\"data\\\": {\\\"action\\\": {\\\"sourceComponentId\\\": \\\"root\\\", \\\"surfaceId\\\": \\\"s1\\\", \\\"context\\\": {}, \\\"timestamp\\\": \\\"2026-11-13T00:00:00.000Z\\\", \\\"name\\\": \\\"open\\\"}, \\\"version\\\": \\\"1.0\\\"}, \\\"metadata\\\": {\\\"mimeType\\\": \\\"application/a2ui+json\\\"}, \\\"mediaType\\\": \\\"application/a2ui+json\\\"}]\"}]}, \"timestamp\": \"2026-11-28T07:52:54.604361Z\"}}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\n",
     "closedByAgent": true
   }
 }

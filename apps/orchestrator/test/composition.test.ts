@@ -2,7 +2,7 @@ import {describe, expect, test} from 'vitest';
 import {dataPart, textPart, userMessage} from '../src/a2a/parts.js';
 import {classifyTurn, unnamespaceAction} from '../src/composition/classify.js';
 import {shellSurfaceId} from '../src/composition/constants.js';
-import {filterClientDataModel, vendorMetadata} from '../src/composition/partition.js';
+import {filterRendererDataModel, vendorMetadata} from '../src/composition/partition.js';
 import {outcomeToSlotState} from '../src/composition/state.js';
 
 describe('constants', () => {
@@ -35,7 +35,7 @@ describe('classifyTurn', () => {
   });
   test('an action part routes as an action with its namespaced surfaceId', () => {
     const data = {
-      version: 'v0.9',
+      version: '1.0',
       action: {
         name: 'submit',
         surfaceId: 'github:s1',
@@ -51,19 +51,19 @@ describe('classifyTurn', () => {
     });
   });
   test('a press on the composition classifies as an operation; a malformed one is unknown (task-8.4 decision 14)', () => {
-    const data = {version: 'v0.9', operation: {kind: 'include', sources: ['calendar']}};
+    const data = {version: '1.0', operation: {kind: 'include', sources: ['calendar']}};
     expect(classifyTurn({...base, parts: [dataPart(data)]})).toEqual({
       kind: 'operation',
       operation: {kind: 'include', sources: ['calendar']},
     });
-    const malformed = {version: 'v0.9', operation: {kind: 'retry', sources: []}};
+    const malformed = {version: '1.0', operation: {kind: 'retry', sources: []}};
     expect(classifyTurn({...base, parts: [dataPart(malformed)]})).toEqual({
       kind: 'unknown',
     });
   });
   test('a VALIDATION_FAILED error part classifies as clientError', () => {
     const data = {
-      version: 'v0.9',
+      version: '1.0',
       error: {code: 'VALIDATION_FAILED', surfaceId: 'gmail:s2', path: '/x', message: 'bad'},
     };
     expect(classifyTurn({...base, parts: [dataPart(data)]})).toEqual({
@@ -74,7 +74,7 @@ describe('classifyTurn', () => {
   });
   test('a CATALOG_LOAD_FAILED error part classifies as clientError carrying the catalog', () => {
     const data = {
-      version: 'v0.9',
+      version: '1.0',
       error: {
         code: 'CATALOG_LOAD_FAILED',
         surfaceId: 'gmail:s2',
@@ -100,7 +100,7 @@ describe('classifyTurn', () => {
 describe('unnamespaceAction', () => {
   test('rewrites only the action surfaceId', () => {
     const data = {
-      version: 'v0.9',
+      version: '1.0',
       action: {
         name: 'submit',
         surfaceId: 'github:s1',
@@ -117,9 +117,9 @@ describe('unnamespaceAction', () => {
 
 describe('partition filter', () => {
   const metadata = {
-    a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat']}},
-    a2uiClientDataModel: {
-      version: 'v0.9',
+    a2uiRendererCapabilities: {'1.0': {supportedCatalogIds: ['cat']}},
+    a2uiRendererDataModel: {
+      version: '1.0',
       surfaces: {
         'github:s1': {a: 1},
         'gmail:s2': {b: 2},
@@ -130,21 +130,21 @@ describe('partition filter', () => {
   };
 
   test('keeps only the owner surfaces, keys un-namespaced', () => {
-    expect(filterClientDataModel(metadata, 'github')).toEqual({
-      version: 'v0.9',
+    expect(filterRendererDataModel(metadata, 'github')).toEqual({
+      version: '1.0',
       surfaces: {s1: {a: 1}},
     });
   });
 
   test('empty partition filters to undefined', () => {
-    expect(filterClientDataModel(metadata, 'calendar')).toBeUndefined();
-    expect(filterClientDataModel(undefined, 'github')).toBeUndefined();
+    expect(filterRendererDataModel(metadata, 'calendar')).toBeUndefined();
+    expect(filterRendererDataModel(undefined, 'github')).toBeUndefined();
   });
 
   test('vendorMetadata carries the filtered model alone: the client’s capabilities never reach a vendor (task-11.4 decision 12)', () => {
     const out = vendorMetadata(metadata, 'gmail');
     expect(out).toEqual({
-      a2uiClientDataModel: {version: 'v0.9', surfaces: {s2: {b: 2}}},
+      a2uiRendererDataModel: {version: '1.0', surfaces: {s2: {b: 2}}},
     });
   });
 

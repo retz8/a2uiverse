@@ -43,7 +43,7 @@
       "streaming": true,
       "extensions": [
         {
-          "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+          "uri": "https://a2ui.org/a2a-extension/a2ui/v1.0",
           "params": {
             "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
           },
@@ -107,7 +107,7 @@
     "url": "http://127.0.0.1:18741/",
     "headers": {
       "a2a-version": "0.3",
-      "x-a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+      "x-a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v1.0",
       "accept": "text/event-stream",
       "content-type": "application/json"
     },
@@ -118,7 +118,7 @@
       "params": {
         "message": {
           "kind": "message",
-          "messageId": "022fa765-a324-4677-b39b-6d9f5a89018e",
+          "messageId": "54f7d885-720d-4b05-8928-f6e39cd59325",
           "role": "user",
           "parts": [
             {
@@ -127,11 +127,8 @@
             }
           ],
           "metadata": {
-            "a2uiClientCapabilities": {
-              "v0.9": {
-                "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
-              },
-              "v0.9.1": {
+            "a2uiRendererCapabilities": {
+              "1.0": {
                 "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
               }
             }
@@ -147,7 +144,7 @@
   "response": {
     "status": 200,
     "contentType": "text/event-stream",
-    "body": "data: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"18a136bc-f65f-4e15-abf0-9c6ede8350aa\",\"history\":[{\"contextId\":\"18a136bc-f65f-4e15-abf0-9c6ede8350aa\",\"kind\":\"message\",\"messageId\":\"022fa765-a324-4677-b39b-6d9f5a89018e\",\"metadata\":{\"a2uiClientCapabilities\":{\"v0.9\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]},\"v0.9.1\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]}}},\"parts\":[{\"kind\":\"text\",\"text\":\"one\"}],\"role\":\"user\",\"taskId\":\"00cd67c3-1926-409e-8744-921e945c1962\"}],\"id\":\"00cd67c3-1926-409e-8744-921e945c1962\",\"kind\":\"task\",\"status\":{\"state\":\"submitted\"}}}\r\n\r\ndata: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"18a136bc-f65f-4e15-abf0-9c6ede8350aa\",\"final\":true,\"kind\":\"status-update\",\"status\":{\"message\":{\"contextId\":\"18a136bc-f65f-4e15-abf0-9c6ede8350aa\",\"kind\":\"message\",\"messageId\":\"712b2e91-b331-45f0-b71b-eedc237db09a\",\"parts\":[{\"data\":{\"createSurface\":{\"surfaceId\":\"s1\",\"catalogId\":\"https://example.com/catalogs/fake/v1/catalog.json\"},\"version\":\"v0.9\"},\"kind\":\"data\",\"metadata\":{\"mimeType\":\"application/a2ui+json\"}},{\"data\":{\"version\":\"v0.9\",\"updateComponents\":{\"surfaceId\":\"s1\",\"components\":[{\"id\":\"root\",\"text\":\"hi\",\"component\":\"Text\"}]}},\"kind\":\"data\",\"metadata\":{\"mimeType\":\"application/a2ui+json\"}}],\"role\":\"agent\",\"taskId\":\"00cd67c3-1926-409e-8744-921e945c1962\"},\"state\":\"completed\",\"timestamp\":\"2026-11-14T00:24:01.763886Z\"},\"taskId\":\"00cd67c3-1926-409e-8744-921e945c1962\"}}\r\n\r\n",
+    "body": "data: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"df647fc4-4bff-4ade-8e2b-4fd0fd2a4ad2\",\"history\":[{\"contextId\":\"df647fc4-4bff-4ade-8e2b-4fd0fd2a4ad2\",\"kind\":\"message\",\"messageId\":\"54f7d885-720d-4b05-8928-f6e39cd59325\",\"metadata\":{\"a2uiRendererCapabilities\":{\"1.0\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]}}},\"parts\":[{\"kind\":\"text\",\"text\":\"one\"}],\"role\":\"user\",\"taskId\":\"444f4e42-b03f-47aa-b9d5-120fd661ce49\"}],\"id\":\"444f4e42-b03f-47aa-b9d5-120fd661ce49\",\"kind\":\"task\",\"status\":{\"state\":\"submitted\"}}}\r\n\r\ndata: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"df647fc4-4bff-4ade-8e2b-4fd0fd2a4ad2\",\"final\":true,\"kind\":\"status-update\",\"status\":{\"message\":{\"contextId\":\"df647fc4-4bff-4ade-8e2b-4fd0fd2a4ad2\",\"kind\":\"message\",\"messageId\":\"9fa505eb-70f1-4211-8d70-c9adc60e4cca\",\"parts\":[{\"data\":{\"version\":\"1.0\",\"createSurface\":{\"surfaceId\":\"s1\",\"catalogId\":\"https://example.com/catalogs/fake/v1/catalog.json\"}},\"kind\":\"data\",\"metadata\":{\"mimeType\":\"application/a2ui+json\"}},{\"data\":{\"version\":\"1.0\",\"updateComponents\":{\"components\":[{\"component\":\"Text\",\"text\":\"hi\",\"id\":\"root\"}],\"surfaceId\":\"s1\"}},\"kind\":\"data\",\"metadata\":{\"mimeType\":\"application/a2ui+json\"}}],\"role\":\"agent\",\"taskId\":\"444f4e42-b03f-47aa-b9d5-120fd661ce49\"},\"state\":\"completed\",\"timestamp\":\"2026-11-28T07:52:55.270419Z\"},\"taskId\":\"444f4e42-b03f-47aa-b9d5-120fd661ce49\"}}\r\n\r\n",
     "closedByAgent": true
   }
 }

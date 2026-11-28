@@ -5,7 +5,7 @@
  * the AI SDK's mock model.
  */
 import type {AgentCard as LegacyCard} from '@a2a-js/sdk-v0_3';
-import {createA2uiValidator} from '@a2uiverse/sdk';
+import {createTreeCheck} from '../src/authoring/treeCheck.js';
 import {LAYOUT_SURFACE_KEEP_SET} from '@a2uiverse/shell-catalog/schema';
 import {MockLanguageModelV3} from 'ai/test';
 import {describe, expect, test, vi} from 'vitest';
@@ -75,7 +75,7 @@ const shortlist = [
 ];
 
 const files = readPlannerFiles();
-const tree = createA2uiValidator({catalog: files.catalog});
+const tree = createTreeCheck(files.catalog, 'main');
 
 const good: LayoutSurface = {
   dispatch: [
@@ -85,7 +85,7 @@ const good: LayoutSurface = {
   tree: {
     components: [
       {id: 'root', component: 'Column', children: ['heading', 'sources']},
-      {id: 'heading', component: 'Text', variant: 'h3', text: 'Catching you up'},
+      {id: 'heading', component: 'Text', text: '### Catching you up'},
       {id: 'sources', component: 'Row', children: ['gh', 'gm']},
       {id: 'gh', component: 'Slot', source: 'github'},
       {id: 'gm', component: 'Slot', source: 'gmail'},
@@ -245,8 +245,8 @@ describe('the Planner’s files and prompt', () => {
       return action?.functionCall ? [action.functionCall] : [];
     });
     expect(calls).toEqual([
-      {call: 'openAppLibrary', args: {}},
-      {call: 'openAppLibrary', args: {app: 'linear'}},
+      {'@call': 'openAppLibrary', args: {}},
+      {'@call': 'openAppLibrary', args: {app: 'linear'}},
     ]);
     expect(JSON.stringify(example.output)).toContain('checked 12 minutes ago');
     // Every state woven into the sentence, none quoted after a colon (task-14.11 decision 41).
@@ -331,7 +331,7 @@ describe('the Planner’s files and prompt', () => {
     expect(turn).toContain("The platform's card");
     expect(turn.indexOf("The platform's card")).toBeGreaterThan(turn.indexOf('appId: gmail'));
     expect(turn).toContain(`<${LAYOUT_SURFACE_TAG}>`);
-    expect(turn).not.toContain('slot-');
+    expect(turn).not.toContain('slot_');
   });
 
   test('each agent carries its sources: an account by its label, the next sign-in’s as not signed in yet (task-12.6 decision 1)', () => {
@@ -920,7 +920,7 @@ describe('ModelPlanner — the answer followed as it is written (task 17.9)', ()
       tree: {
         components: [
           good.tree.components[0]!,
-          {id: 'heading', component: 'Text', variant: 'h3', text: 'Hi', colour: 'red'},
+          {id: 'heading', component: 'Text', text: '### Hi', colour: 'red'},
           ...good.tree.components.slice(2, 4),
         ],
       },

@@ -15,7 +15,7 @@ describe('describe', () => {
 
   test('surface action: rendered sentence naming action, surface, app, plus the payload', () => {
     const action = {name: 'approve', surfaceId: 'pr-1', context: {prNumber: 42}};
-    const out = describeMessage(msg([dataPart({version: 'v0.9', action})]), 'github');
+    const out = describeMessage(msg([dataPart({version: '1.0', action})]), 'github');
     expect(out).toEqual({
       kind: 'action',
       descriptor: 'approve on surface pr-1 in github',
@@ -25,7 +25,7 @@ describe('describe', () => {
 
   test('a press on the composition: its kind and sources, plus the press (task-8.4 decision 16)', () => {
     const press = (kind: string, sources: string[]) =>
-      describeMessage(msg([dataPart({version: 'v0.9', operation: {kind, sources}})]));
+      describeMessage(msg([dataPart({version: '1.0', operation: {kind, sources}})]));
     expect(press('retry', ['gmail'])).toEqual({
       kind: 'operation',
       descriptor: 'retry gmail',
@@ -38,7 +38,7 @@ describe('describe', () => {
       describeMessage(
         msg([
           dataPart({
-            version: 'v0.9',
+            version: '1.0',
             operation: {kind: 'step', sources: ['github'], step: 0},
           }),
         ]),
@@ -46,7 +46,7 @@ describe('describe', () => {
     ).toBe('step github to 0');
     // The gap a useApp fills (task-15.4 decision 15).
     const use = {kind: 'useApp', sources: ['shop-b'], gap: 'camera prices'};
-    expect(describeMessage(msg([dataPart({version: 'v0.9', operation: use})]))).toEqual({
+    expect(describeMessage(msg([dataPart({version: '1.0', operation: use})]))).toEqual({
       kind: 'operation',
       descriptor: "useApp shop-b on gap 'camera prices'",
       payload: use,

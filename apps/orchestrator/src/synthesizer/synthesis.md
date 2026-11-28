@@ -162,10 +162,11 @@ time in one form.
 
 `tree.components` is the list of components a surface is painted from, in the catalog you were
 given: the same components list an agent puts in an `updateComponents`. One component has the id
-`root`; parents come before their children; every id a parent names is declared.
+`root`; parents come before their children; every id a parent names is declared. An id is
+letters, digits and underscores, starting with a letter: `row_name`, never `row-name`.
 
-- A component binds to your model with `{"path": …}`: an absolute pointer from the model's root, or,
-  inside a template, a pointer relative to the element.
+- A component binds to your model with `{"@path": …}`: an absolute pointer from the model's root,
+  or, inside a template, a pointer relative to the element. A template's own `path` is plain.
 - **The derived-value rule.** A path whose leaf is a formula renders only through the catalog's
   derived-value component — the UI guidance names it. No other component may bind to a formula path.
   Binding to a branch is how a list templates over an array; binding a text component to a formula

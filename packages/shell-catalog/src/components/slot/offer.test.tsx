@@ -329,6 +329,18 @@ test.each([
     {name: 'Install', enabled: false},
   ],
   [
+    'older',
+    'Shop B can’t be installed.',
+    'It’s built in an older format A2UIVerse no longer supports, so nothing was installed.',
+    {name: 'Install', enabled: false},
+  ],
+  [
+    'newer',
+    'Shop B can’t be installed.',
+    'It’s built in a newer format than this A2UIVerse supports, so nothing was installed.',
+    {name: 'Install', enabled: false},
+  ],
+  [
     'checks',
     'Shop B can’t be installed.',
     'Its files didn’t pass the checks on this computer, so nothing changed.',
@@ -382,6 +394,8 @@ test('every refusal the Store words has its row’s line', () => {
     'app-unreached',
     'no-interface',
     'unconfirmed',
+    'older',
+    'newer',
     'checks',
     'store-unreached',
     'unheard',

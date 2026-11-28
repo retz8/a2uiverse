@@ -62,9 +62,9 @@ URLS = {'JSONRPC': f'{base}/', 'HTTP+JSON': f'{base}/rest', 'GRPC': f'127.0.0.1:
 
 CATALOG = 'https://example.com/catalogs/fake/v1/catalog.json'
 A2UI = 'application/a2ui+json'
-CREATE = {'version': 'v0.9', 'createSurface': {'surfaceId': 's1', 'catalogId': CATALOG}}
+CREATE = {'version': '1.0', 'createSurface': {'surfaceId': 's1', 'catalogId': CATALOG}}
 UPDATE = {
-    'version': 'v0.9',
+    'version': '1.0',
     'updateComponents': {
         'surfaceId': 's1',
         'components': [{'id': 'root', 'component': 'Text', 'text': 'hi'}],
@@ -148,7 +148,7 @@ card = AgentCard(
     capabilities=AgentCapabilities(
         streaming=True,
         extensions=[
-            AgentExtension(uri='https://a2ui.org/a2a-extension/a2ui/v0.9.1', params=params)
+            AgentExtension(uri='https://a2ui.org/a2a-extension/a2ui/v1.0', params=params)
         ],
     ),
     security_schemes={

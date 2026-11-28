@@ -11,16 +11,23 @@ export interface PressWait {
  */
 export class Presses {
   readonly #inFlight = new Map<string, number>();
+  /**
+   * A renderer function's answer on its way to its agent (task-21.13 decision 9): in flight for
+   * the merge, as a press is, and never a press the one-at-a-time rule refuses another for.
+   */
+  readonly #answering = new Map<string, number>();
   readonly #listeners = new Set<(source: string) => void>();
 
-  begin(source: string): void {
-    this.#inFlight.set(source, (this.#inFlight.get(source) ?? 0) + 1);
+  begin(source: string, kind: 'press' | 'answer' = 'press'): void {
+    const counts = kind === 'press' ? this.#inFlight : this.#answering;
+    counts.set(source, (counts.get(source) ?? 0) + 1);
   }
 
-  end(source: string): void {
-    const left = (this.#inFlight.get(source) ?? 1) - 1;
-    if (left > 0) this.#inFlight.set(source, left);
-    else this.#inFlight.delete(source);
+  end(source: string, kind: 'press' | 'answer' = 'press'): void {
+    const counts = kind === 'press' ? this.#inFlight : this.#answering;
+    const left = (counts.get(source) ?? 1) - 1;
+    if (left > 0) counts.set(source, left);
+    else counts.delete(source);
     for (const listener of [...this.#listeners]) listener(source);
   }
 
@@ -29,9 +36,9 @@ export class Presses {
     return this.#inFlight.has(source);
   }
 
-  /** The sources among `sources` with a press in flight. */
+  /** The sources among `sources` with a press or a function's answer in flight. */
   pressing(sources: ReadonlySet<string>): string[] {
-    return [...sources].filter(source => this.#inFlight.has(source));
+    return [...sources].filter(source => this.#inFlight.has(source) || this.#answering.has(source));
   }
 
   /** Calls `listener` each time a press ends; returns the unsubscribe. */

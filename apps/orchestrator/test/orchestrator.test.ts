@@ -59,8 +59,7 @@ import type {
   SynthesisModel,
 } from '../src/synthesizer/synthesizer.js';
 import {
-  A2UI_EXTENSION_URIS,
-  A2UI_VERSIONS,
+  A2UI_EXTENSION_URI,
   BASIC_CATALOG_ID,
   canvasParentMetadata,
   clientSessionMetadata,
@@ -80,6 +79,7 @@ import {
   type Message as VendorMessage,
   type Script,
 } from './fakeVendor.js';
+import type {Part as VendorPart} from '@a2a-js/sdk-v0_3';
 import {fixtureArtifact} from './registryFixture.js';
 import type {FaultMap} from '../src/agentsPool/faults.js';
 import {withGuidance} from '../src/agentsPool/credentialBar.js';
@@ -211,7 +211,7 @@ function utterance(text: string, contextId?: string, parent?: string): Message {
   return clientMessage([textPart(text)], {
     ...(contextId ? {contextId} : {}),
     metadata: {
-      a2uiClientDataModel: {version: 'v0.9', surfaces: {}},
+      a2uiRendererDataModel: {version: '1.0', surfaces: {}},
       ...(parent ? canvasParentMetadata(parent) : {}),
     },
   });
@@ -309,9 +309,7 @@ describe('orchestrator', () => {
     const {client, url} = await boot();
     const card = await client.getAgentCard();
     expect(card.supportedInterfaces.map(i => i.url)).toEqual([url]);
-    expect(card.capabilities?.extensions.map(e => e.uri)).toEqual(
-      A2UI_VERSIONS.map(v => A2UI_EXTENSION_URIS[v]),
-    );
+    expect(card.capabilities?.extensions.map(e => e.uri)).toEqual([A2UI_EXTENSION_URI]);
     expect(card.skills.map(s => s.id)).toEqual([
       'palette',
       'platform',
@@ -442,15 +440,15 @@ describe('orchestrator', () => {
     ).components;
     for (const appId of APPS) {
       expect(painted).toContainEqual({
-        id: `attribution-slot-${appId}`,
+        id: `attribution_slot_${appId}`,
         component: 'Attribution',
         displayName: expect.any(String),
         source: appId,
-        child: `slot-${appId}`,
+        child: `slot_${appId}`,
       });
     }
     expect(painted.find(c => c.id === 'root')!.children).toEqual(
-      APPS.map(appId => `attribution-slot-${appId}`),
+      APPS.map(appId => `attribution_slot_${appId}`),
     );
 
     // Every fragment event carries source + role, no slot, and namespaced surfaceIds.
@@ -564,7 +562,7 @@ describe('orchestrator', () => {
     const action: Message = clientMessage(
       [
         dataPart({
-          version: 'v0.9',
+          version: '1.0',
           action: {
             name: 'approve',
             surfaceId: 'github:s1',
@@ -577,8 +575,8 @@ describe('orchestrator', () => {
       {
         contextId: contextIdOf(first),
         metadata: {
-          a2uiClientDataModel: {
-            version: 'v0.9',
+          a2uiRendererDataModel: {
+            version: '1.0',
             surfaces: {'github:s1': {a: 1}, 'gmail:s1': {b: 2}},
           },
         },
@@ -601,7 +599,7 @@ describe('orchestrator', () => {
       {
         kind: 'data',
         data: {
-          version: 'v0.9',
+          version: '1.0',
           action: {
             name: 'approve',
             surfaceId: 's1',
@@ -613,10 +611,16 @@ describe('orchestrator', () => {
         metadata: {mimeType: 'application/a2ui+json'},
       },
     ]);
-    expect(wire.metadata?.a2uiClientDataModel).toEqual({
-      version: 'v0.9',
+    expect(wire.metadata?.a2uiRendererDataModel).toEqual({
+      version: '1.0',
       surfaces: {s1: {a: 1}},
     });
+    // A press carries the capabilities under 1.0 and asks for the one v1.0 extension, as the
+    // plan's request does (task-21.13 decision 2).
+    expect(wire.metadata?.a2uiRendererCapabilities).toEqual({
+      '1.0': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
+    });
+    expect(vendors.github!.requests.at(-1)!.extensionsHeader).toBe(A2UI_EXTENSION_URI);
 
     // The vendor's response comes back namespaced under its own surface.
     const created = events.flatMap(e =>
@@ -635,7 +639,7 @@ describe('orchestrator', () => {
     const action: Message = clientMessage(
       [
         dataPart({
-          version: 'v0.9',
+          version: '1.0',
           action: {
             name: 'openStore',
             surfaceId: 'shell:main',
@@ -668,7 +672,7 @@ describe('orchestrator', () => {
     const action: Message = clientMessage(
       [
         dataPart({
-          version: 'v0.9',
+          version: '1.0',
           action: {
             name: 'installApp',
             surfaceId: 'shell:main',
@@ -693,7 +697,7 @@ describe('orchestrator', () => {
     const error: Message = clientMessage(
       [
         dataPart({
-          version: 'v0.9',
+          version: '1.0',
           error: {code: 'VALIDATION_FAILED', surfaceId: 'gmail:s1', path: '/x', message: 'bad'},
         }),
       ],
@@ -720,7 +724,7 @@ describe('orchestrator', () => {
     const error: Message = clientMessage(
       [
         dataPart({
-          version: 'v0.9',
+          version: '1.0',
           error: {
             code: 'CATALOG_LOAD_FAILED',
             surfaceId: 'gmail:s1',
@@ -802,7 +806,7 @@ describe('orchestrator', () => {
       tree: {
         components: [
           {id: 'root', component: 'Column', children: ['line']},
-          {id: 'line', component: 'Text', text: {path: '/answer'}},
+          {id: 'line', component: 'Text', text: {'@path': '/answer'}},
         ],
       },
       dataModel: {answer: 'Three apps are installed.'},
@@ -844,8 +848,8 @@ describe('orchestrator', () => {
       }
     ).components;
     expect(components).toEqual([
-      {id: 'root', component: 'Column', children: ['gap-0']},
-      {id: 'gap-0', component: 'Slot', gap: 'flight booking', offer: {apps: [], none: 'nothing'}},
+      {id: 'root', component: 'Column', children: ['gap_0']},
+      {id: 'gap_0', component: 'Slot', gap: 'flight booking', offer: {apps: [], none: 'nothing'}},
     ]);
     expect(stateOf(events.at(-1)!)).toBe(TaskState.TASK_STATE_COMPLETED);
   });
@@ -898,7 +902,7 @@ function shopScript(items: unknown[], onAction?: (n: number) => Record<string, u
   return ({ctx, vendorContextId, firstTurn}) => {
     const part = (op: Record<string, unknown>) => ({
       kind: 'data' as const,
-      data: {version: 'v0.9', ...op},
+      data: {version: '1.0', ...op},
     });
     const parts = firstTurn
       ? [
@@ -956,11 +960,11 @@ function actionOn(surfaceId: string, contextId: string): Message {
   return clientMessage(
     [
       dataPart({
-        version: 'v0.9',
+        version: '1.0',
         action: {name: 'sort', surfaceId, sourceComponentId: 'btn', timestamp: 't', context: {}},
       }),
     ],
-    {contextId, metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}}},
+    {contextId, metadata: {a2uiRendererDataModel: {version: '1.0', surfaces: {}}}},
   );
 }
 
@@ -1752,7 +1756,7 @@ describe('late arrival and failure (task 8.3)', () => {
       clientMessage(
         [
           dataPart({
-            version: 'v0.9',
+            version: '1.0',
             error: {code: 'VALIDATION_FAILED', surfaceId, path: '/', message: 'bad'},
           }),
         ],
@@ -1786,12 +1790,12 @@ describe('late arrival and failure (task 8.3)', () => {
             parts: [
               {
                 kind: 'data',
-                data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: 'cat'}},
+                data: {version: '1.0', createSurface: {surfaceId: 's1', catalogId: 'cat'}},
               },
               {
                 kind: 'data',
                 data: {
-                  version: 'v0.9',
+                  version: '1.0',
                   updateComponents: {
                     surfaceId: 's1',
                     components: [{id: 'root', component: 'Text', text: 'Pay'}],
@@ -2091,7 +2095,7 @@ describe('quiescence (task 8.10)', () => {
       clientMessage(
         [
           dataPart({
-            version: 'v0.9',
+            version: '1.0',
             error: {code: 'VALIDATION_FAILED', surfaceId: 'gmail:s1', path: '/', message: 'bad'},
           }),
         ],
@@ -2164,7 +2168,7 @@ function press(
   sources: string[],
   contextId: string,
 ): Message {
-  return clientMessage([dataPart(operationData({kind, sources}, 'v0.9'))], {contextId});
+  return clientMessage([dataPart(operationData({kind, sources}, '1.0'))], {contextId});
 }
 
 /** The script answering as on a first turn: a vendor answering a new task paints anew. */
@@ -2843,7 +2847,7 @@ function drillScript(items: unknown[]): Script {
     const surfaceId = `s${++paints}`;
     const part = (op: Record<string, unknown>) => ({
       kind: 'data' as const,
-      data: {version: 'v0.9', ...op},
+      data: {version: '1.0', ...op},
     });
     return [
       {
@@ -2878,8 +2882,8 @@ function step(
   surfaces: Record<string, unknown>,
 ): Message {
   return clientMessage(
-    [dataPart(operationData({kind: 'step', sources: [source], step: index}, 'v0.9'))],
-    {contextId, metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces}}},
+    [dataPart(operationData({kind: 'step', sources: [source], step: index}, '1.0'))],
+    {contextId, metadata: {a2uiRendererDataModel: {version: '1.0', surfaces}}},
   );
 }
 
@@ -3304,7 +3308,7 @@ describe('the registry on the running orchestrator (task 11.4)', () => {
         parts: [
           {
             kind: 'data',
-            data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: 'urn:other'}},
+            data: {version: '1.0', createSurface: {surfaceId: 's1', catalogId: 'urn:other'}},
           },
         ],
         contextId: vendorContextId,
@@ -3315,12 +3319,11 @@ describe('the registry on the running orchestrator (task 11.4)', () => {
     const asked = utterance('my pull requests');
     asked.metadata = {
       ...asked.metadata,
-      a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['every', 'catalog']}},
+      a2uiRendererCapabilities: {'1.0': {supportedCatalogIds: ['every', 'catalog']}},
     };
     const events = await collect(client, asked);
-    expect(vendors.github!.requests[0]!.message.metadata?.a2uiClientCapabilities).toEqual({
-      'v0.9': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
-      'v0.9.1': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
+    expect(vendors.github!.requests[0]!.message.metadata?.a2uiRendererCapabilities).toEqual({
+      '1.0': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
     });
     expect(slotsOf(shellPaints(events).at(-1)!)['github']).toMatchObject({
       state: 'failed',
@@ -3549,7 +3552,7 @@ describe('the account choice (task 12.6)', () => {
 describe('the store loop (task 15.4)', () => {
   /** The press that fills a gap's slot with an app it offered, as the client sends it. */
   const useApp = (appId: string, gap: string, contextId: string): Message =>
-    clientMessage([dataPart(operationData({kind: 'useApp', sources: [appId], gap}, 'v0.9'))], {
+    clientMessage([dataPart(operationData({kind: 'useApp', sources: [appId], gap}, '1.0'))], {
       contextId,
     });
   const REQUEST = 'Show my calendar for today.';
@@ -3596,13 +3599,13 @@ describe('the store loop (task 15.4)', () => {
         .find(d => d.updateComponents)!.updateComponents as {
         components: Array<Record<string, unknown>>;
       }
-    ).components.find(c => c.id === 'gap-0')!;
+    ).components.find(c => c.id === 'gap_0')!;
 
   test('the offer is painted at first paint from this plan’s search; the offered app is not called (decision 8)', async () => {
     const {client} = await boot({planner: offering(REQUEST), installed: ['github', 'gmail']});
     const turn = await collect(client, utterance('what is on my calendar?'));
     expect(gapSlot(turn)).toEqual({
-      id: 'gap-0',
+      id: 'gap_0',
       component: 'Slot',
       gap: 'calendar',
       offer: {
@@ -3645,14 +3648,14 @@ describe('the store loop (task 15.4)', () => {
     ).components;
     // Until its first answer the slot keeps the offer it came from, its marker waiting (task-15.8
     // decision 2).
-    expect(components.find(c => c.id === 'attribution-gap-0')).toMatchObject({
+    expect(components.find(c => c.id === 'attribution_gap_0')).toMatchObject({
       component: 'Attribution',
       source: 'calendar',
-      child: 'gap-0',
+      child: 'gap_0',
       fromOffer: true,
     });
-    expect(components.find(c => c.id === 'gap-0')).toEqual({
-      id: 'gap-0',
+    expect(components.find(c => c.id === 'gap_0')).toEqual({
+      id: 'gap_0',
       component: 'Slot',
       source: 'calendar',
       state: 'pending',
@@ -3738,7 +3741,7 @@ describe('the store loop (task 15.4)', () => {
     expect(stateOf(finalOf(pressed))).toBe(TaskState.TASK_STATE_COMPLETED);
     expect(vendors.calendar!.requests).toHaveLength(0);
     expect(gapSlot(pressed)).toEqual({
-      id: 'gap-0',
+      id: 'gap_0',
       component: 'Slot',
       gap: 'calendar',
       installed: {appId: 'calendar', name: 'Google Calendar'},
@@ -3808,9 +3811,9 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
       .map(a2uiDatas);
     expect(paints.map(idsOf)).toEqual([
       ['root'],
-      ['root', 'attribution-slot-github', 'slot-github'],
-      ['root', 'attribution-slot-github', 'slot-github', 'attribution-slot-gmail', 'slot-gmail'],
-      ['root', 'attribution-slot-github', 'slot-github', 'attribution-slot-gmail', 'slot-gmail'],
+      ['root', 'attribution_slot_github', 'slot_github'],
+      ['root', 'attribution_slot_github', 'slot_github', 'attribution_slot_gmail', 'slot_gmail'],
+      ['root', 'attribution_slot_github', 'slot_github', 'attribution_slot_gmail', 'slot_gmail'],
     ]);
     expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);
     for (const paint of paints.slice(1)) expect(opsOf(paint)).toEqual(['updateComponents']);
@@ -3821,9 +3824,9 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
           components: Array<{id: string; children?: string[]}>;
         }
       ).components[0]!.children;
-    expect(root(paints[0]!)).toEqual(['slot-github', 'slot-gmail']);
-    expect(root(paints[1]!)).toEqual(['attribution-slot-github', 'slot-gmail']);
-    expect(root(paints[3]!)).toEqual(['attribution-slot-github', 'attribution-slot-gmail']);
+    expect(root(paints[0]!)).toEqual(['slot_github', 'slot_gmail']);
+    expect(root(paints[1]!)).toEqual(['attribution_slot_github', 'slot_gmail']);
+    expect(root(paints[3]!)).toEqual(['attribution_slot_github', 'attribution_slot_gmail']);
     // The title rides the create, ahead of it.
     const create = events.find(e => isShellPaint(e))!;
     const meta = partsOf(create)[0]!;
@@ -3851,7 +3854,7 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
     const paints = events.filter(isShellPaint).map(a2uiDatas);
     expect(opsOf(paints[0]!)).toEqual(['createSurface', 'updateComponents']);
     expect(paints[1]).toEqual([
-      {version: 'v0.9', updateDataModel: {surfaceId: 'shell:main', value: {greeting: 'Hello'}}},
+      {version: '1.0', updateDataModel: {surfaceId: 'shell:main', value: {greeting: 'Hello'}}},
     ]);
   });
 
@@ -3918,11 +3921,11 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
     const paints = events.filter(isShellPaint).map(a2uiDatas);
     expect(paints.slice(0, 2).map(idsOf)).toEqual([
       ['root'],
-      ['root', 'attribution-slot-github', 'slot-github'],
+      ['root', 'attribution_slot_github', 'slot_github'],
     ]);
     expect(opsOf(paints[2]!)).toEqual(['deleteSurface', 'createSurface', 'updateComponents']);
-    expect(paints[2]![0]).toEqual({version: 'v0.9', deleteSurface: {surfaceId: 'shell:main'}});
-    expect(idsOf(paints[2]!)).toEqual(['root', 'attribution-gh', 'gh', 'attribution-gm', 'gm']);
+    expect(paints[2]![0]).toEqual({version: '1.0', deleteSurface: {surfaceId: 'shell:main'}});
+    expect(idsOf(paints[2]!)).toEqual(['root', 'attribution_gh', 'gh', 'attribution_gm', 'gm']);
     // The swap carries the retry's title ahead of its create.
     const swap = events.filter(isShellPaint)[2]!;
     const parts = partsOf(swap);
@@ -3934,7 +3937,7 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
     const createAt = parts.findIndex(p => 'createSurface' in (dataOf(p) ?? {}));
     expect(meta).toBeGreaterThanOrEqual(0);
     expect(meta).toBeLessThan(createAt);
-    expect(paints.slice(3).flatMap(idsOf)).not.toContain('slot-github');
+    expect(paints.slice(3).flatMap(idsOf)).not.toContain('slot_github');
     expect(events.findIndex(isFragment)).toBeGreaterThan(events.indexOf(swap));
     expect(vendors.github!.requests).toHaveLength(1);
     expect(vendors.gmail!.requests).toHaveLength(1);
@@ -3966,7 +3969,7 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
     );
     expect(said).not.toContain('no Slot holds');
     const paints = events.filter(isShellPaint).map(a2uiDatas);
-    expect(paints.at(-1)).toEqual([{version: 'v0.9', deleteSurface: {surfaceId: 'shell:main'}}]);
+    expect(paints.at(-1)).toEqual([{version: '1.0', deleteSurface: {surfaceId: 'shell:main'}}]);
     expect(events.some(isFragment)).toBe(false);
     await until(() => vendors.github!.methods.includes('tasks/cancel'), 'GitHub cancelled');
     await until(() => vendors.gmail!.methods.includes('tasks/cancel'), 'Gmail cancelled');
@@ -4001,7 +4004,7 @@ describe('the Planner’s answer streamed (task 17.9)', () => {
       'A2UIVerse couldn’t answer that just now. Ask again in a moment.',
     ]);
     expect(events.filter(isShellPaint).map(a2uiDatas).at(-1)).toEqual([
-      {version: 'v0.9', deleteSurface: {surfaceId: 'shell:main'}},
+      {version: '1.0', deleteSurface: {surfaceId: 'shell:main'}},
     ]);
     await until(() => vendors.github!.methods.includes('tasks/cancel'), 'GitHub cancelled');
   });
@@ -4288,5 +4291,239 @@ describe('the synthesis fragment streamed (task 17.10)', () => {
     expect(payloadOf(paints[0]!)).not.toHaveProperty('partial');
     expect(synthesizer.calls[1]!.onText).toBeUndefined();
     expect(shellSlotOf(events)).toMatchObject({merged: ['github', 'gmail', 'calendar']});
+  });
+});
+
+describe('a renderer function call (task-21.13 decisions 8 to 10)', () => {
+  const CALL = {'@call': 'formatString', args: {value: 'x'}, catalogId: BASIC_CATALOG_ID};
+  const callOf = (functionCallId: string, surfaceId?: string) => ({
+    kind: 'data' as const,
+    data: {
+      version: '1.0',
+      callRendererFunction: {functionCallId, ...(surfaceId ? {surfaceId} : {}), callFunction: CALL},
+    },
+  });
+
+  /**
+   * A first turn that paints `s1`, calls a function and keeps its stream open until the answer's
+   * turn has arrived; the answer's turn records whether the first was still open, and replies.
+   */
+  function heldOpen(functionCallId: string, surfaceId?: string) {
+    const answered = gate();
+    const seen: {openWhenAnswered?: boolean} = {};
+    let firstEnded = false;
+    const script: Script = async function* ({ctx, vendorContextId, firstTurn}) {
+      const status = (state: 'working' | 'completed', parts: VendorPart[] = []) => ({
+        kind: 'status-update' as const,
+        taskId: ctx.taskId,
+        contextId: vendorContextId,
+        final: state === 'completed',
+        status: {
+          state,
+          message: {
+            kind: 'message' as const,
+            messageId: crypto.randomUUID(),
+            role: 'agent' as const,
+            parts,
+            contextId: vendorContextId,
+            taskId: ctx.taskId,
+          },
+        },
+      });
+      if (firstTurn) {
+        yield status('working', [
+          {
+            kind: 'data',
+            data: {version: '1.0', createSurface: {surfaceId: 's1', catalogId: 'cat'}},
+          },
+          callOf(functionCallId, surfaceId),
+        ]);
+        await answered.opened;
+        firstEnded = true;
+        yield status('completed');
+        return;
+      }
+      seen.openWhenAnswered = !firstEnded;
+      answered.open();
+      yield status('completed', [
+        {kind: 'data', data: {version: '1.0', updateDataModel: {surfaceId: 's1', value: {}}}},
+      ]);
+    };
+    return {script, seen};
+  }
+
+  const callsIn = (events: AnyEvent[]) =>
+    events
+      .flatMap(a2uiDatas)
+      .flatMap(d => (d.callRendererFunction ? [d.callRendererFunction] : []));
+
+  const answerOf = (data: Record<string, unknown>, contextId: string) =>
+    clientMessage([dataPart({version: '1.0', ...data})], {
+      contextId,
+      metadata: {a2uiRendererDataModel: {version: '1.0', surfaces: {}}},
+    });
+
+  test('calls with a surface and without reach the client namespaced, two sources’ call_1 as two ids; the answer and an error reach each agent under its own id, in its own conversation, its stream still open', async () => {
+    const github = heldOpen('call_1', 's1');
+    const gmail = heldOpen('call_1');
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
+      scripts: {github: github.script, gmail: gmail.script},
+    });
+    const contextId = crypto.randomUUID();
+    const turn = streamOf(client, utterance('what time is it', contextId));
+    await until(() => callsIn(turn.events).length === 2, 'both calls relayed');
+    expect(callsIn(turn.events)).toEqual(
+      expect.arrayContaining([
+        {functionCallId: 'github:call_1', surfaceId: 'github:s1', callFunction: CALL},
+        {functionCallId: 'gmail:call_1', callFunction: CALL},
+      ]),
+    );
+
+    const answered = streamOf(
+      client,
+      answerOf(
+        {rendererFunctionResponse: {functionCallId: 'github:call_1', value: 'x'}},
+        contextId,
+      ),
+    );
+    const failed = streamOf(
+      client,
+      answerOf(
+        {error: {code: 'FUNCTION_FAILED', message: 'No.', functionCallId: 'gmail:call_1'}},
+        contextId,
+      ),
+    );
+    await Promise.all([answered.done, failed.done, turn.done]);
+    const [githubFirst, githubAnswer] = vendors.github!.requests;
+    expect(githubAnswer!.message.parts.map(p => (p as {data?: unknown}).data)).toEqual([
+      {version: '1.0', rendererFunctionResponse: {functionCallId: 'call_1', value: 'x'}},
+    ]);
+    expect(githubAnswer!.message.taskId).toBeUndefined();
+    expect(githubAnswer!.message.contextId).toBe(vendors.github!.contextIds[0]);
+    expect(githubFirst!.message.contextId).toBeUndefined();
+    expect(githubAnswer!.message.metadata?.a2uiRendererCapabilities).toEqual({
+      '1.0': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
+    });
+    const gmailAnswer = vendors.gmail!.requests[1]!;
+    expect(gmailAnswer.message.parts.map(p => (p as {data?: unknown}).data)).toEqual([
+      {version: '1.0', error: {code: 'FUNCTION_FAILED', message: 'No.', functionCallId: 'call_1'}},
+    ]);
+    expect(gmailAnswer.message.contextId).toBe(vendors.gmail!.contextIds[0]);
+    expect(github.seen.openWhenAnswered).toBe(true);
+    expect(gmail.seen.openWhenAnswered).toBe(true);
+    // What the agent replied is relayed as its fragment.
+    expect(answered.events.flatMap(a2uiDatas)).toEqual([
+      {version: '1.0', updateDataModel: {surfaceId: 'github:s1', value: {}}},
+    ]);
+  });
+
+  test('a merge that would read the source waits for the answer’s dispatch to settle', async () => {
+    const answer = gate();
+    const synthesizer = new FakeSynthesizer();
+    const calling: Script = async function* (s) {
+      for await (const event of shopScript(camerasA)(s)) {
+        const message = event.kind === 'status-update' ? event.status.message : undefined;
+        if (!s.firstTurn || !message) {
+          yield event;
+          continue;
+        }
+        yield {
+          ...event,
+          status: {
+            ...event.status,
+            message: {...message, parts: [...message.parts, callOf('call_1')]},
+          },
+        } as typeof event;
+      }
+    };
+    const {client} = await boot({
+      planner: new FakePlanner(() =>
+        layoutFor(['github', 'gmail', 'calendar'], {merged: 'Compare.'}),
+      ),
+      synthesizer,
+      scripts: {
+        github: pressHeld(answer.opened, calling),
+        gmail: shopScript(camerasB),
+        calendar: after(3_000, shopScript(camerasA)),
+      },
+      softDeadlineMs: 300,
+    });
+    const contextId = crypto.randomUUID();
+    const turn = streamOf(client, utterance('compare', contextId));
+    await until(
+      () => arrivedIn(turn.events, 'github') && arrivedIn(turn.events, 'gmail'),
+      'both arrived',
+    );
+    const answered = streamOf(
+      client,
+      answerOf(
+        {rendererFunctionResponse: {functionCallId: 'github:call_1', value: 'x'}},
+        contextId,
+      ),
+    );
+    await until(() => vendors.github!.requests.length === 2, 'the answer reached GitHub');
+    await wait(700);
+    expect(synthesizer.calls).toHaveLength(0);
+    answer.open();
+    await answered.done;
+    await turn.done;
+    expect(synthesizer.calls).toHaveLength(1);
+  });
+
+  test('an answer that cannot be delivered is journaled and draws nothing: the slot stays as it was', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github'])),
+      scripts: {
+        github: async function* (s) {
+          for await (const event of deterministicScript(s)) {
+            const message = event.kind === 'status-update' ? event.status.message : undefined;
+            yield message
+              ? ({
+                  ...event,
+                  status: {
+                    ...event.status,
+                    message: {...message, parts: [...message.parts, callOf('call_1')]},
+                  },
+                } as typeof event)
+              : event;
+          }
+        },
+      },
+    });
+    const contextId = crypto.randomUUID();
+    const events = await collect(client, utterance('my pull requests', contextId));
+    expect(callsIn(events)).toHaveLength(1);
+    await vendors.github!.close();
+    delete vendors.github;
+    const answered = await collect(
+      client,
+      answerOf(
+        {rendererFunctionResponse: {functionCallId: 'github:call_1', value: 'x'}},
+        contextId,
+      ),
+    );
+    expect(shellPaints(answered)).toEqual([]);
+    expect(answered.flatMap(a2uiDatas)).toEqual([]);
+    const lines = await journalLines(2);
+    const line = lines.find(l => l.turnId === taskIdOf(answered[0]!))!;
+    expect(line.dispatch).toEqual([
+      expect.objectContaining({source: 'github', outcome: 'failed', cause: 'unreachable'}),
+    ]);
+  });
+
+  test('a callAgentFunction from the client is journaled and not routed', async () => {
+    const {client} = await boot({planner: new FakePlanner(() => layoutFor(['github']))});
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('my pull requests', contextId));
+    const events = await collect(
+      client,
+      answerOf(
+        {callAgentFunction: {functionCallId: 'c1', callFunction: {'@call': 'x', args: {}}}},
+        contextId,
+      ),
+    );
+    expect(stateOf(events.at(-1)!)).toBe(TaskState.TASK_STATE_FAILED);
+    expect(vendors.github!.requests).toHaveLength(1);
   });
 });

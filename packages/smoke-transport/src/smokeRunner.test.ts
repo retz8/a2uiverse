@@ -8,7 +8,12 @@ import {randomUUID} from 'node:crypto';
 import {createServer, type Server} from 'node:http';
 import {afterEach, describe, expect, test, vi} from 'vitest';
 import {noInterfaceFinding, readCard, spokenInterfaces} from '@a2uiverse/card';
-import {A2UI_CLIENT_CAPABILITIES_KEY, clientCapabilities, readAuthRequired} from '@a2uiverse/sdk';
+import {
+  A2UI_EXTENSION_URI,
+  A2UI_RENDERER_CAPABILITIES_KEY,
+  readAuthRequired,
+  rendererCapabilities,
+} from '@a2uiverse/sdk';
 import {
   a2aSmokeRunner,
   SMOKE_CONNECT_TIMEOUT_MS,
@@ -113,14 +118,14 @@ const operationsOf = (messages: Record<string, unknown>[]) =>
 const SIGN_IN_READ = {securityRequirements: [{schemes: {signIn: {list: ['read']}}}]};
 
 /** The two A2UI messages of one paint, as `data` carries them. */
-const CREATE = {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: CATALOG_ID}};
+const CREATE = {version: '1.0', createSurface: {surfaceId: 's1', catalogId: CATALOG_ID}};
 const UPDATE = {
-  version: 'v0.9',
+  version: '1.0',
   updateComponents: {surfaceId: 's1', components: [{id: 'root', component: 'Text', text: 'hi'}]},
 };
 
 describe('a2aSmokeRunner, the request', () => {
-  test('one message in the words given, the entitlement as its client capabilities, the A2UI extensions asked for', async () => {
+  test('one message in the words given, the entitlement as its renderer capabilities under 1.0, the v1.0 extension asked for', async () => {
     const {card, requests} = await start();
     const seen = await run({
       card: served(card),
@@ -132,26 +137,11 @@ describe('a2aSmokeRunner, the request', () => {
     expect(requests).toHaveLength(1);
     const [request] = requests;
     expect(request.message.parts).toEqual([{kind: 'text', text: 'Hello!'}]);
-    expect(request.message.metadata?.[A2UI_CLIENT_CAPABILITIES_KEY]).toEqual(
-      clientCapabilities(ENTITLEMENT),
+    expect(request.message.metadata?.[A2UI_RENDERER_CAPABILITIES_KEY]).toEqual(
+      rendererCapabilities(ENTITLEMENT),
     );
-    expect(request.extensionsHeader).toContain('https://a2ui.org/a2a-extension/a2ui/v0.9.1');
+    expect(request.extensionsHeader).toBe(A2UI_EXTENSION_URI);
     expect(request.headers.authorization).toBeUndefined();
-  });
-
-  test('a map by version is advertised key by key, each version its own set (task-19.2 decision 6)', async () => {
-    const {card, requests} = await start();
-    const byVersion = {'v0.9': [ENTITLEMENT[0]], 'v0.9.1': ENTITLEMENT};
-    const seen = await run({
-      card: served(card),
-      entitlement: byVersion,
-      words: 'x',
-      timeoutMs: 5000,
-    });
-    expect(seen.kind).toBe('ended');
-    expect(requests[0].message.metadata?.[A2UI_CLIENT_CAPABILITIES_KEY]).toEqual(
-      clientCapabilities(byVersion),
-    );
   });
 
   test('the credential rides as the headers given, on the request to the agent', async () => {
@@ -355,7 +345,7 @@ describe('a2aSmokeRunner, an agent on A2A 1.0', () => {
     expect(fake.requests[0]!.message).toMatchObject({
       role: 'ROLE_USER',
       parts: [{text: 'Hello!'}],
-      metadata: {[A2UI_CLIENT_CAPABILITIES_KEY]: clientCapabilities(ENTITLEMENT)},
+      metadata: {[A2UI_RENDERER_CAPABILITIES_KEY]: rendererCapabilities(ENTITLEMENT)},
     });
     expect(fake.requests[0]!.headers['a2a-extensions']).toContain('a2ui');
   });

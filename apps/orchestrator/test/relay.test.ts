@@ -15,7 +15,7 @@ const ctx: RelayContext = {
   debugIds: false,
 };
 
-const parts: Part[] = [dataPart({version: 'v0.9', createSurface: {surfaceId: 's1'}})];
+const parts: Part[] = [dataPart({version: '1.0', createSurface: {surfaceId: 's1'}})];
 
 function vendorMessage(): Message {
   return {...agentMessage(parts, {contextId: 'v-ctx', taskId: 'v-task'}), messageId: 'm1'};
@@ -155,7 +155,7 @@ describe('prepareOutgoing', () => {
     ...userMessage([textPart('hi')], {
       contextId: 'o-ctx',
       taskId: 'o-task',
-      metadata: {a2uiClientDataModel: {v: 1}, unrelatedKey: {paintId: 3}},
+      metadata: {a2uiRendererDataModel: {v: 1}, unrelatedKey: {paintId: 3}},
     }),
     messageId: 'u1',
   };

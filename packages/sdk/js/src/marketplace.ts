@@ -611,8 +611,9 @@ export function updateWords(
  * Why an install was refused (task-14.7 decision 6), beside its findings: the Store behind the
  * app's live card, the app's card unreached, the app's card listing no interface the platform
  * speaks (task-20.3 decision 16), the app's card signed and not passing the check (task-20.7
- * decision 9), the checks failed, the Store unreached, or the app no longer in the Store
- * (task-15.11 decision 44). The trusted page words each and chooses its press from it;
+ * decision 9), the app's card declaring A2UI only at versions older than v1.0, or not v1.0 with a
+ * newer version among them (task-21.13 decision 12), the checks failed, the Store unreached, or
+ * the app no longer in the Store (task-15.11 decision 44). The trusted page words each and chooses its press from it;
  * the findings stay for the journal and the terminal.
  */
 export const INSTALL_REFUSALS = [
@@ -620,6 +621,8 @@ export const INSTALL_REFUSALS = [
   'app-unreached',
   'no-interface',
   'unconfirmed',
+  'older',
+  'newer',
   'checks',
   'store-unreached',
   'unheard',
@@ -670,6 +673,28 @@ export function refusalOf(cause: InstallRefusal, name: string, act: 'install' | 
           act === 'install'
             ? 'Its details couldn’t be confirmed, so nothing was installed.'
             : 'Its details couldn’t be confirmed, so nothing changed.',
+        press: 'none' as const,
+      };
+    // The app's card declares A2UI at older versions alone, or not v1.0 and a newer one among them
+    // (task-21.13 decision 12): nothing to try again; the words name no version.
+    case 'older':
+      return {
+        tone: 'bad' as const,
+        lead: `${name} can’t be ${verb}.`,
+        rest:
+          act === 'install'
+            ? 'It’s built in an older format A2UIVerse no longer supports, so nothing was installed.'
+            : 'It’s built in an older format A2UIVerse no longer supports, so nothing changed.',
+        press: 'none' as const,
+      };
+    case 'newer':
+      return {
+        tone: 'bad' as const,
+        lead: `${name} can’t be ${verb}.`,
+        rest:
+          act === 'install'
+            ? 'It’s built in a newer format than this A2UIVerse supports, so nothing was installed.'
+            : 'It’s built in a newer format than this A2UIVerse supports, so nothing changed.',
         press: 'none' as const,
       };
     case 'checks':

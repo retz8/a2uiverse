@@ -43,7 +43,7 @@
       "streaming": true,
       "extensions": [
         {
-          "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+          "uri": "https://a2ui.org/a2a-extension/a2ui/v1.0",
           "params": {
             "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
           },
@@ -107,7 +107,7 @@
     "url": "http://127.0.0.1:18741/",
     "headers": {
       "a2a-version": "1.0",
-      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v1.0",
       "accept": "text/event-stream",
       "content-type": "application/json"
     },
@@ -116,7 +116,7 @@
       "method": "SendStreamingMessage",
       "params": {
         "message": {
-          "messageId": "f8441f66-7c76-4db1-b7bf-1e8bc18f03c0",
+          "messageId": "048a20b3-75fa-4699-9507-bc76e26b75bd",
           "role": "ROLE_USER",
           "parts": [
             {
@@ -124,11 +124,8 @@
             }
           ],
           "metadata": {
-            "a2uiClientCapabilities": {
-              "v0.9": {
-                "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
-              },
-              "v0.9.1": {
+            "a2uiRendererCapabilities": {
+              "1.0": {
                 "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
               }
             }
@@ -142,7 +139,7 @@
   "response": {
     "status": 200,
     "contentType": "text/event-stream",
-    "body": "data: {\"result\": {\"task\": {\"id\": \"6d55ebe5-fe63-4e58-9f5b-bc95776f7efb\", \"contextId\": \"7daa196a-89c8-419d-bf22-833825b98a6f\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"f8441f66-7c76-4db1-b7bf-1e8bc18f03c0\", \"contextId\": \"7daa196a-89c8-419d-bf22-833825b98a6f\", \"taskId\": \"6d55ebe5-fe63-4e58-9f5b-bc95776f7efb\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"auth-1.0\"}], \"metadata\": {\"a2uiClientCapabilities\": {\"v0.9\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}, \"v0.9.1\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\ndata: {\"result\": {\"statusUpdate\": {\"taskId\": \"6d55ebe5-fe63-4e58-9f5b-bc95776f7efb\", \"contextId\": \"7daa196a-89c8-419d-bf22-833825b98a6f\", \"status\": {\"state\": \"TASK_STATE_AUTH_REQUIRED\", \"message\": {\"messageId\": \"18061b85-6aad-4849-9574-a8f5540473c0\", \"contextId\": \"7daa196a-89c8-419d-bf22-833825b98a6f\", \"taskId\": \"6d55ebe5-fe63-4e58-9f5b-bc95776f7efb\", \"role\": \"ROLE_AGENT\", \"parts\": [{\"text\": \"Please sign in.\"}, {\"data\": {\"securityRequirements\": [{\"schemes\": {\"signIn\": {\"list\": [\"things.write\"]}}}]}}]}, \"timestamp\": \"2026-11-14T00:23:58.046594Z\"}}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\n",
+    "body": "data: {\"result\": {\"task\": {\"id\": \"616d6a3e-bcfd-4427-ae0f-cd7c05ef093c\", \"contextId\": \"89fef284-969e-473c-8820-294fe355e149\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"048a20b3-75fa-4699-9507-bc76e26b75bd\", \"contextId\": \"89fef284-969e-473c-8820-294fe355e149\", \"taskId\": \"616d6a3e-bcfd-4427-ae0f-cd7c05ef093c\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"auth-1.0\"}], \"metadata\": {\"a2uiRendererCapabilities\": {\"1.0\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\ndata: {\"result\": {\"statusUpdate\": {\"taskId\": \"616d6a3e-bcfd-4427-ae0f-cd7c05ef093c\", \"contextId\": \"89fef284-969e-473c-8820-294fe355e149\", \"status\": {\"state\": \"TASK_STATE_AUTH_REQUIRED\", \"message\": {\"messageId\": \"238b6024-f15b-4c47-81ee-441d1ce1c583\", \"contextId\": \"89fef284-969e-473c-8820-294fe355e149\", \"taskId\": \"616d6a3e-bcfd-4427-ae0f-cd7c05ef093c\", \"role\": \"ROLE_AGENT\", \"parts\": [{\"text\": \"Please sign in.\"}, {\"data\": {\"securityRequirements\": [{\"schemes\": {\"signIn\": {\"list\": [\"things.write\"]}}}]}}]}, \"timestamp\": \"2026-11-28T07:52:51.586516Z\"}}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\n",
     "closedByAgent": true
   }
 }

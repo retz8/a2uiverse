@@ -160,17 +160,17 @@ And part of the tree that binds to it. It's ordinary A2UI: a `Table` repeats a `
 
 ```jsonc
 [
-  {"id": "issues-table", "component": "Table", "columns": ["Issue", "Priority", "Status", "Pull request", "CI", "Updated"],
-   "children": {"path": "/issues", "componentId": "issue-row"}},
-  {"id": "issue-row", "component": "TableRow", "children": ["cell-issue", "cell-priority", "cell-status", "cell-pr", "cell-ci", "cell-updated"]},
-  {"id": "cell-pr", "component": "DerivedValue", "cell": {"path": "pr"}, "format": {"kind": "number", "prefix": "#"}},
-  {"id": "cell-ci", "component": "DerivedValue", "cell": {"path": "ci"}, "danger": ["Failed"]},
-  {"id": "cell-updated", "component": "DerivedValue", "cell": {"path": "updated"}, "format": {"kind": "datetime"}}
+  {"id": "issues_table", "component": "Table", "columns": ["Issue", "Priority", "Status", "Pull request", "CI", "Updated"],
+   "children": {"path": "/issues", "componentId": "issue_row"}},
+  {"id": "issue_row", "component": "TableRow", "children": ["cell_issue", "cell_priority", "cell_status", "cell_pr", "cell_ci", "cell_updated"]},
+  {"id": "cell_pr", "component": "DerivedValue", "cell": {"@path": "pr"}, "format": {"kind": "number", "prefix": "#"}},
+  {"id": "cell_ci", "component": "DerivedValue", "cell": {"@path": "ci"}, "danger": ["Failed"]},
+  {"id": "cell_updated", "component": "DerivedValue", "cell": {"@path": "updated"}, "format": {"kind": "datetime"}}
   // …
 ]
 ```
 
-The props on the tree, like the `#` prefix or the `danger` words, are presentation, and they're the model's to write. A value from an app is never a literal in the tree; it always comes through a formula.
+It's written in A2UI v1.0's forms: a binding is `{"@path": …}`, a template's own `path` is plain, and every id is an identifier, letters, digits and underscores. The tree goes through the sdk's validator and its schema-form check, so a binding written `path`, a heading `variant` or an id like `issue-row` is a finding the one retry carries. The props on the tree, like the `#` prefix or the `danger` words, are presentation, and they're the model's to write. A value from an app is never a literal in the tree; it always comes through a formula.
 
 When the apps' data gives nothing to merge, the Synthesizer can **decline** instead: `{"declined": true, "reason": "…"}`. The reason is the one line on the screen written in a model's words.
 

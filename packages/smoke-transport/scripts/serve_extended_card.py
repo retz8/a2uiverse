@@ -76,7 +76,7 @@ base = f'http://127.0.0.1:{port}'
 URLS = {'JSONRPC': f'{base}/', 'HTTP+JSON': f'{base}/rest', 'GRPC': f'127.0.0.1:{grpc_port}'}
 
 KEY_HEADER = 'X-Scratch-Key'
-BASIC = 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json'
+BASIC = 'https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json'
 A2UI = 'application/a2ui+json'
 mode = {'alice': 'spoken'}
 
@@ -127,7 +127,7 @@ def card_with(interfaces: list[AgentInterface], skills: list[AgentSkill], name: 
             streaming=True,
             extended_agent_card=flagged,
             extensions=[
-                AgentExtension(uri='https://a2ui.org/a2a-extension/a2ui/v0.9.1', params=params)
+                AgentExtension(uri='https://a2ui.org/a2a-extension/a2ui/v1.0', params=params)
             ],
         ),
         security_schemes={
@@ -166,13 +166,13 @@ async def own_card(public: AgentCard, context: ServerCallContext) -> AgentCard:
 
 
 def paint(surface: str, title: str, lines: list[str]) -> list:
-    create = {'version': 'v0.9', 'createSurface': {'surfaceId': surface, 'catalogId': BASIC}}
+    create = {'version': '1.0', 'createSurface': {'surfaceId': surface, 'catalogId': BASIC}}
     components = [
         {'id': 'root', 'component': 'Column', 'children': ['title', *[f'l{i}' for i in range(len(lines))]]},
-        {'id': 'title', 'component': 'Text', 'text': title, 'variant': 'h3'},
+        {'id': 'title', 'component': 'Text', 'text': f'### {title}'},
         *[{'id': f'l{i}', 'component': 'Text', 'text': line} for i, line in enumerate(lines)],
     ]
-    update = {'version': 'v0.9', 'updateComponents': {'surfaceId': surface, 'components': components}}
+    update = {'version': '1.0', 'updateComponents': {'surfaceId': surface, 'components': components}}
     return [create, update]
 
 

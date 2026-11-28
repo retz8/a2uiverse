@@ -18,7 +18,7 @@
     "streaming": true,
     "extensions": [
       {
-        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v1.0",
         "params": {
           "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
         }
@@ -26,13 +26,6 @@
     ]
   },
   "securitySchemes": {
-    "key": {
-      "apiKeySecurityScheme": {
-        "description": "Paste your key",
-        "location": "header",
-        "name": "X-Api-Key"
-      }
-    },
     "signIn": {
       "oauth2SecurityScheme": {
         "flows": {
@@ -44,6 +37,13 @@
             }
           }
         }
+      }
+    },
+    "key": {
+      "apiKeySecurityScheme": {
+        "description": "Paste your key",
+        "location": "header",
+        "name": "X-Api-Key"
       }
     }
   },
@@ -70,7 +70,7 @@
   "signatures": [
     {
       "protected": "eyJhbGciOiJFZERTQSIsImprdSI6Imh0dHA6Ly8xMjcuMC4wLjE6MTg3MzEvLndlbGwta25vd24vandrcy5qc29uIiwia2lkIjoiZWQtMSIsInR5cCI6IkpPU0UifQ",
-      "signature": "MnDkhNONDXuxXzZayKKvDz2AlZseQTuiFaKAheXuFxxltOBUhO7TR6hMn4zpIs_1lo3wQz-5D2Zcm92m9_tuBQ"
+      "signature": "cdWpAwjyybmKRUJyaY_PIOYMAtTwD9dz4hwM5An-uQxMPx76-cZ2BcENt6Yq8IrILDwChqYT-nOrQQBEY5sGAg"
     }
   ]
 }

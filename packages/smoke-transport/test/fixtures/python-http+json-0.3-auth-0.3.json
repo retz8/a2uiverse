@@ -43,7 +43,7 @@
       "streaming": true,
       "extensions": [
         {
-          "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+          "uri": "https://a2ui.org/a2a-extension/a2ui/v1.0",
           "params": {
             "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
           },
@@ -107,13 +107,13 @@
     "url": "http://127.0.0.1:18741/rest/v1/message:stream",
     "headers": {
       "a2a-version": "0.3",
-      "x-a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+      "x-a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v1.0",
       "accept": "text/event-stream",
       "content-type": "application/json"
     },
     "body": {
       "message": {
-        "messageId": "f076bdd0-112a-4d78-b6de-3793c3ded619",
+        "messageId": "3e970616-ea24-4cd2-8d33-0df158265823",
         "role": "ROLE_USER",
         "content": [
           {
@@ -121,11 +121,8 @@
           }
         ],
         "metadata": {
-          "a2uiClientCapabilities": {
-            "v0.9": {
-              "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
-            },
-            "v0.9.1": {
+          "a2uiRendererCapabilities": {
+            "1.0": {
               "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
             }
           }
@@ -139,7 +136,7 @@
   "response": {
     "status": 200,
     "contentType": "text/event-stream",
-    "body": "data: {\"task\": {\"id\": \"183f50f8-4172-48c1-8fdb-5dd34c4b0536\", \"contextId\": \"73ae402c-db1a-4d28-b87a-ba114f723554\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"f076bdd0-112a-4d78-b6de-3793c3ded619\", \"contextId\": \"73ae402c-db1a-4d28-b87a-ba114f723554\", \"taskId\": \"183f50f8-4172-48c1-8fdb-5dd34c4b0536\", \"role\": \"ROLE_USER\", \"content\": [{\"text\": \"auth-0.3\"}], \"metadata\": {\"a2uiClientCapabilities\": {\"v0.9\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}, \"v0.9.1\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}\r\n\r\ndata: {\"statusUpdate\": {\"taskId\": \"183f50f8-4172-48c1-8fdb-5dd34c4b0536\", \"contextId\": \"73ae402c-db1a-4d28-b87a-ba114f723554\", \"status\": {\"state\": \"TASK_STATE_AUTH_REQUIRED\", \"message\": {\"messageId\": \"0e448e4f-64f4-421d-8d7d-2861ea417c66\", \"contextId\": \"73ae402c-db1a-4d28-b87a-ba114f723554\", \"taskId\": \"183f50f8-4172-48c1-8fdb-5dd34c4b0536\", \"role\": \"ROLE_AGENT\", \"content\": [{\"text\": \"Please sign in.\"}, {\"data\": {\"data\": {\"security\": [{\"signIn\": [\"things.write\"]}]}}}]}, \"timestamp\": \"2026-11-14T00:24:09.250288Z\"}}}\r\n\r\n",
+    "body": "data: {\"task\": {\"id\": \"fef107bb-ecb0-4a58-ab08-3d05b368947b\", \"contextId\": \"bedbf43e-305f-4992-9509-d2ad7ec1a248\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"3e970616-ea24-4cd2-8d33-0df158265823\", \"contextId\": \"bedbf43e-305f-4992-9509-d2ad7ec1a248\", \"taskId\": \"fef107bb-ecb0-4a58-ab08-3d05b368947b\", \"role\": \"ROLE_USER\", \"content\": [{\"text\": \"auth-0.3\"}], \"metadata\": {\"a2uiRendererCapabilities\": {\"1.0\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}\r\n\r\ndata: {\"statusUpdate\": {\"taskId\": \"fef107bb-ecb0-4a58-ab08-3d05b368947b\", \"contextId\": \"bedbf43e-305f-4992-9509-d2ad7ec1a248\", \"status\": {\"state\": \"TASK_STATE_AUTH_REQUIRED\", \"message\": {\"messageId\": \"6efd1ce5-2d32-4184-9a24-af03ebb74b00\", \"contextId\": \"bedbf43e-305f-4992-9509-d2ad7ec1a248\", \"taskId\": \"fef107bb-ecb0-4a58-ab08-3d05b368947b\", \"role\": \"ROLE_AGENT\", \"content\": [{\"text\": \"Please sign in.\"}, {\"data\": {\"data\": {\"security\": [{\"signIn\": [\"things.write\"]}]}}}]}, \"timestamp\": \"2026-11-28T07:53:02.802445Z\"}}}\r\n\r\n",
     "closedByAgent": true
   }
 }

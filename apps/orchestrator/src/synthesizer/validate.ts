@@ -1,6 +1,5 @@
 import {Ajv2020} from 'ajv/dist/2020.js';
 import {
-  formatA2uiFinding,
   isFormula,
   MATCH_KEY,
   parsePointer,
@@ -8,12 +7,11 @@ import {
   validateSynthesisPayload,
   walkModel,
   type A2uiComponent,
-  type A2uiFinding,
-  type A2uiValidator,
   type ModelNode,
   type Ref,
   type Resolution,
 } from '@a2uiverse/sdk';
+import type {TreeCheck} from '../authoring/treeCheck.js';
 import {
   isDecline,
   SYNTHESIZE_DATA_MODEL_SCHEMA,
@@ -38,7 +36,7 @@ import {runFact} from '../composition/relations.js';
  */
 export interface SynthesisChecks {
   /** The sdk's A2UI validator over the Synthesizer's pruned catalog. */
-  tree: A2uiValidator;
+  tree: TreeCheck;
   /** The pruned catalog's formula operators: what a cell of the derived model is written in. */
   operators: readonly string[];
   /** The pruned catalog's relations: what a match claim is written in, and nothing else. */
@@ -79,7 +77,7 @@ export function validateSynthesis(input: unknown, checks: SynthesisChecks): Synt
     dataModel: document.dataModel,
     sorts: document.sorts,
   });
-  const tree = treeErrors(document.tree, checks.tree);
+  const tree = checks.tree.tree(document.tree.components);
   // The checks that read the model's pointers run only over a structurally sound model; a faulty
   // sort declaration withholds none of them, so the one retry is handed every finding (task-7.13
   // decision 2).
@@ -102,8 +100,8 @@ export function validateSynthesis(input: unknown, checks: SynthesisChecks): Synt
 }
 
 /** The tree written, checked against the shell catalog before any row is (task-17.10 decision 1). */
-export function validateSynthesisTree(tree: SynthesisTree, validator: A2uiValidator): string[] {
-  return treeErrors(tree, validator);
+export function validateSynthesisTree(tree: SynthesisTree, check: TreeCheck): string[] {
+  return check.tree(tree.components);
 }
 
 /**
@@ -128,23 +126,6 @@ export function validateSynthesisPiece(partial: Synthesis, checks: SynthesisChec
     ...refErrors(partial, checks.partitions),
     ...holdErrors(partial, checks.partitions),
   ];
-}
-
-const TREE_SURFACE = 'synthesis';
-
-/** The tree as the surface it paints, through the A2UI validator; paths rebased onto `/tree`. */
-function treeErrors(tree: SynthesisTree, validator: A2uiValidator): string[] {
-  const findings = validator.validate([
-    {version: 'v0.9', createSurface: {surfaceId: TREE_SURFACE, catalogId: 'shell'}},
-    {version: 'v0.9', updateComponents: {surfaceId: TREE_SURFACE, components: tree.components}},
-  ]);
-  return findings.map((finding: A2uiFinding) => {
-    const components = '/1/updateComponents/components';
-    const path = finding.path?.startsWith(components)
-      ? `/tree/components${finding.path.slice(components.length)}`
-      : '/tree';
-    return formatA2uiFinding({...finding, path});
-  });
 }
 
 /**
@@ -250,7 +231,7 @@ function joinPath(context: string | undefined, path: string): string {
   return `${context ?? ''}/${path}`;
 }
 
-/** Every `{path}` binding among a component's props, with the prop it sits on. */
+/** Every `{"@path"}` binding among a component's props, with the prop it sits on. */
 function bindingsOf(component: TreeComponent): Array<{prop: string; path: string}> {
   const found: Array<{prop: string; path: string}> = [];
   const visit = (value: unknown, prop: string) => {
@@ -260,8 +241,9 @@ function bindingsOf(component: TreeComponent): Array<{prop: string; path: string
       return;
     }
     const record = value as Record<string, unknown>;
-    if (typeof record.path === 'string' && Object.keys(record).length === 1) {
-      found.push({prop, path: record.path});
+    const bound = record['@path'];
+    if (typeof bound === 'string' && Object.keys(record).length === 1) {
+      found.push({prop, path: bound});
       return;
     }
     for (const [key, child] of Object.entries(record)) visit(child, prop ? `${prop}/${key}` : key);
@@ -315,8 +297,8 @@ function derivedValueErrors(synthesis: Synthesis, options: {partial?: boolean} =
   for (const component of tree.components) {
     const ctx = contextOf(component.id);
     if (component.component === 'SortControl') {
-      const sort = component.sort as {path?: string} | undefined;
-      const match = /^\/sorts\/(\d+)$/.exec(sort?.path ?? '');
+      const sort = component.sort as {'@path'?: string} | undefined;
+      const match = /^\/sorts\/(\d+)$/.exec(sort?.['@path'] ?? '');
       if (!match || Number(match[1]) >= sorts.length) {
         errors.push(
           `/tree (${component.id}): SortControl must bind /sorts/N for a declared sort; ${sorts.length} declared`,

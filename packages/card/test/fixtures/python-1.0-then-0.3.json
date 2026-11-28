@@ -23,7 +23,7 @@
     "streaming": true,
     "extensions": [
       {
-        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v1.0",
         "params": {
           "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
         },
@@ -32,6 +32,17 @@
     ]
   },
   "securitySchemes": {
+    "key": {
+      "apiKeySecurityScheme": {
+        "description": "Paste your key",
+        "location": "header",
+        "name": "X-Api-Key"
+      },
+      "description": "Paste your key",
+      "in": "header",
+      "name": "X-Api-Key",
+      "type": "apiKey"
+    },
     "signIn": {
       "oauth2SecurityScheme": {
         "flows": {
@@ -54,17 +65,6 @@
         }
       },
       "type": "oauth2"
-    },
-    "key": {
-      "apiKeySecurityScheme": {
-        "description": "Paste your key",
-        "location": "header",
-        "name": "X-Api-Key"
-      },
-      "description": "Paste your key",
-      "in": "header",
-      "name": "X-Api-Key",
-      "type": "apiKey"
     }
   },
   "securityRequirements": [

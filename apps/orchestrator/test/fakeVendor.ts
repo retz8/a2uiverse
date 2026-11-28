@@ -70,7 +70,7 @@ export interface FakeVendorOptions {
   description?: string;
   skills?: AgentCard['skills'];
   /**
-   * The catalog ids its card declares under the A2UI v0.9.1 extension (task 11.4): `cat`, the
+   * The catalog ids its card declares under the A2UI v1.0 extension (task 11.4): `cat`, the
    * catalog the default script paints in, unless a test says otherwise; empty declares none.
    */
   catalogs?: string[];
@@ -82,11 +82,11 @@ export interface FakeVendorOptions {
 
 /** The catalog the default script paints in. */
 export const FAKE_CATALOG_ID = 'cat';
-const A2UI_V091_URI = 'https://a2ui.org/a2a-extension/a2ui/v0.9.1';
+const A2UI_V1_URI = 'https://a2ui.org/a2a-extension/a2ui/v1.0';
 
 export const A2UI_PART = {
   kind: 'data' as const,
-  data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: FAKE_CATALOG_ID}},
+  data: {version: '1.0', createSurface: {surfaceId: 's1', catalogId: FAKE_CATALOG_ID}},
 };
 
 /** Default script: mimics a2ui-github's deterministic agent. */
@@ -125,7 +125,7 @@ export const deterministicScript: Script = ({ctx, vendorContextId, firstTurn}) =
 export async function startFakeVendor(options: FakeVendorOptions = {}): Promise<FakeVendor> {
   const {
     streaming = true,
-    extensionUris = ['https://a2ui.org/a2a-extension/a2ui/v0.9'],
+    extensionUris = [A2UI_V1_URI],
     script = deterministicScript,
     catalogs = [FAKE_CATALOG_ID],
   } = options;
@@ -163,8 +163,8 @@ export async function startFakeVendor(options: FakeVendorOptions = {}): Promise<
     capabilities: {
       streaming,
       extensions: [
-        ...extensionUris.filter(uri => uri !== A2UI_V091_URI).map(uri => ({uri})),
-        {uri: A2UI_V091_URI, params: {supportedCatalogIds: catalogs}},
+        ...extensionUris.filter(uri => uri !== A2UI_V1_URI).map(uri => ({uri})),
+        {uri: A2UI_V1_URI, params: {supportedCatalogIds: catalogs}},
       ],
     },
     defaultInputModes: ['text'],

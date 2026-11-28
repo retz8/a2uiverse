@@ -43,7 +43,7 @@
       "streaming": true,
       "extensions": [
         {
-          "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+          "uri": "https://a2ui.org/a2a-extension/a2ui/v1.0",
           "params": {
             "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
           },
@@ -107,7 +107,7 @@
     "url": "http://127.0.0.1:18741/",
     "headers": {
       "a2a-version": "0.3",
-      "x-a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+      "x-a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v1.0",
       "accept": "text/event-stream",
       "content-type": "application/json"
     },
@@ -118,7 +118,7 @@
       "params": {
         "message": {
           "kind": "message",
-          "messageId": "784dd422-d1a9-424f-a72a-5320f45bf3f3",
+          "messageId": "3f911f6a-321b-4229-9b51-503c2cba2997",
           "role": "user",
           "parts": [
             {
@@ -127,11 +127,8 @@
             }
           ],
           "metadata": {
-            "a2uiClientCapabilities": {
-              "v0.9": {
-                "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
-              },
-              "v0.9.1": {
+            "a2uiRendererCapabilities": {
+              "1.0": {
                 "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
               }
             }
@@ -147,7 +144,7 @@
   "response": {
     "status": 200,
     "contentType": "text/event-stream",
-    "body": "data: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"5aa3e0e9-b031-4baf-b97a-dac7aca3faf0\",\"history\":[{\"contextId\":\"5aa3e0e9-b031-4baf-b97a-dac7aca3faf0\",\"kind\":\"message\",\"messageId\":\"784dd422-d1a9-424f-a72a-5320f45bf3f3\",\"metadata\":{\"a2uiClientCapabilities\":{\"v0.9\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]},\"v0.9.1\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]}}},\"parts\":[{\"kind\":\"text\",\"text\":\"auth-held\"}],\"role\":\"user\",\"taskId\":\"de9adeb2-f607-44ea-a93f-4c75c9dde9de\"}],\"id\":\"de9adeb2-f607-44ea-a93f-4c75c9dde9de\",\"kind\":\"task\",\"status\":{\"state\":\"submitted\"}}}\r\n\r\ndata: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"5aa3e0e9-b031-4baf-b97a-dac7aca3faf0\",\"final\":false,\"kind\":\"status-update\",\"status\":{\"message\":{\"contextId\":\"5aa3e0e9-b031-4baf-b97a-dac7aca3faf0\",\"kind\":\"message\",\"messageId\":\"49702cc0-21fd-4cef-8dbc-137d9fbcc7f5\",\"parts\":[{\"kind\":\"text\",\"text\":\"Please sign in.\"},{\"data\":{\"securityRequirements\":[{\"schemes\":{\"signIn\":{\"list\":[\"things.write\"]}}}]},\"kind\":\"data\"}],\"role\":\"agent\",\"taskId\":\"de9adeb2-f607-44ea-a93f-4c75c9dde9de\"},\"state\":\"auth-required\",\"timestamp\":\"2026-11-14T00:24:01.793401Z\"},\"taskId\":\"de9adeb2-f607-44ea-a93f-4c75c9dde9de\"}}\r\n\r\n",
+    "body": "data: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"ea579ca9-5999-4a6f-96bf-1e8ec8740e52\",\"history\":[{\"contextId\":\"ea579ca9-5999-4a6f-96bf-1e8ec8740e52\",\"kind\":\"message\",\"messageId\":\"3f911f6a-321b-4229-9b51-503c2cba2997\",\"metadata\":{\"a2uiRendererCapabilities\":{\"1.0\":{\"supportedCatalogIds\":[\"https://example.com/catalogs/fake/v1/catalog.json\"]}}},\"parts\":[{\"kind\":\"text\",\"text\":\"auth-held\"}],\"role\":\"user\",\"taskId\":\"123c6c23-6a5a-4c95-8e96-160dc0b23f79\"}],\"id\":\"123c6c23-6a5a-4c95-8e96-160dc0b23f79\",\"kind\":\"task\",\"status\":{\"state\":\"submitted\"}}}\r\n\r\ndata: {\"id\":1,\"jsonrpc\":\"2.0\",\"result\":{\"contextId\":\"ea579ca9-5999-4a6f-96bf-1e8ec8740e52\",\"final\":false,\"kind\":\"status-update\",\"status\":{\"message\":{\"contextId\":\"ea579ca9-5999-4a6f-96bf-1e8ec8740e52\",\"kind\":\"message\",\"messageId\":\"475a5d16-c612-4599-90bd-3afbc65c37e8\",\"parts\":[{\"kind\":\"text\",\"text\":\"Please sign in.\"},{\"data\":{\"securityRequirements\":[{\"schemes\":{\"signIn\":{\"list\":[\"things.write\"]}}}]},\"kind\":\"data\"}],\"role\":\"agent\",\"taskId\":\"123c6c23-6a5a-4c95-8e96-160dc0b23f79\"},\"state\":\"auth-required\",\"timestamp\":\"2026-11-28T07:52:55.293545Z\"},\"taskId\":\"123c6c23-6a5a-4c95-8e96-160dc0b23f79\"}}\r\n\r\n",
     "closedByAgent": false
   }
 }

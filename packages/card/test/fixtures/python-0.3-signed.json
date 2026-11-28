@@ -5,7 +5,7 @@
         "params": {
           "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
         },
-        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1"
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v1.0"
       }
     ],
     "streaming": true
@@ -24,7 +24,7 @@
   "signatures": [
     {
       "protected": "eyJhbGciOiJFUzI1NiIsImprdSI6Imh0dHA6Ly8xMjcuMC4wLjE6MTg3MzEvLndlbGwta25vd24vandrcy5qc29uIiwia2lkIjoiZXMtMSIsInR5cCI6IkpPU0UifQ",
-      "signature": "M1LX2lu9hb7QYbzfqwhtXiljfKycbYzbz9yPf6Fd5rbFUdc83DB9YiUr5WYo0ZvL8lJf1L3zUrGEbCh8ojaszg"
+      "signature": "fnzf57ctytG_PEV5OIHwjlkUhm8CjyA7zUfD7lkiW7kr92jt6IKzqWJvRNDBe62p-UaWsd1ZUjYBUl6I_tUfbw"
     }
   ],
   "skills": [

@@ -23,18 +23,21 @@ import {
 } from '@a2uiverse/smoke-transport';
 import type {FailureCause} from '@a2uiverse/shell-catalog/schema';
 import {
-  A2UI_CLIENT_CAPABILITIES_KEY,
-  A2UI_EXTENSION_URIS,
-  clientCapabilities,
-  describePaintOutside,
-  paintOutside,
+  A2UI_EXTENSION_URI,
+  A2UI_RENDERER_CAPABILITIES_KEY,
+  catalogsOutside,
+  describeCatalogOutside,
   parseSourceId,
+  readA2uiStamp,
   readAuthRequired,
+  readSupportedCatalogIds,
+  rendererCapabilities,
   type AuthRequired,
-  type CatalogIdsByVersion,
   type CredentialFinding,
+  type EntitlementRuleOptions,
+  type NamedCatalog,
+  type OtherA2uiVersions,
   withA2uiMessages,
-  type PaintOutside,
 } from '@a2uiverse/sdk';
 import {agentMessage, dataOf, textOf, textPart, valueOf, withData} from '../a2a/parts.js';
 import type {Registry} from '../registry/registry.js';
@@ -312,7 +315,8 @@ export class AgentsPool {
       return;
     }
     this.#sentTo.set(record, app);
-    let outside: CatalogOutside | undefined;
+    let outside: NamedCatalog | undefined;
+    let stamped: OtherStamp | undefined;
     let painted = false;
     let credentialRefused = false;
     try {
@@ -330,6 +334,16 @@ export class AgentsPool {
         const unconfirmed = this.#registry.unconfirmed(app.id);
         if (unconfirmed !== undefined) {
           finish('failed', {error: unconfirmed, cause: 'unconfirmed'});
+          return;
+        }
+        // A card that declares A2UI and not v1.0 (task-21.13 decision 7): the agent is not called,
+        // ahead of the update check and of any sign-in, the live card fetched again first.
+        const other = await this.#otherVersions(app.id);
+        if (other !== undefined) {
+          finish('failed', {
+            error: `the card declares A2UI ${other.versions.join(' and ')}, not v1.0`,
+            cause: other.allOlder ? 'older' : 'newer',
+          });
           return;
         }
         // Reachability, judged before the agent is called, ahead of the update check and of any
@@ -406,6 +420,12 @@ export class AgentsPool {
         const catalogs = this.#surfaceCatalogs(turn.clientContextId, source);
         const optionsFor = (catalogId: string | undefined) =>
           this.#registry.credentialOptions(app, catalogId);
+        // What the entitlement rule reads a bare `catalogId` by: a catalog's schema, and the default
+        // of a surface created in an earlier event, from the hub's own record (decision 4).
+        const rule: EntitlementRuleOptions = {
+          schemaFor: catalogId => this.#registry.catalogSchema(app, catalogId),
+          surfaceCatalog: surfaceId => catalogs.get(surfaceId),
+        };
         let outgoing = withEntitlement(turn.message, app);
         let resent = false;
         // A paint carrying a credential input is never relayed (task-12.7 decisions 2, 3): what the
@@ -434,10 +454,14 @@ export class AgentsPool {
               for await (const event of await sendTo(params)) {
                 this.#learnIds(event, source, turn, record);
                 sendTaskId ??= idsOf(event).taskId;
-                // A paint outside the app's entitlement — the set of its stamp — is refused at
-                // the hub, never relayed (task-11.4 decision 12; task-19.2 decision 2): the
-                // dispatch ends failed on the catalog's id.
-                outside = catalogOutside(event, app.entitlementByVersion);
+                // A message stamped other than v1.0 ends the dispatch, never relayed
+                // (task-21.13 decision 6), judged before what it names.
+                stamped = otherStampIn(event);
+                if (stamped !== undefined) break;
+                // A paint naming a catalog outside the app's entitlement, in any of the four places,
+                // is refused at the hub, never relayed (task-11.4 decision 12; task-21.13 decision
+                // 4): the dispatch ends failed on the catalog's id.
+                outside = catalogsOutside(a2uiMessagesOf(event), app.entitlement, rule)[0];
                 if (outside !== undefined) break;
                 if (carriesA2ui(event)) painted = true;
                 // The agent asks for authority mid-task (phase-12 decisions 4, 6): read against
@@ -548,6 +572,12 @@ export class AgentsPool {
           error: `the request for more access is invalid: ${invalid}`,
           cause: 'invalid',
         });
+      } else if (stamped !== undefined) {
+        this.#cancelVendor(source, record);
+        finish('failed', {
+          error: `painted a message stamped ${JSON.stringify(stamped.stamp)}, not 1.0`,
+          cause: stamped.cause,
+        });
       } else if (outside !== undefined) {
         record.catalogId = outside.catalogId;
         this.#cancelVendor(source, record);
@@ -561,11 +591,7 @@ export class AgentsPool {
             if (finding) record.update = finding;
           }
         }
-        // The words name the stamp when the version axis made the refusal (task-19.2 decision 3).
-        finish('failed', {
-          error: `painted in ${describePaintOutside(outside.catalogId, outside.outside)}`,
-          cause: 'catalog',
-        });
+        finish('failed', {error: describeCatalogOutside(outside), cause: 'catalog'});
       } else if (credentialRefused) {
         const continueUrl = continueUrlOf(this.#registry.dialCard(app.id));
         if (continueUrl !== undefined) record.continueUrl = continueUrl;
@@ -606,6 +632,23 @@ export class AgentsPool {
         });
       }
     }
+  }
+
+  /**
+   * The A2UI versions the app's card declares when it declares A2UI and not v1.0 (task-21.13
+   * decision 7): judged on the live card the run holds, else the stored one. A card that reads so
+   * is fetched again first, within five seconds, so an agent that has since moved to v1.0 is
+   * called; undefined when the card declares v1.0, no A2UI at all, or cannot be judged.
+   */
+  async #otherVersions(appId: string): Promise<OtherA2uiVersions | undefined> {
+    const other = (card: AgentCard | undefined) => {
+      if (!card) return undefined;
+      const read = readSupportedCatalogIds(card);
+      return read.ok ? undefined : read.otherVersions;
+    };
+    if (other(this.#registry.dialCard(appId)) === undefined) return undefined;
+    await this.#registry.refetchLiveCard(appId, VERSION_REFETCH_MS);
+    return other(this.#registry.dialCard(appId));
   }
 
   /**
@@ -701,10 +744,11 @@ export class AgentsPool {
   }
 }
 
-/** What every request to an agent carries beside the credential: the A2UI extensions it asks for. */
-const EXTENSIONS = ServiceParameters.create(
-  withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS)),
-);
+/** What every request to an agent carries beside the credential: the one A2UI extension, v1.0's. */
+const EXTENSIONS = ServiceParameters.create(withA2AExtensions(A2UI_EXTENSION_URI));
+
+/** How long fetching the live card again may take when the held one declares another A2UI version. */
+const VERSION_REFETCH_MS = 5000;
 
 /** The interfaces a walk did not reach, as the journal records them. */
 function journaled(notReached: readonly NotReached[]): NotReachedEntry[] {
@@ -716,37 +760,39 @@ function journaled(notReached: readonly NotReached[]): NotReachedEntry[] {
 }
 
 /**
- * The vendor-bound message with the app's own entitlement as its A2UI client capabilities
- * (task-11.4 decision 12): what the agent may paint in, never the table, never the client's list —
- * each version's set under its own key (task-19.2 decision 1).
+ * The vendor-bound message with the app's own entitlement as its A2UI renderer capabilities
+ * (task-11.4 decision 12): what the agent may paint in, never the table, never the client's list,
+ * under v1.0's key alone (task-21.13 decision 2).
  */
 function withEntitlement(message: Message, app: AppRecord): Message {
   return {
     ...message,
     metadata: {
       ...message.metadata,
-      [A2UI_CLIENT_CAPABILITIES_KEY]: clientCapabilities(app.entitlementByVersion),
+      [A2UI_RENDERER_CAPABILITIES_KEY]: rendererCapabilities(app.entitlement),
     },
   };
 }
 
-/** A created surface the entitlement refuses: its catalog, and the sdk's answer on it. */
-interface CatalogOutside {
-  catalogId: string;
-  outside: PaintOutside;
+/** A message stamped other than v1.0, and the cause its slot fails under (task-21.13 decision 6). */
+interface OtherStamp {
+  stamp: string;
+  cause: 'older' | 'newer' | 'invalid';
 }
 
+/** A version written as a stamp: `1.1`, `v0.9`, `0.9.1`. */
+const STAMP_VERSION = /^v?\d+\.\d+(?:\.\d+)?$/;
+
 /**
- * The first surface in the event created in a catalog outside the set of its stamp — the union of
- * the sets when the stamp is neither version (task-19.2 decisions 2, 7), by the sdk's one rule.
+ * The first A2UI message in the event stamped other than v1.0: below 1.0 older, a version above it
+ * newer, a stamp that is no version invalid.
  */
-function catalogOutside(event: VendorEvent, sets: CatalogIdsByVersion): CatalogOutside | undefined {
-  for (const {version, createSurface: create} of a2uiMessagesOf(event)) {
-    if (typeof create !== 'object' || create === null) continue;
-    const catalogId = (create as {catalogId?: unknown}).catalogId;
-    if (typeof catalogId !== 'string') continue;
-    const outside = paintOutside(version, catalogId, sets);
-    if (outside) return {catalogId, outside};
+function otherStampIn(event: VendorEvent): OtherStamp | undefined {
+  for (const message of a2uiMessagesOf(event)) {
+    const read = readA2uiStamp(message);
+    if (!read || read.current) continue;
+    const cause = read.older ? 'older' : STAMP_VERSION.test(read.stamp) ? 'newer' : 'invalid';
+    return {stamp: read.stamp, cause};
   }
   return undefined;
 }

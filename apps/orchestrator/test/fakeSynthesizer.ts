@@ -155,11 +155,16 @@ export function bestPriceView(call: SynthesisCall): Synthesis {
     tree: {
       components: [
         {id: 'root', component: 'Column', children: ['sort', 'rows']},
-        {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
+        {id: 'sort', component: 'SortControl', sort: {'@path': '/sorts/0'}},
         {id: 'rows', component: 'Column', children: {path: '/rows', componentId: 'row'}},
-        {id: 'row', component: 'Row', children: ['c-id', 'c-best']},
-        {id: 'c-id', component: 'DerivedValue', cell: {path: 'id'}},
-        {id: 'c-best', component: 'DerivedValue', cell: {path: 'best'}, format: {kind: 'number'}},
+        {id: 'row', component: 'Row', children: ['c_id', 'c_best']},
+        {id: 'c_id', component: 'DerivedValue', cell: {'@path': 'id'}},
+        {
+          id: 'c_best',
+          component: 'DerivedValue',
+          cell: {'@path': 'best'},
+          format: {kind: 'number'},
+        },
       ],
     },
     dataModel: {
