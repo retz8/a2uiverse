@@ -17,7 +17,7 @@ import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
 import type {PlacedFragment} from '../canvasStore';
 import {FRAGMENT_BOUNDARY_ATTR} from './FragmentBoundary';
 import {renderSlotContent} from './slotContent';
-import {snapshotCatalog, snapshotCatalogs} from '../../../tests/snapshot';
+import {SNAPSHOT_READY, snapshotCatalog, snapshotCatalogs} from '../../../tests/snapshot';
 
 const {catalog: CATALOG, id: CATALOG_ID} = await snapshotCatalog('github-catalog');
 
@@ -37,9 +37,9 @@ function composedProcessor(slotState: 'pending' | 'failed' | 'collapsed' = 'pend
       updateComponents: {
         surfaceId: 'shell:main',
         components: [
-          {id: 'root', component: 'Column', children: ['attribution-github']},
+          {id: 'root', component: 'Column', children: ['attribution_github']},
           {
-            id: 'attribution-github',
+            id: 'attribution_github',
             component: 'Attribution',
             displayName: 'GitHub',
             source: 'github',
@@ -87,20 +87,23 @@ const PLACED = new Map<string, PlacedFragment>([
 ]);
 
 describe('slot mounting', () => {
-  it('mounts the placed fragment inside its slot, wrapped in a boundary', () => {
-    const {container} = renderComposed(composedProcessor(), PLACED);
+  it.skipIf(!SNAPSHOT_READY)(
+    'mounts the placed fragment inside its slot, wrapped in a boundary',
+    () => {
+      const {container} = renderComposed(composedProcessor(), PLACED);
 
-    const slot = container.querySelector('[data-slot="github"]');
-    expect(slot).not.toBeNull();
-    expect(slot!.getAttribute('data-slot-state')).toBe('filled');
+      const slot = container.querySelector('[data-slot="github"]');
+      expect(slot).not.toBeNull();
+      expect(slot!.getAttribute('data-slot-state')).toBe('filled');
 
-    const boundary = slot!.querySelector(`[${FRAGMENT_BOUNDARY_ATTR}="github"]`);
-    expect(boundary).not.toBeNull();
-    expect(boundary!.getAttribute('data-surface')).toBe('github:prs');
-    // The boundary must be a real element for @scope and a portal root to anchor to.
-    expect(getComputedStyle(boundary as HTMLElement).display).not.toBe('contents');
-    expect(boundary!.textContent).toContain('Pull requests');
-  });
+      const boundary = slot!.querySelector(`[${FRAGMENT_BOUNDARY_ATTR}="github"]`);
+      expect(boundary).not.toBeNull();
+      expect(boundary!.getAttribute('data-surface')).toBe('github:prs');
+      // The boundary must be a real element for @scope and a portal root to anchor to.
+      expect(getComputedStyle(boundary as HTMLElement).display).not.toBe('contents');
+      expect(boundary!.textContent).toContain('Pull requests');
+    },
+  );
 
   it('names the region for its source without repeating the attribution marker', () => {
     renderComposed(composedProcessor(), PLACED);
@@ -140,13 +143,16 @@ describe('slot mounting', () => {
     expect(container.querySelector('[data-slot="github"]')).toBeNull();
   });
 
-  it('a slot that painted is never overwritten by its source’s prose', () => {
-    const {container} = renderComposed(composedProcessor(), PLACED, 'here are the PRs');
-    const slot = container.querySelector('[data-slot="github"]');
-    expect(slot!.getAttribute('data-slot-state')).toBe('filled');
-    expect(slot!.textContent).toContain('Pull requests');
-    expect(slot!.textContent).not.toContain('here are the PRs');
-  });
+  it.skipIf(!SNAPSHOT_READY)(
+    'a slot that painted is never overwritten by its source’s prose',
+    () => {
+      const {container} = renderComposed(composedProcessor(), PLACED, 'here are the PRs');
+      const slot = container.querySelector('[data-slot="github"]');
+      expect(slot!.getAttribute('data-slot-state')).toBe('filled');
+      expect(slot!.textContent).toContain('Pull requests');
+      expect(slot!.textContent).not.toContain('here are the PRs');
+    },
+  );
 
   it('a failed slot keeps its failure even when a fragment is placed', () => {
     const {container} = renderComposed(composedProcessor('failed'), PLACED);

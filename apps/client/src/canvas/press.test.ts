@@ -164,7 +164,7 @@ describe('a press', () => {
 /* ── The fragment's way back (task 9.7) ─────────────────────────────────────── */
 
 import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
-import {snapshotCatalogId} from '../../tests/snapshot';
+import {snapshotCatalogId, SNAPSHOT_READY} from '../../tests/snapshot';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
 import {shellPart, STAMP_KEY, SYNTHESIS_KEY} from '@a2uiverse/sdk';
@@ -191,9 +191,9 @@ const layout = (source: string) => [
     updateComponents: {
       surfaceId: 'shell:main',
       components: [
-        {id: 'root', component: 'Column', children: [`attribution-${source}`]},
+        {id: 'root', component: 'Column', children: [`attribution_${source}`]},
         {
-          id: `attribution-${source}`,
+          id: `attribution_${source}`,
           component: 'Attribution',
           source,
           displayName: 'GitHub',
@@ -248,88 +248,100 @@ const rootText = (canvas: ReturnType<typeof wiringWith>['canvas'], id: string) =
 const stepBack = {kind: 'step' as const, sources: ['github'], step: 0};
 
 describe('a step (task 9.7)', () => {
-  it('restores the paint at once and sends the step with the whole canvas’s data model, the press gone at the end (decisions 1, 5)', async () => {
-    const {wiring, canvas, sent} = withTwoPaints(async function* () {
-      yield completed;
-    });
-    expect(rootText(canvas, 'github:pr-list')).toBe('the detail');
-    const pressing = wiring.press(stepBack);
-    // Before anything is awaited: the list is back on screen, the press drawn.
-    expect(rootText(canvas, 'github:pr-list')).toBe('four PRs');
-    expect(canvas.history.neighbours('github')).toEqual({forward: {step: 1, title: 'PR #42'}});
-    expect(canvas.store.getState().presses).toEqual([
-      expect.objectContaining({operation: stepBack, status: 'sent'}),
-    ]);
-    await pressing;
-    expect(sent[0]!.message!.parts).toEqual([shellPart({version: '1.0', operation: stepBack})]);
-    const dataModel = sent[0]!.message!.metadata?.a2uiRendererDataModel as {
-      surfaces: Record<string, unknown>;
-    };
-    expect(dataModel.surfaces['github:pr-list']).toEqual({text: 'four PRs'});
-    expect(canvas.store.getState().presses).toEqual([]);
-    expect(canvas.store.getState().inFlight).toBeNull();
-  });
+  it.skipIf(!SNAPSHOT_READY)(
+    'restores the paint at once and sends the step with the whole canvas’s data model, the press gone at the end (decisions 1, 5)',
+    async () => {
+      const {wiring, canvas, sent} = withTwoPaints(async function* () {
+        yield completed;
+      });
+      expect(rootText(canvas, 'github:pr-list')).toBe('the detail');
+      const pressing = wiring.press(stepBack);
+      // Before anything is awaited: the list is back on screen, the press drawn.
+      expect(rootText(canvas, 'github:pr-list')).toBe('four PRs');
+      expect(canvas.history.neighbours('github')).toEqual({forward: {step: 1, title: 'PR #42'}});
+      expect(canvas.store.getState().presses).toEqual([
+        expect.objectContaining({operation: stepBack, status: 'sent'}),
+      ]);
+      await pressing;
+      expect(sent[0]!.message!.parts).toEqual([shellPart({version: '1.0', operation: stepBack})]);
+      const dataModel = sent[0]!.message!.metadata?.a2uiRendererDataModel as {
+        surfaces: Record<string, unknown>;
+      };
+      expect(dataModel.surfaces['github:pr-list']).toEqual({text: 'four PRs'});
+      expect(canvas.store.getState().presses).toEqual([]);
+      expect(canvas.store.getState().inFlight).toBeNull();
+    },
+  );
 
-  it('the arrow names a visit; the step sent names the paint that visit holds (task-10.9 decision 6)', async () => {
-    const {wiring, canvas, sent} = withTwoPaints(async function* () {
-      yield completed;
-    });
-    await wiring.press(stepBack);
-    // A new paint after the Back: visits 0 · 1 · 0 · 2.
-    const action = canvas.runner.begin({
-      kind: 'surface-action',
-      payload: {
-        action: {
-          name: 'open',
-          context: {},
-          surfaceId: 'github:pr-list',
-          sourceComponentId: 'row',
-          timestamp: '2026-09-25T00:00:00Z',
+  it.skipIf(!SNAPSHOT_READY)(
+    'the arrow names a visit; the step sent names the paint that visit holds (task-10.9 decision 6)',
+    async () => {
+      const {wiring, canvas, sent} = withTwoPaints(async function* () {
+        yield completed;
+      });
+      await wiring.press(stepBack);
+      // A new paint after the Back: visits 0 · 1 · 0 · 2.
+      const action = canvas.runner.begin({
+        kind: 'surface-action',
+        payload: {
+          action: {
+            name: 'open',
+            context: {},
+            surfaceId: 'github:pr-list',
+            sourceComponentId: 'row',
+            timestamp: '2026-09-25T00:00:00Z',
+          },
         },
-      },
-    });
-    action.apply(githubPaint('github:pr-list', 'PR #7', 'another detail'), fragment('github'));
-    action.end();
-    expect(canvas.history.visitsOf('github')).toEqual({visits: [0, 1, 0, 2], at: 3});
-    expect(canvas.history.neighbours('github')).toEqual({
-      back: {step: 2, title: 'Pull requests'},
-    });
-    const back = {kind: 'step' as const, sources: ['github'], step: 2};
-    await wiring.press(back);
-    expect(rootText(canvas, 'github:pr-list')).toBe('four PRs');
-    expect(sent.at(-1)!.message!.parts).toEqual([
-      shellPart({version: '1.0', operation: {...back, step: 0}}),
-    ]);
-    await wiring.press({kind: 'step', sources: ['github'], step: 1});
-    expect(rootText(canvas, 'github:pr-list')).toBe('the detail');
-    expect(sent.at(-1)!.message!.parts).toEqual([
-      shellPart({version: '1.0', operation: {kind: 'step', sources: ['github'], step: 1}}),
-    ]);
-  });
+      });
+      action.apply(githubPaint('github:pr-list', 'PR #7', 'another detail'), fragment('github'));
+      action.end();
+      expect(canvas.history.visitsOf('github')).toEqual({visits: [0, 1, 0, 2], at: 3});
+      expect(canvas.history.neighbours('github')).toEqual({
+        back: {step: 2, title: 'Pull requests'},
+      });
+      const back = {kind: 'step' as const, sources: ['github'], step: 2};
+      await wiring.press(back);
+      expect(rootText(canvas, 'github:pr-list')).toBe('four PRs');
+      expect(sent.at(-1)!.message!.parts).toEqual([
+        shellPart({version: '1.0', operation: {...back, step: 0}}),
+      ]);
+      await wiring.press({kind: 'step', sources: ['github'], step: 1});
+      expect(rootText(canvas, 'github:pr-list')).toBe('the detail');
+      expect(sent.at(-1)!.message!.parts).toEqual([
+        shellPart({version: '1.0', operation: {kind: 'step', sources: ['github'], step: 1}}),
+      ]);
+    },
+  );
 
-  it('a step to the paint on screen, or to a placeholder, restores nothing and sends nothing', async () => {
-    const {wiring, canvas, sent} = withTwoPaints(async function* () {
-      yield completed;
-    });
-    await wiring.press({kind: 'step', sources: ['github'], step: 1});
-    await wiring.press({kind: 'step', sources: ['github'], step: 7});
-    await wiring.press({kind: 'step', sources: ['gmail'], step: 0});
-    expect(sent).toEqual([]);
-    expect(canvas.store.getState().presses).toEqual([]);
-    expect(rootText(canvas, 'github:pr-list')).toBe('the detail');
-  });
+  it.skipIf(!SNAPSHOT_READY)(
+    'a step to the paint on screen, or to a placeholder, restores nothing and sends nothing',
+    async () => {
+      const {wiring, canvas, sent} = withTwoPaints(async function* () {
+        yield completed;
+      });
+      await wiring.press({kind: 'step', sources: ['github'], step: 1});
+      await wiring.press({kind: 'step', sources: ['github'], step: 7});
+      await wiring.press({kind: 'step', sources: ['gmail'], step: 0});
+      expect(sent).toEqual([]);
+      expect(canvas.store.getState().presses).toEqual([]);
+      expect(rootText(canvas, 'github:pr-list')).toBe('the detail');
+    },
+  );
 
-  it('a failed step is quiet: the restored screen stands, the press removed, the reason in the console (decision 5)', async () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const {wiring, canvas} = withTwoPaints(() => failing(new Error('Failed to fetch')));
-    await wiring.press(stepBack);
-    expect(rootText(canvas, 'github:pr-list')).toBe('four PRs');
-    expect(canvas.store.getState().presses).toEqual([]);
-    expect(canvas.store.getState().error).toBeNull();
-    expect(canvas.store.getState().notices).toEqual([]);
-    expect(error).toHaveBeenCalled();
-    error.mockRestore();
-  });
+  it.skipIf(!SNAPSHOT_READY)(
+    'a failed step is quiet: the restored screen stands, the press removed, the reason in the console (decision 5)',
+    async () => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const {wiring, canvas} = withTwoPaints(() => failing(new Error('Failed to fetch')));
+      await wiring.press(stepBack);
+      expect(rootText(canvas, 'github:pr-list')).toBe('four PRs');
+      expect(canvas.store.getState().presses).toEqual([]);
+      expect(canvas.store.getState().error).toBeNull();
+      expect(canvas.store.getState().notices).toEqual([]);
+      expect(error).toHaveBeenCalled();
+      error.mockRestore();
+    },
+  );
 });
 
 /** The merged view over two storefronts, from the synthesis beat's first turn, on one canvas. */
@@ -395,34 +407,37 @@ describe('the merged view on a step back (task 9.7 decisions 3, 4)', () => {
     expect(canvas.synthesis.payload).toEqual(REWIRED);
   });
 
-  it('seen: the merged view’s own tree comes back with its wiring, a section a later re-synthesis added gone (task-16.11)', async () => {
-    const {wiring, canvas, repaintShopA} = await withMergedView(async function* () {
-      yield completed;
-    });
-    const merged = () =>
-      [...canvas.processor.model.getSurface('shell:synthesis')!.componentsModel.entries].map(
-        ([id]) => id,
-      );
-    const before = merged();
-    const sectioned = {
-      ...DOCUMENT,
-      tree: {
-        components: [
-          ...DOCUMENT.tree.components,
-          {id: 'section-added', component: 'Text', text: 'Calendar'},
-        ],
-      },
-    };
-    repaintShopA(REWIRED, sectioned);
-    expect(merged()).toContain('section-added');
-    await wiring.press(stepShopA(0));
-    expect(merged()).toEqual(before);
-    expect(canvas.synthesis.payload).toEqual(PAYLOAD);
-    // And forward again: the re-synthesis's tree with its wiring.
-    await wiring.press(stepShopA(1));
-    expect(merged()).toContain('section-added');
-    expect(canvas.synthesis.payload).toEqual(REWIRED);
-  });
+  it.skipIf(!SNAPSHOT_READY)(
+    'seen: the merged view’s own tree comes back with its wiring, a section a later re-synthesis added gone (task-16.11)',
+    async () => {
+      const {wiring, canvas, repaintShopA} = await withMergedView(async function* () {
+        yield completed;
+      });
+      const merged = () =>
+        [...canvas.processor.model.getSurface('shell:synthesis')!.componentsModel.entries].map(
+          ([id]) => id,
+        );
+      const before = merged();
+      const sectioned = {
+        ...DOCUMENT,
+        tree: {
+          components: [
+            ...DOCUMENT.tree.components,
+            {id: 'section-added', component: 'Text', text: 'Calendar'},
+          ],
+        },
+      };
+      repaintShopA(REWIRED, sectioned);
+      expect(merged()).toContain('section-added');
+      await wiring.press(stepShopA(0));
+      expect(merged()).toEqual(before);
+      expect(canvas.synthesis.payload).toEqual(PAYLOAD);
+      // And forward again: the re-synthesis's tree with its wiring.
+      await wiring.press(stepShopA(1));
+      expect(merged()).toContain('section-added');
+      expect(canvas.synthesis.payload).toEqual(REWIRED);
+    },
+  );
 
   it('unseen: the merge line works until the stream ends; a silent end keeps the current wiring and files it', async () => {
     const {wiring, canvas, repaintShopA} = await withMergedView(async function* () {

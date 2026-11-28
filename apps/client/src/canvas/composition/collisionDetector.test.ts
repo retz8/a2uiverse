@@ -15,7 +15,7 @@ import {
   type CatalogStyles,
   type Finding,
 } from './collisionDetector';
-import {SNAPSHOT_ARTIFACTS} from '../../../tests/snapshot';
+import {SNAPSHOT_ARTIFACTS, SNAPSHOT_READY} from '../../../tests/snapshot';
 
 /** Every artifact of the registry snapshot, its stylesheets read from its directory. */
 const INSTALLED = SNAPSHOT_ARTIFACTS.map(artifact =>
@@ -214,7 +214,7 @@ const ACCEPTED: Array<(finding: Finding) => boolean> = [
     finding.selector === 'body[data-dialog-scroll-disabled]',
 ];
 
-describe('the registry snapshot’s catalogs', () => {
+describe.skipIf(!SNAPSHOT_READY)('the registry snapshot’s catalogs', () => {
   it('brings no unaccounted CSS onto the page', () => {
     // A vendor bundle's own design-system sheets count: they are what actually lands. Primer's
     // arrive from `@primer/primitives` via github-catalog's Provider.

@@ -61,8 +61,8 @@ Real output, captured through the orchestrator and kept as the stream it arrived
 | `32`         | Both shops offered, neither installed                                                                                                                                                                        |
 | `33`         | "Install Shop B.": the installed line, nothing asked of it                                                                                                                                                   |
 | `34`         | An install asked for with a request: installed, its key connected, the slot filling                                                                                                                          |
-| `35`         | GitHub's PR list again, beat `1`'s question, every message stamped `v0.9.1`: the recorded v0.9.1 paint the replay tests hold                                                                                 |
-| `36`         | Beat `5`'s question on the apps spread over the six paths, a binding at an A2A version each: the replay test holds each of the four fragments landing in its slot, in its own catalog and message version    |
+| `35`         | GitHub's PR list again, beat `1`'s question recorded on its own: three pull requests, both paints accepted                                                                                                   |
+| `36`         | Beat `5`'s question on the apps spread over the six paths, a binding at an A2A version each: the replay test holds each of the four fragments landing in its slot, in its own catalog                        |
 
 Hand-built beats live in `src/beats/`: `syntheticBeats.ts`, `lateFailureBeats.ts` for late answers and failures, `durableBeats.ts` for kept answers and the way back, and `storeLoopBeats.ts` for what the store loop's recordings don't show: `?beat=gap-unreached` ("Couldn't reach the Store."), `update-needed`, `update-waiting`, `update-asks-more`, `update-uninstalled`, and `per-paint-builds:<first>:<second>`.
 

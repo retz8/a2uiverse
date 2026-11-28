@@ -12,6 +12,7 @@ import type {SendMessageRequest} from '@a2a-js/sdk';
 import type {A2AMessageSender} from '../src/a2a/client';
 import {dataOf} from '../src/a2a/messages';
 import {getBeatFixture} from '../src/beats/beatFixtures';
+import {replayable} from './snapshot';
 import {CanvasApp} from '../src/canvas/CanvasApp';
 import {createHostRelay} from '../src/canvas/hostRelay';
 import {snapshotCatalogs} from './snapshot';
@@ -217,16 +218,20 @@ const RECORDED: Array<[beat: number, source: string, slotState: string, mergeSta
 ];
 
 describe('Phase 8’s recorded beats over the deterministic roster', () => {
-  it.each(RECORDED.filter(([beat]) => getBeatFixture(beat)))(
-    'beat %i: %s ends %s, the merged view %s',
-    async (beat, source, slotState, mergeState) => {
-      const {sent, slot} = await replay(String(beat));
-      expect(sent).toEqual([]);
-      await waitFor(() => expect(stateOf(slot(source))).toBe(slotState));
-      expect(stateOf(slot('shell'))).toBe(mergeState);
-      if (mergeState === 'filled') {
-        expect(slot('shell')!.querySelectorAll('[data-slot-press-row]')).toHaveLength(0);
-      }
-    },
-  );
+  // A beat painting in an app catalog waits for the registry snapshot (task-21.14 decision 14).
+  for (const [beat, source, slotState, mergeState] of RECORDED) {
+    const fixture = getBeatFixture(beat);
+    it.skipIf(!fixture || !replayable(fixture))(
+      `beat ${beat}: ${source} ends ${slotState}, the merged view ${mergeState}`,
+      async () => {
+        const {sent, slot} = await replay(String(beat));
+        expect(sent).toEqual([]);
+        await waitFor(() => expect(stateOf(slot(source))).toBe(slotState));
+        expect(stateOf(slot('shell'))).toBe(mergeState);
+        if (mergeState === 'filled') {
+          expect(slot('shell')!.querySelectorAll('[data-slot-press-row]')).toHaveLength(0);
+        }
+      },
+    );
+  }
 });

@@ -17,7 +17,7 @@ export interface StreamUserMessageOptions {
    */
   session?: A2ASession;
   /**
-   * Supplies the current client data model of `sendDataModel`-flagged surfaces
+   * Supplies the renderer's data model: the `sendDataModel`-flagged surfaces
    * (processor.getRendererDataModel); attached as message metadata when it reports one.
    */
   getRendererDataModel?: () => RendererDataModel | undefined;

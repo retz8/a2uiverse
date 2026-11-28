@@ -9,9 +9,14 @@ import {existsSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {REGISTRY_SNAPSHOT_DIR} from '@a2uiverse/registry-snapshot';
-import {SUPPORTED_HOST_INTERFACES} from '@a2uiverse/sdk';
+import {Catalog} from '@a2ui/web_core/v1_0';
+import type {ReactCatalogComponent} from '@a2ui/react';
+import {BASIC_CATALOG_ID, SUPPORTED_HOST_INTERFACES} from '@a2uiverse/sdk';
+import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
+import type {BeatFixture} from '../src/beats/beatFixtures';
 import {
   clientCatalogs,
+  resolveCatalog,
   type ClientCatalogOptions,
   type ResolvedCatalog,
 } from '../src/catalogs/clientCatalogs';
@@ -73,8 +78,16 @@ export const SNAPSHOT_ARTIFACTS: {package: string; catalogId: string; dir: strin
  */
 export const SNAPSHOT_READY = SNAPSHOT_ARTIFACTS.length > 0;
 
+/**
+ * The stand-in for a catalog package while the snapshot holds none (`SNAPSHOT_READY` false): an
+ * empty catalog, so a test file naming the package loads and its tests that draw in it skip.
+ */
+const standIn = (packageName: string) =>
+  resolveCatalog(new Catalog<ReactCatalogComponent>(`urn:snapshot:${packageName}`, '1.0', [], []));
+
 /** The catalog id the snapshot holds for a catalog package, by the package's name. */
 export function snapshotCatalogId(packageName: string): string {
+  if (!SNAPSHOT_READY) return standIn(packageName).id;
   const artifact = SNAPSHOT_ARTIFACTS.find(a => a.package === packageName);
   if (!artifact) throw new Error(`the registry snapshot holds no ${packageName}`);
   return artifact.catalogId;
@@ -94,8 +107,38 @@ export async function snapshotCatalogs(host?: ClientCatalogOptions): Promise<Res
 
 /** One catalog of the snapshot, loaded, by the package it was packed from. */
 export async function snapshotCatalog(packageName: string): Promise<ResolvedCatalog> {
+  if (!SNAPSHOT_READY) return standIn(packageName);
   const loader = snapshotLoader();
   const catalogId = snapshotCatalogId(packageName);
   await loader.load(catalogId);
   return loader.resolved().get(catalogId)!;
 }
+
+/** The catalogs the client holds without the registry: what a beat may paint in with no snapshot. */
+const OWN_CATALOG_IDS: ReadonlySet<string> = new Set([BASIC_CATALOG_ID, SHELL_CATALOG_ID]);
+
+/** Whether a beat paints in a catalog the client holds only from the registry: an app catalog. */
+export function drawsAppCatalog(fixture: BeatFixture): boolean {
+  return fixture.turns.some(turn =>
+    turn.batches.some(batch =>
+      batch.messages.some(message => {
+        const named = new Set<string>();
+        const create = (message as {createSurface?: {catalogId?: unknown}}).createSurface;
+        if (typeof create?.catalogId === 'string') named.add(create.catalogId);
+        const update = (message as {updateComponents?: {components?: unknown}}).updateComponents;
+        for (const component of Array.isArray(update?.components) ? update.components : []) {
+          const catalogId = (component as {'@catalogId'?: unknown})?.['@catalogId'];
+          if (typeof catalogId === 'string') named.add(catalogId);
+        }
+        return [...named].some(id => !OWN_CATALOG_IDS.has(id));
+      }),
+    ),
+  );
+}
+
+/**
+ * Whether a beat can be replayed here: it paints in the client's own catalogs alone, or the
+ * snapshot holds the app catalogs it paints in (task-21.14 decision 14).
+ */
+export const replayable = (fixture: BeatFixture): boolean =>
+  SNAPSHOT_READY || !drawsAppCatalog(fixture);

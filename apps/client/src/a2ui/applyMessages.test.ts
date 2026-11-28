@@ -5,6 +5,7 @@
 import {describe, it, expect, vi, beforeEach, afterEach} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v1_0';
 import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {BASIC_CATALOG_SCHEMA, createSchemaFormCheck} from '@a2uiverse/sdk';
 import {applyA2uiMessages} from './applyMessages';
 import {snapshotCatalog} from '../../tests/snapshot';
 
@@ -143,5 +144,23 @@ describe('applyA2uiMessages — per-message isolation', () => {
     const p = processor();
 
     expect(() => applyA2uiMessages(p, [components('ghost', [text('root', 'x')])])).not.toThrow();
+  });
+});
+
+describe('the deleteSurface put before a repeated create (task-21.14 decision 13)', () => {
+  it('is in v1.0’s forms, handed over with the create it repaints', () => {
+    const handed: unknown[][] = [];
+    const target = {
+      processMessages: (messages: AgentToRendererMessage[]) => void handed.push(messages),
+      model: {getSurface: () => ({})},
+    };
+    const created = {
+      version: '1.0',
+      createSurface: {surfaceId: 'chat', catalogId: BASIC_CATALOG_SCHEMA.catalogId},
+    } as unknown as AgentToRendererMessage;
+    applyA2uiMessages(target, [created]);
+    expect(handed).toEqual([[{version: '1.0', deleteSurface: {surfaceId: 'chat'}}, created]]);
+    const check = createSchemaFormCheck({catalog: BASIC_CATALOG_SCHEMA});
+    expect(check.agentToRenderer(handed[0])).toEqual([]);
   });
 });

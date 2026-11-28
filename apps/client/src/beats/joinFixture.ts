@@ -73,7 +73,7 @@ export const JOIN_DOCUMENT: SynthesisDocument = {
         component: 'Row',
         justify: 'spaceBetween',
         align: 'center',
-        children: ['heading', 'sort-rows'],
+        children: ['heading', 'sort_rows'],
       },
       {id: 'heading', component: 'Text', text: '##### Cameras and their offers'},
       {id: 'sort_rows', component: 'SortControl', sort: {'@path': '/sorts/0'}},

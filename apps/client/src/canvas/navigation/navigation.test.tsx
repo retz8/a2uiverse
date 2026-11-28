@@ -18,7 +18,7 @@ import {clientCatalogs, resolveCatalog} from '../../catalogs/clientCatalogs';
 import {FragmentBoundary} from '../composition/FragmentBoundary';
 import {BindingIndexContext, createBindingIndex} from './bindingIndex';
 import {createNavigator, resolveLanding, RING_CLASS, RING_MS, SCROLL_SETTLE_MS} from './landing';
-import {snapshotCatalogId, snapshotCatalogs} from '../../../tests/snapshot';
+import {snapshotCatalogId, snapshotCatalogs, SNAPSHOT_READY} from '../../../tests/snapshot';
 
 /** The storefront's own component: a React one, beside the basic catalog's custom elements. */
 const PriceTag = createComponentImplementation(
@@ -57,10 +57,10 @@ async function mountStorefront({boundary = true} = {}) {
           {id: 'root', component: 'Column', children: ['h', 'list']},
           {id: 'h', component: 'Text', text: 'Aperture & Co'},
           {id: 'list', component: 'Column', children: {path: '/items', componentId: 'row'}},
-          {id: 'row', component: 'Row', children: ['row-name', 'row-price', 'row-again']},
-          {id: 'row-name', component: 'Text', text: {path: 'name'}},
-          {id: 'row-price', component: 'PriceTag', amount: {path: 'price'}},
-          {id: 'row-again', component: 'Text', text: {path: 'name'}},
+          {id: 'row', component: 'Row', children: ['row_name', 'row_price', 'row_again']},
+          {id: 'row_name', component: 'Text', text: {'@path': 'name'}},
+          {id: 'row_price', component: 'PriceTag', amount: {'@path': 'price'}},
+          {id: 'row_again', component: 'Text', text: {'@path': 'name'}},
         ],
       },
     }),
@@ -201,7 +201,7 @@ describe('landing', () => {
   });
 });
 
-describe('over the registry snapshot', () => {
+describe.skipIf(!SNAPSHOT_READY)('over the registry snapshot', () => {
   test('a tap lands on a vendor’s React component and on a themed store’s basic one', async () => {
     const catalogs = await snapshotCatalogs();
     const github = snapshotCatalogId('github-catalog');
@@ -214,7 +214,7 @@ describe('over the registry snapshot', () => {
           surfaceId: 'github:prs',
           components: [
             {id: 'root', component: 'Stack', children: {path: '/prs', componentId: 'pr'}},
-            {id: 'pr', component: 'Text', text: {path: 'title'}},
+            {id: 'pr', component: 'Text', text: {'@path': 'title'}},
           ],
         },
       }),
@@ -227,7 +227,7 @@ describe('over the registry snapshot', () => {
           surfaceId: SURFACE,
           components: [
             {id: 'root', component: 'Column', children: {path: '/items', componentId: 'row'}},
-            {id: 'row', component: 'Text', text: {path: 'name'}},
+            {id: 'row', component: 'Text', text: {'@path': 'name'}},
           ],
         },
       }),

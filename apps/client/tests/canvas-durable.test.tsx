@@ -7,6 +7,7 @@
  */
 import {describe, expect, it} from 'vitest';
 import {getBeatFixture, type BeatFixture} from '../src/beats/beatFixtures';
+import {replayable} from './snapshot';
 import {syntheticBeat} from '../src/beats/syntheticBeats';
 import type {CanvasRuntime} from '../src/canvas/canvasRuntime';
 import {createCanvasWiring} from '../src/canvas/createCanvasWiring';
@@ -166,8 +167,14 @@ describe('Phase 9’s synthetic beats', () => {
   });
 });
 
-/** A recorded beat, replayed only once it is recorded. */
-const recorded = (beat: number) => (getBeatFixture(beat) ? it : it.skip);
+/**
+ * A recorded beat, replayed only once it is recorded, and one painting in an app catalog only once
+ * the registry snapshot holds it (task-21.14 decision 14).
+ */
+const recorded = (beat: number) => {
+  const fixture = getBeatFixture(beat);
+  return fixture && replayable(fixture) ? it : it.skip;
+};
 
 describe('Phase 9’s recorded beats over the deterministic roster', () => {
   recorded(19)(

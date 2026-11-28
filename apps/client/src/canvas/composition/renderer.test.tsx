@@ -40,7 +40,7 @@ function twoPickers(catalog: Catalog<ReactCatalogComponent>, app: string) {
               component: 'ChoicePicker',
               label: 'Pick',
               variant: 'mutuallyExclusive',
-              value: {path: '/picked'},
+              value: {'@path': '/picked'},
               options: [
                 {label: 'A', value: 'a'},
                 {label: 'B', value: 'b'},

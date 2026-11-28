@@ -6,7 +6,8 @@
  * restored with each component in its catalog and each catalog in the build it was drawn in.
  */
 import {describe, expect, it, vi} from 'vitest';
-import {Catalog, type AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {Catalog, MessageProcessor, type AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {BASIC_CATALOG_SCHEMA, createSchemaFormCheck} from '@a2uiverse/sdk';
 import {basicCatalog} from '@a2ui/web_core/catalogs/basic/v1';
 import type {ReactCatalogComponent} from '@a2ui/react';
 import {capturePaint} from '../canvas/history/paintCopy';
@@ -98,6 +99,7 @@ describe('a paint drawn in its build', () => {
     deliver(first, create('a'), tree('a', 'one'), data('a', 'hi'));
     const created = vi.fn();
     processor.onSurfaceCreated(created);
+    const handed = vi.spyOn(MessageProcessor.prototype, 'processMessages');
     deliver(
       second,
       msg({
@@ -113,6 +115,14 @@ describe('a paint drawn in its build', () => {
     expect(moved.componentsModel.get('note')!.properties.text).toBe('two');
     expect(moved.dataModel.get('/greeting')).toBe('hi');
     expect(created).toHaveBeenCalledTimes(1);
+    // The surface re-created as it stood, in v1.0's forms (task-21.14 decision 13).
+    const recreated = handed.mock.calls.flatMap(([messages]) =>
+      Array.isArray(messages) ? messages : [messages],
+    );
+    handed.mockRestore();
+    expect(recreated.some(message => 'createSurface' in message)).toBe(true);
+    const check = createSchemaFormCheck({catalog: BASIC_CATALOG_SCHEMA});
+    expect(check.agentToRenderer(recreated)).toEqual([]);
   });
 
   it('leaves a surface where it is for a change assigned the build it already has, or none', () => {
@@ -188,7 +198,7 @@ describe('a surface that mixes catalogs (task-21.14 decisions 3, 5)', () => {
     const loaded = new Map([demo, one, two].map(b => [b.build!, b]));
     const book = createPaintBuilds(artifact => loaded.get(artifact));
     const processor = new BuildProcessor([], book);
-    const deliver = (builds: typeof demo[], ...messages: AgentToRendererMessage[]) => {
+    const deliver = (builds: (typeof demo)[], ...messages: AgentToRendererMessage[]) => {
       for (const message of messages) book.assign(message, builds);
       processor.processMessages(messages);
     };
@@ -222,12 +232,8 @@ describe('a surface that mixes catalogs (task-21.14 decisions 3, 5)', () => {
     deliver([demo, one], create('a'), mixed('a', 'first'));
     // Another surface draws the other catalog in its newer build.
     deliver([demo, two], create('b'), mixed('b', 'second'));
-    expect(processor.model.getSurface('a')!.componentsModel.get('note')!.catalog).toBe(
-      one.catalog,
-    );
-    expect(processor.model.getSurface('b')!.componentsModel.get('note')!.catalog).toBe(
-      two.catalog,
-    );
+    expect(processor.model.getSurface('a')!.componentsModel.get('note')!.catalog).toBe(one.catalog);
+    expect(processor.model.getSurface('b')!.componentsModel.get('note')!.catalog).toBe(two.catalog);
     deliver([two], mixed('a', 'moved'));
     const moved = processor.model.getSurface('a')!;
     expect(moved.componentsModel.get('note')!.catalog).toBe(two.catalog);

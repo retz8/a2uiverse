@@ -121,7 +121,11 @@ describe('loading a catalog', () => {
 
   it('refuses a descriptor for another catalog', async () => {
     const {loader} = fakeRegistry({
-      descriptor: {catalogId: 'urn:catalog:other', entry: 'index.js', hostInterface: HOST_INTERFACE_VERSION},
+      descriptor: {
+        catalogId: 'urn:catalog:other',
+        entry: 'index.js',
+        hostInterface: HOST_INTERFACE_VERSION,
+      },
     });
     await expect(loader.load(DEMO)).rejects.toThrow('the artifact is for urn:catalog:other');
   });

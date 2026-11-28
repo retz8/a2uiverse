@@ -1,7 +1,7 @@
 {
-  "name": "beat-35-pr-list-v091",
+  "name": "beat-35-pr-list-three",
   "beat": 35,
-  "title": "PR list in v0.9.1",
+  "title": "PR list, three pull requests",
   "prompt": "Show me the open pull requests on a2ui-project/a2ui that need review.",
   "model": "gemini-3.8-flash",
   "recordedAt": "2026-11-05T10:26:53Z",

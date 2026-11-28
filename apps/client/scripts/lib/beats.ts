@@ -853,11 +853,11 @@ export const BEATS: BeatSpec[] = [
     },
   },
   {
-    // Beat 1's question on GitHub's v0.9.1-only card: a recorded paint stamped v0.9.1 for the
-    // client's replay gate (task-19.6 decision 7).
+    // Beat 1's question again, a live recording of its own: three pull requests, both paints
+    // accepted (task-19.6 decision 7, task-21.14 decision 15).
     beat: 35,
-    slug: 'pr-list-v091',
-    title: 'PR list in v0.9.1',
+    slug: 'pr-list-three',
+    title: 'PR list, three pull requests',
     prompt: 'Show me the open pull requests on a2ui-project/a2ui that need review.',
   },
   {

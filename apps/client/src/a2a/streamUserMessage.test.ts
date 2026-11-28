@@ -112,7 +112,7 @@ describe('streamUserMessage', () => {
     });
   });
 
-  it('sends the current client data model as message metadata when a supplier is given', async () => {
+  it('sends the current data model of the renderer as message metadata when a supplier is given', async () => {
     const clientDataModel = {
       version: '1.0',
       surfaces: {s: {prs: [{selected: true}]}},

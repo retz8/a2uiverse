@@ -5,6 +5,7 @@
  * not list.
  */
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
+import {MessageProcessor} from '@a2ui/web_core/v1_0';
 import {useState} from 'react';
 import {screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -61,24 +62,30 @@ const SHOP_A = entry('shop-a', 'Shop A');
 const GMAIL = entry('gmail', 'Gmail');
 const ACME = entry('acme-notes', 'Acme Notes', {publisher: 'acme'});
 
+/** The stamp the samples' messages carry: `1.0`, unless a test says otherwise. */
+let sampleStamp: {version?: string} = {version: '1.0'};
+/** What a sample carries after its paint, when a test gives it more. */
+let sampleTail: Record<string, unknown>[] = [];
+
 const preview = (appId: string, text: string): PreviewDocument => ({
   appId,
   version: '1.0.0',
   words: 'What cameras do you have?',
   messages: [
-    {version: '1.0', createSurface: {surfaceId: 'main', catalogId: BASIC_CATALOG_ID}},
+    {...sampleStamp, createSurface: {surfaceId: 'main', catalogId: BASIC_CATALOG_ID}},
     {
-      version: '1.0',
+      ...sampleStamp,
       updateComponents: {
         surfaceId: 'main',
         components: [
           {id: 'root', component: 'Column', children: ['line', 'buy']},
           {id: 'line', component: 'Text', text},
-          {id: 'buy', component: 'Button', child: 'buy-label', action: {event: {name: 'buy'}}},
-          {id: 'buy-label', component: 'Text', text: 'Buy'},
+          {id: 'buy', component: 'Button', child: 'buy_label', action: {event: {name: 'buy'}}},
+          {id: 'buy_label', component: 'Text', text: 'Buy'},
         ],
       },
     },
+    ...sampleTail,
   ],
   capturedBy: 'marketplace',
   capturedAt: '2026-10-03T10:00:00Z',
@@ -108,6 +115,8 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {status, headers: {'Content-Type': 'application/json'}});
 
 beforeEach(() => {
+  sampleStamp = {version: '1.0'};
+  sampleTail = [];
   fake = {
     listings: [
       {entry: SHOP_A, installed: false},
@@ -302,6 +311,43 @@ describe('an app’s view', () => {
     expect(within(sample).getByText('Linear: Lumen X100 · $1,449')).toBeInTheDocument();
     expect(within(sample).getByText('“What cameras do you have?”')).toBeInTheDocument();
     expect(sample).toHaveTextContent('Made by the Store when Linear was published');
+  });
+
+  it.each([
+    ['v0.9', {version: 'v0.9'}],
+    ['above 1.0', {version: '1.1'}],
+    ['with no version', {}],
+  ])(
+    'leaves a sample stamped %s unshown, as a sample that cannot be shown (task-21.14 decision 10)',
+    async (_name, stamp) => {
+      sampleStamp = stamp;
+      renderWithShell(<Store initial={{page: 'store', app: 'linear'}} />);
+      const sample = await screen.findByRole('figure', {name: 'Sample answer from Linear'});
+      await waitFor(() => expect(sample).toHaveAttribute('data-status', 'failed'));
+      expect(within(sample).queryByText('Linear: Lumen X100 · $1,449')).toBeNull();
+    },
+  );
+
+  it('draws a sample carrying a function call without running the call (task-21.14 decision 10)', async () => {
+    const run = vi.spyOn(MessageProcessor.prototype, 'processMessages');
+    sampleTail = [
+      {
+        version: '1.0',
+        callRendererFunction: {
+          surfaceId: 'main',
+          functionCallId: 'call-1',
+          callFunction: {'@call': 'formatString', catalogId: BASIC_CATALOG_ID, args: {value: 'x'}},
+        },
+      },
+    ];
+    renderWithShell(<Store initial={{page: 'store', app: 'linear'}} />);
+    const sample = await screen.findByRole('figure', {name: 'Sample answer from Linear'});
+    await waitFor(() => expect(sample).toHaveAttribute('data-status', 'ready'));
+    const handed = run.mock.calls.flatMap(([messages]) =>
+      Array.isArray(messages) ? messages : [messages],
+    );
+    expect(handed.some(message => 'callRendererFunction' in (message as object))).toBe(false);
+    run.mockRestore();
   });
 
   it('draws the sample as a picture: nothing in it takes a press (task-14.7 decision 5)', async () => {

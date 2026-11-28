@@ -18,7 +18,7 @@ import {
   type A2AStreamEventData,
 } from '../a2a/messages';
 import {CATALOGS} from '../../tests/helpers';
-import {snapshotCatalogId, snapshotCatalogs} from '../../tests/snapshot';
+import {snapshotCatalogId, snapshotCatalogs, SNAPSHOT_READY} from '../../tests/snapshot';
 import {Providers} from '../providers';
 import {CanvasApp} from './CanvasApp';
 
@@ -96,15 +96,15 @@ const GMAIL_LAYOUT = [
     updateComponents: {
       surfaceId: 'shell:main',
       components: [
-        {id: 'root', component: 'Column', children: ['attribution-slot-gmail']},
+        {id: 'root', component: 'Column', children: ['attribution_slot_gmail']},
         {
-          id: 'attribution-slot-gmail',
+          id: 'attribution_slot_gmail',
           component: 'Attribution',
           displayName: 'Gmail',
           source: 'gmail',
-          child: 'slot-gmail',
+          child: 'slot_gmail',
         },
-        {id: 'slot-gmail', component: 'Slot', source: 'gmail', state: 'pending', label: 'Gmail'},
+        {id: 'slot_gmail', component: 'Slot', source: 'gmail', state: 'pending', label: 'Gmail'},
       ],
     },
   },
@@ -182,21 +182,24 @@ describe('CanvasApp', () => {
     expect(screen.getByRole('textbox', {name: /ask the agent/i})).toBeInTheDocument();
   });
 
-  it('an utterance closes the palette, shows in-flight, and lands the paint on the stage', async () => {
-    const {sender, sent, release} = scriptedSender([eventOf(SURFACE_MESSAGES)], true);
-    renderCanvas(sender);
+  it.skipIf(!SNAPSHOT_READY)(
+    'an utterance closes the palette, shows in-flight, and lands the paint on the stage',
+    async () => {
+      const {sender, sent, release} = scriptedSender([eventOf(SURFACE_MESSAGES)], true);
+      renderCanvas(sender);
 
-    await ask('show me something');
+      await ask('show me something');
 
-    expect(sent).toHaveLength(1);
-    expect(screen.queryByRole('textbox', {name: /ask the agent/i})).toBeNull();
-    expect(screen.getByTestId('canvas-pending')).toBeInTheDocument();
+      expect(sent).toHaveLength(1);
+      expect(screen.queryByRole('textbox', {name: /ask the agent/i})).toBeNull();
+      expect(screen.getByTestId('canvas-pending')).toBeInTheDocument();
 
-    release();
+      release();
 
-    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
-    await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
-  });
+      expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
+    },
+  );
 
   it('routes agent prose into the ambient notice', async () => {
     const {sender} = scriptedSender([eventOf(SURFACE_MESSAGES, ['here you go'])]);
@@ -207,208 +210,229 @@ describe('CanvasApp', () => {
     expect(await screen.findByTestId('canvas-notice')).toHaveTextContent('here you go');
   });
 
-  it('a stage surface action dispatches to the agent and repaints the stage', async () => {
-    const {sender, sent} = scriptedSender([
-      eventOf(ACTIONABLE_MESSAGES),
-      eventOf(SURFACE_MESSAGES),
-    ]);
-    renderCanvas(sender);
+  it.skipIf(!SNAPSHOT_READY)(
+    'a stage surface action dispatches to the agent and repaints the stage',
+    async () => {
+      const {sender, sent} = scriptedSender([
+        eventOf(ACTIONABLE_MESSAGES),
+        eventOf(SURFACE_MESSAGES),
+      ]);
+      renderCanvas(sender);
 
-    await ask('show me issues');
-    await userEvent.click(await screen.findByRole('button', {name: 'Open issue'}));
+      await ask('show me issues');
+      await userEvent.click(await screen.findByRole('button', {name: 'Open issue'}));
 
-    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
-    expect(sent).toHaveLength(2);
-    expect(screen.queryByText('Open issue')).toBeNull();
-  });
+      expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
+      expect(sent).toHaveLength(2);
+      expect(screen.queryByText('Open issue')).toBeNull();
+    },
+  );
 
-  it('a new question opens a canvas of its own: on screen at once, the previous one running on in the trail (task-9.6 decisions 1, 13)', async () => {
-    // First send resolves immediately; the second stays gated so the new canvas is observably
-    // in flight while the first stands behind it.
-    const sent: SendMessageRequest[] = [];
-    let release: () => void = () => {};
-    const gate = new Promise<void>(resolve => {
-      release = resolve;
-    });
-    const sender: A2AMessageSender = {
-      async *sendMessageStream(params) {
-        const index = sent.length;
-        sent.push(params);
-        if (index === 0) {
-          yield eventOf(SURFACE_MESSAGES, [], 'ctx-1');
-          return;
-        }
-        await gate;
-        yield eventOf(ACTIONABLE_MESSAGES, [], 'ctx-2');
-      },
-    };
-    renderCanvas(sender);
-    await ask('show me something');
-    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
-
-    await userEvent.keyboard('{Meta>}k{/Meta}');
-    await ask('now the issues');
-    // The new canvas is on screen, planning; the first left the screen but not the session.
-    expect(screen.getByTestId('canvas-pending')).toBeInTheDocument();
-    expect(screen.queryByText('hello from the agent')).toBeNull();
-    expect(screen.getByTestId('canvas-question')).toHaveTextContent('now the issues');
-
-    // Back: the first canvas, as it was, under the band; the new one still loads behind it.
-    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
-    expect(screen.getByTestId('canvas-band')).toHaveTextContent(/Parked · asked at/);
-    expect(screen.getByRole('button', {name: 'Ask from this view'})).toBeInTheDocument();
-
-    release();
-    await userEvent.click(screen.getByRole('button', {name: /Return to live/}));
-    expect(await screen.findByRole('button', {name: 'Open issue'})).toBeInTheDocument();
-    expect(screen.queryByTestId('canvas-band')).toBeNull();
-    await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
-  });
-
-  it('a question paint lands as a paint like any other; answering dispatches the action (task-12.13 decision 37)', async () => {
-    const QUESTION_MESSAGES = [
-      // The declared marker names the paint a question; it rides its own DataPart, ahead of the
-      // create, and moves nothing.
-      {paintMeta: {surfaceId: 'which-repo', kind: 'question'}},
-      {version: '1.0', createSurface: {surfaceId: 'which-repo', catalogId: CATALOG_ID}},
-      {
-        version: '1.0',
-        updateComponents: {
-          surfaceId: 'which-repo',
-          components: [
-            {
-              id: 'root',
-              component: 'ConfirmationDialog',
-              title: 'Which repository?',
-              confirmButtonContent: 'a2ui-project/a2ui',
-              cancelButtonContent: 'Somewhere else',
-              confirmAction: {event: {name: 'choose-repo', context: {}}},
-              cancelAction: {event: {name: 'choose-other', context: {}}},
-            },
-          ],
+  it.skipIf(!SNAPSHOT_READY)(
+    'a new question opens a canvas of its own: on screen at once, the previous one running on in the trail (task-9.6 decisions 1, 13)',
+    async () => {
+      // First send resolves immediately; the second stays gated so the new canvas is observably
+      // in flight while the first stands behind it.
+      const sent: SendMessageRequest[] = [];
+      let release: () => void = () => {};
+      const gate = new Promise<void>(resolve => {
+        release = resolve;
+      });
+      const sender: A2AMessageSender = {
+        async *sendMessageStream(params) {
+          const index = sent.length;
+          sent.push(params);
+          if (index === 0) {
+            yield eventOf(SURFACE_MESSAGES, [], 'ctx-1');
+            return;
+          }
+          await gate;
+          yield eventOf(ACTIONABLE_MESSAGES, [], 'ctx-2');
         },
-      },
-    ];
-    const {sender, sent} = scriptedSender([eventOf(QUESTION_MESSAGES), eventOf(SURFACE_MESSAGES)]);
-    renderCanvas(sender);
+      };
+      renderCanvas(sender);
+      await ask('show me something');
+      expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
 
-    await ask('do the ambiguous thing');
-    expect(await screen.findByText('Which repository?')).toBeInTheDocument();
-    // No overlay: the paint is where any paint goes.
-    expect(screen.queryByTestId('canvas-overlay')).toBeNull();
+      await userEvent.keyboard('{Meta>}k{/Meta}');
+      await ask('now the issues');
+      // The new canvas is on screen, planning; the first left the screen but not the session.
+      expect(screen.getByTestId('canvas-pending')).toBeInTheDocument();
+      expect(screen.queryByText('hello from the agent')).toBeNull();
+      expect(screen.getByTestId('canvas-question')).toHaveTextContent('now the issues');
 
-    await userEvent.click(screen.getByRole('button', {name: 'a2ui-project/a2ui'}));
+      // Back: the first canvas, as it was, under the band; the new one still loads behind it.
+      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+      expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
+      expect(screen.getByTestId('canvas-band')).toHaveTextContent(/Parked · asked at/);
+      expect(screen.getByRole('button', {name: 'Ask from this view'})).toBeInTheDocument();
 
-    // The answer rode the wire as the raw action event, and the resulting paint landed.
-    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
-    expect(sent).toHaveLength(2);
-    const data = sent[1].message!.parts.map(dataOf).find(d => d !== undefined);
-    expect(data?.action).toMatchObject({name: 'choose-repo', surfaceId: 'which-repo'});
-    // The answer's paint replaced the question's.
-    expect(screen.queryByText('Which repository?')).toBeNull();
-  });
+      release();
+      await userEvent.click(screen.getByRole('button', {name: /Return to live/}));
+      expect(await screen.findByRole('button', {name: 'Open issue'})).toBeInTheDocument();
+      expect(screen.queryByTestId('canvas-band')).toBeNull();
+      await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
+    },
+  );
 
-  it('holds a press back while the screen is still loading, and says so in plain words (task 18.1)', async () => {
-    // First send resolves immediately with the actionable surface; the second stays gated so
-    // the click's paint is observably in flight when the third click arrives.
-    const sent: SendMessageRequest[] = [];
-    let release: () => void = () => {};
-    const gate = new Promise<void>(resolve => {
-      release = resolve;
-    });
-    const sender: A2AMessageSender = {
-      async *sendMessageStream(params) {
-        const index = sent.length;
-        sent.push(params);
-        if (index === 0) {
-          yield eventOf(ACTIONABLE_MESSAGES);
-          return;
-        }
-        await gate;
-        yield eventOf(SURFACE_MESSAGES);
-      },
-    };
-    renderCanvas(sender);
-    await ask('show me issues');
-    const button = await screen.findByRole('button', {name: 'Open issue'});
+  it.skipIf(!SNAPSHOT_READY)(
+    'a question paint lands as a paint like any other; answering dispatches the action (task-12.13 decision 37)',
+    async () => {
+      const QUESTION_MESSAGES = [
+        // The declared marker names the paint a question; it rides its own DataPart, ahead of the
+        // create, and moves nothing.
+        {paintMeta: {surfaceId: 'which-repo', kind: 'question'}},
+        {version: '1.0', createSurface: {surfaceId: 'which-repo', catalogId: CATALOG_ID}},
+        {
+          version: '1.0',
+          updateComponents: {
+            surfaceId: 'which-repo',
+            components: [
+              {
+                id: 'root',
+                component: 'ConfirmationDialog',
+                title: 'Which repository?',
+                confirmButtonContent: 'a2ui-project/a2ui',
+                cancelButtonContent: 'Somewhere else',
+                confirmAction: {event: {name: 'choose-repo', context: {}}},
+                cancelAction: {event: {name: 'choose-other', context: {}}},
+              },
+            ],
+          },
+        },
+      ];
+      const {sender, sent} = scriptedSender([
+        eventOf(QUESTION_MESSAGES),
+        eventOf(SURFACE_MESSAGES),
+      ]);
+      renderCanvas(sender);
 
-    await userEvent.click(button);
-    await waitFor(() => expect(sent).toHaveLength(2));
-    await userEvent.click(button);
+      await ask('do the ambiguous thing');
+      expect(await screen.findByText('Which repository?')).toBeInTheDocument();
+      // No overlay: the paint is where any paint goes.
+      expect(screen.queryByTestId('canvas-overlay')).toBeNull();
 
-    expect(sent).toHaveLength(2);
-    expect(screen.getByTestId('canvas-notice')).toHaveTextContent(
-      'This screen is still loading. Try again once it has finished.',
-    );
-    release();
-    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
-  });
+      await userEvent.click(screen.getByRole('button', {name: 'a2ui-project/a2ui'}));
 
-  it('a press held back while its own app is still redrawing borrows the busy line; the screen line once that app is done (task 18.1)', async () => {
-    const sent: SendMessageRequest[] = [];
-    let releaseSettled: () => void = () => {};
-    let releaseEnd: () => void = () => {};
-    const settledGate = new Promise<void>(resolve => {
-      releaseSettled = resolve;
-    });
-    const endGate = new Promise<void>(resolve => {
-      releaseEnd = resolve;
-    });
-    const sender: A2AMessageSender = {
-      async *sendMessageStream(params) {
-        const index = sent.length;
-        sent.push(params);
-        if (index === 0) {
-          yield stamped(GMAIL_LAYOUT, SHELL_STAMP);
-          yield stamped(GMAIL_FRAGMENT, GMAIL_STAMP);
+      // The answer rode the wire as the raw action event, and the resulting paint landed.
+      expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
+      expect(sent).toHaveLength(2);
+      const data = sent[1].message!.parts.map(dataOf).find(d => d !== undefined);
+      expect(data?.action).toMatchObject({name: 'choose-repo', surfaceId: 'which-repo'});
+      // The answer's paint replaced the question's.
+      expect(screen.queryByText('Which repository?')).toBeNull();
+    },
+  );
+
+  it.skipIf(!SNAPSHOT_READY)(
+    'holds a press back while the screen is still loading, and says so in plain words (task 18.1)',
+    async () => {
+      // First send resolves immediately with the actionable surface; the second stays gated so
+      // the click's paint is observably in flight when the third click arrives.
+      const sent: SendMessageRequest[] = [];
+      let release: () => void = () => {};
+      const gate = new Promise<void>(resolve => {
+        release = resolve;
+      });
+      const sender: A2AMessageSender = {
+        async *sendMessageStream(params) {
+          const index = sent.length;
+          sent.push(params);
+          if (index === 0) {
+            yield eventOf(ACTIONABLE_MESSAGES);
+            return;
+          }
+          await gate;
+          yield eventOf(SURFACE_MESSAGES);
+        },
+      };
+      renderCanvas(sender);
+      await ask('show me issues');
+      const button = await screen.findByRole('button', {name: 'Open issue'});
+
+      await userEvent.click(button);
+      await waitFor(() => expect(sent).toHaveLength(2));
+      await userEvent.click(button);
+
+      expect(sent).toHaveLength(2);
+      expect(screen.getByTestId('canvas-notice')).toHaveTextContent(
+        'This screen is still loading. Try again once it has finished.',
+      );
+      release();
+      expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
+    },
+  );
+
+  it.skipIf(!SNAPSHOT_READY)(
+    'a press held back while its own app is still redrawing borrows the busy line; the screen line once that app is done (task 18.1)',
+    async () => {
+      const sent: SendMessageRequest[] = [];
+      let releaseSettled: () => void = () => {};
+      let releaseEnd: () => void = () => {};
+      const settledGate = new Promise<void>(resolve => {
+        releaseSettled = resolve;
+      });
+      const endGate = new Promise<void>(resolve => {
+        releaseEnd = resolve;
+      });
+      const sender: A2AMessageSender = {
+        async *sendMessageStream(params) {
+          const index = sent.length;
+          sent.push(params);
+          if (index === 0) {
+            yield stamped(GMAIL_LAYOUT, SHELL_STAMP);
+            yield stamped(GMAIL_FRAGMENT, GMAIL_STAMP);
+            yield stamped([], {...GMAIL_STAMP, settled: true});
+            yield stamped([], SHELL_STAMP, true);
+            return;
+          }
+          // The press's answer: Gmail's own stream ends first, the turn runs on until released.
+          await settledGate;
           yield stamped([], {...GMAIL_STAMP, settled: true});
+          await endGate;
           yield stamped([], SHELL_STAMP, true);
-          return;
-        }
-        // The press's answer: Gmail's own stream ends first, the turn runs on until released.
-        await settledGate;
-        yield stamped([], {...GMAIL_STAMP, settled: true});
-        await endGate;
-        yield stamped([], SHELL_STAMP, true);
-      },
-    };
-    renderCanvas(sender);
-    await ask('what needs my attention');
-    const book = await screen.findByRole('button', {name: 'Book'});
-    await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
+        },
+      };
+      renderCanvas(sender);
+      await ask('what needs my attention');
+      const book = await screen.findByRole('button', {name: 'Book'});
+      await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
 
-    await userEvent.click(book);
-    await waitFor(() => expect(sent).toHaveLength(2));
-    await userEvent.click(book);
-    expect(sent).toHaveLength(2);
-    expect(screen.getByTestId('canvas-notice')).toHaveTextContent(
-      'Gmail is still working on that. Try again once it has finished.',
-    );
+      await userEvent.click(book);
+      await waitFor(() => expect(sent).toHaveLength(2));
+      await userEvent.click(book);
+      expect(sent).toHaveLength(2);
+      expect(screen.getByTestId('canvas-notice')).toHaveTextContent(
+        'Gmail is still working on that. Try again once it has finished.',
+      );
 
-    // Gmail is done while the turn runs on: the app is no longer the reason, the screen is.
-    releaseSettled();
-    await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
-    await userEvent.click(book);
-    expect(sent).toHaveLength(2);
-    expect(screen.getByTestId('canvas-notice')).toHaveTextContent(
-      'This screen is still loading. Try again once it has finished.',
-    );
-    releaseEnd();
-  });
+      // Gmail is done while the turn runs on: the app is no longer the reason, the screen is.
+      releaseSettled();
+      await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
+      await userEvent.click(book);
+      expect(sent).toHaveLength(2);
+      expect(screen.getByTestId('canvas-notice')).toHaveTextContent(
+        'This screen is still loading. Try again once it has finished.',
+      );
+      releaseEnd();
+    },
+  );
 
-  it('?beat= accepts a comma-separated list and replays the beats in sequence', async () => {
-    window.history.replaceState(null, '', '?beat=plain,plain-2&instant');
-    renderCanvas();
+  it.skipIf(!SNAPSHOT_READY)(
+    '?beat= accepts a comma-separated list and replays the beats in sequence',
+    async () => {
+      window.history.replaceState(null, '', '?beat=plain,plain-2&instant');
+      renderCanvas();
 
-    await waitFor(() => expect(screen.getByTestId('canvas-stage')).not.toBeEmptyDOMElement());
-    await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
-    // Both beats ran, each a canvas of its own: the second live, the first a step back.
-    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-    expect(await screen.findByTestId('canvas-band')).toBeInTheDocument();
-  });
+      await waitFor(() => expect(screen.getByTestId('canvas-stage')).not.toBeEmptyDOMElement());
+      await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
+      // Both beats ran, each a canvas of its own: the second live, the first a step back.
+      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+      expect(await screen.findByTestId('canvas-band')).toBeInTheDocument();
+    },
+  );
 
-  it('?beat= replays a synthetic beat onto the stage', async () => {
+  it.skipIf(!SNAPSHOT_READY)('?beat= replays a synthetic beat onto the stage', async () => {
     window.history.replaceState(null, '', '?beat=plain&instant');
     renderCanvas();
 
@@ -495,25 +519,28 @@ const parentOf = (params: SendMessageRequest) =>
   (metadataOf(params)?.a2uiverse as {parent?: string} | undefined)?.parent;
 
 describe('CanvasApp trail (task 9.6)', () => {
-  it('Back views the previous canvas under the band; Return to live restores live', async () => {
-    await askTwo();
-    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+  it.skipIf(!SNAPSHOT_READY)(
+    'Back views the previous canvas under the band; Return to live restores live',
+    async () => {
+      await askTwo();
+      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
 
-    expect(await screen.findByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
-    expect(screen.queryByText('hello from the agent')).toBeNull();
-    const band = screen.getByTestId('canvas-band');
-    expect(band).toHaveTextContent(/Parked · asked at \d\d:\d\d/);
-    expect(screen.getByRole('button', {name: 'Ask this again now'})).toBeInTheDocument();
-    // Return to live names the live question.
-    expect(screen.getByRole('button', {name: /Return to live/})).toHaveTextContent(
-      'show me something',
-    );
-    expect(screen.getByRole('button', {name: 'Back'})).toBeDisabled();
+      expect(await screen.findByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
+      expect(screen.queryByText('hello from the agent')).toBeNull();
+      const band = screen.getByTestId('canvas-band');
+      expect(band).toHaveTextContent(/Parked · asked at \d\d:\d\d/);
+      expect(screen.getByRole('button', {name: 'Ask this again now'})).toBeInTheDocument();
+      // Return to live names the live question.
+      expect(screen.getByRole('button', {name: /Return to live/})).toHaveTextContent(
+        'show me something',
+      );
+      expect(screen.getByRole('button', {name: 'Back'})).toBeDisabled();
 
-    await userEvent.click(screen.getByRole('button', {name: /Return to live/}));
-    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
-    expect(screen.queryByTestId('canvas-band')).toBeNull();
-  });
+      await userEvent.click(screen.getByRole('button', {name: /Return to live/}));
+      expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
+      expect(screen.queryByTestId('canvas-band')).toBeNull();
+    },
+  );
 
   it('Back and Trail are disabled with nothing behind; the band is absent while live', () => {
     renderCanvas();
@@ -522,113 +549,125 @@ describe('CanvasApp trail (task 9.6)', () => {
     expect(screen.queryByTestId('canvas-band')).toBeNull();
   });
 
-  it('Trail opens the rail: newest first, Live and Viewing marked; picking an entry views it and closes the rail (decisions 9, 11)', async () => {
-    await askTwo();
-    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
-    const rail = await screen.findByRole('navigation', {name: 'Trail of past canvases'});
-    expect(rail).toHaveTextContent('Today');
-    const labels = screen.getAllByTestId('canvas-trail-label').map(el => el.textContent);
-    expect(labels).toEqual(['show me something', 'show my filters']);
-    const entries = screen.getAllByTestId('canvas-trail-entry');
-    expect(entries[0]).toHaveTextContent('Live');
-    expect(entries[0]).toHaveTextContent('Viewing');
-    expect(entries[1]).not.toHaveTextContent('Viewing');
-    // The gutter's buttons give way to the rail's own top row.
-    expect(screen.queryByRole('button', {name: 'Back'})).toBeNull();
+  it.skipIf(!SNAPSHOT_READY)(
+    'Trail opens the rail: newest first, Live and Viewing marked; picking an entry views it and closes the rail (decisions 9, 11)',
+    async () => {
+      await askTwo();
+      await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+      const rail = await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+      expect(rail).toHaveTextContent('Today');
+      const labels = screen.getAllByTestId('canvas-trail-label').map(el => el.textContent);
+      expect(labels).toEqual(['show me something', 'show my filters']);
+      const entries = screen.getAllByTestId('canvas-trail-entry');
+      expect(entries[0]).toHaveTextContent('Live');
+      expect(entries[0]).toHaveTextContent('Viewing');
+      expect(entries[1]).not.toHaveTextContent('Viewing');
+      // The gutter's buttons give way to the rail's own top row.
+      expect(screen.queryByRole('button', {name: 'Back'})).toBeNull();
 
-    await userEvent.click(pick('show my filters'));
-    expect(await screen.findByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
-    expect(screen.getByTestId('canvas-band')).toBeInTheDocument();
-    // The pick closes the drawer, which slides out: gone once its exit has run.
-    await waitFor(() =>
-      expect(screen.queryByRole('navigation', {name: 'Trail of past canvases'})).toBeNull(),
-    );
-    expect(screen.getByRole('button', {name: 'Back'})).toBeInTheDocument();
+      await userEvent.click(pick('show my filters'));
+      expect(await screen.findByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
+      expect(screen.getByTestId('canvas-band')).toBeInTheDocument();
+      // The pick closes the drawer, which slides out: gone once its exit has run.
+      await waitFor(() =>
+        expect(screen.queryByRole('navigation', {name: 'Trail of past canvases'})).toBeNull(),
+      );
+      expect(screen.getByRole('button', {name: 'Back'})).toBeInTheDocument();
 
-    // Reopened, the viewed one is marked; the rail's own icon closes it too.
-    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
-    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
-    expect(screen.getAllByTestId('canvas-trail-entry')[1]).toHaveTextContent('Viewing');
-    await userEvent.click(screen.getByRole('button', {name: 'Close the trail'}));
-    await waitFor(() =>
-      expect(screen.queryByRole('navigation', {name: 'Trail of past canvases'})).toBeNull(),
-    );
+      // Reopened, the viewed one is marked; the rail's own icon closes it too.
+      await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+      await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+      expect(screen.getAllByTestId('canvas-trail-entry')[1]).toHaveTextContent('Viewing');
+      await userEvent.click(screen.getByRole('button', {name: 'Close the trail'}));
+      await waitFor(() =>
+        expect(screen.queryByRole('navigation', {name: 'Trail of past canvases'})).toBeNull(),
+      );
 
-    // And a click on the scrim over the page closes it, landing nowhere else.
-    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
-    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
-    await userEvent.click(screen.getByTestId('canvas-trail-scrim'));
-    await waitFor(() =>
-      expect(screen.queryByRole('navigation', {name: 'Trail of past canvases'})).toBeNull(),
-    );
-    expect(screen.getByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
-  });
+      // And a click on the scrim over the page closes it, landing nowhere else.
+      await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+      await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+      await userEvent.click(screen.getByTestId('canvas-trail-scrim'));
+      await waitFor(() =>
+        expect(screen.queryByRole('navigation', {name: 'Trail of past canvases'})).toBeNull(),
+      );
+      expect(screen.getByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
+    },
+  );
 
-  it('a question asked from a past canvas is its child, marked "from" in the rail; the parent stands (decision 5)', async () => {
-    const {sent} = await askTwo([BOUND_MESSAGES, SURFACE_MESSAGES, ACTIONABLE_MESSAGES]);
-    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-    await screen.findByRole('checkbox', {name: 'urgent only'});
+  it.skipIf(!SNAPSHOT_READY)(
+    'a question asked from a past canvas is its child, marked "from" in the rail; the parent stands (decision 5)',
+    async () => {
+      const {sent} = await askTwo([BOUND_MESSAGES, SURFACE_MESSAGES, ACTIONABLE_MESSAGES]);
+      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+      await screen.findByRole('checkbox', {name: 'urgent only'});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Ask from this view'}));
-    await ask('branch off');
-    expect(await screen.findByRole('button', {name: 'Open issue'})).toBeInTheDocument();
-    expect(screen.queryByTestId('canvas-band')).toBeNull();
+      await userEvent.click(screen.getByRole('button', {name: 'Ask from this view'}));
+      await ask('branch off');
+      expect(await screen.findByRole('button', {name: 'Open issue'})).toBeInTheDocument();
+      expect(screen.queryByTestId('canvas-band')).toBeNull();
 
-    // On the wire: no contextId, the viewed canvas's context as the parent.
-    expect(sent).toHaveLength(3);
-    expect(sent[2].message!.contextId).toBe('');
-    expect(parentOf(sent[2])).toBe('ctx-1');
-    // The second question, asked from live, named live as its parent — a child, not a branch.
-    expect(parentOf(sent[1])).toBe('ctx-1');
-    expect(parentOf(sent[0])).toBeUndefined();
+      // On the wire: no contextId, the viewed canvas's context as the parent.
+      expect(sent).toHaveLength(3);
+      expect(sent[2].message!.contextId).toBe('');
+      expect(parentOf(sent[2])).toBe('ctx-1');
+      // The second question, asked from live, named live as its parent — a child, not a branch.
+      expect(parentOf(sent[1])).toBe('ctx-1');
+      expect(parentOf(sent[0])).toBeUndefined();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
-    const entries = await screen.findAllByTestId('canvas-trail-entry');
-    expect(entries).toHaveLength(3);
-    expect(entries[0]).toHaveAttribute('data-branch', 'true');
-    expect(
-      within(entries[0]).getByRole('img', {name: 'Asked from show my filters'}),
-    ).toBeInTheDocument();
-    expect(entries[1]).not.toHaveAttribute('data-branch');
-    // The mark names the parent, which still stands; hovering it lights the parent's row.
-    await userEvent.hover(screen.getByTitle('Asked from show my filters'));
-    expect(entries[2]).toHaveClass('canvas-trail-entry--lit');
-    await userEvent.unhover(screen.getByTitle('Asked from show my filters'));
-    expect(entries[2]).not.toHaveClass('canvas-trail-entry--lit');
-  });
+      await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+      const entries = await screen.findAllByTestId('canvas-trail-entry');
+      expect(entries).toHaveLength(3);
+      expect(entries[0]).toHaveAttribute('data-branch', 'true');
+      expect(
+        within(entries[0]).getByRole('img', {name: 'Asked from show my filters'}),
+      ).toBeInTheDocument();
+      expect(entries[1]).not.toHaveAttribute('data-branch');
+      // The mark names the parent, which still stands; hovering it lights the parent's row.
+      await userEvent.hover(screen.getByTitle('Asked from show my filters'));
+      expect(entries[2]).toHaveClass('canvas-trail-entry--lit');
+      await userEvent.unhover(screen.getByTitle('Asked from show my filters'));
+      expect(entries[2]).not.toHaveClass('canvas-trail-entry--lit');
+    },
+  );
 
-  it('"Ask this again now" sends the viewed question as a child of that canvas and shows the new live canvas (decision 7)', async () => {
-    const {sent} = await askTwo([BOUND_MESSAGES, SURFACE_MESSAGES, ACTIONABLE_MESSAGES]);
-    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-    await screen.findByRole('checkbox', {name: 'urgent only'});
+  it.skipIf(!SNAPSHOT_READY)(
+    '"Ask this again now" sends the viewed question as a child of that canvas and shows the new live canvas (decision 7)',
+    async () => {
+      const {sent} = await askTwo([BOUND_MESSAGES, SURFACE_MESSAGES, ACTIONABLE_MESSAGES]);
+      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+      await screen.findByRole('checkbox', {name: 'urgent only'});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Ask this again now'}));
-    expect(await screen.findByRole('button', {name: 'Open issue'})).toBeInTheDocument();
-    expect(screen.queryByTestId('canvas-band')).toBeNull();
-    expect(screen.getByTestId('canvas-question')).toHaveTextContent('show my filters');
-    const text = sent[2].message!.parts.find(p => p.content?.$case === 'text');
-    expect(text?.content?.value).toBe('show my filters');
-    expect(parentOf(sent[2])).toBe('ctx-1');
-    expect(metadataOf(sent[2])?.a2uiRendererDataModel).toBeUndefined();
-  });
+      await userEvent.click(screen.getByRole('button', {name: 'Ask this again now'}));
+      expect(await screen.findByRole('button', {name: 'Open issue'})).toBeInTheDocument();
+      expect(screen.queryByTestId('canvas-band')).toBeNull();
+      expect(screen.getByTestId('canvas-question')).toHaveTextContent('show my filters');
+      const text = sent[2].message!.parts.find(p => p.content?.$case === 'text');
+      expect(text?.content?.value).toBe('show my filters');
+      expect(parentOf(sent[2])).toBe('ctx-1');
+      expect(metadataOf(sent[2])?.a2uiRendererDataModel).toBeUndefined();
+    },
+  );
 
-  it('an action inside a past canvas lands in it, on its own context; the live canvas is untouched (phase decision 4)', async () => {
-    const {sent} = await askTwo([ACTIONABLE_MESSAGES, SURFACE_MESSAGES, BOUND_MESSAGES]);
-    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Open issue'}));
+  it.skipIf(!SNAPSHOT_READY)(
+    'an action inside a past canvas lands in it, on its own context; the live canvas is untouched (phase decision 4)',
+    async () => {
+      const {sent} = await askTwo([ACTIONABLE_MESSAGES, SURFACE_MESSAGES, BOUND_MESSAGES]);
+      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Open issue'}));
 
-    // The answer landed in the past canvas, still parked; nothing moved to live.
-    expect(await screen.findByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
-    expect(screen.getByTestId('canvas-band')).toBeInTheDocument();
-    expect(sent).toHaveLength(3);
-    expect(sent[2].message!.contextId).toBe('ctx-1');
-    expect(parentOf(sent[2])).toBeUndefined();
+      // The answer landed in the past canvas, still parked; nothing moved to live.
+      expect(await screen.findByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
+      expect(screen.getByTestId('canvas-band')).toBeInTheDocument();
+      expect(sent).toHaveLength(3);
+      expect(sent[2].message!.contextId).toBe('ctx-1');
+      expect(parentOf(sent[2])).toBeUndefined();
 
-    await userEvent.click(screen.getByRole('button', {name: /Return to live/}));
-    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
-  });
+      await userEvent.click(screen.getByRole('button', {name: /Return to live/}));
+      expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
+    },
+  );
 
-  it('a past canvas keeps the state the user left it in', async () => {
+  it.skipIf(!SNAPSHOT_READY)('a past canvas keeps the state the user left it in', async () => {
     await askTwo();
     await userEvent.click(screen.getByRole('button', {name: 'Back'}));
     await userEvent.click(await screen.findByRole('checkbox', {name: 'urgent only'}));
@@ -640,97 +679,109 @@ describe('CanvasApp trail (task 9.6)', () => {
     expect(await screen.findByRole('checkbox', {name: 'urgent only'})).toBeChecked();
   });
 
-  it('closing: the viewed canvas returns to live, live makes the newest remaining live, the last leaves the empty canvas; the orchestrator is told (decision 8)', async () => {
-    const {sent} = await askTwo();
-    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
-    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
-    await userEvent.click(pick('show my filters'));
-    await screen.findByRole('checkbox', {name: 'urgent only'});
-    // The pick closed the drawer; the close is in it.
-    await waitFor(() =>
-      expect(screen.queryByRole('navigation', {name: 'Trail of past canvases'})).toBeNull(),
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
-    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+  it.skipIf(!SNAPSHOT_READY)(
+    'closing: the viewed canvas returns to live, live makes the newest remaining live, the last leaves the empty canvas; the orchestrator is told (decision 8)',
+    async () => {
+      const {sent} = await askTwo();
+      await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+      await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+      await userEvent.click(pick('show my filters'));
+      await screen.findByRole('checkbox', {name: 'urgent only'});
+      // The pick closed the drawer; the close is in it.
+      await waitFor(() =>
+        expect(screen.queryByRole('navigation', {name: 'Trail of past canvases'})).toBeNull(),
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+      await screen.findByRole('navigation', {name: 'Trail of past canvases'});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Close show my filters'}));
-    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
-    expect(screen.queryByTestId('canvas-band')).toBeNull();
-    expect(screen.getAllByTestId('canvas-trail-entry')).toHaveLength(1);
-    await waitFor(() => expect(sent).toHaveLength(3));
-    expect(sent[2].message!.contextId).toBe('ctx-1');
-    const part = sent[2].message!.parts[0];
-    expect(dataOf(part) ?? {}).toEqual({
-      version: '1.0',
-      operation: {kind: 'close', sources: []},
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Close show me something'}));
-    expect(screen.queryByText('hello from the agent')).toBeNull();
-    expect(screen.getByTestId('canvas-empty-ghost')).toBeInTheDocument();
-    expect(screen.queryAllByTestId('canvas-trail-entry')).toHaveLength(0);
-  });
-
-  it('the entry is labelled by the question until the Planner’s title arrives (decision 4)', async () => {
-    const titled = [
-      {paintMeta: {surfaceId: 'shell:main', title: 'Agent-titled view'}},
-      {version: '1.0', createSurface: {surfaceId: 'shell:main', catalogId: CATALOG_ID}},
-      {
+      await userEvent.click(screen.getByRole('button', {name: 'Close show my filters'}));
+      expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
+      expect(screen.queryByTestId('canvas-band')).toBeNull();
+      expect(screen.getAllByTestId('canvas-trail-entry')).toHaveLength(1);
+      await waitFor(() => expect(sent).toHaveLength(3));
+      expect(sent[2].message!.contextId).toBe('ctx-1');
+      const part = sent[2].message!.parts[0];
+      expect(dataOf(part) ?? {}).toEqual({
         version: '1.0',
-        updateComponents: {
-          surfaceId: 'shell:main',
-          components: [{id: 'root', component: 'Text', text: 'the titled paint'}],
+        operation: {kind: 'close', sources: []},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Close show me something'}));
+      expect(screen.queryByText('hello from the agent')).toBeNull();
+      expect(screen.getByTestId('canvas-empty-ghost')).toBeInTheDocument();
+      expect(screen.queryAllByTestId('canvas-trail-entry')).toHaveLength(0);
+    },
+  );
+
+  it.skipIf(!SNAPSHOT_READY)(
+    'the entry is labelled by the question until the Planner’s title arrives (decision 4)',
+    async () => {
+      const titled = [
+        {paintMeta: {surfaceId: 'shell:main', title: 'Agent-titled view'}},
+        {version: '1.0', createSurface: {surfaceId: 'shell:main', catalogId: CATALOG_ID}},
+        {
+          version: '1.0',
+          updateComponents: {
+            surfaceId: 'shell:main',
+            components: [{id: 'root', component: 'Text', text: 'the titled paint'}],
+          },
         },
-      },
-    ];
-    const {sender} = contextualSender([ACTIONABLE_MESSAGES, titled]);
-    renderCanvas(sender);
-    await ask('show me issues');
-    await screen.findByRole('button', {name: 'Open issue'});
-    await userEvent.keyboard('{Meta>}k{/Meta}');
-    await ask('show me something');
-    await screen.findByText('the titled paint');
+      ];
+      const {sender} = contextualSender([ACTIONABLE_MESSAGES, titled]);
+      renderCanvas(sender);
+      await ask('show me issues');
+      await screen.findByRole('button', {name: 'Open issue'});
+      await userEvent.keyboard('{Meta>}k{/Meta}');
+      await ask('show me something');
+      await screen.findByText('the titled paint');
 
-    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
-    const labels = (await screen.findAllByTestId('canvas-trail-label')).map(el => el.textContent);
-    expect(labels).toEqual(['Agent-titled view', 'show me issues']);
-    // The question stays the canvas's header, verbatim.
-    expect(screen.getByTestId('canvas-question')).toHaveTextContent('show me something');
-  });
+      await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+      const labels = (await screen.findAllByTestId('canvas-trail-label')).map(el => el.textContent);
+      expect(labels).toEqual(['Agent-titled view', 'show me issues']);
+      // The question stays the canvas's header, verbatim.
+      expect(screen.getByTestId('canvas-question')).toHaveTextContent('show me something');
+    },
+  );
 
-  it('hovering an entry shows its preview: the canvas scaled, its fragments named', async () => {
-    await askTwo();
-    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
-    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
-    // No preview for the entry being viewed.
-    await userEvent.hover(pick('show me something'));
-    expect(screen.queryByTestId('canvas-trail-preview')).toBeNull();
+  it.skipIf(!SNAPSHOT_READY)(
+    'hovering an entry shows its preview: the canvas scaled, its fragments named',
+    async () => {
+      await askTwo();
+      await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+      await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+      // No preview for the entry being viewed.
+      await userEvent.hover(pick('show me something'));
+      expect(screen.queryByTestId('canvas-trail-preview')).toBeNull();
 
-    await userEvent.hover(pick('show my filters'));
-    const preview = await screen.findByTestId('canvas-trail-preview');
-    expect(preview).toHaveAttribute('aria-label', 'Preview of show my filters');
-    expect(preview.querySelector('[inert]')).not.toBeNull();
-    expect(preview.querySelectorAll('input[type="checkbox"]')).toHaveLength(1);
+      await userEvent.hover(pick('show my filters'));
+      const preview = await screen.findByTestId('canvas-trail-preview');
+      expect(preview).toHaveAttribute('aria-label', 'Preview of show my filters');
+      expect(preview.querySelector('[inert]')).not.toBeNull();
+      expect(preview.querySelectorAll('input[type="checkbox"]')).toHaveLength(1);
 
-    await userEvent.unhover(pick('show my filters'));
-    expect(screen.queryByTestId('canvas-trail-preview')).toBeNull();
-  });
+      await userEvent.unhover(pick('show my filters'));
+      expect(screen.queryByTestId('canvas-trail-preview')).toBeNull();
+    },
+  );
 
-  it('an entry picked under the pointer leaves no preview behind: the rail opens again showing none', async () => {
-    await askTwo();
-    // Clicks with no pointer moving between them, as a real pick: the rail closes under the
-    // pointer and the row never sees it leave.
-    fireEvent.click(screen.getByRole('button', {name: 'Trail'}));
-    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
-    fireEvent.mouseEnter(pick('show my filters'));
-    await screen.findByTestId('canvas-trail-preview');
-    fireEvent.click(pick('show my filters'));
-    // Elsewhere again, so the entry picked is one the rail would preview.
-    fireEvent.click(await screen.findByRole('button', {name: /Return to live/}));
-    fireEvent.click(await screen.findByRole('button', {name: 'Trail'}));
-    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
-    expect(screen.queryByTestId('canvas-trail-preview')).toBeNull();
-  });
+  it.skipIf(!SNAPSHOT_READY)(
+    'an entry picked under the pointer leaves no preview behind: the rail opens again showing none',
+    async () => {
+      await askTwo();
+      // Clicks with no pointer moving between them, as a real pick: the rail closes under the
+      // pointer and the row never sees it leave.
+      fireEvent.click(screen.getByRole('button', {name: 'Trail'}));
+      await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+      fireEvent.mouseEnter(pick('show my filters'));
+      await screen.findByTestId('canvas-trail-preview');
+      fireEvent.click(pick('show my filters'));
+      // Elsewhere again, so the entry picked is one the rail would preview.
+      fireEvent.click(await screen.findByRole('button', {name: /Return to live/}));
+      fireEvent.click(await screen.findByRole('button', {name: 'Trail'}));
+      await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+      expect(screen.queryByTestId('canvas-trail-preview')).toBeNull();
+    },
+  );
 });
 
 /**
@@ -905,42 +956,45 @@ describe('CanvasApp, the trusted page (task 14.6)', () => {
     expect(new URLSearchParams(window.location.search).get('page')).toBe('publish');
   });
 
-  it('Retry on a failed slot sends the retry beside the turn and gives the tile way at once (task 8.5)', async () => {
-    window.history.replaceState(null, '', '?beat=composed&instant');
-    // The press's stream stays open: the orchestrator has not answered yet.
-    const sent: SendMessageRequest[] = [];
-    const silent = {
-      next: () => new Promise<never>(() => {}),
-      return: () => Promise.resolve({done: true as const, value: undefined}),
-      throw: (thrown: unknown) => Promise.reject(thrown),
-      [Symbol.asyncIterator]: () => silent,
-    };
-    const sender: A2AMessageSender = {
-      sendMessageStream(params) {
-        sent.push(params);
-        return silent as unknown as ReturnType<A2AMessageSender['sendMessageStream']>;
-      },
-    };
-    render(
-      <Providers>
-        <CanvasApp client={sender} catalogs={BOUND_CATALOGS} hostRelay={HOST_RELAY} />
-      </Providers>,
-    );
-    const retry = await screen.findByRole('button', {name: 'Retry'});
-    await userEvent.click(retry);
-    // Drawn at the press, before any answer: the pending line in the tile's place, focus on it.
-    expect(screen.queryByRole('button', {name: 'Retry'})).toBeNull();
-    const pending = screen.getByText('Loading…');
-    expect(document.activeElement).toBe(pending);
-    await waitFor(() => expect(sent).toHaveLength(1));
-    const part = sent[0].message!.parts[0];
-    expect(dataOf(part) ?? {}).toEqual({
-      version: '1.0',
-      operation: {kind: 'retry', sources: ['gmail']},
-    });
-    // Not a turn: nothing in the history.
-    expect(screen.getByRole('button', {name: 'Back'})).toBeDisabled();
-  });
+  it.skipIf(!SNAPSHOT_READY)(
+    'Retry on a failed slot sends the retry beside the turn and gives the tile way at once (task 8.5)',
+    async () => {
+      window.history.replaceState(null, '', '?beat=composed&instant');
+      // The press's stream stays open: the orchestrator has not answered yet.
+      const sent: SendMessageRequest[] = [];
+      const silent = {
+        next: () => new Promise<never>(() => {}),
+        return: () => Promise.resolve({done: true as const, value: undefined}),
+        throw: (thrown: unknown) => Promise.reject(thrown),
+        [Symbol.asyncIterator]: () => silent,
+      };
+      const sender: A2AMessageSender = {
+        sendMessageStream(params) {
+          sent.push(params);
+          return silent as unknown as ReturnType<A2AMessageSender['sendMessageStream']>;
+        },
+      };
+      render(
+        <Providers>
+          <CanvasApp client={sender} catalogs={BOUND_CATALOGS} hostRelay={HOST_RELAY} />
+        </Providers>,
+      );
+      const retry = await screen.findByRole('button', {name: 'Retry'});
+      await userEvent.click(retry);
+      // Drawn at the press, before any answer: the pending line in the tile's place, focus on it.
+      expect(screen.queryByRole('button', {name: 'Retry'})).toBeNull();
+      const pending = screen.getByText('Loading…');
+      expect(document.activeElement).toBe(pending);
+      await waitFor(() => expect(sent).toHaveLength(1));
+      const part = sent[0].message!.parts[0];
+      expect(dataOf(part) ?? {}).toEqual({
+        version: '1.0',
+        operation: {kind: 'retry', sources: ['gmail']},
+      });
+      // Not a turn: nothing in the history.
+      expect(screen.getByRole('button', {name: 'Back'})).toBeDisabled();
+    },
+  );
 
   it('the model’s button opens the App Library; every raise is reported, an open page included', async () => {
     const {sent} = renderShellCanvas('platform-answer');

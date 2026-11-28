@@ -33,7 +33,7 @@ const SIGN_IN = {
   security: [{linear: []}],
 };
 
-const LINEAR_CATALOG = 'https://a2uiverse.dev/linear/linear-catalog/catalogs/v0.9.1/catalog.json';
+const LINEAR_CATALOG = 'https://a2uiverse.dev/linear/linear-catalog/catalogs/v1.0/catalog.json';
 const LINEAR_BUILD = 'sha256-3f2aAbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_abc';
 
 const entry = (appId: string, name: string, more: Partial<IndexEntry> = {}): IndexEntry => ({

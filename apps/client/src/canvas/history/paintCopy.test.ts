@@ -1,5 +1,7 @@
 import {describe, expect, it} from 'vitest';
-import {Catalog, ComponentModel} from '@a2ui/web_core/v1_0';
+import {Catalog, ComponentModel, MessageProcessor} from '@a2ui/web_core/v1_0';
+import {basicCatalog} from '@a2ui/web_core/catalogs/basic/v1';
+import {BASIC_CATALOG_SCHEMA, createSchemaFormCheck} from '@a2uiverse/sdk';
 import {capturePaint, rebuildMessages, type CopySource} from './paintCopy';
 
 /** The catalog the surface's components were drawn in. */
@@ -27,7 +29,7 @@ describe('a paint copy', () => {
     const icon = new ComponentModel(
       'row-status',
       'StatusIcon',
-      {status: {path: 'status'}, type: {path: 'statusType'}},
+      {status: {'@path': 'status'}, type: {'@path': 'statusType'}},
       CATALOG,
     );
     const copy = capturePaint(sourceOf([icon]), 'linear:linear-1')!;
@@ -39,16 +41,51 @@ describe('a paint copy', () => {
       {
         id: 'row-status',
         component: 'StatusIcon',
-        status: {path: 'status'},
-        type: {path: 'statusType'},
+        status: {'@path': 'status'},
+        type: {'@path': 'statusType'},
       },
     ]);
   });
 
   it('is detached from the live models it was taken from', () => {
-    const text = new ComponentModel('title', 'Text', {text: {path: 'title'}}, CATALOG);
+    const text = new ComponentModel('title', 'Text', {text: {'@path': 'title'}}, CATALOG);
     const copy = capturePaint(sourceOf([text]), 'linear:linear-1')!;
     text.properties = {text: 'changed'};
-    expect(copy.tree['title']).toEqual({id: 'title', component: 'Text', text: {path: 'title'}});
+    expect(copy.tree['title']).toEqual({
+      id: 'title',
+      component: 'Text',
+      text: {'@path': 'title'},
+    });
+  });
+
+  it('is rebuilt in v1.0’s forms: its three messages hold to the schema-form check (task-21.14 decision 13)', () => {
+    const processor = new MessageProcessor([basicCatalog], undefined, {version: '1.0'});
+    processor.processMessages([
+      {
+        version: '1.0',
+        createSurface: {surfaceId: 's', catalogId: basicCatalog.id, sendDataModel: true},
+      },
+      {
+        version: '1.0',
+        updateComponents: {
+          surfaceId: 's',
+          components: [
+            {id: 'root', component: 'Column', children: ['title', 'more']},
+            {id: 'title', component: 'Text', text: {'@path': '/title'}},
+            {
+              id: 'more',
+              component: 'Text',
+              text: 'more',
+              '@catalogId': basicCatalog.id,
+              '@accessibility': {label: 'More'},
+            },
+          ],
+        },
+      },
+      {version: '1.0', updateDataModel: {surfaceId: 's', value: {title: 'Issues'}}},
+    ]);
+    const messages = rebuildMessages(capturePaint(processor, 's')!);
+    const check = createSchemaFormCheck({catalog: BASIC_CATALOG_SCHEMA});
+    expect(check.agentToRenderer(messages)).toEqual([]);
   });
 });

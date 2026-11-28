@@ -143,12 +143,12 @@ describe('buildTextMessageParams', () => {
     expect(params.message!.contextId).toBe('');
   });
 
-  it('attaches the client data model as message metadata when given', () => {
+  it('attaches the renderer’s data model as message metadata when given', () => {
     const params = buildTextMessageParams('show', CLIENT_DM);
     expect(params.message!.metadata).toEqual({a2uiRendererDataModel: CLIENT_DM, ...SESSION});
   });
 
-  it('names only the page-load session when no client data model is given', () => {
+  it('names only the page-load session when no data model of the renderer’s is given', () => {
     expect(buildTextMessageParams('show').message!.metadata).toEqual(SESSION);
   });
 
@@ -186,12 +186,12 @@ describe('buildActionMessageParams', () => {
     expect(params.message!.contextId).toBe('ctx-9');
   });
 
-  it('attaches the client data model as message metadata when given', () => {
+  it('attaches the renderer’s data model as message metadata when given', () => {
     const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM);
     expect(params.message!.metadata).toEqual({a2uiRendererDataModel: CLIENT_DM, ...SESSION});
   });
 
-  it('names only the page-load session when no client data model is given', () => {
+  it('names only the page-load session when no data model of the renderer’s is given', () => {
     expect(buildActionMessageParams(ACTION).message!.metadata).toEqual(SESSION);
   });
 

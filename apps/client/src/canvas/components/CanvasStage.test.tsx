@@ -11,7 +11,7 @@ import {renderWithShell} from '../../../tests/helpers';
 import {createCanvasStore} from '../canvasStore';
 import {createTurnRunner} from '../turn/canvasTurn';
 import {CanvasStage} from './CanvasStage';
-import {snapshotCatalog} from '../../../tests/snapshot';
+import {snapshotCatalog, SNAPSHOT_READY} from '../../../tests/snapshot';
 
 const {catalog: CATALOG, id: CATALOG_ID} = await snapshotCatalog('github-catalog');
 
@@ -51,15 +51,18 @@ describe('CanvasStage', () => {
     expect(screen.getByTestId('canvas-empty-ghost')).toHaveTextContent('⌘K to ask');
   });
 
-  it('renders the stage surface through the A2UI pipeline, ghost gone', () => {
-    const {processor, store, apply} = setup();
-    apply(paint('pull-request-list', 'Hello from the stage'));
-    renderWithShell(<CanvasStage processor={processor} state={store.getState()} />);
-    expect(screen.getByText('Hello from the stage')).toBeInTheDocument();
-    expect(screen.queryByTestId('canvas-empty-ghost')).toBeNull();
-  });
+  it.skipIf(!SNAPSHOT_READY)(
+    'renders the stage surface through the A2UI pipeline, ghost gone',
+    () => {
+      const {processor, store, apply} = setup();
+      apply(paint('pull-request-list', 'Hello from the stage'));
+      renderWithShell(<CanvasStage processor={processor} state={store.getState()} />);
+      expect(screen.getByText('Hello from the stage')).toBeInTheDocument();
+      expect(screen.queryByTestId('canvas-empty-ghost')).toBeNull();
+    },
+  );
 
-  it('a repaint shows the new content', () => {
+  it.skipIf(!SNAPSHOT_READY)('a repaint shows the new content', () => {
     const {processor, store, apply} = setup();
     apply(paint('user-profile', 'first version'));
     const {rerender} = renderWithShell(
