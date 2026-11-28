@@ -1,0 +1,26 @@
+{
+  "name": "@a2uiverse/converter",
+  "version": "0.0.0",
+  "license": "MIT",
+  "private": true,
+  "description": "The tool A2UIVerse's recordings cross from A2UI v0.9 and v0.9.1 to v1.0 by, on the flip branch alone.",
+  "type": "module",
+  "bin": {
+    "a2ui-convert": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "convert": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@a2uiverse/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.9"
+  }
+}

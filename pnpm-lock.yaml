@@ -11,9 +11,6 @@ importers:
       '@a2uiverse/card':
         specifier: workspace:*
         version: link:packages/card
-      '@a2uiverse/sdk':
-        specifier: workspace:*
-        version: link:packages/sdk/js
       '@a2uiverse/stellify':
         specifier: workspace:*
         version: link:packages/stellify
@@ -267,6 +264,22 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1(supports-color@7.2.0)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.11(@types/node@22.20.1)(jsdom@29.1.1)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(tsx@4.23.12)(yaml@2.9.1))
+
+  packages/converter:
+    dependencies:
+      '@a2uiverse/sdk':
+        specifier: workspace:*
+        version: link:../sdk/js
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.0
+        version: 22.20.1
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
