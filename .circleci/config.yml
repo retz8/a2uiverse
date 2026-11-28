@@ -40,14 +40,15 @@ jobs:
           name: Build, typecheck, test
           # One task at a time: the suites' timed waits hold on the executor's two CPUs only so
           command: pnpm exec turbo run build typecheck test --concurrency=1
+      - run:
+          name: Script tests
+          # After the build, as in `pnpm verify`: they read the built packages
+          command: pnpm test:scripts
 
   lint-format:
     executor: node
     steps:
       - install
-      - run:
-          name: Script tests
-          command: pnpm test:scripts
       - run:
           name: Lint
           command: pnpm lint
