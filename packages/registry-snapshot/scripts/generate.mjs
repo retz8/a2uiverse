@@ -1,14 +1,17 @@
 /**
- * Generates the registry snapshot (task-11.5 decision 10): every catalog package this package
- * depends on — all seven pinned to one commit of the apps repo — packed by Stellify, each artifact
+ * Generates the registry snapshot (task-11.5 decision 10): the seven catalog packages of the apps
+ * repo at the commit `appsCheckout` pins, from one checkout of it installed once, packed by
+ * Stellify where the checkout holds them, each artifact
  * filed under its id, and the catalog table beside them, the client's own catalogs first, as the
  * orchestrator's table lists them. Beside them, a second build of Shop A's catalog — the same
  * package, one theme token changed — packed but never in the table: the build the replay suite's
  * per-paint builds test moves a canvas onto (task-15.10 decision 11), its id and the first's in
  * `second-build.json`. Git-ignored, never committed; rebuilt from scratch every run.
  */
+import {spawnSync} from 'node:child_process';
 import {
   cpSync,
+  existsSync,
   mkdirSync,
   readFileSync,
   realpathSync,
@@ -28,7 +31,36 @@ const out = join(root, 'dist', 'registry');
 const artifacts = join(out, 'artifacts');
 const staging = join(root, 'dist', 'staging');
 
-const {dependencies} = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+const {appsCheckout} = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+
+/**
+ * The apps repo at the pinned commit, fetched and installed once into `.checkout/<commit>`, kept
+ * across builds and outside any `node_modules`, where TypeScript would not name its types. Its own
+ * install, by its own lockfile, builds each catalog package; the outer pnpm's variables are left
+ * out, so the install is the apps repo's alone.
+ */
+function checkout({repository, commit}) {
+  const dir = join(root, '.checkout', commit);
+  const ready = join(dir, '.a2uiverse-ready');
+  if (existsSync(ready)) return dir;
+  rmSync(dir, {recursive: true, force: true});
+  mkdirSync(dir, {recursive: true});
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !/^(npm_|pnpm_)/i.test(key)),
+  );
+  const run = (command, args) => {
+    const done = spawnSync(command, args, {cwd: dir, env, stdio: 'inherit'});
+    if (done.status !== 0) throw new Error(`${command} ${args.join(' ')} failed in ${dir}`);
+  };
+  run('git', ['init', '-q']);
+  run('git', ['fetch', '-q', '--depth', '1', repository, commit]);
+  run('git', ['checkout', '-q', 'FETCH_HEAD']);
+  run('pnpm', ['install', '--frozen-lockfile']);
+  writeFileSync(ready, `${commit}\n`);
+  return dir;
+}
+
+const apps = checkout(appsCheckout);
 
 rmSync(join(root, 'dist'), {recursive: true, force: true});
 mkdirSync(artifacts, {recursive: true});
@@ -42,8 +74,8 @@ async function fileArtifact(result) {
 }
 
 const rows = [];
-for (const name of Object.keys(dependencies).sort()) {
-  const packageDir = realpathSync(join(root, 'node_modules', name));
+for (const [name, path] of Object.entries(appsCheckout.catalogs).sort()) {
+  const packageDir = join(apps, path);
   const result = await stellify(packageDir, {outDir: join(staging, name)});
   if (result.findings.length > 0) {
     const findings = result.findings.map(f => `  ${f.file}: ${f.reason}`).join('\n');
@@ -69,13 +101,13 @@ const ACCENTS = [
   [`'--a2ui-color-on-secondary': '#d69a5f'`, `'--a2ui-color-on-secondary': '#77aabe'`],
 ];
 {
-  const packageDir = realpathSync(join(root, 'node_modules', SECOND));
+  const packageDir = join(apps, appsCheckout.catalogs[SECOND]);
   const copy = join(staging, `${SECOND}-second`, 'package');
   mkdirSync(copy, {recursive: true});
   for (const part of ['package.json', 'catalogs', 'dist']) {
     cpSync(join(packageDir, part), join(copy, part), {recursive: true});
   }
-  symlinkSync(dirname(packageDir), join(copy, 'node_modules'));
+  symlinkSync(realpathSync(join(packageDir, 'node_modules')), join(copy, 'node_modules'));
   const provider = join(copy, 'dist', 'provider.js');
   let source = readFileSync(provider, 'utf8');
   for (const [accent, second] of ACCENTS) {

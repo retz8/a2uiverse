@@ -5,16 +5,6 @@ packages:
 
 allowBuilds:
   esbuild: true
-  # The seven catalogs the registry snapshot packs (task-11.5 decision 10), all pinned to one
-  # commit of the apps repo; each builds on install (its `prepare` runs tsc). pnpm keys the allow
-  # entry by the resolved tarball, so every line is re-pointed when the pinned commit moves.
-  "calendar-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/cde22ed1d6817348ccca74969512536f0ac58255#path:calendar/calendar-catalog": true
-  "circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/cde22ed1d6817348ccca74969512536f0ac58255#path:circleci/circleci-catalog": true
-  "github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/cde22ed1d6817348ccca74969512536f0ac58255#path:github/github-catalog": true
-  "gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/cde22ed1d6817348ccca74969512536f0ac58255#path:gmail/gmail-catalog": true
-  "linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/cde22ed1d6817348ccca74969512536f0ac58255#path:linear/linear-catalog": true
-  "shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/cde22ed1d6817348ccca74969512536f0ac58255#path:mocks/shop-a/shop-a-catalog": true
-  "shop-b-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/cde22ed1d6817348ccca74969512536f0ac58255#path:mocks/shop-b/shop-b-catalog": true
   onnxruntime-node: true
   protobufjs: false
   sharp: false

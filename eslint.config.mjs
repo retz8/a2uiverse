@@ -15,6 +15,8 @@ export default tseslint.config(
       '.turbo/**',
       // Working copies of Stellify's fixture catalogs, written by its tests
       'packages/stellify/test/.tmp/**',
+      // The apps repo at the registry snapshot's pinned commit, fetched by its build
+      'packages/registry-snapshot/.checkout/**',
       // The orchestrator's state: the registry's installed artifacts are vendors' packed code
       '**/.state/**',
     ],

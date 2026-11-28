@@ -4,6 +4,7 @@
 .git
 pnpm-lock.yaml
 .turbo
+packages/registry-snapshot/.checkout
 
 # Hand-authored docs and harness/skill content — not owned by Prettier
 _dev
