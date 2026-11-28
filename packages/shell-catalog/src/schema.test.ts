@@ -80,3 +80,21 @@ test('the two guidance docs ship beside the schema', () => {
   expect(platformUi).toContain('openAppLibrary');
   expect(platformUi).toContain('openPublish');
 });
+
+test('the two guidance docs write v1.0’s forms: `@path` and `@call`, a heading as its markers (task-21.12 decision 8)', () => {
+  const synthesis = readFileSync('docs/synthesis-guidance.md', 'utf8');
+  const platformUi = readFileSync('docs/platform-ui-guidance.md', 'utf8');
+  expect(synthesis).toContain('{"@path": "price"}');
+  expect(synthesis).toContain('"##### ');
+  expect(platformUi).toContain('{"@path": "name"}');
+  expect(platformUi).toContain('{"functionCall": {"@call": "openStore"');
+  expect(platformUi).toContain('"### ');
+  for (const doc of [synthesis, platformUi]) {
+    // A call is written `@call`, never `call`.
+    expect(doc).not.toMatch(/"call":/);
+    // A heading is a text's markers, never a variant.
+    expect(doc).not.toMatch(/`h[1-6]`|"variant": ?"h[1-6]"/);
+    // A template's path stays plain.
+    expect(doc).toMatch(/\{"path": "\/[a-z]+", "componentId": "[a-z_]+"\}/);
+  }
+});

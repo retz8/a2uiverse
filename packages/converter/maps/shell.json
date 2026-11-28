@@ -1,0 +1,14 @@
+{
+  "name": "shell",
+  "from": {
+    "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json",
+    "repo": "a2uiverse",
+    "path": "packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+  },
+  "to": {
+    "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v1.0/catalog.json",
+    "repo": "a2uiverse",
+    "path": "packages/shell-catalog/catalogs/v1.0/catalog.json"
+  },
+  "heading": "Text"
+}
