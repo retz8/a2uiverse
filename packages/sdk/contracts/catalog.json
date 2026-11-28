@@ -1,18 +1,17 @@
 {
   "name": "a2uiverse-catalog",
-  "description": "The A2UIVerse catalog contracts (SPEC §9.1, task 11.2), versioned with the sdk that carries them: what a catalog package exposes (the export contract), what the client lends a loaded catalog (the host-module interface), what Stellify, the pack tool, writes and the marketplace, the registry and the client verify (the catalog artifact, whose descriptor is the JSON Schema beside this file), and the checks the registry and the marketplace share — the card's declaration read per A2UI version, two-directional coverage, entitlement, the app id — and the credential bar's terms, which the hub matches against every paint. The agent is described by its A2A AgentCard alone and nothing here describes one. Normative for every language projection; each projection's contract test asserts against this file.",
-  "a2uiVersions": {
-    "v0.9": {
-      "extensionUri": "https://a2ui.org/a2a-extension/a2ui/v0.9",
-      "capabilitiesKey": "v0.9"
-    },
-    "v0.9.1": {
-      "extensionUri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
-      "capabilitiesKey": "v0.9.1"
-    }
+  "description": "The A2UIVerse catalog contracts (SPEC §9.1, task 11.2), versioned with the sdk that carries them: what a catalog package exposes (the export contract), what the client lends a loaded catalog (the host-module interface), what Stellify, the pack tool, writes and the marketplace, the registry and the client verify (the catalog artifact, whose descriptor is the JSON Schema beside this file), and the checks the registry and the marketplace share — the card's declaration read at A2UI v1.0, two-directional coverage, entitlement and the rule over the places a paint names a catalog, the app id — and the credential bar's terms, which the hub matches against every paint. The agent is described by its A2A AgentCard alone and nothing here describes one. Normative for every language projection; each projection's contract test asserts against this file.",
+  "a2ui": {
+    "version": "1.0",
+    "extensionBase": "https://a2ui.org/a2a-extension/a2ui/",
+    "extensionUri": "https://a2ui.org/a2a-extension/a2ui/v1.0",
+    "capabilitiesKey": "1.0",
+    "rendererCapabilitiesKey": "a2uiRendererCapabilities",
+    "rendererDataModelKey": "a2uiRendererDataModel",
+    "rule": "The platform speaks A2UI v1.0 alone. Every message it writes is stamped 1.0, and a message stamped otherwise is in another version. The hub activates the v1.0 extension URI on every request, advertises an agent's entitlement as a2uiRendererCapabilities, {\"1.0\": {\"supportedCatalogIds\": [...]}}, with no older key beside it, and sends a data model as a2uiRendererDataModel, {\"version\": \"1.0\", \"surfaces\": {...}}."
   },
   "cardRead": {
-    "rule": "A card's A2UI declaration is read per version across its capabilities.extensions. Entries whose URI is the v0.9 or the v0.9.1 extension URI count; an entry for a version the platform does not speak is passed over, not an error. Inside a counted entry the params are read flat, as the extension guide writes them, or keyed under v0.9 or v0.9.1, the whole-object shape, each object validated against the capabilities schema's version part and the root's required key not applied; the entry's URI decides the version, the key never retargets it; both keys in one entry union into that entry's set; a third version key beside a counted one is passed over; an object keyed under neither is an error. Two entries under one URI merge. An entry naming no ids says nothing about catalogs. One malformed entry fails the whole read, each error naming its entry's version. The map comes out filled: a version whose entries name no ids takes the other version's set, so only a card whose entries name different sets keeps a version axis. The hub advertises each version's set under its capabilities key and checks a paint against the set of the version it is stamped with; everywhere else the app's catalog ids are the union, v0.9's then v0.9.1's, each once. A card naming no ids under any counted entry declares nothing and falls back to the basic catalog."
+    "rule": "Every entry of a card's capabilities.extensions whose URI is under extensionBase is an A2UI entry. A card with an entry under extensionUri is read from its v1.0 entries alone, two of them merging: each one's params validated against the 1.0 part of the pinned agent_capabilities.json and read flat; params holding a version key, the keyed wrapper, fail the read with an error naming the key. A card with A2UI entries and none for v1.0 fails with a finding of its own: the versions its entries declare, and whether all of them read below 1.0. A card with no A2UI entry, or a v1.0 entry naming no ids, declares nothing and falls back to the basic catalog. One malformed entry fails the whole read."
   },
   "exportContract": {
     "required": ["CATALOG"],
@@ -20,20 +19,20 @@
     "rule": "A catalog package's entry exports CATALOG, a Catalog from @a2ui/web_core built for @a2ui/react's React catalog model; its id is the catalog id. Provider, when exported, is a React component taking children — the one Provider of SPEC §9.2, wrapping every fragment of the catalog; absent, a passthrough wraps them. Every other export is ignored."
   },
   "hostInterfaces": {
-    "0.16.1": {
+    "0.16.1-v1.0": {
       "global": "__a2uiverse_host__",
       "specifiers": [
         "react",
         "react/jsx-runtime",
         "react-dom",
         "react-dom/client",
-        "@a2ui/react/v0_9",
-        "@a2ui/web_core/v0_9",
-        "@a2ui/web_core/v0_9/basic_catalog",
-        "zod"
+        "zod",
+        "@a2ui/react",
+        "@a2ui/web_core/v1_0",
+        "@a2ui/web_core/catalogs/basic/v1"
       ],
       "stylesheetLoader": "loadStylesheet",
-      "rule": "The client registers one object under the global before any artifact loads: its version, the module namespace of each specifier — the client's own instances — and loadStylesheet, which loads a stylesheet by URL once. An artifact reaches the host singletons only through it: Stellify, the pack tool, rewrites each import of a specifier to a read from the interface and each stylesheet import to a load through it, and refuses any other specifier under a host package. Keyed by the A2UI runtime release the host lends, the release of @a2ui/react and @a2ui/web_core; the client refuses at load an artifact built against one it does not lend."
+      "rule": "The client registers one object under the global before any artifact loads: its version, the module namespace of each specifier — the client's own instances — and loadStylesheet, which loads a stylesheet by URL once. An artifact reaches the host singletons only through it: Stellify, the pack tool, rewrites each import of a specifier to a read from the interface and each stylesheet import to a load through it, and refuses any other specifier under a host package. Named by the A2UI runtime release the host lends, the release of @a2ui/react and @a2ui/web_core, and the A2UI version its entry points speak; an artifact built against an interface the platform does not supply, one named 0.16.1 among them, is refused by name at publish, at install and at load. A catalog importing from the @a2ui/web_core root or from @a2ui/web_core/universal is refused at pack."
     }
   },
   "artifact": {
@@ -42,12 +41,12 @@
     "hashForm": "sha256-<base64>",
     "rule": "A directory of files served under one base URL: the descriptor, the catalog schema, one ESM entry, its stylesheets, its assets. The descriptor lists every other file with its hash; the entry and the schema are among them; a file not listed does not belong to the artifact. The schema's catalogId equals the descriptor's."
   },
-  "publicCatalogIds": ["https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"],
+  "publicCatalogIds": ["https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json"],
   "coverage": {
     "rule": "Two-directional: every catalog id the card declares is handed at install or public; every artifact handed is an id the card declares. A card declaring no catalogs hands nothing and falls back to the basic catalog."
   },
   "entitlement": {
-    "rule": "An app's entitlement is the ids handed at its install plus the public catalogs; the shell catalog is in no app's set. Fixed at install, changed only by install-over. The hub advertises to each agent its own entitlement as a2uiClientCapabilities.supportedCatalogIds, never the table, and refuses a paint outside it."
+    "rule": "An app's entitlement is the ids handed at its install plus the public catalogs; the shell catalog is in no app's set. Fixed at install, changed only by install-over. The hub advertises to each agent its own entitlement as a2uiRendererCapabilities.supportedCatalogIds, never the table, and refuses a paint outside it. A paint names a catalog in four places, and one outside the entitlement in any of them is outside: createSurface.catalogId; a component's @catalogId; a component's bare catalogId, where the component's schema in the surface's default catalog declares no property of that name; and a function call's catalogId, in a component's property, in an action's functionCall or in a callRendererFunction message."
   },
   "appId": {
     "pattern": "^[a-z][a-z0-9-]*$",

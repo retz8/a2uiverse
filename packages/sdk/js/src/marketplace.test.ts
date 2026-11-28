@@ -59,9 +59,9 @@ const preview = {
   version: '1.1.0',
   words: 'show me the shop',
   messages: [
-    {version: 'v0.9', createSurface: {surfaceId: 'main', catalogId: 'cat/v1'}},
+    {version: '1.0', createSurface: {surfaceId: 'main', catalogId: 'cat/v1'}},
     {
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'main',
         components: [{id: 'root', component: 'Text', text: 'Hello'}],

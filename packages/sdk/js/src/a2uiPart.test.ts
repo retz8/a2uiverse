@@ -8,8 +8,8 @@ import {
   withA2uiMessages,
 } from './a2uiPart';
 
-const create = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'c'}};
-const remove = {version: 'v0.9.1', deleteSurface: {surfaceId: 's'}};
+const create = {version: '1.0', createSurface: {surfaceId: 's', catalogId: 'c'}};
+const remove = {version: '1.0', deleteSurface: {surfaceId: 's'}};
 
 describe('a2uiMessagesIn', () => {
   test('one message object is read', () => {
@@ -17,12 +17,13 @@ describe('a2uiMessagesIn', () => {
   });
 
   test('a bare list is read, each entry judged on its own', () => {
-    const unspoken = {version: 'v0.8', beginRendering: {surfaceId: 's'}};
+    // A message stamped another version is read all the same: its stamp is the stamp reading's to judge.
+    const unspoken = {version: 'v0.9', updateDataModel: {surfaceId: 's', value: 1}};
     expect(a2uiMessagesIn([create, remove])).toEqual([create, remove]);
-    expect(a2uiMessagesIn([create, {noVersion: true}, 'text', null, [remove], unspoken])).toEqual([
-      create,
-      unspoken,
-    ]);
+    const unstamped = {beginRendering: {surfaceId: 's', root: 'root'}};
+    expect(
+      a2uiMessagesIn([create, {noVersion: true}, unstamped, 'text', null, [remove], unspoken]),
+    ).toEqual([create, unspoken]);
     expect(a2uiMessagesIn([])).toEqual([]);
   });
 

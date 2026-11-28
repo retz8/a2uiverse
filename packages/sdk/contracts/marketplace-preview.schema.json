@@ -31,9 +31,9 @@
             "type": "string"
           }
         },
-        "description": "One A2UI server-to-client message, as the agent sent it, or a surface's component updates settled into one."
+        "description": "One A2UI agent-to-renderer message, as the agent sent it, or a surface's component updates settled into one."
       },
-      "description": "The A2UI server-to-client messages in order, settled: each surface's updateComponents collapsed into one in the place of the first, carrying each component's last copy drawn from the root; every other message — createSurface, updateDataModel, deleteSurface — as sent; surface ids as the agent wrote them."
+      "description": "The A2UI agent-to-renderer messages in order, settled: each surface's updateComponents collapsed into one in the place of the first, carrying each component's last copy drawn from the root; every other message — createSurface, updateDataModel, deleteSurface — as sent; surface ids as the agent wrote them."
     },
     "capturedBy": {
       "type": "string",

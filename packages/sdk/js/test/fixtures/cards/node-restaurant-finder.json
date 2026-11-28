@@ -1,0 +1,19 @@
+{
+  "name": "Restaurant Agent (stub)",
+  "description": "This agent helps find restaurants based on user criteria.",
+  "protocolVersion": "0.3.0",
+  "version": "1.0.0",
+  "url": "http://localhost:11002/a2a/json-rpc",
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "skills": [
+    {
+      "id": "find_restaurants",
+      "name": "Find Restaurants Tool",
+      "description": "Helps find restaurants based on user criteria (e.g., cuisine, location).",
+      "tags": ["restaurant", "finder"],
+      "examples": ["Find me the top 10 chinese restaurants in the US"]
+    }
+  ],
+  "capabilities": {"streaming": true}
+}

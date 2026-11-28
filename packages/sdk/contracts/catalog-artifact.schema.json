@@ -22,8 +22,8 @@
     },
     "hostInterface": {
       "type": "string",
-      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
-      "description": "The version of the host-module interface the entry was built against — the A2UI runtime release the host lends."
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-v[0-9]+\\.[0-9]+)?$",
+      "description": "The host-module interface the entry was built against, by name: the A2UI runtime release the host lends and the A2UI version its entry points speak, as 0.16.1-v1.0."
     },
     "files": {
       "type": "object",

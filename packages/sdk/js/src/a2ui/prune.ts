@@ -3,7 +3,7 @@
  * pruned catalog is a catalog in its own right — what an author is shown and what its output is
  * validated against — so the unions naming the dropped entries lose them, and a shared definition
  * that only dropped entries referenced goes with them. A definition nothing in the catalog
- * references at all (`anyComponent`, `anyFunction`, `theme` — the spec's own entry points) stays.
+ * references at all (`anyComponent`, `anyFunction` — the spec's own entry points) stays.
  */
 import type {A2uiCatalogSchema} from './types.js';
 

@@ -2,7 +2,7 @@ import {describe, expect, test} from 'vitest';
 import {
   artifactIdOf,
   checkArtifactSchema,
-  checkCatalogSchemaCompiles,
+  checkCatalogDocument,
   hashArtifactFile,
   validateArtifactDescriptor,
   verifyArtifactFiles,
@@ -52,7 +52,7 @@ describe('validateArtifactDescriptor', () => {
     const {packedBy: _dropped, ...withoutPackedBy} = descriptor;
     expect(validateArtifactDescriptor(withoutPackedBy)).toMatchObject({ok: false});
     expect(validateArtifactDescriptor({...descriptor, title: 'Gmail'})).toMatchObject({ok: false});
-    expect(validateArtifactDescriptor({...descriptor, hostInterface: 'v0_9'})).toMatchObject({
+    expect(validateArtifactDescriptor({...descriptor, hostInterface: 'v1_0'})).toMatchObject({
       ok: false,
     });
     expect(validateArtifactDescriptor('x')).toMatchObject({ok: false});
@@ -123,31 +123,36 @@ describe('checkArtifactSchema', () => {
   });
 });
 
-describe('checkCatalogSchemaCompiles', () => {
-  test('a catalog whose components compile', () => {
-    expect(
-      checkCatalogSchemaCompiles({
-        catalogId: 'c',
-        components: {
-          Text: {type: 'object', properties: {text: {type: 'string'}}, required: ['text']},
-        },
-      }),
-    ).toEqual([]);
+describe('checkCatalogDocument', () => {
+  const document = {
+    catalogId: 'c',
+    protocolVersion: '1.0',
+    components: {
+      Text: {
+        type: 'object',
+        properties: {component: {const: 'Text'}, text: {type: 'string'}},
+        required: ['component', 'text'],
+      },
+    },
+  };
+  test('a catalog document for 1.0 whose components compile', () => {
+    expect(checkCatalogDocument(document)).toEqual([]);
   });
   test('a component whose schema cannot compile names the component', () => {
-    const errors = checkCatalogSchemaCompiles({
-      catalogId: 'c',
-      components: {
-        Text: {type: 'object'},
-        Broken: {$ref: '#/$defs/nowhere'},
-      },
+    const errors = checkCatalogDocument({
+      ...document,
+      components: {...document.components, Broken: {$ref: '#/$defs/nowhere'}},
     });
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatch(/^components\/Broken: /);
+    expect(errors).toContainEqual(expect.stringMatching(/^components\/Broken: /));
+  });
+  test('a document for another version is refused', () => {
+    expect(checkCatalogDocument({...document, protocolVersion: '0.9'})).toContainEqual(
+      'protocolVersion is "0.9", not "1.0"',
+    );
   });
   test('not a catalog at all', () => {
-    expect(checkCatalogSchemaCompiles([])).toEqual(['not a JSON object']);
-    expect(checkCatalogSchemaCompiles({catalogId: 'c'})).toEqual(['components is not an object']);
+    expect(checkCatalogDocument([])).toEqual(['not a JSON object']);
+    expect(checkCatalogDocument({catalogId: 'c'})).toEqual(['components is not an object']);
   });
 });
 

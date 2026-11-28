@@ -11,7 +11,7 @@ import {
 } from './synthesis';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/a2uiverse.v0.9.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/a2uiverse.v1.0.json', import.meta.url), 'utf8'),
 ) as {
   version: string;
   extensionUri: string;
@@ -29,8 +29,8 @@ const contract = JSON.parse(
 };
 
 test('one version line: file, version, extension URI', () => {
-  expect(contract.version).toBe('0.9.0');
-  expect(contract.extensionUri).toBe('https://a2uiverse.dev/ext/a2uiverse/v0.9');
+  expect(contract.version).toBe('1.0.0');
+  expect(contract.extensionUri).toBe('https://a2uiverse.dev/ext/a2uiverse/v1.0');
   expect(A2UIVERSE_EXTENSION_URI).toBe(contract.extensionUri);
 });
 

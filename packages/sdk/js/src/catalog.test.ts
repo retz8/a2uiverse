@@ -1,11 +1,10 @@
 import {readFileSync} from 'node:fs';
 import {describe, expect, test} from 'vitest';
-import {SERVER_CAPABILITIES_SCHEMA, SERVER_CAPABILITIES_SCHEMA_V09} from './a2ui/spec.generated';
 import {
-  A2UI_CLIENT_CAPABILITIES_KEY,
-  A2UI_CLIENT_DATA_MODEL_KEY,
-  A2UI_EXTENSION_URIS,
-  A2UI_VERSIONS,
+  A2UI_EXTENSION_BASE,
+  A2UI_EXTENSION_URI,
+  A2UI_RENDERER_CAPABILITIES_KEY,
+  A2UI_RENDERER_DATA_MODEL_KEY,
   BASIC_CATALOG_ID,
   checkAppId,
   checkCatalogExports,
@@ -14,20 +13,17 @@ import {
   claimAppId,
   classifySpecifier,
   coverageErrors,
-  clientCapabilities,
-  describePaintOutside,
-  entitlementByVersionOf,
   entitlementOf,
-  paintOutside,
-  readCatalogIdsByVersion,
   readSupportedCatalogIds,
+  rendererCapabilities,
   SUPPORTED_HOST_INTERFACES,
-  underEachVersion,
 } from './catalog';
 
-test('the message-metadata keys, as the A2UI extension specification spells them', () => {
-  expect(A2UI_CLIENT_CAPABILITIES_KEY).toBe('a2uiClientCapabilities');
-  expect(A2UI_CLIENT_DATA_MODEL_KEY).toBe('a2uiClientDataModel');
+test('the message-metadata keys, as the v1.0 A2UI extension specification spells them', () => {
+  expect(A2UI_RENDERER_CAPABILITIES_KEY).toBe('a2uiRendererCapabilities');
+  expect(A2UI_RENDERER_DATA_MODEL_KEY).toBe('a2uiRendererDataModel');
+  expect(A2UI_EXTENSION_URI).toBe('https://a2ui.org/a2a-extension/a2ui/v1.0');
+  expect(BASIC_CATALOG_ID).toBe('https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json');
 });
 
 const GITHUB = 'https://example.com/github/catalog.json';
@@ -63,25 +59,30 @@ describe('checkCatalogExports', () => {
 });
 
 describe('classifySpecifier', () => {
-  test('the seven lent specifiers are host', () => {
+  test('the eight lent specifiers are host', () => {
     for (const s of [
       'react',
       'react/jsx-runtime',
       'react-dom',
       'react-dom/client',
-      '@a2ui/react/v0_9',
-      '@a2ui/web_core/v0_9',
-      '@a2ui/web_core/v0_9/basic_catalog',
       'zod',
+      '@a2ui/react',
+      '@a2ui/web_core/v1_0',
+      '@a2ui/web_core/catalogs/basic/v1',
     ]) {
       expect(classifySpecifier(s)).toBe('host');
     }
   });
   test('another specifier under a host package is refused', () => {
-    expect(classifySpecifier('@a2ui/react/v0_8')).toBe('refuse');
+    expect(classifySpecifier('@a2ui/react/v0_9')).toBe('refuse');
+    expect(classifySpecifier('@a2ui/web_core/v0_9')).toBe('refuse');
+    expect(classifySpecifier('@a2ui/web_core/v0_9/basic_catalog')).toBe('refuse');
     expect(classifySpecifier('react-dom/server')).toBe('refuse');
-    expect(classifySpecifier('@a2ui/web_core/v1_0')).toBe('refuse');
     expect(classifySpecifier('zod/v4')).toBe('refuse');
+  });
+  test('the @a2ui/web_core root and @a2ui/web_core/universal are refused', () => {
+    expect(classifySpecifier('@a2ui/web_core')).toBe('refuse');
+    expect(classifySpecifier('@a2ui/web_core/universal')).toBe('refuse');
   });
   test('everything else is bundled', () => {
     expect(classifySpecifier('@primer/react')).toBe('bundle');
@@ -91,10 +92,9 @@ describe('classifySpecifier', () => {
   });
 });
 
-const V09 = A2UI_EXTENSION_URIS['v0.9'];
-const V091 = A2UI_EXTENSION_URIS['v0.9.1'];
-const V08 = 'https://a2ui.org/a2a-extension/a2ui/v0.8';
-const V10 = 'https://a2ui.org/a2a-extension/a2ui/v1.0';
+const V09 = `${A2UI_EXTENSION_BASE}v0.9`;
+const V08 = `${A2UI_EXTENSION_BASE}v0.8`;
+const V11 = `${A2UI_EXTENSION_BASE}v1.1`;
 
 /** A card from its extension entries alone: `[uri, params]`, params left out for a bare entry. */
 const cardOf = (...entries: [string, Record<string, unknown>?][]) => ({
@@ -104,279 +104,141 @@ const cardOf = (...entries: [string, Record<string, unknown>?][]) => ({
 });
 const fixture = (name: string) =>
   JSON.parse(readFileSync(new URL(`../test/fixtures/cards/${name}`, import.meta.url), 'utf8'));
-const both = (ids: string[]) => ({'v0.9': ids, 'v0.9.1': ids});
 
-describe('the versions the platform speaks (task 19.1)', () => {
-  test('v0.9 and v0.9.1, in that order, each with its extension URI', () => {
-    expect(A2UI_VERSIONS).toEqual(['v0.9', 'v0.9.1']);
-    expect(A2UI_EXTENSION_URIS).toEqual({
-      'v0.9': 'https://a2ui.org/a2a-extension/a2ui/v0.9',
-      'v0.9.1': 'https://a2ui.org/a2a-extension/a2ui/v0.9.1',
-    });
-  });
-});
-
-describe('readCatalogIdsByVersion (phase 19 decisions 2 and 3)', () => {
-  test('no extension declares nothing: both versions empty', () => {
-    expect(readCatalogIdsByVersion({})).toEqual({ok: true, value: both([])});
-    expect(readCatalogIdsByVersion({capabilities: {}})).toEqual({ok: true, value: both([])});
-  });
-
-  test('a bare entry declares nothing: no params, empty params, params naming no ids', () => {
-    expect(readCatalogIdsByVersion(cardOf([V091]))).toEqual({ok: true, value: both([])});
-    expect(readCatalogIdsByVersion(cardOf([V091, {}]))).toEqual({ok: true, value: both([])});
-    expect(readCatalogIdsByVersion(cardOf([V09, {acceptsInlineCatalogs: true}]))).toEqual({
+describe('readSupportedCatalogIds: the cards as their agents serve them (task-21.10 decision 23.3)', () => {
+  test('the Node restaurant finder declares no A2UI entry: nothing, the basic-catalog fallback', () => {
+    expect(readSupportedCatalogIds(fixture('node-restaurant-finder.json'))).toEqual({
       ok: true,
-      value: both([]),
-    });
-    expect(readCatalogIdsByVersion(cardOf([V091, {'v0.9.1': {}}]))).toEqual({
-      ok: true,
-      value: both([]),
+      value: [],
     });
   });
 
-  test("another version's URI alone is passed over, not an error", () => {
-    expect(readCatalogIdsByVersion(cardOf([V08, {supportedCatalogIds: [GITHUB]}]))).toEqual({
-      ok: true,
-      value: both([]),
-    });
-    expect(readCatalogIdsByVersion(cardOf([V10, {supportedCatalogIds: [GITHUB]}]))).toEqual({
-      ok: true,
-      value: both([]),
-    });
-  });
-
-  test('one flat entry under either URI fills both versions', () => {
-    expect(readCatalogIdsByVersion(cardOf([V09, {supportedCatalogIds: [GITHUB]}]))).toEqual({
-      ok: true,
-      value: both([GITHUB]),
-    });
-    expect(readCatalogIdsByVersion(cardOf([V091, {supportedCatalogIds: [GITHUB]}]))).toEqual({
-      ok: true,
-      value: both([GITHUB]),
-    });
-  });
-
-  test('ids are read once each, in card order', () => {
-    expect(
-      readCatalogIdsByVersion(cardOf([V091, {supportedCatalogIds: [GITHUB, GMAIL, GITHUB]}])),
-    ).toEqual({ok: true, value: both([GITHUB, GMAIL])});
-  });
-
-  test('keyed under either key, under either URI, the root requirement of v0.9 not applied', () => {
-    for (const uri of [V09, V091]) {
-      for (const key of ['v0.9', 'v0.9.1']) {
-        expect(
-          readCatalogIdsByVersion(cardOf([uri, {[key]: {supportedCatalogIds: [GITHUB]}}])),
-        ).toEqual({ok: true, value: both([GITHUB])});
-      }
-    }
-  });
-
-  test('the URI decides the version; the key never retargets', () => {
-    expect(
-      readCatalogIdsByVersion(
-        cardOf(
-          [V09, {'v0.9.1': {supportedCatalogIds: [GITHUB]}}],
-          [V091, {supportedCatalogIds: [GMAIL]}],
-        ),
-      ),
-    ).toEqual({ok: true, value: {'v0.9': [GITHUB], 'v0.9.1': [GMAIL]}});
-  });
-
-  test("both keys in one entry union into that entry's set", () => {
-    expect(
-      readCatalogIdsByVersion(
-        cardOf([
-          V091,
-          {'v0.9': {supportedCatalogIds: [GITHUB]}, 'v0.9.1': {supportedCatalogIds: [GMAIL]}},
-        ]),
-      ),
-    ).toEqual({ok: true, value: both([GITHUB, GMAIL])});
-  });
-
-  test('a third version key beside a counted one is passed over', () => {
-    expect(
-      readCatalogIdsByVersion(
-        cardOf([
-          V091,
-          {'v0.9.1': {supportedCatalogIds: [GITHUB]}, 'v1.0': {supportedCatalogIds: [GMAIL]}},
-        ]),
-      ),
-    ).toEqual({ok: true, value: both([GITHUB])});
-  });
-
-  test('a flat field beside a version key is not read', () => {
-    expect(
-      readCatalogIdsByVersion(
-        cardOf([V091, {supportedCatalogIds: [GMAIL], 'v0.9.1': {supportedCatalogIds: [GITHUB]}}]),
-      ),
-    ).toEqual({ok: true, value: both([GITHUB])});
-  });
-
-  test("a bare entry beside a declaring one takes the other's set", () => {
-    expect(readCatalogIdsByVersion(cardOf([V091], [V09, {supportedCatalogIds: [GITHUB]}]))).toEqual(
-      {
-        ok: true,
-        value: both([GITHUB]),
-      },
-    );
-  });
-
-  test('two entries naming one set: no version axis', () => {
-    expect(
-      readCatalogIdsByVersion(
-        cardOf([V09, {supportedCatalogIds: [GITHUB]}], [V091, {supportedCatalogIds: [GITHUB]}]),
-      ),
-    ).toEqual({ok: true, value: both([GITHUB])});
-  });
-
-  test('two entries naming different sets keep each under its own version', () => {
-    expect(
-      readCatalogIdsByVersion(
-        cardOf([V09, {supportedCatalogIds: [GITHUB]}], [V091, {supportedCatalogIds: [GMAIL]}]),
-      ),
-    ).toEqual({ok: true, value: {'v0.9': [GITHUB], 'v0.9.1': [GMAIL]}});
-  });
-
-  test('two entries under one URI merge', () => {
-    expect(
-      readCatalogIdsByVersion(
-        cardOf(
-          [V091, {supportedCatalogIds: [GITHUB]}],
-          [V091, {supportedCatalogIds: [GMAIL, GITHUB]}],
-        ),
-      ),
-    ).toEqual({ok: true, value: both([GITHUB, GMAIL])});
-  });
-
-  test("the ADK restaurant finder's real card: its v0.8 entry passed over, its v0.9 entry read", () => {
-    const read = readCatalogIdsByVersion(fixture('adk-restaurant-finder.json'));
-    expect(read).toEqual({ok: true, value: both([BASIC_CATALOG_ID])});
-    expect(JSON.stringify(read)).not.toContain('v0_8');
-  });
-
-  test("the kit's three shapes", () => {
-    const github = 'https://a2uiverse.dev/catalogs/github/catalog.json';
-    const shopA = 'https://a2uiverse.dev/catalogs/shop-a/catalog.json';
-    const calendar = 'https://a2uiverse.dev/catalogs/calendar/catalog.json';
-    expect(readCatalogIdsByVersion(fixture('kit-v091-only.json'))).toEqual({
-      ok: true,
-      value: both([github]),
-    });
-    expect(readCatalogIdsByVersion(fixture('kit-v09-only.json'))).toEqual({
-      ok: true,
-      value: both([shopA]),
-    });
-    expect(readCatalogIdsByVersion(fixture('kit-both.json'))).toEqual({
-      ok: true,
-      value: both([calendar]),
-    });
-  });
-
-  test('an object keyed with neither key is an error naming the entry', () => {
-    const read = readCatalogIdsByVersion(cardOf([V09, {'v0.8': {supportedCatalogIds: [GITHUB]}}]));
-    expect(read.ok).toBe(false);
-    if (!read.ok) {
-      expect(read.errors).toHaveLength(1);
-      expect(read.errors[0]).toMatch(
-        /^A2UI v0\.9 extension params: keyed under neither v0\.9 nor v0\.9\.1/,
-      );
-    }
-  });
-
-  test('malformed ids are an error naming the entry and the path', () => {
-    const flat = readCatalogIdsByVersion(cardOf([V09, {supportedCatalogIds: 'github'}]));
-    expect(flat.ok).toBe(false);
-    if (!flat.ok) {
-      expect(flat.errors[0]).toMatch(
-        /^A2UI v0\.9 extension params\/supportedCatalogIds: must be array/,
-      );
-    }
-    const keyed = readCatalogIdsByVersion(cardOf([V091, {'v0.9.1': {supportedCatalogIds: [1]}}]));
-    expect(keyed.ok).toBe(false);
-    if (!keyed.ok) {
-      expect(keyed.errors[0]).toMatch(
-        /^A2UI v0\.9\.1 extension params\/v0\.9\.1\/supportedCatalogIds\/0: must be string/,
-      );
-    }
-  });
-
-  test('one malformed entry beside a good one fails the whole read', () => {
-    const read = readCatalogIdsByVersion(
-      cardOf([V09, {supportedCatalogIds: [GITHUB]}], [V091, {supportedCatalogIds: 'gmail'}]),
-    );
-    expect(read.ok).toBe(false);
-    if (!read.ok)
-      expect(read.errors).toEqual([expect.stringMatching(/^A2UI v0\.9\.1 extension params/)]);
-  });
-});
-
-describe('readSupportedCatalogIds: the union', () => {
-  test("one entry: that entry's ids, as before", () => {
-    expect(readSupportedCatalogIds({})).toEqual({ok: true, value: []});
-    expect(readSupportedCatalogIds(cardOf([V091]))).toEqual({ok: true, value: []});
-    expect(
-      readSupportedCatalogIds(cardOf([V091, {supportedCatalogIds: [GITHUB, GMAIL, GITHUB]}])),
-    ).toEqual({
-      ok: true,
-      value: [GITHUB, GMAIL],
-    });
-    expect(
-      readSupportedCatalogIds(cardOf([V091, {'v0.9': {supportedCatalogIds: [GITHUB]}}])),
-    ).toEqual({
-      ok: true,
-      value: [GITHUB],
-    });
-  });
-
-  test("two entries naming different sets: both versions' ids, v0.9's first, each once", () => {
-    expect(
-      readSupportedCatalogIds(
-        cardOf(
-          [V091, {supportedCatalogIds: [GMAIL, GITHUB]}],
-          [V09, {supportedCatalogIds: [GITHUB]}],
-        ),
-      ),
-    ).toEqual({ok: true, value: [GITHUB, GMAIL]});
-  });
-
-  test('the finder: the basic catalog alone', () => {
+  test('the ADK restaurant finder declares v0.8 and v0.9: a finding of its own, all older', () => {
     expect(readSupportedCatalogIds(fixture('adk-restaurant-finder.json'))).toEqual({
+      ok: false,
+      errors: ['the card declares A2UI v0.8 and v0.9, not v1.0'],
+      otherVersions: {versions: ['v0.8', 'v0.9'], allOlder: true},
+    });
+  });
+
+  test('the end-to-end TypeScript agent declares v1.0 flat: read from that entry alone', () => {
+    expect(readSupportedCatalogIds(fixture('e2e-typescript-agent.json'))).toEqual({
       ok: true,
       value: [BASIC_CATALOG_ID],
     });
   });
 
-  test('a malformed declaration is an error, never none', () => {
-    const read = readSupportedCatalogIds(cardOf([V09, {supportedCatalogIds: 'github'}]));
-    expect(read.ok).toBe(false);
+  test('a card with the keyed wrapper fails, naming the key', () => {
+    expect(readSupportedCatalogIds(fixture('keyed-wrapper.json'))).toEqual({
+      ok: false,
+      errors: ['A2UI v1.0 extension params: keyed under "1.0"; v1.0 params are read flat'],
+    });
+  });
+
+  test('a card declaring only a newer version: a finding of its own, not all older', () => {
+    expect(readSupportedCatalogIds(fixture('newer-only.json'))).toEqual({
+      ok: false,
+      errors: ['the card declares A2UI v1.1, not v1.0, among them a version after it'],
+      otherVersions: {versions: ['v1.1'], allOlder: false},
+    });
   });
 });
 
-describe('clientCapabilities', () => {
-  test('one list is written under both version keys, in version order', () => {
-    const written = clientCapabilities([GITHUB]);
-    expect(written).toEqual({
-      'v0.9': {supportedCatalogIds: [GITHUB]},
-      'v0.9.1': {supportedCatalogIds: [GITHUB]},
+describe('readSupportedCatalogIds: the rule (task-21.10 decisions 5 and 6)', () => {
+  test('no extension, or none under the A2UI base, declares nothing', () => {
+    expect(readSupportedCatalogIds({})).toEqual({ok: true, value: []});
+    expect(readSupportedCatalogIds(cardOf(['https://example.com/ext/v1']))).toEqual({
+      ok: true,
+      value: [],
     });
-    expect(Object.keys(written)).toEqual([...A2UI_VERSIONS]);
   });
 
-  test("a map by version is written key by key, each version's own set", () => {
-    expect(clientCapabilities({'v0.9': [GITHUB], 'v0.9.1': [GITHUB, GMAIL]})).toEqual({
-      'v0.9': {supportedCatalogIds: [GITHUB]},
-      'v0.9.1': {supportedCatalogIds: [GITHUB, GMAIL]},
+  test('a v1.0 entry naming no ids declares nothing: no params, empty params, no list', () => {
+    for (const card of [
+      cardOf([A2UI_EXTENSION_URI]),
+      cardOf([A2UI_EXTENSION_URI, {}]),
+      cardOf([A2UI_EXTENSION_URI, {acceptsInlineCatalogs: false}]),
+    ]) {
+      expect(readSupportedCatalogIds(card)).toEqual({ok: true, value: []});
+    }
+  });
+
+  test('beside a v1.0 entry, an older one is passed over', () => {
+    expect(
+      readSupportedCatalogIds(
+        cardOf(
+          [V09, {supportedCatalogIds: [GMAIL]}],
+          [A2UI_EXTENSION_URI, {supportedCatalogIds: [GITHUB]}],
+        ),
+      ),
+    ).toEqual({ok: true, value: [GITHUB]});
+  });
+
+  test('two v1.0 entries merge, each id once, in card order', () => {
+    expect(
+      readSupportedCatalogIds(
+        cardOf(
+          [A2UI_EXTENSION_URI, {supportedCatalogIds: [GITHUB, GMAIL]}],
+          [A2UI_EXTENSION_URI, {supportedCatalogIds: [GMAIL, BASIC_CATALOG_ID]}],
+        ),
+      ),
+    ).toEqual({ok: true, value: [GITHUB, GMAIL, BASIC_CATALOG_ID]});
+  });
+
+  test('a version key of any spelling is the keyed wrapper', () => {
+    const read = readSupportedCatalogIds(
+      cardOf([A2UI_EXTENSION_URI, {'v1.0': {supportedCatalogIds: [GITHUB]}}]),
+    );
+    expect(read).toEqual({
+      ok: false,
+      errors: ['A2UI v1.0 extension params: keyed under "v1.0"; v1.0 params are read flat'],
+    });
+  });
+
+  test('malformed ids are an error naming the path', () => {
+    const read = readSupportedCatalogIds(cardOf([A2UI_EXTENSION_URI, {supportedCatalogIds: 'x'}]));
+    expect(read.ok).toBe(false);
+    expect(!read.ok && read.errors[0]).toMatch(
+      /^A2UI v1\.0 extension params\/supportedCatalogIds: /,
+    );
+  });
+
+  test('one malformed entry beside a good one fails the whole read', () => {
+    const read = readSupportedCatalogIds(
+      cardOf(
+        [A2UI_EXTENSION_URI, {supportedCatalogIds: [GITHUB]}],
+        [A2UI_EXTENSION_URI, {supportedCatalogIds: [1]}],
+      ),
+    );
+    expect(read.ok).toBe(false);
+  });
+
+  test('older entries alone, in any number: their versions once each, all older', () => {
+    expect(readSupportedCatalogIds(cardOf([V08], [V09, {}], [V09]))).toEqual({
+      ok: false,
+      errors: ['the card declares A2UI v0.8 and v0.9, not v1.0'],
+      otherVersions: {versions: ['v0.8', 'v0.9'], allOlder: true},
+    });
+  });
+
+  test('an older and a newer one: not all older', () => {
+    const read = readSupportedCatalogIds(cardOf([V09], [V11]));
+    expect(!read.ok && read.otherVersions).toEqual({versions: ['v0.9', 'v1.1'], allOlder: false});
+  });
+});
+
+describe('rendererCapabilities', () => {
+  test("the ids under v1.0's key alone", () => {
+    expect(rendererCapabilities([GITHUB, BASIC_CATALOG_ID])).toEqual({
+      '1.0': {supportedCatalogIds: [GITHUB, BASIC_CATALOG_ID]},
     });
   });
 
   test('what is written is a copy', () => {
     const ids = [GITHUB];
-    const written = clientCapabilities(ids) as Record<string, {supportedCatalogIds: string[]}>;
-    written['v0.9'].supportedCatalogIds.push(GMAIL);
-    expect(ids).toEqual([GITHUB]);
-    expect(written['v0.9.1'].supportedCatalogIds).toEqual([GITHUB]);
+    const written = rendererCapabilities(ids) as {'1.0': {supportedCatalogIds: string[]}};
+    ids.push(GMAIL);
+    expect(written['1.0'].supportedCatalogIds).toEqual([GITHUB]);
   });
 });
 
@@ -431,109 +293,21 @@ describe('the app id', () => {
   });
 });
 
-describe('the host interface an artifact was built against (task-11.4 decision 4)', () => {
-  test('one the platform supplies passes', () => {
-    expect(SUPPORTED_HOST_INTERFACES).toEqual(['0.16.1']);
-    expect(checkHostInterface('0.16.1')).toEqual([]);
+describe('the host interface an artifact was built against (task-21.10 decision 11)', () => {
+  test('one the platform supplies passes: named by the release and the A2UI version it lends', () => {
+    expect(SUPPORTED_HOST_INTERFACES).toEqual(['0.16.1-v1.0']);
+    expect(checkHostInterface('0.16.1-v1.0')).toEqual([]);
+  });
+
+  test('an artifact packed for 0.16.1, the v0.9 entry points, is refused by name', () => {
+    expect(checkHostInterface('0.16.1')).toEqual([
+      'host interface "0.16.1" is not one the platform supplies (it supplies "0.16.1-v1.0")',
+    ]);
   });
 
   test('any other is refused, naming what the platform supplies', () => {
-    expect(checkHostInterface('1.0')).toEqual([
-      'host interface "1.0" is not one the platform supplies (it supplies "0.16.1")',
-    ]);
-  });
-
-  test('the interface before it, 0.14.0, is refused (task-21.2 decision 3)', () => {
     expect(checkHostInterface('0.14.0')).toEqual([
-      'host interface "0.14.0" is not one the platform supplies (it supplies "0.16.1")',
+      'host interface "0.14.0" is not one the platform supplies (it supplies "0.16.1-v1.0")',
     ]);
-  });
-});
-
-describe('the pinned capabilities schemas (task 19.1)', () => {
-  test("v0.9's and v0.9.1's server capabilities name one version part, equal in both", () => {
-    expect(SERVER_CAPABILITIES_SCHEMA_V09.properties).toEqual(
-      SERVER_CAPABILITIES_SCHEMA.properties,
-    );
-    expect(Object.keys(SERVER_CAPABILITIES_SCHEMA.properties as object)).toEqual(['v0.9']);
-  });
-});
-
-describe('the entitlement per version (task-19.2 decisions 1, 6)', () => {
-  test('one list under each version key', () => {
-    expect(underEachVersion([BASIC_CATALOG_ID, GITHUB])).toEqual({
-      'v0.9': [BASIC_CATALOG_ID, GITHUB],
-      'v0.9.1': [BASIC_CATALOG_ID, GITHUB],
-    });
-  });
-
-  test('a map by version is handed back as it is', () => {
-    const map = {'v0.9': [GITHUB], 'v0.9.1': [GMAIL]};
-    expect(underEachVersion(map)).toEqual(map);
-  });
-
-  test("each version's set is the public catalogs then that version's declared ids, each once", () => {
-    expect(entitlementByVersionOf({'v0.9': [GITHUB], 'v0.9.1': [GITHUB, GMAIL]})).toEqual({
-      'v0.9': [BASIC_CATALOG_ID, GITHUB],
-      'v0.9.1': [BASIC_CATALOG_ID, GITHUB, GMAIL],
-    });
-    expect(entitlementByVersionOf({'v0.9': [], 'v0.9.1': []})).toEqual({
-      'v0.9': [BASIC_CATALOG_ID],
-      'v0.9.1': [BASIC_CATALOG_ID],
-    });
-    expect(
-      entitlementByVersionOf({'v0.9': [BASIC_CATALOG_ID], 'v0.9.1': [GITHUB, GITHUB]}),
-    ).toEqual({
-      'v0.9': [BASIC_CATALOG_ID],
-      'v0.9.1': [BASIC_CATALOG_ID, GITHUB],
-    });
-  });
-});
-
-describe('paintOutside: a paint against the set of its stamp (task-19.2 decisions 2, 3, 7)', () => {
-  const sets = {'v0.9': [BASIC_CATALOG_ID, GITHUB], 'v0.9.1': [BASIC_CATALOG_ID, GMAIL]};
-
-  test('a paint in the set of its stamp is inside, whichever version', () => {
-    expect(paintOutside('v0.9', GITHUB, sets)).toBeUndefined();
-    expect(paintOutside('v0.9.1', GMAIL, sets)).toBeUndefined();
-    expect(paintOutside('v0.9.1', BASIC_CATALOG_ID, sets)).toBeUndefined();
-  });
-
-  test("a paint in a catalog the other version's set alone holds is outside, naming that version", () => {
-    expect(paintOutside('v0.9', GMAIL, sets)).toEqual({stamp: 'v0.9', declaredFor: ['v0.9.1']});
-    expect(paintOutside('v0.9.1', GITHUB, sets)).toEqual({stamp: 'v0.9.1', declaredFor: ['v0.9']});
-  });
-
-  test('a paint in a catalog neither set holds is outside, declared for none', () => {
-    expect(paintOutside('v0.9', 'urn:other', sets)).toEqual({stamp: 'v0.9', declaredFor: []});
-  });
-
-  test('a stamp that is neither version is checked against the union', () => {
-    expect(paintOutside(undefined, GITHUB, sets)).toBeUndefined();
-    expect(paintOutside(undefined, GMAIL, sets)).toBeUndefined();
-    expect(paintOutside('v1.0', GITHUB, sets)).toBeUndefined();
-    expect(paintOutside('v1.0', 'urn:other', sets)).toEqual({stamp: 'v1.0', declaredFor: []});
-    expect(paintOutside(undefined, 'urn:other', sets)).toEqual({declaredFor: []});
-    expect(paintOutside(9, 'urn:other', sets)).toEqual({declaredFor: []});
-  });
-
-  test('a flat list is one set under both versions, as before', () => {
-    expect(paintOutside('v0.9.1', GITHUB, [BASIC_CATALOG_ID, GITHUB])).toBeUndefined();
-    expect(paintOutside('v0.9', GMAIL, [BASIC_CATALOG_ID, GITHUB])).toEqual({
-      stamp: 'v0.9',
-      declaredFor: [],
-    });
-  });
-
-  test('the words: outside the entitlement, or stamped for the other version', () => {
-    expect(describePaintOutside('urn:other', {stamp: 'v0.9', declaredFor: []})).toBe(
-      'catalog "urn:other", outside its entitlement',
-    );
-    expect(describePaintOutside('urn:other', {declaredFor: []})).toBe(
-      'catalog "urn:other", outside its entitlement',
-    );
-    expect(describePaintOutside(GMAIL, {stamp: 'v0.9', declaredFor: ['v0.9.1']})).toBe(
-      `catalog ${JSON.stringify(GMAIL)} stamped v0.9, which its card declares for v0.9.1 only`,
-    );
   });
 });

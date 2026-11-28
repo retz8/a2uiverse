@@ -21,7 +21,7 @@ export interface A2uiFinding {
   componentId?: string;
 }
 
-/** An A2UI v0.9 component as a payload carries it. */
+/** An A2UI v1.0 component as a payload carries it: its id, its type, its envelope's `@` keys and its props. */
 export interface A2uiComponent {
   id: string;
   component: string;

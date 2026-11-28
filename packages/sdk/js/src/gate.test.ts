@@ -1,6 +1,7 @@
 import {describe, expect, test} from 'vitest';
 import {ARTIFACT_DESCRIPTOR_FILE, hashArtifactFile} from './artifact';
-import {HOST_INTERFACE_VERSION} from './catalog';
+import {BASIC_CATALOG_SCHEMA} from './a2ui/spec.generated';
+import {BASIC_CATALOG_ID, HOST_INTERFACE_VERSION} from './catalog';
 import {gateArtifact, type ArtifactFiles} from './gate';
 
 const GMAIL = 'https://example.com/gmail/catalog.json';
@@ -15,8 +16,13 @@ async function artifact(
 ): Promise<Map<string, Uint8Array>> {
   const schema = options.schema ?? {
     catalogId,
+    protocolVersion: '1.0',
     components: {
-      Text: {type: 'object', properties: {text: {type: 'string'}}, required: ['text']},
+      Text: {
+        type: 'object',
+        properties: {component: {const: 'Text'}, text: {type: 'string'}},
+        required: ['component', 'text'],
+      },
     },
   };
   const files = new Map<string, Uint8Array>([
@@ -96,17 +102,19 @@ describe('gateArtifact', () => {
     ]);
   });
 
-  test('an artifact packed for host interface 0.14.0 is refused, the platform supplying 0.16.1 (task-21.2 decision 3)', async () => {
-    const files = await artifact(GMAIL, {hostInterface: '0.14.0'});
+  test('an artifact packed for host interface 0.16.1 is refused by name, the platform supplying 0.16.1-v1.0 (task-21.10 decision 11)', async () => {
+    const files = await artifact(GMAIL, {hostInterface: '0.16.1'});
     const result = await gateArtifact(files, 0);
     expect(result.findings).toEqual([
-      `catalog artifact 1 (${GMAIL}): host interface "0.14.0" is not one the platform supplies (it supplies "0.16.1")`,
+      `catalog artifact 1 (${GMAIL}): host interface "0.16.1" is not one the platform supplies (it supplies "0.16.1-v1.0")`,
     ]);
     expect(result.artifact).toBeUndefined();
   });
 
   test("a schema whose id is not the descriptor's", async () => {
-    const files = await artifact(GMAIL, {schema: {catalogId: CALENDAR, components: {}}});
+    const files = await artifact(GMAIL, {
+      schema: {catalogId: CALENDAR, protocolVersion: '1.0', components: {}},
+    });
     expect((await gateArtifact(files, 0)).findings).toEqual([
       `catalog artifact 1 (${GMAIL}): catalog.json: catalogId is "${CALENDAR}", the descriptor says "${GMAIL}"`,
     ]);
@@ -114,12 +122,37 @@ describe('gateArtifact', () => {
 
   test('a schema that does not compile as an A2UI catalog', async () => {
     const files = await artifact(GMAIL, {
-      schema: {catalogId: GMAIL, components: {Broken: {type: 'nonsense'}}},
+      schema: {catalogId: GMAIL, protocolVersion: '1.0', components: {Broken: {type: 'nonsense'}}},
     });
     const result = await gateArtifact(files, 0);
-    expect(result.findings).toEqual([
+    expect(result.findings).toContainEqual(
       expect.stringMatching(/^catalog artifact 1 \(.*\): catalog.json: components\/Broken: /),
-    ]);
+    );
+  });
+
+  test("upstream's v1 basic catalog passes the gate's four checks (task-21.10 decision 23.6)", async () => {
+    const files = await artifact(BASIC_CATALOG_ID, {schema: BASIC_CATALOG_SCHEMA});
+    expect((await gateArtifact(files, 0)).findings).toEqual([]);
+  });
+
+  test('a v0.9 catalog document is refused', async () => {
+    const v09 = {
+      catalogId: GMAIL,
+      components: {
+        Text: {
+          type: 'object',
+          allOf: [
+            {$ref: 'https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon'},
+            {properties: {component: {const: 'Text'}, text: {type: 'string'}}},
+          ],
+        },
+      },
+    };
+    const result = await gateArtifact(await artifact(GMAIL, {schema: v09}), 0);
+    expect(result.findings).toContainEqual(
+      `catalog artifact 1 (${GMAIL}): catalog.json: declares no protocolVersion; a catalog for A2UI 1.0 declares "1.0"`,
+    );
+    expect(result.artifact).toBeUndefined();
   });
 
   test('a schema file that is not JSON', async () => {

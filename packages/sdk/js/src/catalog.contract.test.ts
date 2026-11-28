@@ -2,12 +2,20 @@
 import {readFileSync} from 'node:fs';
 import {expect, test} from 'vitest';
 import {Ajv2020} from 'ajv/dist/2020.js';
-import {CLIENT_CAPABILITIES_SCHEMA} from './a2ui/spec.generated';
+import {
+  CATALOG_DEFINITION_SCHEMA,
+  COMMON_TYPES_SCHEMA,
+  RENDERER_CAPABILITIES_SCHEMA,
+  RENDERER_DATA_MODEL_SCHEMA,
+} from './a2ui/spec.generated';
+import {A2UI_VERSION} from './a2ui/stamp';
 import {ARTIFACT_DESCRIPTOR_FILE, ARTIFACT_DESCRIPTOR_SCHEMA} from './artifact';
 import {CREDENTIAL_TERMS} from './credential';
 import {
-  A2UI_EXTENSION_URIS,
-  A2UI_VERSIONS,
+  A2UI_EXTENSION_BASE,
+  A2UI_EXTENSION_URI,
+  A2UI_RENDERER_CAPABILITIES_KEY,
+  A2UI_RENDERER_DATA_MODEL_KEY,
   APP_ID_MAX_LENGTH,
   APP_ID_PATTERN,
   CATALOG_EXPORTS,
@@ -18,14 +26,22 @@ import {
   HOST_STYLESHEET_LOADER,
   PUBLIC_CATALOG_IDS,
   RESERVED_APP_IDS,
-  clientCapabilities,
+  rendererCapabilities,
+  rendererDataModel,
 } from './catalog';
 
 const read = (name: string) =>
   JSON.parse(readFileSync(new URL(`../../contracts/${name}`, import.meta.url), 'utf8'));
 
 const contract = read('catalog.json') as {
-  a2uiVersions: Record<string, {extensionUri: string; capabilitiesKey: string}>;
+  a2ui: {
+    version: string;
+    extensionBase: string;
+    extensionUri: string;
+    capabilitiesKey: string;
+    rendererCapabilitiesKey: string;
+    rendererDataModelKey: string;
+  };
   cardRead: {rule: string};
   exportContract: {required: string[]; optional: string[]};
   hostInterfaces: Record<string, {global: string; specifiers: string[]; stylesheetLoader: string}>;
@@ -35,19 +51,25 @@ const contract = read('catalog.json') as {
   credentialBar: {terms: string[]};
 };
 
-test('no version line of its own: the sdk is the version; the A2UI versions are the protocol', () => {
+test('no version line of its own: the sdk is the version; the A2UI version is the protocol', () => {
   expect(contract).not.toHaveProperty('version');
-  expect(contract).not.toHaveProperty('a2uiExtensionUri');
-  expect(Object.keys(contract.a2uiVersions)).toEqual([...A2UI_VERSIONS]);
-  for (const version of A2UI_VERSIONS) {
-    expect(contract.a2uiVersions[version].extensionUri).toBe(A2UI_EXTENSION_URIS[version]);
-    expect(contract.a2uiVersions[version].capabilitiesKey).toBe(version);
-  }
+  expect(contract).not.toHaveProperty('a2uiVersions');
+  expect(contract.a2ui).toEqual(
+    expect.objectContaining({
+      version: A2UI_VERSION,
+      extensionBase: A2UI_EXTENSION_BASE,
+      extensionUri: A2UI_EXTENSION_URI,
+      capabilitiesKey: A2UI_VERSION,
+      rendererCapabilitiesKey: A2UI_RENDERER_CAPABILITIES_KEY,
+      rendererDataModelKey: A2UI_RENDERER_DATA_MODEL_KEY,
+    }),
+  );
+  expect(A2UI_EXTENSION_URI).toBe('https://a2ui.org/a2a-extension/a2ui/v1.0');
 });
 
-test('the card read carries its rule: per version, the pass-over, the fill, the union', () => {
+test('the card read carries its rule: the v1.0 entry alone, flat, the keyed wrapper, the other versions', () => {
   const rule = contract.cardRead.rule;
-  for (const words of ['v0.9', 'v0.9.1', 'passed over', 'flat', 'keyed', 'URI', 'union']) {
+  for (const words of ['extensionBase', 'extensionUri', 'flat', 'version key', 'below 1.0']) {
     expect(rule).toContain(words);
   }
 });
@@ -57,10 +79,10 @@ test('the export contract: CATALOG required, Provider optional', () => {
   expect(contract.exportContract.optional).toEqual([...CATALOG_EXPORTS.optional]);
 });
 
-test('the host-module interfaces keyed by the A2UI runtime release: one today, the global, eight specifiers, the loader', () => {
+test('the host-module interfaces named by the release and the A2UI version: one today, the global, eight specifiers, the loader', () => {
   expect(Object.keys(contract.hostInterfaces)).toEqual([HOST_INTERFACE_VERSION]);
   expect(Object.keys(contract.hostInterfaces)).toEqual([...SUPPORTED_HOST_INTERFACES]);
-  expect(HOST_INTERFACE_VERSION).toBe('0.16.1');
+  expect(HOST_INTERFACE_VERSION).toBe('0.16.1-v1.0');
   const lent = contract.hostInterfaces[HOST_INTERFACE_VERSION];
   expect(lent.global).toBe(HOST_INTERFACE_GLOBAL);
   expect(lent.specifiers).toEqual([...HOST_SPECIFIERS]);
@@ -79,7 +101,7 @@ test('the artifact: the descriptor file and its schema, equal to the projection'
 test('the public catalogs are the basic catalog alone', () => {
   expect(contract.publicCatalogIds).toEqual([...PUBLIC_CATALOG_IDS]);
   expect(PUBLIC_CATALOG_IDS).toEqual([
-    'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json',
+    'https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json',
   ]);
 });
 
@@ -93,10 +115,15 @@ test('the credential terms', () => {
   expect(contract.credentialBar.terms).toEqual([...CREDENTIAL_TERMS]);
 });
 
-test('what the hub writes validates against the pinned client_capabilities.json', () => {
-  const ajv = new Ajv2020({allErrors: true, strict: true, allowUnionTypes: true});
-  const validate = ajv.compile(CLIENT_CAPABILITIES_SCHEMA);
-  expect(validate(clientCapabilities(['a', 'b']))).toBe(true);
-  expect(validate(clientCapabilities([]))).toBe(true);
-  expect(validate(clientCapabilities({'v0.9': ['a'], 'v0.9.1': ['a', 'b']}))).toBe(true);
+test('what the hub writes validates against the pinned renderer_capabilities.json and renderer_data_model.json', () => {
+  const ajv = new Ajv2020({allErrors: true, strict: false, allowUnionTypes: true});
+  ajv.addSchema(COMMON_TYPES_SCHEMA);
+  ajv.addSchema(CATALOG_DEFINITION_SCHEMA);
+  const capabilities = ajv.compile(RENDERER_CAPABILITIES_SCHEMA);
+  expect(capabilities(rendererCapabilities(['a', 'b']))).toBe(true);
+  expect(capabilities(rendererCapabilities([]))).toBe(true);
+  expect(Object.keys(rendererCapabilities(['a']))).toEqual(['1.0']);
+  const dataModel = ajv.compile(RENDERER_DATA_MODEL_SCHEMA);
+  expect(dataModel(rendererDataModel({s: {n: 1}}))).toBe(true);
+  expect(rendererDataModel({})).toEqual({version: '1.0', surfaces: {}});
 });

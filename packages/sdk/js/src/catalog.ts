@@ -8,44 +8,33 @@
  * ships from this monorepo; the one version inside them is A2UI's, keying the host interfaces.
  *
  * Nothing here describes an agent: the app is its A2A AgentCard, read as written. The one thing the
- * sdk reads off a card is the A2UI extension's `supportedCatalogIds`, per version across its v0.9
- * and v0.9.1 entries (phase 19), each validated against the pinned `server_capabilities.json`.
+ * sdk reads off a card is the A2UI extension's `supportedCatalogIds`, from its v1.0 entry
+ * (task-21.10 decisions 5 and 6), validated against the pinned `agent_capabilities.json`.
  */
 import {Ajv2020} from 'ajv/dist/2020.js';
-import {BASIC_CATALOG_ID, SERVER_CAPABILITIES_SCHEMA} from './a2ui/spec.generated.js';
-import {schemaErrors, type Validation} from './validate.js';
+import {AGENT_CAPABILITIES_SCHEMA, BASIC_CATALOG_ID} from './a2ui/spec.generated.js';
+import {A2UI_VERSION, readsBelowV1} from './a2ui/stamp.js';
+import {schemaErrors} from './validate.js';
 
 export {BASIC_CATALOG_ID};
 
+/** The base every A2UI version's A2A extension URI sits under: an entry under it is an A2UI entry. */
+export const A2UI_EXTENSION_BASE = 'https://a2ui.org/a2a-extension/a2ui/';
+
 /**
- * The A2UI versions the platform speaks, oldest first (phase 19 decision 1). Each is the key its
- * set rides under in the capabilities objects on both sides, and the version a paint is stamped
- * with.
+ * The A2UI A2A extension's URI at v1.0: the entry of a card's `capabilities.extensions` that
+ * carries its catalog declaration, and the extension the hub activates on every request.
  */
-export const A2UI_VERSIONS = ['v0.9', 'v0.9.1'] as const;
-export type A2uiVersion = (typeof A2UI_VERSIONS)[number];
+export const A2UI_EXTENSION_URI = `${A2UI_EXTENSION_BASE}v${A2UI_VERSION}`;
+
+/** The metadata key a renderer's capabilities ride under on every message to an agent (A2UI). */
+export const A2UI_RENDERER_CAPABILITIES_KEY = 'a2uiRendererCapabilities';
 
 /**
- * The A2UI A2A extension's URI per version: the entries of a card's `capabilities.extensions` that
- * carry its catalog declaration, and the extensions the hub activates on every request (phase 19
- * decision 4) — `withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS))`.
- */
-export const A2UI_EXTENSION_URIS: Readonly<Record<A2uiVersion, string>> = {
-  'v0.9': 'https://a2ui.org/a2a-extension/a2ui/v0.9',
-  'v0.9.1': 'https://a2ui.org/a2a-extension/a2ui/v0.9.1',
-};
-
-/** The metadata key a client's capabilities ride under on every message to an agent (A2UI). */
-export const A2UI_CLIENT_CAPABILITIES_KEY = 'a2uiClientCapabilities';
-
-/**
- * The metadata key a client's data model rides under — the surfaces created with
+ * The metadata key a renderer's data model rides under — the surfaces created with
  * `sendDataModel: true` — on a message to an agent (A2UI's data model sync).
  */
-export const A2UI_CLIENT_DATA_MODEL_KEY = 'a2uiClientDataModel';
-
-/** Catalog ids by A2UI version: what a card declares per version, what the hub advertises per version. */
-export type CatalogIdsByVersion = Readonly<Record<A2uiVersion, readonly string[]>>;
+export const A2UI_RENDERER_DATA_MODEL_KEY = 'a2uiRendererDataModel';
 
 // --- The export contract ---------------------------------------------------------------------
 
@@ -108,14 +97,15 @@ export function checkCatalogExports(
 // --- The host-module interface ----------------------------------------------------------------
 
 /**
- * The A2UI runtime release — `@a2ui/react` and `@a2ui/web_core` — the one interface lent today is
- * named by (task-11.2 decision 2, amended by task 16.4).
+ * The one interface lent today, named by the A2UI runtime release it lends — `@a2ui/react` and
+ * `@a2ui/web_core` — and the A2UI version its entry points speak (task-21.10 decision 11).
  */
-export const HOST_INTERFACE_VERSION = '0.16.1';
+export const HOST_INTERFACE_VERSION = `0.16.1-v${A2UI_VERSION}`;
 
 /**
- * The host interfaces the platform supplies, by the A2UI runtime release each lends: an artifact built
- * against another is refused at install (task-11.4 decision 4) and at load.
+ * The host interfaces the platform supplies, by name: an artifact built against another — one
+ * packed for `0.16.1`, the v0.9 entry points among them — is refused at publish, at install
+ * (task-11.4 decision 4) and at load.
  */
 export const SUPPORTED_HOST_INTERFACES: readonly string[] = [HOST_INTERFACE_VERSION];
 
@@ -135,20 +125,23 @@ export function checkHostInterface(
 export const HOST_INTERFACE_GLOBAL = '__a2uiverse_host__';
 
 /**
- * Exactly what the host lends: Stellify externalizes these and refuses any other specifier under a
- * host package. `react-dom/client` is lent beside `react-dom` because React 19 keeps `createRoot`
- * there alone and design systems reach it (task 11.3); `@a2ui/web_core/v0_9/basic_catalog` is the
- * basic catalog, which a catalog building on it shares with the page (task 16.4).
+ * Exactly what the host lends (task-21.10 decision 12): Stellify externalizes these and refuses any
+ * other specifier under a host package — the `@a2ui/web_core` root and `@a2ui/web_core/universal`
+ * among them. `react-dom/client` is lent beside `react-dom` because React 19 keeps `createRoot`
+ * there alone and design systems reach it (task 11.3); `@a2ui/react`'s root is its one entry point
+ * for every protocol version; `@a2ui/web_core/v1_0` is the v1.0 runtime and
+ * `@a2ui/web_core/catalogs/basic/v1` the v1 basic catalog, which a catalog building on it shares
+ * with the page.
  */
 export const HOST_SPECIFIERS = [
   'react',
   'react/jsx-runtime',
   'react-dom',
   'react-dom/client',
-  '@a2ui/react/v0_9',
-  '@a2ui/web_core/v0_9',
-  '@a2ui/web_core/v0_9/basic_catalog',
   'zod',
+  '@a2ui/react',
+  '@a2ui/web_core/v1_0',
+  '@a2ui/web_core/catalogs/basic/v1',
 ] as const;
 
 export type HostSpecifier = (typeof HOST_SPECIFIERS)[number];
@@ -205,118 +198,96 @@ export interface CardWithExtensions {
 }
 
 const ajv = new Ajv2020({allErrors: true, strict: true, allowUnionTypes: true});
-/**
- * The one version part of the pinned `server_capabilities.json`, which every entry's params are
- * validated against — flat, or each keyed object. The root's requirement of a `v0.9` key is not
- * applied (finding 12). v0.9's schema is pinned beside it and a test keeps their parts equal.
- */
-const serverCapabilitiesVersion = ajv.compile(
-  (SERVER_CAPABILITIES_SCHEMA.properties as Record<string, Record<string, unknown>>)['v0.9'],
+/** The `1.0` part of the pinned `agent_capabilities.json`, which a v1.0 entry's params are read against, flat. */
+const agentCapabilities = ajv.compile(
+  (AGENT_CAPABILITIES_SCHEMA.properties as Record<string, Record<string, unknown>>)[A2UI_VERSION]!,
 );
 
-const isVersionKey = (key: string): boolean => /^v\d/.test(key);
-const isSpokenVersion = (key: string): key is A2uiVersion =>
-  (A2UI_VERSIONS as readonly string[]).includes(key);
-const versionOfUri = (uri: string): A2uiVersion | undefined =>
-  A2UI_VERSIONS.find(version => A2UI_EXTENSION_URIS[version] === uri);
-const idsOf = (params: Record<string, unknown>): string[] =>
-  (params.supportedCatalogIds as string[] | undefined) ?? [];
+/** A params key that names a version, as the keyed wrapper writes it: `1.0`, `v0.9`. */
+const isVersionKey = (key: string): boolean => /^v?\d/.test(key);
 const once = (ids: readonly string[]): string[] => [...new Set(ids)];
 
+/** A card that declares A2UI, and not v1.0: the versions it declares (task-21.10 decision 6). */
+export interface OtherA2uiVersions {
+  /** Each A2UI entry's version as its URI names it, after the base — `v0.9`, `v1.1` — once each. */
+  versions: string[];
+  /** Whether every one reads as a version below 1.0. */
+  allOlder: boolean;
+}
+
 /**
- * The catalog ids a card declares per A2UI version (phase 19 decisions 2 and 3). Entries whose URI
- * is the v0.9 or the v0.9.1 extension URI count; an entry for a version the platform does not speak
- * is passed over. Inside a counted entry the params are read flat, as upstream's extension guide
- * writes them, or keyed under `v0.9` or `v0.9.1`, the whole-object shape — the entry's URI decides
- * the version, the key never retargets it; both keys in one entry union, a third version key
- * beside a counted one is passed over, an object keyed under neither is an error. Two entries under
- * one URI merge. A malformed entry fails the whole read, each error naming its entry's version.
- *
- * The map comes out filled: a version whose entries name no ids takes the other version's set, so
- * a card with one entry, or a bare entry beside a declaring one, is advertised and checked alike
- * under both keys; only a card whose entries name different sets keeps a version axis. A card
- * naming no ids under any counted entry declares nothing — the basic-catalog fallback.
+ * What a card declares under the A2UI extension: its catalog ids, none for a card with no A2UI
+ * entry — the basic-catalog fallback — or the errors that keep it from reading. A card declaring
+ * A2UI but not v1.0 fails with a finding of its own, `otherVersions`.
  */
-export function readCatalogIdsByVersion(card: CardWithExtensions): Validation<CatalogIdsByVersion> {
-  const read: Record<A2uiVersion, string[]> = {'v0.9': [], 'v0.9.1': []};
+export type CardA2uiDeclaration =
+  {ok: true; value: string[]} | {ok: false; errors: string[]; otherVersions?: OtherA2uiVersions};
+
+/**
+ * The catalog ids a card declares (task-21.10 decisions 5 and 6). Every entry of its
+ * `capabilities.extensions` whose URI is under {@link A2UI_EXTENSION_BASE} is an A2UI entry. A card
+ * with a v1.0 entry is read from its v1.0 entries alone, two of them merging: each one's params
+ * validated against the `1.0` part of the pinned `agent_capabilities.json` and read flat, and a
+ * params key naming a version — the keyed wrapper — an error naming the key. A card with A2UI
+ * entries and none for v1.0 fails with the versions it declares and whether all of them read below
+ * 1.0. A card with no A2UI entry, or a v1.0 entry naming no ids, declares nothing — the
+ * basic-catalog fallback (task-11.2 decision 8). A malformed declaration is an error, never none.
+ */
+export function readSupportedCatalogIds(card: CardWithExtensions): CardA2uiDeclaration {
+  const entries = (card.capabilities?.extensions ?? []).filter(
+    entry => typeof entry.uri === 'string' && entry.uri.startsWith(A2UI_EXTENSION_BASE),
+  );
+  const ours = entries.filter(entry => entry.uri === A2UI_EXTENSION_URI);
+  if (entries.length > 0 && ours.length === 0) {
+    const versions = once(entries.map(entry => entry.uri.slice(A2UI_EXTENSION_BASE.length)));
+    const allOlder = versions.every(readsBelowV1);
+    return {
+      ok: false,
+      errors: [
+        `the card declares A2UI ${versions.join(' and ')}, not v${A2UI_VERSION}${allOlder ? '' : ', among them a version after it'}`,
+      ],
+      otherVersions: {versions, allOlder},
+    };
+  }
+  const ids: string[] = [];
   const errors: string[] = [];
-  for (const entry of card.capabilities?.extensions ?? []) {
-    const version = versionOfUri(entry.uri);
-    const params = entry.params;
-    if (version === undefined || params === undefined) continue;
-    const where = `A2UI ${version} extension params`;
-    const versionKeys = Object.keys(params).filter(isVersionKey);
-    if (versionKeys.length === 0) {
-      const found = schemaErrors(serverCapabilitiesVersion, params);
-      if (found.length > 0) errors.push(...found.map(e => `${where}${e}`));
-      else read[version].push(...idsOf(params));
-      continue;
-    }
-    const spoken = versionKeys.filter(isSpokenVersion);
-    if (spoken.length === 0) {
+  const where = `A2UI v${A2UI_VERSION} extension params`;
+  for (const {params} of ours) {
+    if (params === undefined) continue;
+    const keyed = Object.keys(params).filter(isVersionKey);
+    if (keyed.length > 0) {
       errors.push(
-        `${where}: keyed under neither v0.9 nor v0.9.1 (${versionKeys.map(k => JSON.stringify(k)).join(', ')})`,
+        ...keyed.map(
+          key =>
+            `${where}: keyed under ${JSON.stringify(key)}; v${A2UI_VERSION} params are read flat`,
+        ),
       );
       continue;
     }
-    for (const key of A2UI_VERSIONS.filter(v => spoken.includes(v))) {
-      const object = params[key];
-      const found = schemaErrors(serverCapabilitiesVersion, object);
-      if (found.length > 0) errors.push(...found.map(e => `${where}/${key}${e}`));
-      else read[version].push(...idsOf(object as Record<string, unknown>));
-    }
+    const found = schemaErrors(agentCapabilities, params);
+    if (found.length > 0) errors.push(...found.map(e => `${where}${e}`));
+    else ids.push(...((params.supportedCatalogIds as string[] | undefined) ?? []));
   }
-  if (errors.length > 0) return {ok: false, errors};
-  const v09 = once(read['v0.9']);
-  const v091 = once(read['v0.9.1']);
-  return {
-    ok: true,
-    value: {'v0.9': v09.length > 0 ? v09 : v091, 'v0.9.1': v091.length > 0 ? v091 : v09},
-  };
+  return errors.length > 0 ? {ok: false, errors} : {ok: true, value: once(ids)};
 }
 
 /**
- * The catalog ids a card declares, the union over its versions — v0.9's then v0.9.1's, each once —
- * which is the app's set everywhere but the hub's per-version advertising and paint check (phase 19
- * decision 3): coverage, the artifacts held, the update check, the App Library, the Planner's
- * reader. No A2UI extension, or none naming ids, is a valid card that declares nothing — the
- * basic-catalog fallback (task-11.2 decision 8). A malformed declaration is an error, never none.
+ * The `a2uiRendererCapabilities` metadata value the hub attaches: the ids this agent may paint in,
+ * under v1.0's key — `{"1.0": {supportedCatalogIds}}`, and no older key beside it.
  */
-export function readSupportedCatalogIds(card: CardWithExtensions): Validation<string[]> {
-  const read = readCatalogIdsByVersion(card);
-  if (!read.ok) return read;
-  return {ok: true, value: once(A2UI_VERSIONS.flatMap(version => read.value[version]))};
-}
-
-const isIdList = (sets: readonly string[] | CatalogIdsByVersion): sets is readonly string[] =>
-  Array.isArray(sets);
-
-/**
- * Catalog ids by version from either form (task-19.2 decisions 1, 6): one list is the set of every
- * version; a map by version is handed back as it is.
- */
-export function underEachVersion(
-  sets: readonly string[] | CatalogIdsByVersion,
-): CatalogIdsByVersion {
-  if (!isIdList(sets)) return sets;
-  return Object.fromEntries(A2UI_VERSIONS.map(version => [version, [...sets]])) as Record<
-    A2uiVersion,
-    string[]
-  >;
+export function rendererCapabilities(ids: readonly string[]): Record<string, unknown> {
+  return {[A2UI_VERSION]: {supportedCatalogIds: [...ids]}};
 }
 
 /**
- * The `a2uiClientCapabilities` metadata value the hub attaches: the ids this agent may paint in,
- * under each version's own key — one list written under both, or a map by version written key by
- * key (phase 19 decision 3).
+ * The `a2uiRendererDataModel` metadata value: the data model of each surface created with
+ * `sendDataModel: true`, by surface id — `{version: "1.0", surfaces}`.
  */
-export function clientCapabilities(
-  sets: readonly string[] | CatalogIdsByVersion,
-): Record<string, unknown> {
-  const byVersion = underEachVersion(sets);
-  return Object.fromEntries(
-    A2UI_VERSIONS.map(version => [version, {supportedCatalogIds: [...byVersion[version]]}]),
-  );
+export function rendererDataModel(surfaces: Readonly<Record<string, Record<string, unknown>>>): {
+  version: string;
+  surfaces: Record<string, Record<string, unknown>>;
+} {
+  return {version: A2UI_VERSION, surfaces: {...surfaces}};
 }
 
 // --- Coverage and entitlement -----------------------------------------------------------------
@@ -372,58 +343,6 @@ export function entitlementOf(
   publicIds: readonly string[] = PUBLIC_CATALOG_IDS,
 ): string[] {
   return [...new Set([...publicIds, ...handed])];
-}
-
-/**
- * An app's entitlement per A2UI version (task-19.2 decisions 1, 6): for each version the public
- * catalogs and the ids the card declares for that version, in that order, each once — what the hub
- * advertises under that version's key and checks a paint stamped with it against.
- */
-export function entitlementByVersionOf(
-  declared: CatalogIdsByVersion,
-  publicIds: readonly string[] = PUBLIC_CATALOG_IDS,
-): CatalogIdsByVersion {
-  return Object.fromEntries(
-    A2UI_VERSIONS.map(version => [version, entitlementOf(declared[version], publicIds)]),
-  ) as Record<A2uiVersion, string[]>;
-}
-
-/** A created surface outside the set of its stamp: the stamp, and the versions whose sets hold its catalog. */
-export interface PaintOutside {
-  /** The paint's stamp, when it carried one. */
-  stamp?: string;
-  /** The versions the card declares the catalog for — empty when no version's set holds it. */
-  declaredFor: A2uiVersion[];
-}
-
-/**
- * The per-stamp rule the hub's paint check and the smoke test's share (task-19.2 decisions 2, 7):
- * a created surface's catalog against the set of its stamp — `v0.9` or `v0.9.1` — and against the
- * union of the sets when the stamp is missing or names a version the platform does not speak. A
- * flat list is one set under both. Undefined when the paint is inside; otherwise the stamp and the
- * versions whose sets hold the catalog, so the words can say which version the card declares it for.
- */
-export function paintOutside(
-  stamp: unknown,
-  catalogId: string,
-  sets: readonly string[] | CatalogIdsByVersion,
-): PaintOutside | undefined {
-  const byVersion = underEachVersion(sets);
-  const declaredFor = A2UI_VERSIONS.filter(version => byVersion[version].includes(catalogId));
-  const spoken = typeof stamp === 'string' && isSpokenVersion(stamp) ? stamp : undefined;
-  const inside = spoken !== undefined ? declaredFor.includes(spoken) : declaredFor.length > 0;
-  if (inside) return undefined;
-  return {...(typeof stamp === 'string' ? {stamp} : {}), declaredFor};
-}
-
-/**
- * The words for a paint outside, after "painted in" (task-19.2 decision 3): the catalog outside the
- * entitlement, or stamped with one version while the card declares the catalog for the other.
- */
-export function describePaintOutside(catalogId: string, outside: PaintOutside): string {
-  const id = JSON.stringify(catalogId);
-  if (outside.declaredFor.length === 0) return `catalog ${id}, outside its entitlement`;
-  return `catalog ${id} stamped ${outside.stamp}, which its card declares for ${outside.declaredFor.join(' and ')} only`;
 }
 
 // --- The app id -------------------------------------------------------------------------------

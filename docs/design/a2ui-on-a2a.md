@@ -322,7 +322,7 @@ node scripts/capture-fixtures.mjs
 | --- | --- |
 | The reading, its rewriting counterpart, the builder, the two MIME strings | [`packages/sdk/js/src/a2uiPart.ts`](../../packages/sdk/js/src/a2uiPart.ts) |
 | `paintMeta`, the operation part, the auth-required request | [`packages/sdk/js/src/a2uiverse.ts`](../../packages/sdk/js/src/a2uiverse.ts) |
-| The contract's text for the three parts | [`packages/sdk/contracts/a2uiverse.v0.9.json`](../../packages/sdk/contracts/a2uiverse.v0.9.json) |
+| The contract's text for the three parts | [`packages/sdk/contracts/a2uiverse.v1.0.json`](../../packages/sdk/contracts/a2uiverse.v1.0.json) |
 | The client: its parts, and what it reads from an event | [`apps/client/src/a2a/messages.ts`](../../apps/client/src/a2a/messages.ts) |
 | The dispatch: the catalog check, the request, the ending | [`apps/orchestrator/src/agentsPool/agentsPool.ts`](../../apps/orchestrator/src/agentsPool/agentsPool.ts) |
 | The parts of an agent's event | [`apps/orchestrator/src/agentsPool/relay.ts`](../../apps/orchestrator/src/agentsPool/relay.ts) |

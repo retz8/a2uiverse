@@ -2,7 +2,7 @@ import {describe, expect, test} from 'vitest';
 import {BASIC_CATALOG_ID} from './catalog';
 import {aheadOfStore} from './drift';
 
-const A2UI = 'https://a2ui.org/a2a-extension/a2ui/v0.9.1';
+const A2UI = 'https://a2ui.org/a2a-extension/a2ui/v1.0';
 const card = (version: string, ids: string[]) => ({
   version,
   capabilities: {extensions: [{uri: A2UI, params: {supportedCatalogIds: ids}}]},
@@ -54,5 +54,20 @@ describe('aheadOfStore', () => {
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.errors[0]).toMatch(/supportedCatalogIds/);
+  });
+
+  test('a card declaring A2UI but not v1.0 is a finding, not drift', () => {
+    const result = aheadOfStore(entry, {
+      version: '1.1.0',
+      capabilities: {
+        extensions: [
+          {
+            uri: 'https://a2ui.org/a2a-extension/a2ui/v0.9',
+            params: {supportedCatalogIds: ['cat/v1']},
+          },
+        ],
+      },
+    });
+    expect(result).toEqual({ok: false, errors: ['the card declares A2UI v0.9, not v1.0']});
   });
 });

@@ -3,14 +3,14 @@
  * task-13.3 decision 4): what the files alone can prove, run by the registry at install and by the
  * marketplace at publish, so both refuse the same artifacts for the same reasons. The descriptor
  * conforms; every listed file is present with its hash and nothing unlisted is there; the schema
- * compiles as an A2UI catalog and its id is the descriptor's; the host interface is one the
+ * is an A2UI v1.0 catalog document and its id is the descriptor's; the host interface is one the
  * platform supplies. Nothing is evaluated. Every finding is collected.
  */
 import {
   ARTIFACT_DESCRIPTOR_FILE,
   artifactIdOf,
   checkArtifactSchema,
-  checkCatalogSchemaCompiles,
+  checkCatalogDocument,
   validateArtifactDescriptor,
   verifyArtifactFiles,
   type ArtifactDescriptor,
@@ -61,7 +61,7 @@ export async function gateArtifact(files: ArtifactFiles, index: number): Promise
     } else {
       findings.push(...checkArtifactSchema(descriptor, schema.value).map(e => `${at}: ${e}`));
       findings.push(
-        ...checkCatalogSchemaCompiles(schema.value).map(e => `${at}: ${descriptor.schema}: ${e}`),
+        ...checkCatalogDocument(schema.value).map(e => `${at}: ${descriptor.schema}: ${e}`),
       );
     }
   }

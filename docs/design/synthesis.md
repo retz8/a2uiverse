@@ -667,7 +667,7 @@ In the orchestrator's tests, the model sits behind a one-method **text seam** (t
 
 | Concern | sdk (`packages/sdk/js/src`) | Orchestrator (`apps/orchestrator/src`) | Client (`apps/client/src`) | Shell catalog (`packages/shell-catalog`) |
 | --- | --- | --- | --- | --- |
-| The contract | `synthesis.ts`, `../../contracts/a2uiverse.v0.9.json` | `synthesizer/document.ts` | | |
+| The contract | `synthesis.ts`, `../../contracts/a2uiverse.v1.0.json` | `synthesizer/document.ts` | | |
 | Refs and pointers | `pointer.ts`, `walk.ts` | `composition/partitions.ts` | `canvas/synthesis/bindingEvaluator.ts` | |
 | Checking the model's work | `validate.ts`, `a2ui/` | `synthesizer/validate.ts` | `canvas/synthesis/intake.ts` | `src/keep-sets.ts` |
 | The prompt | | `synthesizer/prompt.ts`, `synthesizer/synthesis.md`, `synthesizer/examples.ts` | | `docs/synthesis-guidance.md` |

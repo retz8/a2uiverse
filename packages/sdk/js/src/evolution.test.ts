@@ -2,7 +2,7 @@ import {describe, expect, test} from 'vitest';
 import type {A2uiCatalogSchema} from './a2ui/types';
 import {checkAdditiveEvolution} from './evolution';
 
-const COMMON = 'https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon';
+const COMMON = 'common_types.json#/$defs/ComponentCommon';
 
 /** A catalog with one component, in the shape vendors' catalogs take. */
 function catalog(
@@ -96,29 +96,81 @@ describe('checkAdditiveEvolution — accepted', () => {
     );
     expect(checkAdditiveEvolution(held, next)).toEqual([]);
   });
+});
 
-  test("a component taking the protocol's ComponentCommon it did not take", () => {
-    const bare: A2uiCatalogSchema = {
-      catalogId: 'cat/v1',
-      components: {
-        Divider: {
-          type: 'object',
-          properties: {component: {const: 'Divider'}},
-          required: ['component'],
-          unevaluatedProperties: false,
-        },
-        Panel: {allOf: [{type: 'object', properties: {component: {const: 'Panel'}}}]},
-      },
-    };
-    const common: A2uiCatalogSchema = {
-      catalogId: 'cat/v1',
-      components: {
-        Divider: {...bare.components.Divider, allOf: [{$ref: COMMON}]},
-        Panel: {allOf: [{$ref: COMMON}, ...(bare.components.Panel.allOf as unknown[])]},
-      },
-    };
-    expect(checkAdditiveEvolution(bare, common)).toEqual([]);
+/** v1.0's constraints of a catalog entry, tightened and loosened (task-21.10 decisions 15 and 23.7). */
+describe("checkAdditiveEvolution — v1.0's keywords", () => {
+  const fn = (extra: Record<string, unknown>): A2uiCatalogSchema => ({
+    catalogId: 'cat/v1',
+    components: {},
+    functions: {
+      lookup: {type: 'object', properties: {'@call': {const: 'lookup'}}, ...extra},
+    },
   });
+  const component = (extra: Record<string, unknown>): A2uiCatalogSchema => ({
+    catalogId: 'cat/v1',
+    components: {Row: {type: 'object', properties: {component: {const: 'Row'}}, ...extra}},
+  });
+
+  test('a changed returnType is a type change', () => {
+    expect(checkAdditiveEvolution(fn({returnType: 'string'}), fn({returnType: 'number'}))).toEqual([
+      'functions/lookup/returnType: changed from "string" to "number"',
+    ]);
+  });
+
+  test('allowedCallers narrowed is refused, widened accepted', () => {
+    expect(
+      checkAdditiveEvolution(
+        fn({allowedCallers: 'rendererOrAgent'}),
+        fn({allowedCallers: 'rendererOnly'}),
+      ),
+    ).toEqual([
+      'functions/lookup/allowedCallers: narrowed from "rendererOrAgent" to "rendererOnly"',
+    ]);
+    expect(checkAdditiveEvolution(fn({}), fn({allowedCallers: 'agentOnly'}))).toEqual([
+      'functions/lookup/allowedCallers: narrowed from "rendererOnly" to "agentOnly"',
+    ]);
+    expect(checkAdditiveEvolution(fn({}), fn({allowedCallers: 'rendererOrAgent'}))).toEqual([]);
+    expect(
+      checkAdditiveEvolution(
+        fn({allowedCallers: 'agentOnly'}),
+        fn({allowedCallers: 'rendererOrAgent'}),
+      ),
+    ).toEqual([]);
+  });
+
+  test('requiresUserActivation turned on is refused, turned off accepted', () => {
+    expect(checkAdditiveEvolution(fn({}), fn({requiresUserActivation: true}))).toEqual([
+      'functions/lookup/requiresUserActivation: turned on',
+    ]);
+    expect(
+      checkAdditiveEvolution(
+        fn({requiresUserActivation: true}),
+        fn({requiresUserActivation: false}),
+      ),
+    ).toEqual([]);
+  });
+
+  for (const key of ['allowedParents', 'allowedChildren']) {
+    test(`${key} added or narrowed is refused, widened or dropped accepted`, () => {
+      expect(checkAdditiveEvolution(component({}), component({[key]: ['Surface']}))).toEqual([
+        `components/Row/${key}: added`,
+      ]);
+      expect(
+        checkAdditiveEvolution(
+          component({[key]: ['Surface', 'Column']}),
+          component({[key]: ['Column']}),
+        ),
+      ).toEqual([`components/Row/${key}: "Surface" removed`]);
+      expect(
+        checkAdditiveEvolution(
+          component({[key]: ['Column']}),
+          component({[key]: ['Column', 'Card']}),
+        ),
+      ).toEqual([]);
+      expect(checkAdditiveEvolution(component({[key]: ['Column']}), component({}))).toEqual([]);
+    });
+  }
 });
 
 describe('checkAdditiveEvolution — refused', () => {
@@ -283,7 +335,7 @@ describe('checkAdditiveEvolution — refused', () => {
     expect(checkAdditiveEvolution(heldUnion, lost)).toEqual(['components/A/allOf: lost an entry']);
   });
 
-  test("ComponentCommon gained below a component's root, or beside another gained entry", () => {
+  test('ComponentCommon gained is an allOf entry gained, at the root as below it', () => {
     const heldNodes: A2uiCatalogSchema = {
       catalogId: 'cat/v1',
       components: {A: {allOf: [{type: 'object'}], properties: {v: {type: 'object'}}}},
@@ -293,7 +345,7 @@ describe('checkAdditiveEvolution — refused', () => {
       catalogId: 'cat/v1',
       components: {
         A: {
-          allOf: [{$ref: COMMON}, {type: 'object'}, {required: ['v']}],
+          allOf: [{type: 'object'}, {$ref: COMMON}],
           properties: {v: {type: 'object', allOf: [{$ref: COMMON}]}},
         },
       },

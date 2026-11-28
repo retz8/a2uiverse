@@ -40,7 +40,7 @@ import {
 import {A2UI_SHELL_MIME_TYPE} from './a2uiPart';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/a2uiverse.v0.9.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/a2uiverse.v1.0.json', import.meta.url), 'utf8'),
 ) as {
   extensionUri: string;
   stampKey: string;
@@ -253,59 +253,59 @@ test("a source's name is the app's, with the account's label when there is one",
 });
 
 test('an operation round-trips through its data part', () => {
-  const data = operationData({kind: 'include', sources: ['github', 'circleci']}, 'v0.9');
+  const data = operationData({kind: 'include', sources: ['github', 'circleci']}, '1.0');
   expect(data).toEqual({
-    version: 'v0.9',
+    version: '1.0',
     operation: {kind: 'include', sources: ['github', 'circleci']},
   });
   expect(readOperation(data)).toEqual({kind: 'include', sources: ['github', 'circleci']});
-  expect(readOperation(operationData({kind: 'retry', sources: ['gmail']}, 'v0.9'))).toEqual({
+  expect(readOperation(operationData({kind: 'retry', sources: ['gmail']}, '1.0'))).toEqual({
     kind: 'retry',
     sources: ['gmail'],
   });
-  expect(readOperation(operationData({kind: 'tryAgain', sources: []}, 'v0.9'))).toEqual({
+  expect(readOperation(operationData({kind: 'tryAgain', sources: []}, '1.0'))).toEqual({
     kind: 'tryAgain',
     sources: [],
   });
 });
 
 test('a dismiss names the one source whose scope request Not now drops', () => {
-  const dismiss = operationData({kind: 'dismiss', sources: ['github.1']}, 'v0.9');
-  expect(dismiss).toEqual({version: 'v0.9', operation: {kind: 'dismiss', sources: ['github.1']}});
+  const dismiss = operationData({kind: 'dismiss', sources: ['github.1']}, '1.0');
+  expect(dismiss).toEqual({version: '1.0', operation: {kind: 'dismiss', sources: ['github.1']}});
   expect(readOperation(dismiss)).toEqual({kind: 'dismiss', sources: ['github.1']});
   expect(
-    readOperation({version: 'v0.9', operation: {kind: 'dismiss', sources: []}}),
+    readOperation({version: '1.0', operation: {kind: 'dismiss', sources: []}}),
   ).toBeUndefined();
   expect(
-    readOperation({version: 'v0.9', operation: {kind: 'dismiss', sources: ['a', 'b']}}),
+    readOperation({version: '1.0', operation: {kind: 'dismiss', sources: ['a', 'b']}}),
   ).toBeUndefined();
   expect(
-    readOperation({version: 'v0.9', operation: {kind: 'dismiss', sources: ['a'], step: 0}}),
+    readOperation({version: '1.0', operation: {kind: 'dismiss', sources: ['a'], step: 0}}),
   ).toBeUndefined();
 });
 
 test('a useAccount names the one account the account choice sends to', () => {
-  const use = operationData({kind: 'useAccount', sources: ['gmail.2']}, 'v0.9');
-  expect(use).toEqual({version: 'v0.9', operation: {kind: 'useAccount', sources: ['gmail.2']}});
+  const use = operationData({kind: 'useAccount', sources: ['gmail.2']}, '1.0');
+  expect(use).toEqual({version: '1.0', operation: {kind: 'useAccount', sources: ['gmail.2']}});
   expect(readOperation(use)).toEqual({kind: 'useAccount', sources: ['gmail.2']});
   expect(
-    readOperation({version: 'v0.9', operation: {kind: 'useAccount', sources: []}}),
+    readOperation({version: '1.0', operation: {kind: 'useAccount', sources: []}}),
   ).toBeUndefined();
   expect(
-    readOperation({version: 'v0.9', operation: {kind: 'useAccount', sources: ['a.1', 'a.2']}}),
+    readOperation({version: '1.0', operation: {kind: 'useAccount', sources: ['a.1', 'a.2']}}),
   ).toBeUndefined();
   expect(
     readOperation({
-      version: 'v0.9',
+      version: '1.0',
       operation: {kind: 'useAccount', sources: ['gmail.2'], gap: 'mail'},
     }),
   ).toBeUndefined();
 });
 
 test('a useApp names the one app a gap offered and the gap’s words (task-15.4 decision 9)', () => {
-  const use = operationData({kind: 'useApp', sources: ['shop-b'], gap: 'camera prices'}, 'v0.9');
+  const use = operationData({kind: 'useApp', sources: ['shop-b'], gap: 'camera prices'}, '1.0');
   expect(use).toEqual({
-    version: 'v0.9',
+    version: '1.0',
     operation: {kind: 'useApp', sources: ['shop-b'], gap: 'camera prices'},
   });
   expect(readOperation(use)).toEqual({kind: 'useApp', sources: ['shop-b'], gap: 'camera prices'});
@@ -317,29 +317,29 @@ test('a useApp names the one app a gap offered and the gap’s words (task-15.4 
     {kind: 'useApp', sources: ['shop-a', 'shop-b'], gap: 'camera prices'},
     {kind: 'useApp', sources: ['shop-b'], gap: 'camera prices', step: 0},
   ]) {
-    expect(readOperation({version: 'v0.9', operation})).toBeUndefined();
+    expect(readOperation({version: '1.0', operation})).toBeUndefined();
   }
 });
 
 test('a step names one agent and the step it shows; a close names nothing', () => {
-  const step = operationData({kind: 'step', sources: ['github'], step: 0}, 'v0.9');
-  expect(step).toEqual({version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}});
+  const step = operationData({kind: 'step', sources: ['github'], step: 0}, '1.0');
+  expect(step).toEqual({version: '1.0', operation: {kind: 'step', sources: ['github'], step: 0}});
   expect(readOperation(step)).toEqual({kind: 'step', sources: ['github'], step: 0});
-  expect(
-    readOperation(operationData({kind: 'step', sources: ['github'], step: 3}, 'v0.9')),
-  ).toEqual({kind: 'step', sources: ['github'], step: 3});
-  const close = operationData({kind: 'close', sources: []}, 'v0.9');
-  expect(close).toEqual({version: 'v0.9', operation: {kind: 'close', sources: []}});
+  expect(readOperation(operationData({kind: 'step', sources: ['github'], step: 3}, '1.0'))).toEqual(
+    {kind: 'step', sources: ['github'], step: 3},
+  );
+  const close = operationData({kind: 'close', sources: []}, '1.0');
+  expect(close).toEqual({version: '1.0', operation: {kind: 'close', sources: []}});
   expect(readOperation(close)).toEqual({kind: 'close', sources: []});
   // A stray `step` on another kind is dropped by the builder, refused by the reader.
-  expect(operationData({kind: 'retry', sources: ['gmail'], step: 2}, 'v0.9').operation).toEqual({
+  expect(operationData({kind: 'retry', sources: ['gmail'], step: 2}, '1.0').operation).toEqual({
     kind: 'retry',
     sources: ['gmail'],
   });
 });
 
 test('readOperation refuses a malformed press: the kind, the sources, how many the kind names, and the step', () => {
-  const read = (operation: unknown, version: unknown = 'v0.9') =>
+  const read = (operation: unknown, version: unknown = '1.0') =>
     readOperation({version, operation});
   expect(readOperation({operation: {kind: 'retry', sources: ['a']}})).toBeUndefined();
   expect(read('retry')).toBeUndefined();
@@ -394,7 +394,7 @@ test('a paintMeta round-trips through its data part', () => {
 test('readPaintMeta refuses what is not a paintMeta naming a surface', () => {
   expect(readPaintMeta(undefined)).toBeUndefined();
   expect(readPaintMeta(null)).toBeUndefined();
-  expect(readPaintMeta({version: 'v0.9', createSurface: {surfaceId: 's'}})).toBeUndefined();
+  expect(readPaintMeta({version: '1.0', createSurface: {surfaceId: 's'}})).toBeUndefined();
   expect(readPaintMeta({paintMeta: 'title'})).toBeUndefined();
   expect(readPaintMeta({paintMeta: []})).toBeUndefined();
   expect(readPaintMeta({paintMeta: {title: 'no surface'}})).toBeUndefined();

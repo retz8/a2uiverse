@@ -74,11 +74,11 @@ notice: shop is ahead of the Store: its card declares catalog https://…/shop/c
 **What it checks**, every failure reported together as `file: reason`:
 
 1. The config has only known keys, and its `catalogId` matches the schema's.
-2. `package.json` has a name and a version and names a built entry that exists and bundles. An import of a host package the client doesn't lend is refused, with the list of what it does lend: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `@a2ui/web_core/v0_9/basic_catalog`, `zod`. So is a name one of those doesn't export as the client lends it, imported by name or read through `import * as`: `"basicCatalog" is not exported by "@a2ui/react/v0_9" as the host lends it, at host interface 0.16.1`.
+2. `package.json` has a name and a version and names a built entry that exists and bundles. An import of a host package the client doesn't lend is refused, with the list of what it does lend: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `zod`, `@a2ui/react`, `@a2ui/web_core/v1_0`, `@a2ui/web_core/catalogs/basic/v1`. So is a name one of those doesn't export as the client lends it, imported by name or read through `import * as`: `"basicCatalog" is not exported by "@a2ui/react" as the host lends it, at host interface 0.16.1-v1.0`.
 3. Every stylesheet reached, and every `url()` inside it, resolves to a file inside your package or one of its dependencies. An `@import` is refused, since the client doesn't follow one: import that stylesheet from your code instead.
 4. The entry exports `CATALOG`.
 5. The schema parses, has a `catalogId`, and compiles as an A2UI catalog whose id is the one the descriptor carries.
-6. The descriptor is well formed, names the host-module interface the client lends (`0.16.1`), and lists every file with its hash.
+6. The descriptor is well formed, names the host-module interface the client lends (`0.16.1-v1.0`), and lists every file with its hash.
 
 Stellify runs none of your code: exports are read from the bundle, the id from the schema file. Whether `CATALOG.id` agrees is the client's check when it loads the artifact. `check` passing means the registry's gate will pass; the install can still refuse the app for what lies outside the artifact, such as a card that doesn't name the catalog.
 

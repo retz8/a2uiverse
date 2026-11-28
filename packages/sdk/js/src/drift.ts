@@ -25,7 +25,8 @@ export interface EntryForDrift {
  * Whether the live card is ahead of the entry: a catalog id the entry has no artifact for, or a
  * version not among the published ones — a live agent behind the index is not ahead of it. Exact
  * over the entry alone, since coverage at publish fills the entry's catalogs for every id the
- * published card declares. A malformed declaration is a finding, not drift; nothing when covered.
+ * published card declares. A malformed declaration, or one declaring A2UI but not v1.0, is a
+ * finding, not drift; nothing when covered.
  */
 export function aheadOfStore(
   entry: EntryForDrift,
@@ -33,7 +34,7 @@ export function aheadOfStore(
   publicIds: readonly string[] = PUBLIC_CATALOG_IDS,
 ): Validation<Drift | undefined> {
   const read = readSupportedCatalogIds(liveCard);
-  if (!read.ok) return read;
+  if (!read.ok) return {ok: false, errors: read.errors};
   const catalogIds = read.value.filter(id => !(id in entry.catalogs) && !publicIds.includes(id));
   const version = entry.versions.includes(liveCard.version) ? undefined : liveCard.version;
   if (catalogIds.length === 0 && version === undefined) return {ok: true, value: undefined};

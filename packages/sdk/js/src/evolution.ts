@@ -7,12 +7,12 @@
  * two JSON Schemas: the files as the gate reads them, a `$ref` compared as a string and never
  * resolved. Refused: a component, a function or a `$defs` entry removed; a property removed; a
  * property becoming required; an enum value removed; `type`, `$ref` or `const` differing at any
- * node; a constraint tightened — added where the held node had none, or made stricter. Accepted:
- * a constraint loosened or dropped; annotations changing freely; a component taking the protocol's
- * `ComponentCommon` in its `allOf`, the `id` and `accessibility` every A2UI component carries, as
- * upstream's basic catalog has each of its components take it. Any other keyword is ignored, so a
- * harmless keyword never blocks a publish. Each finding names the component or function and the
- * path.
+ * node, a function's `returnType` among them; a constraint tightened — added where the held node
+ * had none, or made stricter. v1.0's constraints of a catalog (task-21.10 decision 15) are among
+ * them: a function's `allowedCallers` narrowed, its `requiresUserActivation` turned on, a
+ * component's `allowedParents` or `allowedChildren` added or narrowed. Accepted: a constraint
+ * loosened or dropped; annotations changing freely. Any other keyword is ignored, so a harmless
+ * keyword never blocks a publish. Each finding names the component or function and the path.
  */
 import type {A2uiCatalogSchema} from './a2ui/types.js';
 
@@ -23,13 +23,15 @@ const isObject = (value: unknown): value is Json =>
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-/** The protocol's common component definition, as upstream's v0.9 and v0.9.1 catalogs name it. */
-const COMPONENT_COMMON = {
-  $ref: 'https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon',
-};
-
 /** Keywords whose value is the node's identity: differing anywhere is a type change. */
-const IDENTITY = ['type', '$ref', 'const'] as const;
+const IDENTITY = ['type', '$ref', 'const', 'returnType'] as const;
+
+/** Who may call a function under each `allowedCallers` value; absent, `rendererOnly`. */
+const CALLERS: Readonly<Record<string, readonly string[]>> = {
+  rendererOnly: ['renderer'],
+  agentOnly: ['agent'],
+  rendererOrAgent: ['renderer', 'agent'],
+};
 
 /** Keywords whose larger value is stricter. */
 const LOWER_BOUNDS = ['minLength', 'minimum', 'exclusiveMinimum', 'minItems', 'minProperties'];
@@ -52,29 +54,45 @@ export function checkAdditiveEvolution(held: A2uiCatalogSchema, next: A2uiCatalo
     for (const [name, node] of Object.entries(before)) {
       const at = `${map}/${name}`;
       if (!(name in after)) findings.push(`${at}: removed`);
-      else if (map === 'components')
-        walk(node, withoutGainedCommon(node, after[name]), at, findings);
       else walk(node, after[name], at, findings);
     }
   }
   return findings;
 }
 
-/** A component's new schema with `ComponentCommon` taken out of its `allOf` when the held one does
- * not take it, so gaining it is no finding. */
-function withoutGainedCommon(held: unknown, next: unknown): unknown {
-  if (!isObject(held) || !isObject(next) || !Array.isArray(next.allOf)) return next;
-  const heldTakes = Array.isArray(held.allOf) && held.allOf.some(e => same(e, COMPONENT_COMMON));
-  if (heldTakes) return next;
-  const allOf = next.allOf.filter(e => !same(e, COMPONENT_COMMON));
-  if (allOf.length === next.allOf.length) return next;
-  const rest: Json = {...next};
-  delete rest.allOf;
-  return allOf.length ? {...rest, allOf} : rest;
+/** v1.0's constraints of a catalog entry: who may call it, and where a component may sit. */
+function catalogConstraints(h: Json, n: Json, at: string, findings: string[]): void {
+  if (typeof h.allowedCallers === 'string' || typeof n.allowedCallers === 'string') {
+    const before = CALLERS[String(h.allowedCallers ?? 'rendererOnly')] ?? [];
+    const after = CALLERS[String(n.allowedCallers ?? 'rendererOnly')] ?? [];
+    if (before.some(caller => !after.includes(caller))) {
+      findings.push(
+        `${at}/allowedCallers: narrowed from ${JSON.stringify(h.allowedCallers ?? 'rendererOnly')} to ${JSON.stringify(n.allowedCallers ?? 'rendererOnly')}`,
+      );
+    }
+  }
+  if (n.requiresUserActivation === true && h.requiresUserActivation !== true) {
+    findings.push(`${at}/requiresUserActivation: turned on`);
+  }
+  for (const key of ['allowedParents', 'allowedChildren'] as const) {
+    const after = n[key];
+    if (!Array.isArray(after)) continue;
+    const before = h[key];
+    if (!Array.isArray(before)) {
+      findings.push(`${at}/${key}: added`);
+      continue;
+    }
+    for (const value of before) {
+      if (!after.some(v => same(v, value))) {
+        findings.push(`${at}/${key}: ${JSON.stringify(value)} removed`);
+      }
+    }
+  }
 }
 
 function walk(h: unknown, n: unknown, at: string, findings: string[]): void {
   if (!isObject(h) || !isObject(n)) return;
+  catalogConstraints(h, n, at, findings);
 
   for (const key of IDENTITY) {
     if (key in h) {

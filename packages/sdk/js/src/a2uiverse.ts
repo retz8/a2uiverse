@@ -2,7 +2,7 @@
  * The A2UIVerse extension (SPEC §14), the platform's one A2A extension: between orchestrator and
  * client, the metadata contract for cross-agent UI composition; from an agent, read and never
  * required, the `auth-required` request in either A2A version's requirement shape — nothing
- * a2uiverse-specific rides the vendor wire. The normative definition is `../contracts/a2uiverse.v0.9.json`;
+ * a2uiverse-specific rides the vendor wire. The normative definition is `../contracts/a2uiverse.v1.0.json`;
  * `a2uiverse.contract.test.ts` asserts this projection against it. The synthesis half of the
  * contract (the synthesize data model) lives in `synthesis.ts`.
  *
@@ -12,7 +12,7 @@
  */
 
 /** The A2A extension URI this project declares: the platform's one extension. */
-export const A2UIVERSE_EXTENSION_URI = 'https://a2uiverse.dev/ext/a2uiverse/v0.9';
+export const A2UIVERSE_EXTENSION_URI = 'https://a2uiverse.dev/ext/a2uiverse/v1.0';
 
 /**
  * Metadata key the orchestrator owns on relayed events — and, inbound, the key the parent canvas
@@ -334,7 +334,7 @@ export type OperationKind = (typeof OPERATION_KINDS)[number];
  * by then, the offer's request going to it (task-15.4 decision 9); `step`
  * names the one agent whose fragment stepped and, in `step`, the paint id it now shows — one paint
  * per `createSurface`, from 0, never reused (task-10.9 decision 6) — the paint's data model riding
- * `a2uiClientDataModel` as on an action; `close` names nothing.
+ * `a2uiRendererDataModel` as on an action; `close` names nothing.
  */
 export interface CompositionOperation {
   kind: OperationKind;
@@ -420,12 +420,12 @@ export function readOperation(data: Record<string, unknown>): CompositionOperati
   return {kind: kind as OperationKind, sources: sources as string[]};
 }
 
-/** The code of a catalog load failure: A2UI's generic client error, a code of the platform's own. */
+/** The code of a catalog load failure: A2UI's generic renderer error, a code of the platform's own. */
 export const CATALOG_LOAD_FAILED = 'CATALOG_LOAD_FAILED';
 
 /**
  * Outbound, client → orchestrator (task-11.5 decision 4): a fragment whose catalog the client could
- * not load, reported as A2UI's client error — `{version, error}` — under the protocol's generic
+ * not load, reported as A2UI's renderer error — `{version, error}` — under the protocol's generic
  * error, which admits the catalog id beside the code. The hub fails the slot the surface fills
  * with cause `load`, carrying the id.
  */
@@ -454,7 +454,7 @@ const _catalogLoadFailureComplete: Exclude<
   : never = true;
 void _catalogLoadFailureComplete;
 
-/** The catalog load failure an A2UI client error carries, if it is one and well formed. */
+/** The catalog load failure an A2UI renderer error carries, if it is one and well formed. */
 export function readCatalogLoadFailure(error: unknown): CatalogLoadFailure | undefined {
   if (typeof error !== 'object' || error === null || Array.isArray(error)) return undefined;
   const {code, surfaceId, message, catalogId} = error as Record<string, unknown>;

@@ -6,7 +6,7 @@ import {createA2uiValidator} from './validator';
 
 const basic = JSON.parse(
   readFileSync(
-    new URL('../../../a2ui-spec/catalogs/basic/v0_9_1/catalog.json', import.meta.url),
+    new URL('../../../a2ui-spec/catalogs/basic/v1/catalog.json', import.meta.url),
     'utf8',
   ),
 ) as A2uiCatalogSchema;
@@ -31,7 +31,7 @@ describe('pruneCatalog', () => {
     ]);
     expect(refs('anyFunction')).toEqual(['#/functions/openUrl']);
     expect(Object.keys(pruned.$defs!).sort()).toEqual(
-      ['CatalogComponentCommon', 'anyComponent', 'anyFunction', 'theme'].sort(),
+      ['Weight', 'anyComponent', 'anyFunction'].sort(),
     );
   });
 
@@ -69,10 +69,10 @@ describe('pruneCatalog', () => {
   });
 
   test('the validator over a pruned catalog refuses what was dropped', () => {
-    const validator = createA2uiValidator({catalog: pruneCatalog(basic, keep)});
+    const validator = createA2uiValidator({catalogs: [pruneCatalog(basic, keep)]});
     const paint = (components: unknown[]) => [
-      {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'c'}},
-      {version: 'v0.9', updateComponents: {surfaceId: 's', components}},
+      {version: '1.0', createSurface: {surfaceId: 's', catalogId: basic.catalogId}},
+      {version: '1.0', updateComponents: {surfaceId: 's', components}},
     ];
     expect(validator.validate(paint([{id: 'root', component: 'Column', children: []}]))).toEqual(
       [],

@@ -143,13 +143,13 @@ GitHub's catalog imports React, the A2UI runtime and zod. If its bundle carried 
 
 ```ts
 interface HostInterface {
-  version: string;                             // "0.16.1": the A2UI runtime release it lends
+  version: string;                             // "0.16.1-v1.0": the A2UI runtime release it lends, and the A2UI version
   modules: Record<HostSpecifier, unknown>;     // the client's own module for each specifier lent
   loadStylesheet(url: string): Promise<void>;  // the sheet held to its build's surfaces, resolved once applied
 }
 ```
 
-It lends exactly eight imports: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `@a2ui/web_core/v0_9/basic_catalog` and `zod`. A catalog built on the basic catalog shares the page's, as it shares React. Everything else a catalog imports, Primer included, is bundled into its own `index.js`. The interface's version is the release of `@a2ui/react` and `@a2ui/web_core` it lends, `0.16.1`. An artifact names the interface version it was built against, and one the platform doesn't supply is refused at publish, at install and at load.
+It lends exactly eight imports: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `zod`, `@a2ui/react`, `@a2ui/web_core/v1_0` and `@a2ui/web_core/catalogs/basic/v1`. A catalog built on the basic catalog shares the page's, as it shares React. Everything else a catalog imports, Primer included, is bundled into its own `index.js`. The interface is named by the release of `@a2ui/react` and `@a2ui/web_core` it lends and the A2UI version its entry points speak, `0.16.1-v1.0`. An artifact names the interface version it was built against, and one the platform doesn't supply is refused at publish, at install and at load.
 
 The vendor never writes code against this interface: Stellify rewrites the imports in the bundle, never in the vendor's source ([Packing](#packing-what-stellify-does) shows how).
 
@@ -355,8 +355,8 @@ Both must be empty. `public` is the basic catalog alone. A card that declares no
 
 1. `artifact.json` is there, parses, and conforms to the descriptor's JSON Schema; its entry and its schema are among its files.
 2. Every listed file is there with its hash, and nothing unlisted is.
-3. The host interface is one the platform supplies, `0.16.1`.
-4. The schema parses, its `catalogId` is the descriptor's, and it compiles as an A2UI catalog.
+3. The host interface is one the platform supplies, `0.16.1-v1.0`.
+4. The schema parses, its `catalogId` is the descriptor's, and it is an A2UI v1.0 catalog document: it declares `protocolVersion: "1.0"`, loads through `@a2ui/web_core` at 1.0, each component compiles against the pinned v1.0 common types, and it validates against the pinned `catalog_definition.json`.
 
 What only running code can show, like what the module exports and whether `CATALOG.id` agrees, is the client's check, when it loads the artifact.
 

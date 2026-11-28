@@ -8,8 +8,7 @@
  * shape is additive.
  */
 import {Ajv2020} from 'ajv/dist/2020.js';
-import {createA2uiValidator} from './a2ui/validator.js';
-import type {A2uiCatalogSchema} from './a2ui/types.js';
+import {catalogDocumentErrors} from './a2ui/catalogDocument.js';
 import {schemaErrors, type Validation} from './validate.js';
 
 /** The descriptor's file name at the artifact's root. */
@@ -47,9 +46,9 @@ export const ARTIFACT_DESCRIPTOR_SCHEMA = {
     },
     hostInterface: {
       type: 'string',
-      pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$',
+      pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+(-v[0-9]+\\.[0-9]+)?$',
       description:
-        'The version of the host-module interface the entry was built against — the A2UI runtime release the host lends.',
+        'The host-module interface the entry was built against, by name: the A2UI runtime release the host lends and the A2UI version its entry points speak, as 0.16.1-v1.0.',
     },
     files: {
       type: 'object',
@@ -176,8 +175,8 @@ export async function verifyArtifactFiles(
 
 /**
  * The artifact's catalog schema against its descriptor: an object whose `catalogId` is the
- * descriptor's and whose `components` is an object. Whether the schema's components validate a
- * tree is the A2UI validator's, which compiles it.
+ * descriptor's and whose `components` is an object. Whether it is a catalog document at all is
+ * {@link checkCatalogDocument}'s.
  */
 export function checkArtifactSchema(descriptor: ArtifactDescriptor, schema: unknown): string[] {
   if (typeof schema !== 'object' || schema === null || Array.isArray(schema)) {
@@ -197,22 +196,12 @@ export function checkArtifactSchema(descriptor: ArtifactDescriptor, schema: unkn
 }
 
 /**
- * Whether a catalog schema is a valid A2UI catalog in the one sense the pinned spec gives, which
- * ships no meta-schema for one: it compiles with the spec's message schemas, every component's
- * schema included. Run by Stellify at pack and by the registry at install (phase-11 decision 13),
- * over the parsed schema file; each error names the component that failed. Empty when it compiles.
+ * Whether a catalog schema is a catalog document for A2UI v1.0 (task-21.10 decision 14): it
+ * declares `protocolVersion: "1.0"`, loads through `@a2ui/web_core` at 1.0, each component compiles
+ * against the pinned common types, and it validates against the pinned `catalog_definition.json`.
+ * Run by Stellify at pack, the marketplace at publish and the registry at install (phase-11
+ * decision 13), over the parsed schema file. Empty when it passes.
  */
-export function checkCatalogSchemaCompiles(schema: unknown): string[] {
-  if (typeof schema !== 'object' || schema === null || Array.isArray(schema)) {
-    return ['not a JSON object'];
-  }
-  const catalog = schema as A2uiCatalogSchema;
-  if (typeof catalog.components !== 'object' || catalog.components === null) {
-    return ['components is not an object'];
-  }
-  try {
-    return createA2uiValidator({catalog}).compileErrors();
-  } catch (error) {
-    return [`the catalog does not compile: ${(error as Error).message}`];
-  }
+export function checkCatalogDocument(schema: unknown): string[] {
+  return catalogDocumentErrors(schema);
 }

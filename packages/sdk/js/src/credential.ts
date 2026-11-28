@@ -129,7 +129,7 @@ export interface CredentialFinding {
 }
 
 /**
- * The first credential input among painted components (A2UI v0.9's flat component objects): its
+ * The first credential input among painted components (A2UI v1.0's flat component objects): its
  * type, a property name, or a literal string property value its catalog declares as an option of
  * that component. Undefined when there is none.
  */

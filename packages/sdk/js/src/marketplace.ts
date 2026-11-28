@@ -252,7 +252,7 @@ export interface PreviewDocument {
   /** The request text the agent was sent. */
   words: string;
   /**
-   * The A2UI server-to-client messages in order, settled as `checkPaint` judged them: each surface's
+   * The A2UI agent-to-renderer messages in order, settled as `checkPaint` judged them: each surface's
    * component updates one, each component at its last copy; every other message as sent.
    */
   messages: Record<string, unknown>[];
@@ -285,10 +285,10 @@ export const PREVIEW_SCHEMA = {
         required: ['version'],
         properties: {version: {type: 'string'}},
         description:
-          "One A2UI server-to-client message, as the agent sent it, or a surface's component updates settled into one.",
+          "One A2UI agent-to-renderer message, as the agent sent it, or a surface's component updates settled into one.",
       },
       description:
-        "The A2UI server-to-client messages in order, settled: each surface's updateComponents collapsed into one in the place of the first, carrying each component's last copy drawn from the root; every other message — createSurface, updateDataModel, deleteSurface — as sent; surface ids as the agent wrote them.",
+        "The A2UI agent-to-renderer messages in order, settled: each surface's updateComponents collapsed into one in the place of the first, carrying each component's last copy drawn from the root; every other message — createSurface, updateDataModel, deleteSurface — as sent; surface ids as the agent wrote them.",
     },
     capturedBy: {type: 'string', enum: [...PREVIEW_CAPTURED_BY]},
     capturedAt: {type: 'string', minLength: 1},

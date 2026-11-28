@@ -1,57 +1,73 @@
 /**
- * The sdk's A2UI v0.9.1 validator: `@a2ui/web_core`'s checks behind the sdk's own findings
- * (task-16.4 decisions 1 and 2). Each component is judged on its own by web_core's
- * `PayloadValidator`, a line for each prop it fails; a components update's envelope by web_core's
- * `UpdateComponentsMessageSchema` and every other message by web_core's `MessageProcessor`; each
- * surface's component graph by web_core's
- * `SurfaceComponentsModel`; the payload's depth and paths by web_core's `validateRecursionAndPaths`.
- * The processor, each graph and the payload-wide check each add the first failure they report. Upstream's v0.9 validator conformance cases
- * run against this module.
+ * The sdk's A2UI v1.0 validator: the verdicts of `@a2ui/web_core`'s `MessageProcessor` behind the
+ * sdk's own findings (task-21.10 decisions 8 and 9), over several catalogs, each component judged
+ * against its own. Three passes, each under the release's strict rules with its `targetVersion`
+ * gate set to v1.0, so a message stamped otherwise is a finding.
  *
- * The catalog's compile check is the sdk's own (task-16.4 decision 1): each component's schema
- * compiled against the pinned v0.9.1 `common_types.json` — the catalog gate at pack, publish and
- * install.
+ * - **Each component on its own.** A processor holding the surface — created as the payload
+ *   creates it — takes each component as an update of its own, on a surface of its own: one
+ *   finding per prop the component fails, in the catalog the release resolves it to, its nested
+ *   calls among them. The Planner's and the Synthesizer's retry is told every one.
+ * - **The payload, message by message.** One processor takes the messages in order, each its own
+ *   call, and every message it refuses is a finding: the envelope, the surface's lifecycle, the
+ *   batch, the depth and the paths. A surface the payload updates without creating it is already
+ *   on the renderer, created first in the first catalog. A component the first pass judged is not
+ *   judged again here.
+ * - **Each surface's tree, once.** The graph is judged where the payload leaves it, so a tree sent
+ *   in several batches, as an agent streams it, is judged whole: every component the payload sent
+ *   the surface since its creation, the last copy of each, through the release's topology check.
+ *   A surface already on the renderer needs no root here.
+ *
+ * Upstream's v1.0 validator conformance cases run against this module.
  */
-import {Ajv2020} from 'ajv/dist/2020.js';
 import {Catalog, type CatalogApi} from '@a2ui/web_core/catalog';
 import {A2uiIntegrityError, A2uiRecursionError, type A2uiErrorDetail} from '@a2ui/web_core/errors';
-import {formatZodIssue, MessageProcessor} from '@a2ui/web_core/processing';
-import {ComponentModel, SurfaceComponentsModel} from '@a2ui/web_core/state';
 import {
-  PayloadValidator,
+  MessageProcessor,
   STRICT_VALIDATION,
-  validateRecursionAndPaths,
-} from '@a2ui/web_core/validation';
-import {UpdateComponentsMessageSchema} from '@a2ui/web_core/v0_9';
-import type {ZodIssue} from 'zod';
-import {COMMON_TYPES_SCHEMA} from './spec.generated.js';
+  type ValidationConfig,
+} from '@a2ui/web_core/processing';
+import {ComponentModel, SurfaceComponentsModel} from '@a2ui/web_core/state';
+import {getComponentReferences} from '@a2ui/web_core/validation';
+import {A2UI_VERSION, readA2uiStamp} from './stamp.js';
 import type {A2uiCatalogSchema, A2uiFinding, A2uiFindingCategory} from './types.js';
 
 export interface A2uiValidatorOptions {
-  /** The catalog the payload's surfaces use, whatever catalog id they name. */
-  catalog: A2uiCatalogSchema;
+  /**
+   * The catalogs a payload's surfaces and components may be in, each under its own `catalogId`.
+   * The first is the catalog of a surface the payload updates without creating it.
+   */
+  catalogs: readonly A2uiCatalogSchema[];
 }
 
 export interface A2uiValidator {
   /** Every finding over a message, or a list of messages; empty when the payload is valid. */
   validate(payload: unknown): A2uiFinding[];
-  /**
-   * Compiles every declared component's schema against the pinned common types, and returns one
-   * error per component that cannot compile, as `components/<name>: <reason>`. Empty when the
-   * whole catalog compiles.
-   */
-  compileErrors(): string[];
 }
 
-/** The protocol version the catalog is read at, and the wire tag of its messages. */
-const CATALOG_VERSION = '0.9';
-const MESSAGE_VERSION = 'v0.9';
+/** The release's strict rules, at the one version the platform speaks. */
+const STRICT: ValidationConfig = {...STRICT_VALIDATION, targetVersion: A2UI_VERSION};
+/** A surface already on the renderer: the payload need not send its root. */
+const ON_THE_RENDERER: ValidationConfig = {...STRICT, allowMissingRoot: true};
+/** One component, apart from the tree it sits in. */
+const ON_ITS_OWN: ValidationConfig = {
+  ...STRICT,
+  allowDanglingReferences: true,
+  allowOrphanComponents: true,
+  allowMissingRoot: true,
+};
 
-/** The surfaces' operations whose surface must exist when they arrive. */
-const SURFACE_OPERATIONS = ['updateComponents', 'updateDataModel'];
-const MESSAGE_TYPES = ['createSurface', 'updateComponents', 'updateDataModel', 'deleteSurface'];
+/** The messages that name a surface, by the key they carry. */
+const SURFACE_OPERATIONS = [
+  'createSurface',
+  'updateComponents',
+  'updateDataModel',
+  'deleteSurface',
+];
 
 type Json = Record<string, unknown>;
+type Processed = ConstructorParameters<typeof MessageProcessor>[0];
+type Messages = Parameters<MessageProcessor['processMessages']>[0];
 
 const isObject = (value: unknown): value is Json =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -70,19 +86,7 @@ const messageOf = (error: unknown): string =>
 const isErrorDetail = (value: unknown): value is A2uiErrorDetail =>
   isObject(value) && typeof value.path === 'string' && typeof value.message === 'string';
 
-/**
- * A Zod issue in web_core's wording, without the dotted path each of its parts leads with — the
- * finding carries it — and a union's branches said once each.
- */
-function issueText(issue: ZodIssue): string {
-  const label = `${issue.path.length > 0 ? issue.path.join('.') : 'root'}: `;
-  const parts = formatZodIssue(issue)
-    .split('; ')
-    .map(part => (part.startsWith(label) ? part.slice(label.length) : part));
-  return [...new Set(parts)].join('; ');
-}
-
-/** Where a component calls the named function: the pointer to its `call`, when it calls it. */
+/** Where a component calls the named function: the pointer to its `@call`, when it calls it. */
 function callPath(value: unknown, name: string, at = ''): string | undefined {
   if (Array.isArray(value)) {
     for (const [i, item] of value.entries()) {
@@ -92,9 +96,9 @@ function callPath(value: unknown, name: string, at = ''): string | undefined {
     return undefined;
   }
   if (!isObject(value)) return undefined;
-  if (value.call === name) return `${at}/call`;
+  if (value['@call'] === name) return `${at}/@call`;
   for (const [key, child] of Object.entries(value)) {
-    const found = callPath(child, name, `${at}/${key}`);
+    const found = callPath(child, name, `${at}/${key.replace(/~/g, '~0').replace(/\//g, '~1')}`);
     if (found !== undefined) return found;
   }
   return undefined;
@@ -137,214 +141,289 @@ function componentFindings(
   }));
 }
 
-/** Each component's schema compiled against the pinned common types; one error per failure. */
-function compileErrorsOf(catalog: A2uiCatalogSchema): string[] {
-  const catalogUri = new URL('catalog.json', String(COMMON_TYPES_SCHEMA.$id)).href;
-  const defs = {...(catalog.$defs ?? {})};
-  // The common types reference the catalog's functions and theme; a catalog declaring neither still compiles.
-  defs.theme ??= {type: 'object'};
-  defs.anyFunction ??= false;
-  const own: Json = {...catalog, $defs: defs, $id: catalogUri};
-  delete own.$schema;
-  const ajv = new Ajv2020({allErrors: true, strict: false, validateFormats: false});
-  ajv.addSchema(COMMON_TYPES_SCHEMA);
-  ajv.addSchema(own);
-  const errors: string[] = [];
-  for (const name of Object.keys(catalog.components ?? {})) {
+/** The operation a message carries, when it carries one surface operation. */
+function operationOf(message: Json): {key: string; body: Json} | undefined {
+  const keys = SURFACE_OPERATIONS.filter(key => key in message);
+  if (keys.length !== 1) return undefined;
+  const body = message[keys[0]!];
+  return isObject(body) ? {key: keys[0]!, body} : undefined;
+}
+
+/** A catalog's id: its `catalogId`, else its `$id`. */
+const idOf = (schema: A2uiCatalogSchema): string =>
+  typeof schema.catalogId === 'string'
+    ? schema.catalogId
+    : typeof schema.$id === 'string'
+      ? schema.$id
+      : 'catalog';
+
+/**
+ * A surface's tree as the payload leaves it: its catalog, the last copy of each component, and
+ * every id a copy the payload sent referenced as a child.
+ */
+interface Tree {
+  catalogId: unknown;
+  components: Map<string, Json>;
+  referenced: Set<string>;
+}
+
+/** The catalog a component is in: its `@catalogId`, else the surface's default. */
+const catalogFor = (component: Json, catalogs: readonly CatalogApi[], fallback: CatalogApi) => {
+  const named = component['@catalogId'];
+  return (typeof named === 'string' ? catalogs.find(c => c.id === named) : undefined) ?? fallback;
+};
+
+/** A component's properties, its envelope's `@` keys left out. */
+const propertiesOf = (component: Json): Json =>
+  Object.fromEntries(
+    Object.entries(component).filter(
+      ([key]) => key !== 'id' && key !== 'component' && !/^@([^@]|$)/.test(key),
+    ),
+  );
+
+/** What `getComponentReferences` reads a component's child references by. */
+type RefSource = Parameters<typeof getComponentReferences>[1];
+
+/** The ids a component references as children, in its catalog. */
+function childrenOf(component: Json, catalog: CatalogApi): string[] {
+  if (typeof component.component !== 'string') return [];
+  try {
+    return [
+      ...getComponentReferences(
+        {...propertiesOf(component), id: component.id, component: component.component},
+        catalog as unknown as RefSource,
+      ),
+    ].map(([id]) => id);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * The release's topology check over a surface's tree. A component names its catalog by
+ * `@catalogId`, else takes the surface's default; a catalog the validator was not given is the
+ * component's own finding, and the component still stands in the tree. A component a later copy
+ * of its parent stopped referencing — a placeholder an agent streamed and then replaced — is what
+ * the renderer holds and does not draw, not an orphan: it leaves the tree, and so does what only
+ * it reaches. A component nothing the payload sent ever referenced is an orphan.
+ */
+function topologyOf(
+  tree: Tree,
+  catalogs: readonly CatalogApi[],
+  config: ValidationConfig,
+): A2uiFinding | undefined {
+  const fallback = catalogs.find(c => c.id === tree.catalogId);
+  if (!fallback || tree.components.size === 0) return undefined;
+  const reached = new Set<string>();
+  const reach = (id: string) => {
+    const component = tree.components.get(id);
+    if (!component || reached.has(id)) return;
+    reached.add(id);
+    for (const child of childrenOf(component, catalogFor(component, catalogs, fallback)))
+      reach(child);
+  };
+  reach(config.rootId ?? 'root');
+  const model = new SurfaceComponentsModel(fallback);
+  for (const [id, component] of tree.components) {
+    const type = component.component;
+    if (typeof type !== 'string' || !type) continue;
+    if (!reached.has(id) && tree.referenced.has(id) && reached.has('root')) continue;
+    const catalog = catalogFor(component, catalogs, fallback);
+    model.addComponent(new ComponentModel(id, type, propertiesOf(component), catalog));
+  }
+  try {
+    model.validateTopology(config);
+    return undefined;
+  } catch (error) {
+    return {category: categoryOf(error), message: messageOf(error)};
+  }
+}
+
+type Loaded = {ok: true; catalogs: CatalogApi[]; first: string} | {ok: false; finding: A2uiFinding};
+
+function load(schemas: readonly A2uiCatalogSchema[]): Loaded {
+  if (schemas.length === 0) {
+    return {ok: false, finding: {category: 'ValidationError', message: 'no catalog to judge by'}};
+  }
+  const catalogs: CatalogApi[] = [];
+  for (const schema of schemas) {
+    const id = idOf(schema);
     try {
-      ajv.compile({$ref: `${catalogUri}#/components/${name}`});
+      catalogs.push(Catalog.fromJson(schema, A2UI_VERSION, id));
     } catch (error) {
-      errors.push(`components/${name}: ${messageOf(error)}`);
+      return {
+        ok: false,
+        finding: {
+          category: 'ValidationError',
+          message: `catalog ${JSON.stringify(id)} does not load: ${messageOf(error)}`,
+        },
+      };
     }
   }
-  return errors;
+  return {ok: true, catalogs, first: idOf(schemas[0]!)};
 }
 
 export function createA2uiValidator(options: A2uiValidatorOptions): A2uiValidator {
-  const schema = options.catalog;
-  const ownId =
-    typeof schema.catalogId === 'string'
-      ? schema.catalogId
-      : typeof schema.$id === 'string'
-        ? schema.$id
-        : 'catalog';
-
-  // The catalog under every id the payload names, so a surface in any catalog id reads this one.
-  const catalogs = new Map<string, CatalogApi>();
-  const catalogFor = (id: string): CatalogApi => {
-    let catalog = catalogs.get(id);
-    if (!catalog) {
-      catalog = Catalog.fromJson(schema, CATALOG_VERSION, id);
-      catalogs.set(id, catalog);
-    }
-    return catalog;
-  };
+  let loaded: Loaded | undefined;
 
   const validate = (payload: unknown): A2uiFinding[] => {
+    loaded ??= load(options.catalogs);
+    if (!loaded.ok) return [loaded.finding];
+    const {catalogs, first} = loaded;
+    const processor = (config: ValidationConfig) =>
+      new MessageProcessor(catalogs as unknown as Processed, undefined, {
+        version: A2UI_VERSION,
+        validationConfig: config,
+      });
     const messages = Array.isArray(payload) ? payload : [payload];
-    let own: CatalogApi;
-    try {
-      own = catalogFor(ownId);
-    } catch (error) {
-      return [
-        {category: 'ValidationError', message: `the catalog does not load: ${messageOf(error)}`},
-      ];
-    }
-    const findings: A2uiFinding[] = [];
 
-    // The surfaces the payload creates, and the components each one receives, in order.
-    const created = new Map<string, string>();
-    const surfaces = new Map<string, {components: Json[]; duplicate: boolean}>();
-    const surfaceOf = (id: string) => {
-      let surface = surfaces.get(id);
-      if (!surface) {
-        surface = {components: [], duplicate: false};
-        surfaces.set(id, surface);
-      }
-      return surface;
-    };
-    const touched: string[] = [];
+    // The surfaces the payload creates; the others it names are already on the renderer.
+    const createdHere = new Set<string>();
+    for (const message of messages) {
+      const create = isObject(message) ? message.createSurface : undefined;
+      if (isObject(create) && typeof create.surfaceId === 'string')
+        createdHere.add(create.surfaceId);
+    }
+    const onTheRenderer = new Set<string>();
+    for (const message of messages) {
+      const op = isObject(message) ? operationOf(message) : undefined;
+      const id = op?.body.surfaceId;
+      if (typeof id === 'string' && !createdHere.has(id)) onTheRenderer.add(id);
+    }
+
+    const findings: A2uiFinding[] = [];
+    /** Each surface's creation as the payload stands at a message, its components and data left out. */
+    const creations = new Map<string, Json>(
+      [...onTheRenderer].map(surfaceId => [surfaceId, {surfaceId, catalogId: first}]),
+    );
+    const trees = new Map<string, Tree>(
+      [...onTheRenderer].map(surfaceId => [
+        surfaceId,
+        {catalogId: first, components: new Map(), referenced: new Set()},
+      ]),
+    );
+    const graphSaid = new Set<string>();
+    const whole = processor(ON_ITS_OWN);
+    for (const surfaceId of onTheRenderer) {
+      whole.processMessages([
+        {version: A2UI_VERSION, createSurface: {surfaceId, catalogId: first}},
+      ] as Messages);
+    }
 
     messages.forEach((message, index) => {
-      const base = `/${index}`;
+      const at = `/${index}`;
       if (!isObject(message)) {
         findings.push({
           category: 'ValidationError',
-          path: base,
+          path: at,
           message: 'a message must be an object',
         });
         return;
       }
-      const create = message.createSurface;
-      if (isObject(create) && typeof create.surfaceId === 'string') {
-        created.set(
-          create.surfaceId,
-          typeof create.catalogId === 'string' ? create.catalogId : ownId,
-        );
-      }
-      for (const operation of SURFACE_OPERATIONS) {
-        const op = message[operation];
-        if (isObject(op) && typeof op.surfaceId === 'string') touched.push(op.surfaceId);
-      }
-      const update = message.updateComponents;
-      if (!isObject(update) || !Array.isArray(update.components)) return;
-      const surface =
-        typeof update.surfaceId === 'string' ? surfaceOf(update.surfaceId) : undefined;
-      const seen = new Set<string>();
-      update.components.forEach((component, i) => {
-        const at = `${base}/updateComponents/components/${i}`;
-        if (!isObject(component)) {
-          findings.push({
-            category: 'ValidationError',
-            path: at,
-            message: 'a component must be an object',
-          });
-          return;
-        }
-        const id = typeof component.id === 'string' ? component.id : undefined;
-        if (id !== undefined && seen.has(id)) {
-          findings.push({
-            category: 'IntegrityError',
-            componentId: id,
-            message: `Duplicate component ID: '${id}'`,
-          });
-          if (surface) surface.duplicate = true;
-        }
-        if (id !== undefined) seen.add(id);
-        surface?.components.push(component);
-        const {catalogId: _catalogId, ...judged} = component;
-        try {
-          new PayloadValidator(own, STRICT_VALIDATION).validateComponent(judged);
-        } catch (error) {
-          findings.push(...componentFindings(error, component, at, id));
-        }
-      });
-    });
-
-    // The envelopes. A components update's is upstream's schema, its components judged above; every
-    // other message goes through the processor, and a surface the payload updates without creating it
-    // is already on the client, created here so the update reads as the incremental one it is.
-    const envelope: unknown[] = [];
-    messages.forEach((message, index) => {
-      const types = isObject(message) ? MESSAGE_TYPES.filter(type => type in message) : [];
-      if (types.length !== 1 || types[0] !== 'updateComponents') {
-        if (isObject(message)) envelope.push(message);
-        return;
-      }
-      const parsed = UpdateComponentsMessageSchema.safeParse(message);
-      if (parsed.success) return;
-      for (const issue of parsed.error.issues) {
-        findings.push({
-          category: 'ValidationError',
-          path: `/${index}${issue.path.map(part => `/${part}`).join('')}`,
-          message: issueText(issue),
+      const op = operationOf(message);
+      const surfaceId = typeof op?.body.surfaceId === 'string' ? op.body.surfaceId : undefined;
+      const current = readA2uiStamp(message)?.current === true;
+      if (op?.key === 'createSurface' && surfaceId !== undefined) {
+        const {components: _components, dataModel: _dataModel, ...creation} = op.body;
+        creations.set(surfaceId, creation);
+        trees.set(surfaceId, {
+          catalogId: creation.catalogId,
+          components: new Map(),
+          referenced: new Set(),
         });
       }
-    });
-    const missing = [...new Set(touched)].filter(id => !created.has(id));
-    const lead = missing.map(surfaceId => ({
-      version: MESSAGE_VERSION,
-      createSurface: {surfaceId, catalogId: ownId},
-    }));
-    const ids = new Set([ownId, ...created.values()]);
-    // A catalog read from JSON carries no function implementations; processing messages runs none.
-    const processed = [...ids].map(catalogFor) as unknown as ConstructorParameters<
-      typeof MessageProcessor
-    >[0];
-    try {
-      new MessageProcessor(processed, undefined, {
-        version: MESSAGE_VERSION,
-        validationConfig: STRICT_VALIDATION,
-      }).processMessages(
-        // The processor judges the messages' shape itself: that is what this pass asks of it.
-        [...lead, ...envelope] as Parameters<MessageProcessor['processMessages']>[0],
-      );
-    } catch (error) {
-      findings.push({category: categoryOf(error), message: messageOf(error)});
-    }
-
-    // Each surface's graph: a surface the payload does not create is an incremental update, its
-    // root already on the client.
-    for (const [surfaceId, {components, duplicate}] of surfaces) {
-      if (duplicate || components.length === 0) continue;
-      const model = new SurfaceComponentsModel(own);
-      for (const component of components) {
-        const {id, component: type, catalogId: _catalogId, ...properties} = component;
-        if (typeof id !== 'string' || !id) continue;
-        const existing = model.get(id);
-        const componentType = typeof type === 'string' ? type : existing?.type;
-        if (!componentType) continue;
-        if (existing && existing.type === componentType) {
-          existing.properties = properties;
-          continue;
+      const components = op?.body.components;
+      if (
+        current &&
+        surfaceId !== undefined &&
+        (op?.key === 'createSurface' || op?.key === 'updateComponents') &&
+        Array.isArray(components)
+      ) {
+        const tree = trees.get(surfaceId);
+        const fallback = catalogs.find(c => c.id === tree?.catalogId);
+        for (const component of components) {
+          if (!tree || !isObject(component) || typeof component.id !== 'string' || !component.id)
+            continue;
+          tree.components.set(component.id, component);
+          if (fallback) {
+            for (const child of childrenOf(component, catalogFor(component, catalogs, fallback)))
+              tree.referenced.add(child);
+          }
         }
-        if (existing) model.removeComponent(id);
-        model.addComponent(new ComponentModel(id, componentType, properties, own));
       }
+
+      // Each component on its own, in a message the gate lets through: a processor of its own for
+      // each, so no component meets another.
+      const judged = new Set<number>();
+      const said = new Set<string>();
+      const creation = surfaceId !== undefined ? creations.get(surfaceId) : undefined;
+      if (
+        current &&
+        (op?.key === 'createSurface' || op?.key === 'updateComponents') &&
+        Array.isArray(components) &&
+        creation
+      ) {
+        components.forEach((component, i) => {
+          if (!isObject(component)) return;
+          const alone = processor(ON_ITS_OWN);
+          try {
+            alone.processMessages([{version: A2UI_VERSION, createSurface: creation}] as Messages);
+          } catch {
+            return; // the creation's own finding is the whole payload's pass's
+          }
+          try {
+            alone.processMessages([
+              {version: A2UI_VERSION, updateComponents: {surfaceId, components: [component]}},
+            ] as Messages);
+          } catch (error) {
+            const id = typeof component.id === 'string' ? component.id : undefined;
+            const found = componentFindings(
+              error,
+              component,
+              `${at}/${op.key}/components/${i}`,
+              id,
+            );
+            findings.push(...found);
+            said.add(messageOf(error));
+            for (const finding of found) said.add(finding.message);
+            judged.add(i);
+          }
+        });
+      }
+
+      // The message in the payload, its graph left to the end.
       try {
-        model.validateTopology({...STRICT_VALIDATION, allowMissingRoot: !created.has(surfaceId)});
+        whole.processMessages([message] as Messages);
       } catch (error) {
-        findings.push({category: categoryOf(error), message: messageOf(error)});
+        const where = (error as {path?: unknown}).path;
+        const component = typeof where === 'string' ? /^\/components\/(\d+)/.exec(where) : null;
+        if ((component && judged.has(Number(component[1]))) || said.has(messageOf(error))) return;
+        const path = typeof where === 'string' && op ? `${at}/${op.key}${where}` : at;
+        const category = categoryOf(error);
+        findings.push({category, path, message: messageOf(error)});
+        // The graph says its first failure only.
+        if (category !== 'ValidationError' && surfaceId !== undefined) graphSaid.add(surfaceId);
       }
-    }
-
-    try {
-      validateRecursionAndPaths(messages);
-    } catch (error) {
-      findings.push({category: categoryOf(error), message: messageOf(error)});
-    }
-
-    // The envelope's processor runs the payload-wide checks too; a failure said twice is said once.
-    const said = new Set<string>();
-    return findings.filter(finding => {
-      const key = `${finding.category}|${finding.path ?? ''}|${finding.message}`;
-      if (said.has(key)) return false;
-      said.add(key);
-      return true;
+      if (op?.key === 'deleteSurface' && surfaceId !== undefined) {
+        creations.delete(surfaceId);
+        trees.delete(surfaceId);
+      }
     });
+
+    // Each surface's tree, where the payload leaves it.
+    for (const [surfaceId, tree] of trees) {
+      if (graphSaid.has(surfaceId)) continue;
+      const graph = topologyOf(
+        tree,
+        catalogs,
+        onTheRenderer.has(surfaceId) ? ON_THE_RENDERER : STRICT,
+      );
+      if (graph) findings.push(graph);
+    }
+    return findings;
   };
 
-  return {validate, compileErrors: () => compileErrorsOf(schema)};
+  return {validate};
 }
 
 /** One finding as a line: its path or component first, then the message. */
