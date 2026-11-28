@@ -1,5 +1,5 @@
 import type {SortDeclaration} from '@a2uiverse/sdk';
-import {createComponentImplementation} from '@a2ui/react/v0_9';
+import {createComponentImplementation} from '@a2ui/react';
 import {ArrowDownIcon, ArrowUpIcon} from '@radix-ui/react-icons';
 import {Flex, IconButton, Select, Text} from '@radix-ui/themes';
 import {useContext} from 'react';

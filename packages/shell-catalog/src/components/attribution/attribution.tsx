@@ -15,7 +15,7 @@ import {
   createComponentImplementation,
   type NodeViewProps,
   type ReactComponentImplementation,
-} from '@a2ui/react/v0_9';
+} from '@a2ui/react';
 import {sourceName, type CompositionOperation} from '@a2uiverse/sdk';
 import {
   ArrowLeftIcon,

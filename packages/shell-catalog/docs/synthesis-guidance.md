@@ -49,14 +49,16 @@ both.
   above the table it sorts. It shows the criterion and lets the user change key and direction; you
   never bind it to your own model.
 - **`Text`** for what you write yourself: the view's label, a caption. The user's question already
-  heads the screen, so the view's title is a label, not a heading: `h5`, on one `Row` with the
-  view's `SortControl` — `{"component": "Row", "justify": "spaceBetween", "align": "center"}` —
-  over the table. A second group carries an `h5` label of its own.
+  heads the screen, so the view's title is a label, not a heading: a `Text` of its own whose text
+  starts with `#####` — `"##### Active work status"` — on one `Row` with the view's `SortControl`
+  — `{"component": "Row", "justify": "spaceBetween", "align": "center"}` — over the table. A
+  second group carries a `#####` label of its own, in a `Text` of its own.
 - **`Column` and `Row`** for structure around those: the label row over the table; a second group
   under the first. A `Column` whose `children` is a template —
   `{"path": "/rows", "componentId": "row"}` — templates any component over an array of your model,
-  each element's bindings relative to it (`{"path": "price"}`, no leading slash); a `Card` per
-  element is the shape for entries too unlike each other for one table.
+  each element's bindings relative to it (`{"@path": "price"}`, no leading slash); a `Card` per
+  element is the shape for entries too unlike each other for one table. A template's `path` is
+  plain, where every binding is written `@path`.
 
 `Card` may wrap the whole view when it should read as one surface; `Divider` separates sections
 that are genuinely different. The view is read, sorted, and read again.

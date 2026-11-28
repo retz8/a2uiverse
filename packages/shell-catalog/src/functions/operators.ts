@@ -1,4 +1,4 @@
-import {createFunctionImplementation, type FunctionImplementation} from '@a2ui/web_core/v0_9';
+import {createFunctionImplementation, spec, type FunctionImplementation} from '@a2ui/web_core/v1_0';
 import {z} from 'zod';
 
 /**
@@ -29,15 +29,22 @@ export const OPERATORS = [
 ] as const;
 export type Operator = (typeof OPERATORS)[number];
 
-const numbers = z.object({values: z.array(z.number()).min(1)});
-const anyValues = z.object({values: z.array(z.any())});
+// Each value is validated once resolved; the document declares what an agent writes there, a
+// dynamic value (`REF:` is how upstream's schema serializer names a common type).
+const number = z.number().describe('REF:#/$defs/DynamicNumber');
+const anyValue = z.any().describe('REF:#/$defs/DynamicValue');
+/** A function's arguments, closed in the document as upstream's basic catalog closes them. */
+const args = <T extends z.ZodRawShape>(shape: T) =>
+  spec(z.object(shape), {closure: 'unevaluatedProperties'});
+const numbers = args({values: z.array(number).min(1)});
+const anyValues = args({values: z.array(anyValue)});
 
 const indexOf = (values: number[], pick: (a: number, b: number) => boolean) =>
   values.reduce((best, v, i) => (pick(v, values[best]!) ? i : best), 0);
 
 export const operatorFunctions: readonly FunctionImplementation[] = [
   createFunctionImplementation(
-    {name: 'value', returnType: 'any', schema: z.object({values: z.array(z.any()).length(1)})},
+    {name: 'value', returnType: 'any', schema: args({values: z.array(anyValue).min(1).max(1)})},
     ({values}) => values[0],
   ),
   createFunctionImplementation({name: 'min', returnType: 'number', schema: numbers}, ({values}) =>
@@ -57,7 +64,7 @@ export const operatorFunctions: readonly FunctionImplementation[] = [
     {
       name: 'difference',
       returnType: 'number',
-      schema: z.object({values: z.array(z.number()).length(2)}),
+      schema: args({values: z.array(number).min(2).max(2)}),
     },
     ({values}) => {
       // The evaluator calls an operator without its schema; one side absent is no difference.
@@ -78,7 +85,7 @@ export const operatorFunctions: readonly FunctionImplementation[] = [
     ({values}) => indexOf(values, (a, b) => a > b),
   ),
   createFunctionImplementation(
-    {name: 'source', returnType: 'number', schema: z.object({values: z.array(z.any()).min(1)})},
+    {name: 'source', returnType: 'number', schema: args({values: z.array(anyValue).min(1)})},
     () => 0,
   ),
 ];

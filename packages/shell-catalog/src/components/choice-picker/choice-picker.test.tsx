@@ -15,7 +15,7 @@ const picker = (props: Record<string, unknown>): TreeComponent[] => [
     component: 'ChoicePicker',
     label: 'Size',
     options: OPTIONS,
-    value: {path: '/size'},
+    value: {'@path': '/size'},
     ...props,
   },
 ];
@@ -76,8 +76,8 @@ test('two pickers on one surface keep their groups apart (the upstream radio-nam
   const {surface} = renderTree(
     [
       {id: 'root', component: 'Column', children: ['a', 'b']},
-      {id: 'a', component: 'ChoicePicker', label: 'A', options: OPTIONS, value: {path: '/a'}},
-      {id: 'b', component: 'ChoicePicker', label: 'B', options: OPTIONS, value: {path: '/b'}},
+      {id: 'a', component: 'ChoicePicker', label: 'A', options: OPTIONS, value: {'@path': '/a'}},
+      {id: 'b', component: 'ChoicePicker', label: 'B', options: OPTIONS, value: {'@path': '/b'}},
     ],
     {data: {a: ['s'], b: ['s']}},
   );

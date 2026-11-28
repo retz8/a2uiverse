@@ -1,4 +1,4 @@
-import {ChildListSchema} from '@a2ui/web_core/v0_9';
+import {ChildListSchema, spec} from '@a2ui/web_core/v1_0';
 import {z} from 'zod';
 
 /**
@@ -19,18 +19,21 @@ import {z} from 'zod';
  */
 export const TableApi = {
   name: 'Table',
-  schema: z
-    .object({
-      columns: z.array(z.string()),
-      columnSources: z.array(z.string().nullable()).optional(),
-      children: ChildListSchema,
-    })
-    .strict(),
+  schema: spec(
+    z
+      .object({
+        columns: z.array(z.string()),
+        columnSources: z.array(z.string().nullable()).optional(),
+        children: ChildListSchema,
+      })
+      .strict(),
+    {mixins: []},
+  ),
 } as const;
 
 export const TableRowApi = {
   name: 'TableRow',
-  schema: z.object({children: ChildListSchema}).strict(),
+  schema: spec(z.object({children: ChildListSchema}).strict(), {mixins: []}),
 } as const;
 
 export type TableProps = z.infer<typeof TableApi.schema>;

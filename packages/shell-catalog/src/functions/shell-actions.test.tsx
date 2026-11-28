@@ -1,5 +1,5 @@
 import {fireEvent, screen} from '@testing-library/react';
-import {DataContext, DataModel} from '@a2ui/web_core/v0_9';
+import {DataContext, DataModel} from '@a2ui/web_core/v1_0';
 import {expect, test} from 'vitest';
 import {renderTree, SURFACE_ID, type TreeComponent} from '../testing/render';
 import {shellActionFunctions, type ShellAction} from './shell-actions';
@@ -12,9 +12,9 @@ const button = (action: Record<string, unknown>): TreeComponent[] => [
 test('a button calling openStore hands the host its surface and query, and nothing else', () => {
   const shell: ShellAction[] = [];
   const server: string[] = [];
-  renderTree(button({functionCall: {call: 'openStore', args: {query: 'flight booking'}}}), {
+  renderTree(button({functionCall: {'@call': 'openStore', args: {query: 'flight booking'}}}), {
     onShellAction: action => shell.push(action),
-    onAction: action => server.push(action.name),
+    onAction: action => void server.push(action.name),
   });
   fireEvent.click(screen.getByRole('button', {name: 'Go'}));
   expect(shell).toEqual([{name: 'openStore', surfaceId: SURFACE_ID, query: 'flight booking'}]);
@@ -23,7 +23,7 @@ test('a button calling openStore hands the host its surface and query, and nothi
 
 test('openStore without a query opens the Store without a search', () => {
   const shell: ShellAction[] = [];
-  renderTree(button({functionCall: {call: 'openStore', args: {}}}), {
+  renderTree(button({functionCall: {'@call': 'openStore', args: {}}}), {
     onShellAction: action => shell.push(action),
   });
   fireEvent.click(screen.getByRole('button', {name: 'Go'}));
@@ -32,7 +32,7 @@ test('openStore without a query opens the Store without a search', () => {
 
 test('a button calling openAppLibrary hands the host its surface', () => {
   const shell: ShellAction[] = [];
-  renderTree(button({functionCall: {call: 'openAppLibrary', args: {}}}), {
+  renderTree(button({functionCall: {'@call': 'openAppLibrary', args: {}}}), {
     onShellAction: action => shell.push(action),
   });
   fireEvent.click(screen.getByRole('button', {name: 'Go'}));
@@ -41,7 +41,7 @@ test('a button calling openAppLibrary hands the host its surface', () => {
 
 test('a button calling openAppLibrary with an app hands the host that app', () => {
   const shell: ShellAction[] = [];
-  renderTree(button({functionCall: {call: 'openAppLibrary', args: {app: 'linear'}}}), {
+  renderTree(button({functionCall: {'@call': 'openAppLibrary', args: {app: 'linear'}}}), {
     onShellAction: action => shell.push(action),
   });
   fireEvent.click(screen.getByRole('button', {name: 'Go'}));
@@ -50,7 +50,7 @@ test('a button calling openAppLibrary with an app hands the host that app', () =
 
 test('a button calling openPublish hands the host its surface', () => {
   const shell: ShellAction[] = [];
-  renderTree(button({functionCall: {call: 'openPublish', args: {}}}), {
+  renderTree(button({functionCall: {'@call': 'openPublish', args: {}}}), {
     onShellAction: action => shell.push(action),
   });
   fireEvent.click(screen.getByRole('button', {name: 'Go'}));

@@ -41,12 +41,12 @@ test('{svgPath} stays an inline SVG on the 24-unit grid', () => {
 });
 
 test('a bound name renders its glyph; a bound name the table does not know is a question mark carrying the name', () => {
-  const known = renderTree([{id: 'root', component: 'Icon', name: {path: '/icon'}}], {
+  const known = renderTree([{id: 'root', component: 'Icon', name: {'@path': '/icon'}}], {
     data: {icon: 'mail'},
   });
   expect(known.container.querySelector('[data-icon="mail"] svg')).not.toBeNull();
   known.unmount();
-  const unknown = renderTree([{id: 'root', component: 'Icon', name: {path: '/icon'}}], {
+  const unknown = renderTree([{id: 'root', component: 'Icon', name: {'@path': '/icon'}}], {
     data: {icon: 'teapot'},
   });
   const box = unknown.container.querySelector('[data-icon="unknown"]')!;

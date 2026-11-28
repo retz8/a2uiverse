@@ -5,8 +5,8 @@ import {
   type ReactCatalogComponent,
   type ReactComponentImplementation,
   useSignalValue,
-} from '@a2ui/react/v0_9';
-import {isComponentNode, ResolvedBinding, type ComponentNode} from '@a2ui/web_core/v0_9';
+} from '@a2ui/react';
+import {isComponentNode, ResolvedBinding, type ComponentNode} from '@a2ui/web_core/v1_0';
 import {Flex, Table} from '@radix-ui/themes';
 import {createContext, Fragment, useContext, type CSSProperties, type ReactNode} from 'react';
 import {

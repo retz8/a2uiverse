@@ -7,17 +7,16 @@
 import {readFileSync} from 'node:fs';
 import {createA2uiValidator, pruneCatalog, type A2uiCatalogSchema} from '@a2uiverse/sdk';
 import {describe, expect, test} from 'vitest';
+import {CATALOG_ID} from './catalog-id';
 import {OPERATORS} from './functions/operators';
 import {RELATIONS} from './functions/relations';
 import {LAYOUT_SURFACE_KEEP_SET, SYNTHESIS_SURFACE_KEEP_SET} from './keep-sets';
 
-const catalog = JSON.parse(
-  readFileSync('catalogs/v0.9.1/catalog.json', 'utf8'),
-) as A2uiCatalogSchema;
+const catalog = JSON.parse(readFileSync('catalogs/v1.0/catalog.json', 'utf8')) as A2uiCatalogSchema;
 
 const paint = (components: unknown[]) => [
-  {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'c'}},
-  {version: 'v0.9', updateComponents: {surfaceId: 's', components}},
+  {version: '1.0', createSurface: {surfaceId: 's', catalogId: CATALOG_ID}},
+  {version: '1.0', updateComponents: {surfaceId: 's', components}},
 ];
 
 const messages = (validator: ReturnType<typeof createA2uiValidator>, components: unknown[]) =>
@@ -25,7 +24,7 @@ const messages = (validator: ReturnType<typeof createA2uiValidator>, components:
 
 describe('the synthesis surface keep-set', () => {
   const pruned = pruneCatalog(catalog, SYNTHESIS_SURFACE_KEEP_SET);
-  const validator = createA2uiValidator({catalog: pruned});
+  const validator = createA2uiValidator({catalogs: [pruned]});
 
   test('its functions are the formula operators and the relations (task-7.5 decision 14)', () => {
     expect([...SYNTHESIS_SURFACE_KEEP_SET.functions].sort()).toEqual(
@@ -45,7 +44,7 @@ describe('the synthesis surface keep-set', () => {
   test('a merged view validates; a layout primitive, an input and a button do not', () => {
     const view = [
       {id: 'root', component: 'Column', children: ['sort', 'table']},
-      {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
+      {id: 'sort', component: 'SortControl', sort: {'@path': '/sorts/0'}},
       {
         id: 'table',
         component: 'Table',
@@ -53,7 +52,7 @@ describe('the synthesis surface keep-set', () => {
         children: {path: '/rows', componentId: 'row'},
       },
       {id: 'row', component: 'TableRow', children: ['cell']},
-      {id: 'cell', component: 'DerivedValue', cell: {path: 'item'}},
+      {id: 'cell', component: 'DerivedValue', cell: {'@path': 'item'}},
     ];
     expect(messages(validator, view)).toEqual([]);
     for (const name of ['Slot', 'Attribution', 'TextField', 'Button']) {
@@ -66,7 +65,7 @@ describe('the synthesis surface keep-set', () => {
 
 describe('the layout surface keep-set', () => {
   const pruned = pruneCatalog(catalog, LAYOUT_SURFACE_KEEP_SET);
-  const validator = createA2uiValidator({catalog: pruned});
+  const validator = createA2uiValidator({catalogs: [pruned]});
 
   test('carries every shell action; adding an account is a Slot, not one (task-12.13 decision 27)', () => {
     expect([...LAYOUT_SURFACE_KEEP_SET.functions].sort()).toEqual(
@@ -91,17 +90,17 @@ describe('the layout surface keep-set', () => {
   test('slots with the shell’s words and a Store button validate; Attribution and a formula view do not', () => {
     const layout = [
       {id: 'root', component: 'Column', children: ['heading', 'row', 'store']},
-      {id: 'heading', component: 'Text', text: 'Your morning', variant: 'h3'},
+      {id: 'heading', component: 'Text', text: '### Your morning'},
       {id: 'row', component: 'Row', children: ['gmail', 'flights']},
       {id: 'gmail', component: 'Slot', source: 'gmail', weight: 2},
       {id: 'flights', component: 'Slot', gap: 'flight booking'},
       {
         id: 'store',
         component: 'Button',
-        child: 'store-label',
-        action: {functionCall: {call: 'openStore', args: {query: 'flights'}}},
+        child: 'store_label',
+        action: {functionCall: {'@call': 'openStore', args: {query: 'flights'}}},
       },
-      {id: 'store-label', component: 'Text', text: 'Find an app'},
+      {id: 'store_label', component: 'Text', text: 'Find an app'},
     ];
     expect(messages(validator, layout)).toEqual([]);
     for (const name of ['Attribution', 'DerivedValue', 'SortControl']) {
@@ -114,7 +113,7 @@ describe('the layout surface keep-set', () => {
         id: 'root',
         component: 'Button',
         child: 'l',
-        action: {functionCall: {call: 'openUrl', args: {url: 'https://x'}}},
+        action: {functionCall: {'@call': 'openUrl', args: {url: 'https://x'}}},
       },
       {id: 'l', component: 'Text', text: 'Go'},
     ];

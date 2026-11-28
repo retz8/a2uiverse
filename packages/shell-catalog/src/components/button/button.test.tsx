@@ -11,7 +11,7 @@ const button = (props: Record<string, unknown> = {}): TreeComponent[] => [
 test('a click dispatches the action as the surface event', async () => {
   const user = userEvent.setup();
   const actions: string[] = [];
-  renderTree(button(), {onAction: action => actions.push(action.name)});
+  renderTree(button(), {onAction: action => void actions.push(action.name)});
   await user.click(screen.getByRole('button', {name: 'Save'}));
   expect(actions).toEqual(['save']);
 });
@@ -31,13 +31,13 @@ test('the three variants land on Radix Button variants: surface · solid · ghos
 });
 
 test('accessibility label and description become aria attributes', () => {
-  renderTree(button({accessibility: {label: 'Save the form', description: 'Sends it'}}));
+  renderTree(button({'@accessibility': {label: 'Save the form', description: 'Sends it'}}));
   const el = screen.getByRole('button', {name: 'Save the form'});
   expect(el).toHaveAttribute('aria-description', 'Sends it');
 });
 
 test('the label is on the button once, and the element hosting it is left unlabelled (task-21.4 decision 2)', () => {
-  const {container} = renderTree(button({accessibility: {label: 'Save the form'}}));
+  const {container} = renderTree(button({'@accessibility': {label: 'Save the form'}}));
   const labelled = container.querySelectorAll('[aria-label="Save the form"]');
   expect(labelled).toHaveLength(1);
   expect(labelled[0]).toBe(screen.getByRole('button', {name: 'Save the form'}));
@@ -49,9 +49,9 @@ test('the label is on the button once, and the element hosting it is left unlabe
 test('a failing check disables the button', () => {
   renderTree(
     button({
-      checks: [
+      '@checks': [
         {
-          condition: {call: 'required', args: {value: {path: '/name'}}},
+          condition: {'@call': 'required', args: {value: {'@path': '/name'}}},
           message: 'Name is required',
         },
       ],

@@ -6,7 +6,7 @@ import {renderTree} from '../../testing/render';
 test('toggling writes the boolean back to the bound path', async () => {
   const user = userEvent.setup();
   const {surface} = renderTree(
-    [{id: 'root', component: 'CheckBox', label: 'Subscribe', value: {path: '/subscribed'}}],
+    [{id: 'root', component: 'CheckBox', label: 'Subscribe', value: {'@path': '/subscribed'}}],
     {data: {subscribed: false}},
   );
   const box = screen.getByRole('checkbox', {name: 'Subscribe'});

@@ -1,3 +1,4 @@
+import {spec} from '@a2ui/web_core/v1_0';
 import {z} from 'zod';
 import {BindingSchema} from '../../binding.js';
 
@@ -11,7 +12,7 @@ import {BindingSchema} from '../../binding.js';
  */
 export const SortControlApi = {
   name: 'SortControl',
-  schema: z.object({sort: BindingSchema}).strict(),
+  schema: spec(z.object({sort: BindingSchema}).strict(), {mixins: []}),
 } as const;
 
 export type SortControlProps = z.infer<typeof SortControlApi.schema>;

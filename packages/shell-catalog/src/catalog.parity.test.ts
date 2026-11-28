@@ -5,7 +5,7 @@ import {createCatalog, OPERATORS, RELATIONS, SHELL_ACTIONS} from './catalog';
 import {CATALOG_ID} from './catalog-id';
 
 // Path from the package root (vitest's cwd); import.meta.url is http-scheme under jsdom.
-const schema = JSON.parse(readFileSync('catalogs/v0.9.1/catalog.json', 'utf8')) as {
+const schema = JSON.parse(readFileSync('catalogs/v1.0/catalog.json', 'utf8')) as {
   $id: string;
   catalogId: string;
   components: Record<string, unknown>;
@@ -43,8 +43,13 @@ test('every schema component has an implementation and vice versa', () => {
   expect([...CATALOG.components.keys()].sort()).toEqual(Object.keys(schema.components).sort());
 });
 
+/** A catalog's functions less the system functions (`@index`), which no catalog document declares. */
+const catalogFunctions = (names: Iterable<string>) => [...names].filter(n => !n.startsWith('@'));
+
 test('every schema function has an implementation and vice versa', () => {
-  expect([...CATALOG.functions.keys()].sort()).toEqual(Object.keys(schema.functions).sort());
+  expect(catalogFunctions(CATALOG.functions.keys()).sort()).toEqual(
+    Object.keys(schema.functions).sort(),
+  );
 });
 
 test('the declared functions are exactly the upstream set plus the operators, the relations and the shell actions', () => {

@@ -123,7 +123,7 @@ test('datetime format renders any spelling of a date-and-time in one human form,
   );
   expect(range.container.textContent).toContain('11:00 – 12:00');
   expect(
-    DerivedValueApi.schema.safeParse({cell: {path: 'when'}, format: {kind: 'datetime'}}).success,
+    DerivedValueApi.schema.safeParse({cell: {'@path': 'when'}, format: {kind: 'datetime'}}).success,
   ).toBe(true);
 });
 
@@ -131,20 +131,20 @@ test('cell is binding-only: a path or a call, never a literal', () => {
   expect(DerivedValueApi.schema.safeParse({cell: 899}).success).toBe(false);
   expect(DerivedValueApi.schema.safeParse({cell: 'best'}).success).toBe(false);
   expect(
-    DerivedValueApi.schema.safeParse({cell: {call: 'value', args: {values: [1]}}}).success,
+    DerivedValueApi.schema.safeParse({cell: {'@call': 'value', args: {values: [1]}}}).success,
   ).toBe(true);
 });
 
 test('schema binds cell as a dynamic value and keeps format plain', () => {
-  const ok = DerivedValueApi.schema.safeParse({cell: {path: 'best'}, format: usd});
+  const ok = DerivedValueApi.schema.safeParse({cell: {'@path': 'best'}, format: usd});
   expect(ok.success).toBe(true);
-  expect(DerivedValueApi.schema.safeParse({cell: {path: 'best'}}).success).toBe(true);
+  expect(DerivedValueApi.schema.safeParse({cell: {'@path': 'best'}}).success).toBe(true);
   expect(DerivedValueApi.schema.safeParse({format: usd}).success).toBe(false);
-  expect(DerivedValueApi.schema.safeParse({cell: {path: 'best'}, style: 'loud'}).success).toBe(
+  expect(DerivedValueApi.schema.safeParse({cell: {'@path': 'best'}, style: 'loud'}).success).toBe(
     false,
   );
   expect(
-    DerivedValueApi.schema.safeParse({cell: {path: 'best'}, format: {kind: 'currency'}}).success,
+    DerivedValueApi.schema.safeParse({cell: {'@path': 'best'}, format: {kind: 'currency'}}).success,
   ).toBe(false);
 });
 
@@ -399,7 +399,7 @@ describe('the value is the button (decision 13)', () => {
 });
 
 describe('built for a host (decisions 11, 13)', () => {
-  const tree = [{id: 'root', component: 'DerivedValue', cell: {path: '/status'}}];
+  const tree = [{id: 'root', component: 'DerivedValue', cell: {'@path': '/status'}}];
   const status = joined(
     {mark: 'guessed', apps: ['linear'], evidence: [sameIssue]},
     {contributed: 1, of: 2, absent: ['github:prs']},
@@ -523,10 +523,10 @@ test('a prefix is written before a present value and never before the dash (task
 });
 
 test('schema takes danger as a non-empty list of words and a prefix on format (task 7.16)', () => {
-  const cell = {path: 'ci'};
+  const cell = {'@path': 'ci'};
   expect(DerivedValueApi.schema.safeParse({cell, danger: ['Failed']}).success).toBe(true);
   expect(DerivedValueApi.schema.safeParse({cell, danger: []}).success).toBe(false);
-  expect(DerivedValueApi.schema.safeParse({cell, danger: [{path: 'x'}]}).success).toBe(false);
+  expect(DerivedValueApi.schema.safeParse({cell, danger: [{'@path': 'x'}]}).success).toBe(false);
   expect(
     DerivedValueApi.schema.safeParse({cell, format: {kind: 'text', prefix: '#'}}).success,
   ).toBe(true);

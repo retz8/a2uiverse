@@ -1,3 +1,4 @@
+import {spec} from '@a2ui/web_core/v1_0';
 import {z} from 'zod';
 import {UPDATE_STATES, type UpdateStateKind} from '@a2uiverse/sdk';
 
@@ -272,97 +273,101 @@ const InstalledSchema = z
 
 export const SlotApi = {
   name: 'Slot',
-  schema: z
-    .object({
-      source: z.string().optional(),
-      gap: z.string().optional(),
-      chooseAccount: z.string().optional(),
-      addAccount: z.string().optional(),
-      accounts: z.array(z.object({source: z.string(), label: z.string()}).strict()).optional(),
-      weight: z.number().optional(),
-      state: z.enum(['pending', 'failed', 'collapsed', 'authority', 'update']).optional(),
-      label: z.string().optional(),
-      noun: z.string().optional(),
-      failure: FailureSchema.optional(),
-      authority: AuthoritySchema.optional(),
-      update: UpdateSchema.optional(),
-      scopes: z.array(z.string()).optional(),
-      content: z.enum(['fragment', 'shell']).optional(),
-      columns: z.array(z.string()).optional(),
-      columnSources: z.array(z.string().nullable()).optional(),
-      join: z
-        .object({
-          home: z.string().nullable(),
-          entity: z.string().optional(),
-          nouns: z.record(z.string(), z.string()),
-        })
-        .strict()
-        .optional(),
-      declined: z.object({reason: z.string()}).strict().optional(),
-      collapse: CollapseSchema.optional(),
-      merged: z.array(z.string()).optional(),
-      late: z.array(z.string()).optional(),
-      working: z
-        .object({sources: z.array(z.string())})
-        .strict()
-        .optional(),
-      callFailed: CallFailedSchema.optional(),
-      retrying: z.array(z.string()).optional(),
-      offer: OfferSchema.optional(),
-      installed: InstalledSchema.optional(),
-      offered: OfferedSchema.optional(),
-    })
-    .strict()
-    .refine(
-      props =>
-        [props.source, props.gap, props.chooseAccount, props.addAccount].filter(
-          held => held !== undefined,
-        ).length === 1,
-      {message: 'a Slot holds exactly one of source, gap, chooseAccount or addAccount'},
-    )
-    .refine(
-      props =>
-        props.accounts === undefined ||
-        props.chooseAccount !== undefined ||
-        props.addAccount !== undefined,
-      {message: 'a Slot carries accounts only when it is the account choice or add-account'},
-    )
-    .refine(props => props.scopes === undefined || props.addAccount !== undefined, {
-      message: 'a Slot carries scopes only when it is add-account',
-    })
-    .refine(
-      props =>
-        (props.offer === undefined && props.installed === undefined) || props.gap !== undefined,
-      {message: 'a Slot carries an offer or an installed app only when it holds a gap'},
-    )
-    .refine(
-      props =>
-        props.gap === undefined || (props.offer === undefined) !== (props.installed === undefined),
-      {message: 'a gap Slot carries its offer or the app installed there, one of the two'},
-    )
-    .refine(
-      props =>
-        props.offered === undefined ||
-        (props.source !== undefined && (props.state ?? 'pending') === 'pending'),
-      {message: 'a Slot keeps the offer it came from only while its source is pending'},
-    )
-    .refine(props => props.authority === undefined || props.state === 'authority', {
-      message: 'a Slot carries an authority only when its state is `authority`',
-    })
-    .refine(
-      props =>
-        props.update === undefined || ['update', 'pending'].includes(props.state ?? 'pending'),
-      {
-        message:
-          'a Slot carries an update only when its state is `update`, or kept while `pending`',
-      },
-    )
-    .refine(
-      props =>
-        props.columnSources === undefined ||
-        (props.columns !== undefined && props.columnSources.length === props.columns.length),
-      {message: 'columnSources has one entry per column'},
-    ),
+  schema: spec(
+    z
+      .object({
+        source: z.string().optional(),
+        gap: z.string().optional(),
+        chooseAccount: z.string().optional(),
+        addAccount: z.string().optional(),
+        accounts: z.array(z.object({source: z.string(), label: z.string()}).strict()).optional(),
+        weight: z.number().optional(),
+        state: z.enum(['pending', 'failed', 'collapsed', 'authority', 'update']).optional(),
+        label: z.string().optional(),
+        noun: z.string().optional(),
+        failure: FailureSchema.optional(),
+        authority: AuthoritySchema.optional(),
+        update: UpdateSchema.optional(),
+        scopes: z.array(z.string()).optional(),
+        content: z.enum(['fragment', 'shell']).optional(),
+        columns: z.array(z.string()).optional(),
+        columnSources: z.array(z.string().nullable()).optional(),
+        join: z
+          .object({
+            home: z.string().nullable(),
+            entity: z.string().optional(),
+            nouns: z.record(z.string(), z.string()),
+          })
+          .strict()
+          .optional(),
+        declined: z.object({reason: z.string()}).strict().optional(),
+        collapse: CollapseSchema.optional(),
+        merged: z.array(z.string()).optional(),
+        late: z.array(z.string()).optional(),
+        working: z
+          .object({sources: z.array(z.string())})
+          .strict()
+          .optional(),
+        callFailed: CallFailedSchema.optional(),
+        retrying: z.array(z.string()).optional(),
+        offer: OfferSchema.optional(),
+        installed: InstalledSchema.optional(),
+        offered: OfferedSchema.optional(),
+      })
+      .strict()
+      .refine(
+        props =>
+          [props.source, props.gap, props.chooseAccount, props.addAccount].filter(
+            held => held !== undefined,
+          ).length === 1,
+        {message: 'a Slot holds exactly one of source, gap, chooseAccount or addAccount'},
+      )
+      .refine(
+        props =>
+          props.accounts === undefined ||
+          props.chooseAccount !== undefined ||
+          props.addAccount !== undefined,
+        {message: 'a Slot carries accounts only when it is the account choice or add-account'},
+      )
+      .refine(props => props.scopes === undefined || props.addAccount !== undefined, {
+        message: 'a Slot carries scopes only when it is add-account',
+      })
+      .refine(
+        props =>
+          (props.offer === undefined && props.installed === undefined) || props.gap !== undefined,
+        {message: 'a Slot carries an offer or an installed app only when it holds a gap'},
+      )
+      .refine(
+        props =>
+          props.gap === undefined ||
+          (props.offer === undefined) !== (props.installed === undefined),
+        {message: 'a gap Slot carries its offer or the app installed there, one of the two'},
+      )
+      .refine(
+        props =>
+          props.offered === undefined ||
+          (props.source !== undefined && (props.state ?? 'pending') === 'pending'),
+        {message: 'a Slot keeps the offer it came from only while its source is pending'},
+      )
+      .refine(props => props.authority === undefined || props.state === 'authority', {
+        message: 'a Slot carries an authority only when its state is `authority`',
+      })
+      .refine(
+        props =>
+          props.update === undefined || ['update', 'pending'].includes(props.state ?? 'pending'),
+        {
+          message:
+            'a Slot carries an update only when its state is `update`, or kept while `pending`',
+        },
+      )
+      .refine(
+        props =>
+          props.columnSources === undefined ||
+          (props.columns !== undefined && props.columnSources.length === props.columns.length),
+        {message: 'columnSources has one entry per column'},
+      ),
+    {mixins: []},
+  ),
 } as const;
 
 export type SlotProps = z.infer<typeof SlotApi.schema>;

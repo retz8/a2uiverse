@@ -1,5 +1,6 @@
-import {Catalog, V09_SPEC_FUNCTIONS} from '@a2ui/web_core/v0_9';
-import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import {Catalog} from '@a2ui/web_core/v1_0';
+import {BASIC_FUNCTIONS} from '@a2ui/web_core/catalogs/basic/v1';
+import type {ReactComponentImplementation} from '@a2ui/react';
 import {CATALOG_ID, CATALOG_PROTOCOL_VERSION} from './catalog-id.js';
 import {TextComponent} from './components/text/index.js';
 import {ImageComponent} from './components/image/index.js';
@@ -144,7 +145,7 @@ export interface CreateCatalogOptions {
 
 /**
  * The shell's runtime catalog, built for one host (task-6.2 decision 2): the basic catalog mapped
- * onto Radix Themes, the shell primitives, the v0.9 specification's functions as upstream
+ * onto Radix Themes, the shell primitives, the basic catalog's functions as upstream
  * implements them, the formula operators, the relations, and the shell's two actions bound to the
  * host's handler.
  */
@@ -157,7 +158,7 @@ export function createCatalog(
     CATALOG_PROTOCOL_VERSION,
     [...BASIC_IMPLEMENTATIONS, ...shellImplementations(options)],
     [
-      ...V09_SPEC_FUNCTIONS,
+      ...BASIC_FUNCTIONS,
       ...operatorFunctions,
       ...relationFunctions,
       ...shellActionFunctions(onShellAction),

@@ -1,4 +1,4 @@
-import {DataBindingSchema, FunctionCallSchema} from '@a2ui/web_core/v0_9';
+import {DataBindingSchema, FunctionCallSchema} from '@a2ui/web_core/v1_0';
 import {z} from 'zod';
 
 /**

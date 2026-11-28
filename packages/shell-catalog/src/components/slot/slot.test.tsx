@@ -892,7 +892,7 @@ test('a fact the runtime stops painting leaves the slot with its repaint', async
   await act(async () =>
     processor.processMessages([
       {
-        version: 'v0.9',
+        version: '1.0',
         updateComponents: {
           surfaceId: SURFACE_ID,
           components: [{...merged, collapse: {cause: 'unmade'}}],

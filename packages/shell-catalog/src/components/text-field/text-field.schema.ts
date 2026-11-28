@@ -1,4 +1,5 @@
-import {TextFieldApi as BasicTextFieldApi} from '@a2ui/web_core/v0_9';
+import {TextFieldApi as BasicTextFieldApi} from '@a2ui/web_core/catalogs/basic/v1';
+import {spec} from '@a2ui/web_core/v1_0';
 import {z} from 'zod';
 
 /**
@@ -10,11 +11,16 @@ export const TEXT_FIELD_VARIANTS = ['longText', 'number', 'shortText'] as const;
 
 export const TextFieldApi = {
   ...BasicTextFieldApi,
-  schema: BasicTextFieldApi.schema.extend({
-    variant: z
-      .enum(TEXT_FIELD_VARIANTS)
-      .default('shortText')
-      .describe('The type of input field to display.')
-      .optional(),
-  }),
+  // `extend` drops upstream's annotation; the entry carries it again, so the document is the
+  // basic catalog's own.
+  schema: spec(
+    BasicTextFieldApi.schema.extend({
+      variant: z
+        .enum(TEXT_FIELD_VARIANTS)
+        .default('shortText')
+        .describe('The type of input field to display.')
+        .optional(),
+    }),
+    {mixins: ['Checkable']},
+  ),
 };

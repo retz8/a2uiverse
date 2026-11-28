@@ -1,4 +1,4 @@
-import {createFunctionImplementation, type FunctionImplementation} from '@a2ui/web_core/v0_9';
+import {createFunctionImplementation, spec, type FunctionImplementation} from '@a2ui/web_core/v1_0';
 import {z} from 'zod';
 import {instantPrecision, parseInstant} from '../components/shared/instant.js';
 
@@ -146,7 +146,13 @@ export function contains(a: unknown, b: unknown): boolean {
   return isPlain(a) && isPlain(b) && containsPlain(a, b);
 }
 
-const pair = z.object({values: z.array(z.any()).length(2)});
+// Each value is validated once resolved; the document declares a dynamic value there.
+const pair = spec(
+  z.object({values: z.array(z.any().describe('REF:#/$defs/DynamicValue')).min(2).max(2)}),
+  {
+    closure: 'unevaluatedProperties',
+  },
+);
 
 export const relationFunctions: readonly FunctionImplementation[] = [
   createFunctionImplementation({name: 'equal', returnType: 'boolean', schema: pair}, ({values}) =>

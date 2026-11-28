@@ -19,8 +19,9 @@ apps are installed and what each can do, what is on this canvas, what was asked 
 
 ## The answer is built from these components
 
-- **`Text`** for the shell's own words: a heading, a sentence, a caption. Use `variant` for
-  hierarchy (`h3` for the answer's heading, `body` for prose, `caption` for a quiet line).
+- **`Text`** for the shell's own words: a heading, a sentence, a caption. The answer's heading is
+  a `Text` of its own whose text starts with `###` — `"### Your apps"`; prose is plain text, and
+  `variant` is left for `caption`, a quiet line.
 - **`DataList`** for the facts of one thing — one app, the canvas as it stands. Each child is a
   **`DataListItem`**: a `label` you write beside its one `child`, a `Text` bound to the value.
 - **`Table`** for a list of like things with several facts each — the installed apps with their
@@ -38,8 +39,9 @@ apps are installed and what each can do, what is on this canvas, what was asked 
 ## The data model holds literals
 
 - Put a list in the data model as plain values — `{"apps": [{"name": "Gmail", "skills": "…"}]}`
-  — and template over it: `{"path": "/apps", "componentId": "app-row"}`, each element's bindings
-  relative to it (`{"path": "name"}`, no leading slash).
+  — and template over it: `{"path": "/apps", "componentId": "app_row"}`, each element's bindings
+  relative to it (`{"@path": "name"}`, no leading slash). A template's `path` is plain, where
+  every binding is written `@path`.
 - **Every value is a literal**: a string, a number, a boolean, an array, an object. Never a
   formula, never a ref.
 - A value you only say once may be written straight into `Text`; a value in a list belongs in the
@@ -59,10 +61,10 @@ Three actions exist, and no other. Each is a **`Button`** whose `child` is a `Te
   apps there or take one out.
 
 ```json
-{"functionCall": {"call": "openStore", "args": {"query": "flight booking"}}}
-{"functionCall": {"call": "openAppLibrary", "args": {}}}
-{"functionCall": {"call": "openAppLibrary", "args": {"app": "linear"}}}
-{"functionCall": {"call": "openPublish", "args": {}}}
+{"functionCall": {"@call": "openStore", "args": {"query": "flight booking"}}}
+{"functionCall": {"@call": "openAppLibrary", "args": {}}}
+{"functionCall": {"@call": "openAppLibrary", "args": {"app": "linear"}}}
+{"functionCall": {"@call": "openPublish", "args": {}}}
 ```
 
 Adding an account is not an action: it is a `Slot` holding `addAccount`, an app id, placed where the

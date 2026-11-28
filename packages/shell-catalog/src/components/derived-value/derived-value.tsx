@@ -1,5 +1,5 @@
 import {useContext, useState, type KeyboardEvent} from 'react';
-import {createComponentImplementation} from '@a2ui/react/v0_9';
+import {createComponentImplementation} from '@a2ui/react';
 import {parseSurfaceId} from '@a2uiverse/sdk';
 import {CrossCircledIcon} from '@radix-ui/react-icons';
 import {Text, Tooltip} from '@radix-ui/themes';

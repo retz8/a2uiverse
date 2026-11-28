@@ -23,7 +23,7 @@ import {componentElements, renderTree} from './testing/render.js';
 const drewContent = (el: Element) =>
   el.childElementCount > 0 || (el.textContent ?? '').trim() !== '';
 
-const schema = JSON.parse(readFileSync('catalogs/v0.9.1/catalog.json', 'utf8')) as CatalogSchema;
+const schema = JSON.parse(readFileSync('catalogs/v1.0/catalog.json', 'utf8')) as CatalogSchema;
 
 // A slot always has content to rest on here, so `collapsed` — which rightly renders nothing when
 // there is none — still yields an element for the sweep to find.

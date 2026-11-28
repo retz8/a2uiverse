@@ -1,5 +1,9 @@
-import {createFunctionImplementation, type FunctionImplementation} from '@a2ui/web_core/v0_9';
+import {createFunctionImplementation, spec, type FunctionImplementation} from '@a2ui/web_core/v1_0';
 import {z} from 'zod';
+
+/** A shell action's arguments, closed in the document as upstream's basic catalog closes them. */
+const args = <T extends z.ZodRawShape>(shape: T) =>
+  spec(z.object(shape), {closure: 'unevaluatedProperties'});
 
 /**
  * The shell's closed action set (SPEC §4.2, §7; task-6.2 decisions 1–3): catalog functions a
@@ -33,7 +37,7 @@ export type ShellActionHandler = (action: ShellAction) => void;
 export function shellActionFunctions(onShellAction: ShellActionHandler): FunctionImplementation[] {
   return [
     createFunctionImplementation(
-      {name: 'openStore', returnType: 'void', schema: z.object({query: z.string().optional()})},
+      {name: 'openStore', returnType: 'void', schema: args({query: z.string().optional()})},
       ({query}, context) => {
         const surfaceId = context.surface?.id;
         if (surfaceId === undefined) return;
@@ -43,7 +47,7 @@ export function shellActionFunctions(onShellAction: ShellActionHandler): Functio
       },
     ),
     createFunctionImplementation(
-      {name: 'openAppLibrary', returnType: 'void', schema: z.object({app: z.string().optional()})},
+      {name: 'openAppLibrary', returnType: 'void', schema: args({app: z.string().optional()})},
       ({app}, context) => {
         const surfaceId = context.surface?.id;
         if (surfaceId === undefined) return;
@@ -53,7 +57,7 @@ export function shellActionFunctions(onShellAction: ShellActionHandler): Functio
       },
     ),
     createFunctionImplementation(
-      {name: 'openPublish', returnType: 'void', schema: z.object({})},
+      {name: 'openPublish', returnType: 'void', schema: args({})},
       (_args, context) => {
         const surfaceId = context.surface?.id;
         if (surfaceId === undefined) return;

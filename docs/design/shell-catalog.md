@@ -36,7 +36,7 @@ An A2UI catalog has two sides: the **schema**, which says what components exist 
 
 | File | What it is | Who reads it |
 | --- | --- | --- |
-| `catalogs/v0.9.1/catalog.json` | The catalog as JSON Schema: every component, every prop, every function | The models, in their prompts; the orchestrator's validator, which checks what the models wrote |
+| `catalogs/v1.0/catalog.json` | The catalog as JSON Schema, an A2UI v1.0 catalog document written by hand: every component, every prop, every function, and the descriptions the models read | The models, in their prompts; the orchestrator's validator, which checks what the models wrote |
 | `src/schema.ts` | The same components as zod schemas, with no React | Node code that needs the catalog's names and types without rendering anything (the orchestrator imports it as `@a2uiverse/shell-catalog/schema`) |
 | `src/catalog.ts` | The React implementation, on Radix Themes | The client, which renders every shell surface with it |
 
@@ -51,7 +51,7 @@ flowchart LR
     CAT --> C["The client renders"]
 ```
 
-`schema.ts` and `catalog.ts` are built from **the same component APIs**: upstream's `TextApi`, `ButtonApi` and the rest from `@a2ui/web_core`, and the shell components' own `*.schema.ts` files. So those two can't disagree about a prop. `catalog.json` is a separate file, kept in step by tests: every component and every function it declares has an implementation, and the other way round (see [Keeping the files in step](#keeping-the-files-in-step)).
+`schema.ts` and `catalog.ts` are built from **the same component APIs**: upstream's `TextApi`, `ButtonApi` and the rest from `@a2ui/web_core/catalogs/basic/v1`, and the shell components' own `*.schema.ts` files. So those two can't disagree about a prop. `catalog.json` is a separate file, kept in step by tests: every component and every function it declares has an implementation, and the other way round, and each entry is what the release's `Catalog.toJson()` computes from its API, descriptions aside (see [Keeping the files in step](#keeping-the-files-in-step)). The catalog's id is the document's path in the repo, `https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v1.0/catalog.json`.
 
 ### 2. Basic catalog, drawn on Radix Themes
 
@@ -59,15 +59,15 @@ The basic catalog's eighteen components are all here, **with upstream's props ex
 
 | Basic component | Drawn with Radix | Worth knowing |
 | --- | --- | --- |
-| `Text` | `Heading` for `h1` to `h4`, `Text` for `body` and `caption` | `h5` is the merged view's small label, one line ending in an ellipsis; `body` renders as Markdown when the host installs a renderer, as the client does |
+| `Text` | `Heading` for a heading line, `Text` for the rest | a text of one line that is one to five `#`, a space and words is a heading, drawn by the shell in the first frame, its words plain: one to four `#` a `Heading` at that level, five `#` the merged view's small label, one line ending in an ellipsis. Any other text renders as Markdown when the host installs a renderer, as the client does, a heading inside a longer text among it; a `caption` is drawn as written |
 | `Row`, `Column`, `List` | `Flex` | Radix names four of the seven `justify` values as props; the other three are set as CSS on the same element |
-| `Card`, `Divider`, `Tabs`, `Slider` | `Card`, `Separator`, `Tabs`, `Slider` | only the selected tab's panel mounts |
+| `Card`, `Divider`, `Tabs`, `Slider` | `Card`, `Separator`, `Tabs`, `Slider` | only the selected tab's panel mounts; `Slider`'s `steps` divides its range into that many steps the thumb snaps to |
 | `Modal` | `Dialog` | its content mounts inside the catalog's own portal root |
 | `Button` | `Button` | `default` is `surface` gray, `primary` is `solid`, `borderless` is `ghost`; it keeps its label's width, at most its container's, so a `Column`, which stretches its children across by default, never draws a button across the page |
-| `TextField`, `CheckBox`, `DateTimeInput` | `TextField` or `TextArea`, `Checkbox`, a native date input | the first failing check shows under the field in red; `TextField`'s schema is upstream's with `obscured` taken out of `variant`, so a paint asking for a password field fails validation |
+| `TextField`, `CheckBox`, `DateTimeInput` | `TextField` or `TextArea`, `Checkbox`, a native date input | the first failing check shows under the field in red; `TextField`'s `placeholder` is the control's own; its schema is upstream's with `obscured` taken out of `variant`, so a paint asking for a password field fails validation |
 | `ChoicePicker` | `RadioGroup`, `CheckboxGroup`, `SegmentedControl`, or toggle `Button`s | one control per combination of one-or-many and checkbox-or-chips |
 | `Icon` | Radix Icons | an unknown icon name draws a question mark carrying the name |
-| `Image`, `Video`, `AudioPlayer` | plain elements under the Theme's tokens | |
+| `Image`, `Video`, `AudioPlayer` | plain elements under the Theme's tokens | `Video`'s `posterUrl` is the player's poster |
 
 Keeping upstream's props means the Planner, the Synthesizer, the orchestrator's validator and the client's renderer all speak one vocabulary. Nothing about the shell asks a model to learn a new word for something the basic catalog already says.
 
@@ -180,7 +180,7 @@ A `Slot` holds **exactly one** of `source` (whose answer fills it), `gap` (what 
 
 **4. The apps answer.** The client, as host, fills `SlotContentContext`. Each `Slot` asks it for its source's content, and draws that content the moment it's there. The slot keeps the 4rem floor it reserved, so the layout doesn't jump.
 
-**5. The merged view lands.** The Synthesizer's tree for `shell:synthesis` fills the shell slot. In the example it's a `Column` holding a `Row` (an `h5` label "Work items" and a `SortControl`) over a `Table` of `TableRow`s whose cells are all `DerivedValue`s. How the values get into those cells is [`synthesis.md`](synthesis.md)'s subject; this catalog only draws them. A question's first merged view arrives as it's written: the tree first, over no rows, then one row at a time. While the host says so through `SynthesisStreamingContext`, the `Table` keeps skeleton rows below the rows it holds — four with none, one fewer per row, never fewer than one — so the rows take the reserved slot's places one for one, and the shell slot stays busy; the last one goes when the host says the document is accepted.
+**5. The merged view lands.** The Synthesizer's tree for `shell:synthesis` fills the shell slot. In the example it's a `Column` holding a `Row` (a label, the `Text` "##### Work items", and a `SortControl`) over a `Table` of `TableRow`s whose cells are all `DerivedValue`s. How the values get into those cells is [`synthesis.md`](synthesis.md)'s subject; this catalog only draws them. A question's first merged view arrives as it's written: the tree first, over no rows, then one row at a time. While the host says so through `SynthesisStreamingContext`, the `Table` keeps skeleton rows below the rows it holds — four with none, one fewer per row, never fewer than one — so the rows take the reserved slot's places one for one, and the shell slot stays busy; the last one goes when the host says the document is accepted.
 
 **6. The reader acts.** Each interaction goes out through one of the host's handlers:
 
@@ -366,7 +366,10 @@ Until the installed app's first answer the orchestrator keeps the offer on the s
 Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-that-must-agree) honest:
 
 - **Name-level parity** (`catalog.parity.test.ts`, and `schema.test.ts` for the React-free face): the catalog id matches everywhere; every component and every function in `catalog.json` has an implementation and the other way round; the declared functions are exactly upstream's, plus the operators, the relations and the three shell actions.
-- **Render-level parity** (`catalog.render-parity.test.tsx`), which is **generated from `catalog.json`**. `fixture/matrix.ts` walks every component and every enum prop, and for each value builds a minimal valid tree: required props sampled from their declared types, a small seed per component so the sample is readable, and the one prop being varied. Every case renders through the real renderer under the Provider, and the surface must report no error, every component's element must hold something it drew, and every child the tree names must be a component it defines, with no console error or warning. Add an enum value to `catalog.json` and it's tested automatically.
+- **Shape** (`catalog.shape.test.ts`): each entry of `catalog.json` equals what `Catalog.toJson()` computes from its API, descriptions aside; the basic catalog's entries are upstream's published v1 entries, `TextField`'s `variant` apart; and the document passes the sdk's catalog gate. A rule an API writes as a zod refinement, such as a `Slot` holding exactly one of `source`, `gap`, `chooseAccount` and `addAccount`, is not in the document: a v1.0 component definition can't carry a top-level `oneOf`.
+- **Render-level parity** (`catalog.render-parity.test.tsx`), which is **generated from `catalog.json`**. `fixture/matrix.ts` walks every component and every enum prop, and for each value builds a minimal valid tree: required props sampled from their declared types, a small seed per component so the sample is readable, and the one prop being varied. Beside the enum values, the sweep carries the five heading levels, each a `Text` written with its `#`, and v1's three new basic props. Every case renders through the real renderer under the Provider, and the surface must report no error, every component's element must hold something it drew, and every child the tree names must be a component it defines, with no console error or warning. Add an enum value to `catalog.json` and it's tested automatically.
+
+Every tree a component test renders, and every tree the design-check page paints (`design-check.test.tsx`), is first held to the sdk's schema-form check against `catalog.json`, so no test passes on a form the v1.0 schema refuses: a binding written `path`, a call written `call`, a heading variant.
 
 `keep-sets.test.ts` checks the pruning: a merged view validates against the Synthesizer's pruned catalog while `Slot`, `Attribution` and `Button` don't, and a layout validates against the Planner's while `Attribution`, `DerivedValue` and `SortControl` don't. `scoped-css.test.ts` checks that no `:root` survived in the stylesheet.
 
@@ -415,7 +418,7 @@ Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-th
 
 | Concern | Where (`packages/shell-catalog/`) |
 | --- | --- |
-| The catalog as JSON Schema | `catalogs/v0.9.1/catalog.json` |
+| The catalog as JSON Schema | `catalogs/v1.0/catalog.json` |
 | The React-free face | `src/schema.ts` |
 | The React face, `createCatalog` | `src/catalog.ts` |
 | Keep-sets | `src/keep-sets.ts` (pruning itself: `packages/sdk/js/src/a2ui/prune.ts`) |

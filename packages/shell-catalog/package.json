@@ -1,6 +1,6 @@
 {
   "name": "@a2uiverse/shell-catalog",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -41,7 +41,7 @@
         "default": "./dist/schema.js"
       }
     },
-    "./catalog.json": "./catalogs/v0.9.1/catalog.json",
+    "./catalog.json": "./catalogs/v1.0/catalog.json",
     "./synthesis-guidance.md": "./docs/synthesis-guidance.md",
     "./platform-ui-guidance.md": "./docs/platform-ui-guidance.md"
   },

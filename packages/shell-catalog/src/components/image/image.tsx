@@ -1,6 +1,6 @@
 import type {CSSProperties} from 'react';
-import {createComponentImplementation} from '@a2ui/react/v0_9';
-import {ImageApi} from '@a2ui/web_core/v0_9';
+import {createComponentImplementation} from '@a2ui/react';
+import {ImageApi} from '@a2ui/web_core/catalogs/basic/v1';
 import {weightStyle} from '../shared/layout.js';
 
 export type ImageFit = 'contain' | 'cover' | 'fill' | 'none' | 'scaleDown';

@@ -7,7 +7,7 @@ import {TextFieldApi} from './text-field.schema';
 test('typing writes back to the bound path (two-way binding)', async () => {
   const user = userEvent.setup();
   const {surface} = renderTree(
-    [{id: 'root', component: 'TextField', label: 'Name', value: {path: '/name'}}],
+    [{id: 'root', component: 'TextField', label: 'Name', value: {'@path': '/name'}}],
     {data: {name: 'Ada'}},
   );
   const input = screen.getByLabelText('Name') as HTMLInputElement;
@@ -31,8 +31,31 @@ test('the variants pick the control: longText is a Radix TextArea, number a numb
   expect(number.closest('.rt-TextFieldRoot')).not.toBeNull();
 });
 
+test('placeholder is the control’s own, shown while it is empty, on both kinds of field (task-21.12 decision 6)', () => {
+  for (const variant of ['shortText', 'longText'] as const) {
+    const {unmount} = renderTree(
+      [
+        {
+          id: 'root',
+          component: 'TextField',
+          label: 'Name',
+          value: {'@path': '/name'},
+          placeholder: 'Ada Lovelace',
+          variant,
+        },
+      ],
+      {data: {name: ''}},
+    );
+    expect(screen.getByLabelText('Name')).toHaveAttribute('placeholder', 'Ada Lovelace');
+    unmount();
+  }
+  renderTree([{id: 'root', component: 'TextField', label: 'Name', value: ''}]);
+  expect(screen.getByLabelText('Name')).not.toHaveAttribute('placeholder');
+});
+
 test('no credential input: the schema has no `obscured` variant (task 12.3)', () => {
-  const ok = (variant: string) => TextFieldApi.schema.safeParse({label: 'Secret', variant}).success;
+  const ok = (variant: string) =>
+    TextFieldApi.schema.safeParse({label: 'Secret', value: '', variant}).success;
   expect(ok('shortText')).toBe(true);
   expect(ok('obscured')).toBe(false);
 });
@@ -44,9 +67,12 @@ test('a failing check shows its first error and colours the field red', () => {
         id: 'root',
         component: 'TextField',
         label: 'Email',
-        value: {path: '/email'},
-        checks: [
-          {condition: {call: 'email', args: {value: {path: '/email'}}}, message: 'Not an email'},
+        value: {'@path': '/email'},
+        '@checks': [
+          {
+            condition: {'@call': 'email', args: {value: {'@path': '/email'}}},
+            message: 'Not an email',
+          },
         ],
       },
     ],
