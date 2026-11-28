@@ -38,7 +38,8 @@ jobs:
       - install
       - run:
           name: Build, typecheck, test
-          command: pnpm exec turbo run build typecheck test
+          # One task at a time: the suites' timed waits hold on the executor's two CPUs only so
+          command: pnpm exec turbo run build typecheck test --concurrency=1
 
   lint-format:
     executor: node
