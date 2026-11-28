@@ -5,7 +5,7 @@
  * link or image attribute survives, so nothing a vendor string carries reaches the page as markup.
  */
 import MarkdownIt from 'markdown-it';
-import type {MarkdownRenderer} from '@a2ui/web_core/v0_9/basic_catalog';
+import type {MarkdownRenderer} from '@a2ui/web_core/catalogs/basic/v1';
 
 const md = new MarkdownIt({html: false, linkify: false, typographer: false});
 

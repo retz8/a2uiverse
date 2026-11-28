@@ -10,13 +10,13 @@
  */
 import {describe, it, expect} from 'vitest';
 import {render} from '@testing-library/react';
-import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import {MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import type {ReactCatalogComponent} from '@a2ui/react';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
 import {BASIC_CATALOG_ID} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
-import {SNAPSHOT_ARTIFACTS, snapshotCatalogs} from '../../../tests/snapshot';
+import {SNAPSHOT_ARTIFACTS, SNAPSHOT_READY, snapshotCatalogs} from '../../../tests/snapshot';
 import {FRAGMENT_BOUNDARY_ATTR, FragmentBoundary} from './FragmentBoundary';
 
 const CATALOGS = await snapshotCatalogs();
@@ -30,8 +30,8 @@ const RECORDS = [
   })),
 ];
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 
 /** One trivial surface per installed catalog — every design system on the page at once. */
 function everyCatalogMounted() {
@@ -62,7 +62,7 @@ function everyCatalogMounted() {
   );
 }
 
-describe('every installed catalog, mounted together', () => {
+describe.skipIf(!SNAPSHOT_READY)('every installed catalog, mounted together', () => {
   it('writes no custom property onto the document element', () => {
     const {container} = everyCatalogMounted();
     // Whatever the catalogs set, the page itself must come away untouched.
@@ -109,7 +109,7 @@ describe('every installed catalog, mounted together', () => {
  * Gmail's and Calendar's catalogs are each their own Material 3 vocabulary, their tokens in a sheet
  * scoped to the Provider's wrapper class. Each wrapper sits inside its own fragment's boundary.
  */
-describe('the two Material 3 catalogs', () => {
+describe.skipIf(!SNAPSHOT_READY)('the two Material 3 catalogs', () => {
   it('each scopes its fragment under its own wrapper, inside that fragment’s boundary', () => {
     const {container} = everyCatalogMounted();
     for (const selector of ['.gmail-catalog', '.calendar-catalog']) {

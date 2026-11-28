@@ -2123,7 +2123,7 @@
     },
     {
       "repo": "a2uiverse",
-      "path": "apps/client/recordings/beats/beat-35-pr-list-v091.json",
+      "path": "apps/client/recordings/beats/beat-35-pr-list-three.json",
       "surfaces": [
         {
           "surface": "shell:main",

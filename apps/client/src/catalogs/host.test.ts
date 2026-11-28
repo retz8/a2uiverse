@@ -4,9 +4,9 @@
  */
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import * as React from 'react';
-import * as A2uiWebCore from '@a2ui/web_core/v0_9';
-import {Catalog, MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import * as A2uiWebCore from '@a2ui/web_core/v1_0';
+import {Catalog, MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import {
   HOST_INTERFACE_GLOBAL,
   HOST_INTERFACE_VERSION,
@@ -37,7 +37,7 @@ describe('the host-module interface', () => {
 
   it('lends the client’s own module namespaces: one React, one A2UI runtime on the page', () => {
     expect(HOST_MODULES.react).toBe(React);
-    expect(HOST_MODULES['@a2ui/web_core/v0_9']).toBe(A2uiWebCore);
+    expect(HOST_MODULES['@a2ui/web_core/v1_0']).toBe(A2uiWebCore);
   });
 });
 
@@ -106,7 +106,7 @@ describe('a stylesheet that gets no answer (task-11.8 decision 20)', () => {
 });
 
 describe('a build’s stylesheet held to its own surfaces (task-14.11 decision 39)', () => {
-  it('scopes every rule to the build’s frames; what names a thing for the page stays at the top', () => {
+  it('scopes every rule to the build’s frames, ending at another catalog’s frame (task-21.14 decision 2); what names a thing for the page stays at the top', () => {
     const rules = [
       '@font-face { font-family: inter; src: url("fonts/inter.woff2"); }',
       '@keyframes spin { to { rotate: 1turn; } }',
@@ -122,7 +122,7 @@ describe('a build’s stylesheet held to its own surfaces (task-14.11 decision 3
     ];
     expect(scopeToBuild(rules, 'sha256-abc').split('\n')).toEqual([
       ...rules.slice(0, 6),
-      '@scope ([data-catalog-build="sha256-abc"]) {',
+      '@scope ([data-catalog-build="sha256-abc"]) to ([data-catalog-frame]:not([data-catalog-build="sha256-abc"])) {',
       ...rules.slice(6),
       '}',
     ]);
@@ -140,7 +140,7 @@ describe('a build’s stylesheet held to its own surfaces (task-14.11 decision 3
     expect(scopeToBuild(topLevelRules(sheet.join('\n')), 'sha256-abc').split('\n')).toEqual([
       sheet[0],
       sheet[4],
-      '@scope ([data-catalog-build="sha256-abc"]) {',
+      '@scope ([data-catalog-build="sha256-abc"]) to ([data-catalog-frame]:not([data-catalog-build="sha256-abc"])) {',
       sheet[1],
       sheet[2],
       sheet[3],
@@ -257,7 +257,7 @@ describe('a build’s stylesheet held to its own surfaces (task-14.11 decision 3
 });
 
 describe('web_core and a catalog loaded after the processor was built (task-16.7 decision 2)', () => {
-  const late = () => new Catalog('urn:catalog:late', 'v0.9.1', [], []);
+  const late = () => new Catalog('urn:catalog:late', '1.0', [], []);
 
   it('takes a catalog through addCatalog, from the next surface on', () => {
     // `addCatalog` is upstream's PR #3304, released in web_core 0.16.1.
@@ -265,9 +265,9 @@ describe('web_core and a catalog loaded after the processor was built (task-16.7
     processor.addCatalog(late());
     processor.processMessages([
       {
-        version: 'v0.9',
+        version: '1.0',
         createSurface: {surfaceId: 's1', catalogId: 'urn:catalog:late'},
-      } as unknown as A2uiMessage,
+      } as unknown as AgentToRendererMessage,
     ]);
     expect(processor.model.getSurface('s1')?.defaultCatalog?.id).toBe('urn:catalog:late');
   });

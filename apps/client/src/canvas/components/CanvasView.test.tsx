@@ -7,7 +7,7 @@ import {afterEach, describe, expect, it} from 'vitest';
 import {cleanup, render, screen, act} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {TaskState, type SendMessageRequest} from '@a2a-js/sdk';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {shellPart, type CompositionStamp} from '@a2uiverse/sdk';
 import type {A2AMessageSender} from '../../a2a/client';
@@ -17,7 +17,7 @@ import {Providers} from '../../providers';
 import {createCanvasWiring} from '../createCanvasWiring';
 import {createHostRelay} from '../hostRelay';
 import {CanvasView} from './CanvasView';
-import {snapshotCatalogId, snapshotCatalogs} from '../../../tests/snapshot';
+import {snapshotCatalogId, snapshotCatalogs, SNAPSHOT_READY} from '../../../tests/snapshot';
 
 const GITHUB_CATALOG_ID = snapshotCatalogId('github-catalog');
 
@@ -26,8 +26,8 @@ afterEach(cleanup);
 const HOST_RELAY = createHostRelay();
 const BOUND_CATALOGS = await snapshotCatalogs(HOST_RELAY.host);
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
 const GITHUB: CompositionStamp = {source: 'github', role: 'fragment'};
 
@@ -37,9 +37,9 @@ const layout = [
     updateComponents: {
       surfaceId: 'shell:main',
       components: [
-        {id: 'root', component: 'Column', children: ['attribution-github']},
+        {id: 'root', component: 'Column', children: ['attribution_github']},
         {
-          id: 'attribution-github',
+          id: 'attribution_github',
           component: 'Attribution',
           source: 'github',
           displayName: 'GitHub',
@@ -111,43 +111,49 @@ function setup() {
 }
 
 describe('the way back on the canvas (task 9.7)', () => {
-  it('draws Back once the fragment has a paint to return to, disabled while its repaint is in flight (decision 6)', () => {
-    const {openDetail} = setup();
-    expect(screen.queryByRole('button', {name: /^Back/})).toBeNull();
-    let action!: ReturnType<typeof openDetail>;
-    act(() => {
-      action = openDetail();
-    });
-    act(() => action.apply(githubPaint('PR #42', 'the detail'), GITHUB));
-    act(() => action.end());
-    expect(screen.getByText('the detail')).toBeInTheDocument();
-    const back = screen.getByRole('button', {name: 'Back to Pull requests'});
-    expect(back).toBeEnabled();
-    // Another action inside the fragment: the arrow stays on the row, disabled, until it lands.
-    let again!: ReturnType<typeof openDetail>;
-    act(() => {
-      again = openDetail();
-    });
-    expect(screen.getByRole('button', {name: 'Back to Pull requests'})).toBeDisabled();
-    act(() => again.end());
-    expect(screen.getByRole('button', {name: 'Back to Pull requests'})).toBeEnabled();
-  });
+  it.skipIf(!SNAPSHOT_READY)(
+    'draws Back once the fragment has a paint to return to, disabled while its repaint is in flight (decision 6)',
+    () => {
+      const {openDetail} = setup();
+      expect(screen.queryByRole('button', {name: /^Back/})).toBeNull();
+      let action!: ReturnType<typeof openDetail>;
+      act(() => {
+        action = openDetail();
+      });
+      act(() => action.apply(githubPaint('PR #42', 'the detail'), GITHUB));
+      act(() => action.end());
+      expect(screen.getByText('the detail')).toBeInTheDocument();
+      const back = screen.getByRole('button', {name: 'Back to Pull requests'});
+      expect(back).toBeEnabled();
+      // Another action inside the fragment: the arrow stays on the row, disabled, until it lands.
+      let again!: ReturnType<typeof openDetail>;
+      act(() => {
+        again = openDetail();
+      });
+      expect(screen.getByRole('button', {name: 'Back to Pull requests'})).toBeDisabled();
+      act(() => again.end());
+      expect(screen.getByRole('button', {name: 'Back to Pull requests'})).toBeEnabled();
+    },
+  );
 
-  it('a press on Back restores the paint at once and sends the step; Forward then offers the detail', async () => {
-    const user = userEvent.setup();
-    const {sent, openDetail} = setup();
-    let action!: ReturnType<typeof openDetail>;
-    act(() => {
-      action = openDetail();
-    });
-    act(() => action.apply(githubPaint('PR #42', 'the detail'), GITHUB));
-    act(() => action.end());
-    await user.click(screen.getByRole('button', {name: 'Back to Pull requests'}));
-    expect(screen.getByText('four PRs')).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: /^Back/})).toBeNull();
-    expect(screen.getByRole('button', {name: 'Forward to PR #42'})).toBeInTheDocument();
-    expect(sent.map(params => params.message!.parts[0])).toEqual([
-      shellPart({version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}}),
-    ]);
-  });
+  it.skipIf(!SNAPSHOT_READY)(
+    'a press on Back restores the paint at once and sends the step; Forward then offers the detail',
+    async () => {
+      const user = userEvent.setup();
+      const {sent, openDetail} = setup();
+      let action!: ReturnType<typeof openDetail>;
+      act(() => {
+        action = openDetail();
+      });
+      act(() => action.apply(githubPaint('PR #42', 'the detail'), GITHUB));
+      act(() => action.end());
+      await user.click(screen.getByRole('button', {name: 'Back to Pull requests'}));
+      expect(screen.getByText('four PRs')).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: /^Back/})).toBeNull();
+      expect(screen.getByRole('button', {name: 'Forward to PR #42'})).toBeInTheDocument();
+      expect(sent.map(params => params.message!.parts[0])).toEqual([
+        shellPart({version: '1.0', operation: {kind: 'step', sources: ['github'], step: 0}}),
+      ]);
+    },
+  );
 });

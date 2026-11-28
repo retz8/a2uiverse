@@ -10,8 +10,8 @@
  * sources. Each stream follows the order the recorded beats 10–18 show; a press is a stream of its
  * own beside the turn, fired at its time through the press handler.
  */
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {A2uiComponent, CompositionOperation} from '@a2uiverse/sdk';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {A2UI_VERSION, type A2uiComponent, type CompositionOperation} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {BeatBatch, BeatFixture, BeatTurn} from './beatFixtures';
 import {
@@ -26,8 +26,11 @@ import {
   type SynthesisDocument,
 } from './synthesisFixture';
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: A2UI_VERSION, ...m}) as unknown as AgentToRendererMessage;
+
+/** A component id for a store: a UAX #31 identifier, the hyphen in the source an underscore. */
+const idPart = (store: string) => store.replace(/[-.]/g, '_');
 
 const base = {
   model: 'synthetic',
@@ -55,7 +58,7 @@ const NOUNS: Record<Store, string> = {
 };
 
 /** Fieldstone's fragment: a heading over its `offers`, each labelled and priced. */
-function shopCMessages(): A2uiMessage[] {
+function shopCMessages(): AgentToRendererMessage[] {
   return listMessages(SHOP_C, SHELL_CATALOG_ID, SHOP_C_NAME, 'offers', 'label', {
     offers: [
       {code: 'lumen-x100', label: 'Lumen X100 kit', price: 1279},
@@ -66,12 +69,12 @@ function shopCMessages(): A2uiMessage[] {
 }
 
 /** Half of Fieldstone's fragment: the surface and its tree, the data the broken stream never sent. */
-function shopCHalfDrawn(): A2uiMessage[] {
+function shopCHalfDrawn(): AgentToRendererMessage[] {
   return shopCMessages().slice(0, 2);
 }
 
 /** Fieldstone's fragment with a component the catalog rejects: `children` must name components. */
-function shopCInvalid(): A2uiMessage[] {
+function shopCInvalid(): AgentToRendererMessage[] {
   const [create, update, data] = shopCMessages();
   const components = (
     update as unknown as {updateComponents: {components: Array<Record<string, unknown>>}}
@@ -119,12 +122,12 @@ export function mergedView(
   const cell = (store: Store): A2uiComponent =>
     joined.includes(store)
       ? {
-          id: `c-${store}`,
+          id: `c_${idPart(store)}`,
           component: 'DerivedValue',
-          cell: {path: `price-${store}`},
+          cell: {'@path': `price-${store}`},
           format: {kind: 'number'},
         }
-      : {id: `c-${store}`, component: 'Text', text: '—'};
+      : {id: `c_${idPart(store)}`, component: 'Text', text: '—'};
   return {
     tree: {
       components: [
@@ -139,10 +142,12 @@ export function mergedView(
         {
           id: 'heading',
           component: 'Text',
-          variant: 'h5',
-          text: shown.length === 3 ? 'Cameras across three stores' : 'Cameras across two stores',
+          text:
+            shown.length === 3
+              ? '##### Cameras across three stores'
+              : '##### Cameras across two stores',
         },
-        {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
+        {id: 'sort', component: 'SortControl', sort: {'@path': '/sorts/0'}},
         {
           id: 'rows',
           component: 'Table',
@@ -152,11 +157,16 @@ export function mergedView(
         {
           id: 'row',
           component: 'TableRow',
-          children: ['c-name', ...shown.map(store => `c-${store}`), 'c-best'],
+          children: ['c_name', ...shown.map(store => `c_${idPart(store)}`), 'c_best'],
         },
-        {id: 'c-name', component: 'DerivedValue', cell: {path: 'name'}},
+        {id: 'c_name', component: 'DerivedValue', cell: {'@path': 'name'}},
         ...shown.map(cell),
-        {id: 'c-best', component: 'DerivedValue', cell: {path: 'best'}, format: {kind: 'number'}},
+        {
+          id: 'c_best',
+          component: 'DerivedValue',
+          cell: {'@path': 'best'},
+          format: {kind: 'number'},
+        },
       ],
     },
     dataModel: {rows: cameras.map(row)},
@@ -246,20 +256,20 @@ function layoutComponents(layout: Layout): Array<Record<string, unknown>> {
 /** The row of stores, each wrapped in its attribution. */
 function storeComponents(layout: Layout, stores: readonly Store[]): Array<Record<string, unknown>> {
   return [
-    {id: 'stores', component: 'Row', children: stores.map(s => `attribution-${s}`)},
+    {id: 'stores', component: 'Row', children: stores.map(s => `attribution_${idPart(s)}`)},
     ...stores.flatMap(store => {
       const slot = layout[store] ?? {};
       return [
         {
-          id: `attribution-${store}`,
+          id: `attribution_${idPart(store)}`,
           component: 'Attribution',
           displayName: NAMES[store],
           source: store,
-          child: store,
+          child: idPart(store),
           weight: 1,
         },
         {
-          id: store,
+          id: idPart(store),
           component: 'Slot',
           source: store,
           weight: 1,
@@ -297,7 +307,7 @@ export const repaint = (offsetMs: number, layout: Layout): BeatBatch => ({
   texts: [],
 });
 
-export const PAINTS: Record<Store, () => A2uiMessage[]> = {
+export const PAINTS: Record<Store, () => AgentToRendererMessage[]> = {
   'shop-a': () => shopAMessages(SHELL_CATALOG_ID),
   'shop-b': () => shopBMessages(SHELL_CATALOG_ID),
   'shop-c': shopCMessages,

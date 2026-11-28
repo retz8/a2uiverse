@@ -1,4 +1,4 @@
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import type {CompositionOperation, CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
 
 /**
@@ -8,7 +8,7 @@ import type {CompositionOperation, CompositionStamp, SynthesisPayload} from '@a2
 export interface BeatBatch {
   /** Milliseconds from the start of the turn — what makes a replay a stream and not a dump. */
   offsetMs: number;
-  messages: A2uiMessage[];
+  messages: AgentToRendererMessage[];
   texts: string[];
   /**
    * The event's composition stamp, when it came through a composing hub — without it a recorded
@@ -120,6 +120,6 @@ export function getBeatFixture(beat: number): BeatFixture | undefined {
 }
 
 /** Every A2UI message of a turn, flattened in arrival order — the turn as one batch. */
-export function messagesOf(turn: BeatTurn): A2uiMessage[] {
+export function messagesOf(turn: BeatTurn): AgentToRendererMessage[] {
   return turn.batches.flatMap(b => b.messages);
 }

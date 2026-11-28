@@ -5,7 +5,7 @@
  * synthesis payload beside it (task 5.7 decision 11). An event carrying neither messages nor
  * prose is not a batch.
  */
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import type {BeatBatch} from '../../src/beats/beatFixtures';
 import {
   extractA2uiMessagesFromEvent,
@@ -18,7 +18,9 @@ import {
 
 export function batchOf(event: A2AStreamEventData, atMs: number): BeatBatch | undefined {
   const messages = [
-    ...extractPaintMetasFromEvent(event).map(paintMeta => ({paintMeta}) as unknown as A2uiMessage),
+    ...extractPaintMetasFromEvent(event).map(
+      paintMeta => ({paintMeta}) as unknown as AgentToRendererMessage,
+    ),
     ...extractA2uiMessagesFromEvent(event),
   ];
   const texts = extractAgentTextFromEvent(event);

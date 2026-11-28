@@ -20,7 +20,7 @@ const tile: A2AStreamEventData = statusUpdateEvent({
   state: TaskState.TASK_STATE_WORKING,
   parts: [
     dataPart({
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'shell:main',
         components: [

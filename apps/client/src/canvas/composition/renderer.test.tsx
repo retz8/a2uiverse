@@ -9,10 +9,10 @@
 import {afterEach, beforeEach, describe, it, expect, vi, type MockInstance} from 'vitest';
 import {z} from 'zod';
 import {act, fireEvent, render, waitFor, within} from '@testing-library/react';
-import {Catalog, componentId, MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
-import {createComponentImplementation, type ReactCatalogComponent} from '@a2ui/react/v0_9';
+import {Catalog, componentId, MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {basicCatalog} from '@a2ui/web_core/catalogs/basic/v1';
+import {createComponentImplementation, type ReactCatalogComponent} from '@a2ui/react';
 import {CATALOG_ID as SHELL_CATALOG_ID, createCatalog} from '@a2uiverse/shell-catalog';
 import {logSurfaceErrors} from '../../a2ui/surfaceErrors';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
@@ -22,8 +22,8 @@ const SHELL_CATALOG = createCatalog({onShellAction: () => {}});
 
 const CATALOGS = clientCatalogs();
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 
 /** Two surfaces whose pickers share a component id — the spec guarantees ids are surface-scoped. */
 function twoPickers(catalog: Catalog<ReactCatalogComponent>, app: string) {
@@ -40,7 +40,7 @@ function twoPickers(catalog: Catalog<ReactCatalogComponent>, app: string) {
               component: 'ChoicePicker',
               label: 'Pick',
               variant: 'mutuallyExclusive',
-              value: {path: '/picked'},
+              value: {'@path': '/picked'},
               options: [
                 {label: 'A', value: 'a'},
                 {label: 'B', value: 'b'},
@@ -135,7 +135,7 @@ const Stack = createComponentImplementation(
 );
 const UNDRAWABLE = new Catalog<ReactCatalogComponent>(
   'urn:catalog:undrawable',
-  'v0.9.1',
+  '1.0',
   [Holder, LooseHolder, Label, Stack],
   [],
 );

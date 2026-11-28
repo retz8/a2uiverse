@@ -21,8 +21,8 @@
  * decision 20). A catalog the table does not list sends the loader back to the
  * table once before it fails.
  */
-import type {Catalog} from '@a2ui/web_core/v0_9';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import type {Catalog} from '@a2ui/web_core/v1_0';
+import type {ReactCatalogComponent} from '@a2ui/react';
 import {checkCatalogExports, checkHostInterface} from '@a2uiverse/sdk';
 import type {ComponentType, ReactNode} from 'react';
 import {artifactUrl, fetchJson as fetchJsonOverHttp, type CatalogRow} from '../orchestratorApi';

@@ -3,24 +3,28 @@
  * genuine "Surface already exists" throw is exercised, not a stand-in for it.
  */
 import {describe, it, expect, vi, beforeEach, afterEach} from 'vitest';
-import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import {MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {BASIC_CATALOG_SCHEMA, createSchemaFormCheck} from '@a2uiverse/sdk';
 import {applyA2uiMessages} from './applyMessages';
 import {snapshotCatalog} from '../../tests/snapshot';
 
 const {catalog: CATALOG} = await snapshotCatalog('github-catalog');
 
-const create = (surfaceId: string, catalogId: string = CATALOG.id): A2uiMessage =>
-  ({version: 'v0.9', createSurface: {surfaceId, catalogId}}) as unknown as A2uiMessage;
+const create = (surfaceId: string, catalogId: string = CATALOG.id): AgentToRendererMessage =>
+  ({version: '1.0', createSurface: {surfaceId, catalogId}}) as unknown as AgentToRendererMessage;
 
-const components = (surfaceId: string, comps: unknown[]): A2uiMessage =>
+const components = (surfaceId: string, comps: unknown[]): AgentToRendererMessage =>
   ({
-    version: 'v0.9',
+    version: '1.0',
     updateComponents: {surfaceId, components: comps},
-  }) as unknown as A2uiMessage;
+  }) as unknown as AgentToRendererMessage;
 
-const data = (surfaceId: string, path: string, value: unknown): A2uiMessage =>
-  ({version: 'v0.9', updateDataModel: {surfaceId, path, value}}) as unknown as A2uiMessage;
+const data = (surfaceId: string, path: string, value: unknown): AgentToRendererMessage =>
+  ({
+    version: '1.0',
+    updateDataModel: {surfaceId, path, value},
+  }) as unknown as AgentToRendererMessage;
 
 const text = (id: string, value: string) => ({id, component: 'Text', text: value});
 
@@ -140,5 +144,23 @@ describe('applyA2uiMessages — per-message isolation', () => {
     const p = processor();
 
     expect(() => applyA2uiMessages(p, [components('ghost', [text('root', 'x')])])).not.toThrow();
+  });
+});
+
+describe('the deleteSurface put before a repeated create (task-21.14 decision 13)', () => {
+  it('is in v1.0’s forms, handed over with the create it repaints', () => {
+    const handed: unknown[][] = [];
+    const target = {
+      processMessages: (messages: AgentToRendererMessage[]) => void handed.push(messages),
+      model: {getSurface: () => ({})},
+    };
+    const created = {
+      version: '1.0',
+      createSurface: {surfaceId: 'chat', catalogId: BASIC_CATALOG_SCHEMA.catalogId},
+    } as unknown as AgentToRendererMessage;
+    applyA2uiMessages(target, [created]);
+    expect(handed).toEqual([[{version: '1.0', deleteSurface: {surfaceId: 'chat'}}, created]]);
+    const check = createSchemaFormCheck({catalog: BASIC_CATALOG_SCHEMA});
+    expect(check.agentToRenderer(handed[0])).toEqual([]);
   });
 });

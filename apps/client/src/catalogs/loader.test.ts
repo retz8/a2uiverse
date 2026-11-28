@@ -7,9 +7,9 @@
  * the table names as last read (task-15.6 decisions 1, 5).
  */
 import {describe, expect, it, vi} from 'vitest';
-import {Catalog} from '@a2ui/web_core/v0_9';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
-import {BASIC_CATALOG_ID} from '@a2uiverse/sdk';
+import {Catalog} from '@a2ui/web_core/v1_0';
+import type {ReactCatalogComponent} from '@a2ui/react';
+import {BASIC_CATALOG_ID, HOST_INTERFACE_VERSION} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {CatalogRow} from '../orchestratorApi';
 import {clientCatalogs} from './clientCatalogs';
@@ -25,14 +25,14 @@ const CLIENT_ROWS: CatalogRow[] = [
 ];
 
 const demoModule = (catalogId = DEMO): Record<string, unknown> => ({
-  CATALOG: new Catalog<ReactCatalogComponent>(catalogId, 'v0.9.1', [], []),
+  CATALOG: new Catalog<ReactCatalogComponent>(catalogId, '1.0', [], []),
   Provider: ({children}: {children: unknown}) => children,
 });
 
 /** A registry in memory: the tables it answers in turn, one descriptor, one module. */
 function fakeRegistry({
   tables = [[...CLIENT_ROWS, DEMO_ROW]],
-  descriptor = {catalogId: DEMO, entry: 'index.js', hostInterface: '0.16.1'},
+  descriptor = {catalogId: DEMO, entry: 'index.js', hostInterface: HOST_INTERFACE_VERSION},
   module = () => Promise.resolve(demoModule()),
 }: {
   tables?: CatalogRow[][];
@@ -121,7 +121,11 @@ describe('loading a catalog', () => {
 
   it('refuses a descriptor for another catalog', async () => {
     const {loader} = fakeRegistry({
-      descriptor: {catalogId: 'urn:catalog:other', entry: 'index.js', hostInterface: '0.16.1'},
+      descriptor: {
+        catalogId: 'urn:catalog:other',
+        entry: 'index.js',
+        hostInterface: HOST_INTERFACE_VERSION,
+      },
     });
     await expect(loader.load(DEMO)).rejects.toThrow('the artifact is for urn:catalog:other');
   });
@@ -222,7 +226,7 @@ describe('a request that gets no answer (task-11.8 decision 20)', () => {
       const fetchJson = vi.fn(async (url: string) => {
         if (url === `${REGISTRY}catalogs.json`)
           return reads++ === 0 ? never() : [...CLIENT_ROWS, DEMO_ROW];
-        return {catalogId: DEMO, entry: 'index.js', hostInterface: '0.16.1'};
+        return {catalogId: DEMO, entry: 'index.js', hostInterface: HOST_INTERFACE_VERSION};
       });
       const loader = createCatalogLoader({
         registry: REGISTRY,

@@ -18,7 +18,7 @@
  * root write is guarded so it
  * cannot re-trigger itself, and an unchanged output is not written.
  */
-import type {FunctionImplementation} from '@a2ui/web_core/v0_9';
+import type {FunctionImplementation} from '@a2ui/web_core/v1_0';
 import {refsOf, type SynthesisPayload} from '@a2uiverse/sdk';
 import {
   choicesOf,

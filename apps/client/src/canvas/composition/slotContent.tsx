@@ -10,8 +10,8 @@
 import {useCallback} from 'react';
 import type {ReactNode} from 'react';
 import type {SlotContentResolver} from '@a2uiverse/shell-catalog';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
-import type {SurfaceModel} from '@a2ui/web_core/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react';
+import type {SurfaceModel} from '@a2ui/web_core/v1_0';
 import {SurfaceFrame} from '../../catalogs/CatalogContext';
 import {SurfaceErrorBoundary} from '../../shared/SurfaceErrorBoundary';
 import type {PlacedFragment, RosterEntry} from '../canvasStore';

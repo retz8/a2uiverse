@@ -1,4 +1,5 @@
-import type {A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import type {RendererDataModel} from './messages';
 import type {CompositionStamp, PaintMeta} from '@a2uiverse/sdk';
 import type {GetSender} from './client';
 import {sendAndApply} from './client';
@@ -8,7 +9,7 @@ import type {A2ASession} from './session';
 export interface StreamUserMessageOptions {
   getSender: GetSender;
   /** Applies the streamed A2UI messages into the processor, with their event's composition stamp. */
-  apply: (messages: A2uiMessage[], stamp?: CompositionStamp) => void;
+  apply: (messages: AgentToRendererMessage[], stamp?: CompositionStamp) => void;
   /**
    * The canvas's session: a question opens a canvas of its own, so the message carries no
    * contextId — the orchestrator mints one, captured here from the first event (task-9.2
@@ -16,10 +17,10 @@ export interface StreamUserMessageOptions {
    */
   session?: A2ASession;
   /**
-   * Supplies the current client data model of `sendDataModel`-flagged surfaces
-   * (processor.getClientDataModel); attached as message metadata when it reports one.
+   * Supplies the renderer's data model: the `sendDataModel`-flagged surfaces
+   * (processor.getRendererDataModel); attached as message metadata when it reports one.
    */
-  getClientDataModel?: () => A2uiClientDataModel | undefined;
+  getRendererDataModel?: () => RendererDataModel | undefined;
   /**
    * Called when the send fails. Without it a failure is invisible outside the console —
    * the host needs this to tell the user the turn was lost.
@@ -39,7 +40,7 @@ export interface StreamUserMessageOptions {
   parent?: string;
   /** Called for each paintMeta shell object the agent streams (title / question marker). */
   onPaintMeta?: (meta: PaintMeta) => void;
-  /** The catalogs the client can render; advertised as `a2uiClientCapabilities` when given. */
+  /** The catalogs the client can render; advertised as `a2uiRendererCapabilities` when given. */
   supportedCatalogIds?: string[];
   /** Called once, on the stream's first event: the host tells a lost turn from one that never reached. */
   onFirstEvent?: () => void;
@@ -54,12 +55,12 @@ export async function streamUserMessage(
   text: string,
   opts: StreamUserMessageOptions,
 ): Promise<void> {
-  const {getSender, apply, session, getClientDataModel, onError, onAgentText, signal} = opts;
+  const {getSender, apply, session, getRendererDataModel, onError, onAgentText, signal} = opts;
   try {
     const sender = await getSender();
     await sendAndApply(
       sender,
-      buildTextMessageParams(text, getClientDataModel?.(), opts.supportedCatalogIds, opts.parent),
+      buildTextMessageParams(text, getRendererDataModel?.(), opts.supportedCatalogIds, opts.parent),
       {
         apply,
         session,

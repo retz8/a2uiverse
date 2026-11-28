@@ -1,6 +1,6 @@
 import {describe, it, expect, vi} from 'vitest';
 import {Role, TaskState, type Message, type Part} from '@a2a-js/sdk';
-import type {A2uiClientAction, A2uiClientDataModel} from '@a2ui/web_core/v0_9';
+import type {RendererAction, RendererDataModel} from './messages';
 import {
   buildActionMessageParams,
   buildErrorMessageParams,
@@ -24,14 +24,14 @@ vi.mock('./clock', () => ({readClock: () => CLOCK}));
 /** The page load's session, on every message (task-12.5 decision 6). */
 const SESSION = {a2uiverse: {session: PAGE_SESSION, ...CLOCK}};
 
-const A2UI_DATA = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'cat'}};
+const A2UI_DATA = {version: '1.0', createSurface: {surfaceId: 's', catalogId: 'cat'}};
 const DATA_PART: Part = dataPart(A2UI_DATA);
 const TEXT_PART: Part = textPart('hello');
 const FOREIGN_PART: Part = dataPart({version: 'v0.8', foo: 1});
-/** A v0.9.1 agent's paint, as its message carries it (task-19.3 decision 1). */
-const A2UI_DATA_V091 = {version: 'v0.9.1', createSurface: {surfaceId: 't', catalogId: 'cat'}};
+/** A second paint, of another surface. */
+const A2UI_DATA_TOO = {version: '1.0', createSurface: {surfaceId: 't', catalogId: 'cat'}};
 
-const ACTION = {name: 'click', surfaceId: 's'} as unknown as A2uiClientAction;
+const ACTION = {name: 'click', surfaceId: 's'} as unknown as RendererAction;
 
 /** A vendor's paintMeta as the agent kit writes it today, under the older string. */
 const PAINT_META_PART: Part = {
@@ -40,9 +40,9 @@ const PAINT_META_PART: Part = {
 };
 
 const CLIENT_DM = {
-  version: 'v0.9',
+  version: '1.0',
   surfaces: {s: {prs: [{title: 'one', selected: true}]}},
-} as unknown as A2uiClientDataModel;
+} as unknown as RendererDataModel;
 
 /**
  * A whole part as a sent message holds it, spelled out beside the builders that write it: its
@@ -143,21 +143,20 @@ describe('buildTextMessageParams', () => {
     expect(params.message!.contextId).toBe('');
   });
 
-  it('attaches the client data model as message metadata when given', () => {
+  it('attaches the renderer’s data model as message metadata when given', () => {
     const params = buildTextMessageParams('show', CLIENT_DM);
-    expect(params.message!.metadata).toEqual({a2uiClientDataModel: CLIENT_DM, ...SESSION});
+    expect(params.message!.metadata).toEqual({a2uiRendererDataModel: CLIENT_DM, ...SESSION});
   });
 
-  it('names only the page-load session when no client data model is given', () => {
+  it('names only the page-load session when no data model of the renderer’s is given', () => {
     expect(buildTextMessageParams('show').message!.metadata).toEqual(SESSION);
   });
 
-  it('advertises the supported catalogs as a2uiClientCapabilities when given', () => {
+  it('advertises the supported catalogs as a2uiRendererCapabilities when given', () => {
     const params = buildTextMessageParams('show', undefined, ['cat-a']);
     expect(params.message!.metadata).toEqual({
-      a2uiClientCapabilities: {
-        'v0.9': {supportedCatalogIds: ['cat-a']},
-        'v0.9.1': {supportedCatalogIds: ['cat-a']},
+      a2uiRendererCapabilities: {
+        '1.0': {supportedCatalogIds: ['cat-a']},
       },
       ...SESSION,
     });
@@ -168,7 +167,7 @@ describe('buildActionMessageParams', () => {
   it('wraps the action as one version-tagged message in a part marked application/a2ui+json, without a contextId by default', () => {
     const params = buildActionMessageParams(ACTION);
     expect(params.message!.parts).toEqual([
-      sentPart({$case: 'data', value: {version: 'v0.9', action: ACTION}}, A2UI),
+      sentPart({$case: 'data', value: {version: '1.0', action: ACTION}}, A2UI),
     ]);
     expect(params.message!.contextId).toBe('');
     expect(params.message!.extensions).toEqual([]);
@@ -178,7 +177,7 @@ describe('buildActionMessageParams', () => {
     const error = {code: 'VALIDATION_FAILED', surfaceId: 'github:s1', message: 'no root'};
     const params = buildErrorMessageParams(error, 'ctx-9');
     expect(params.message!.parts).toEqual([
-      sentPart({$case: 'data', value: {version: 'v0.9', error}}, A2UI),
+      sentPart({$case: 'data', value: {version: '1.0', error}}, A2UI),
     ]);
   });
 
@@ -187,23 +186,22 @@ describe('buildActionMessageParams', () => {
     expect(params.message!.contextId).toBe('ctx-9');
   });
 
-  it('attaches the client data model as message metadata when given', () => {
+  it('attaches the renderer’s data model as message metadata when given', () => {
     const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM);
-    expect(params.message!.metadata).toEqual({a2uiClientDataModel: CLIENT_DM, ...SESSION});
+    expect(params.message!.metadata).toEqual({a2uiRendererDataModel: CLIENT_DM, ...SESSION});
   });
 
-  it('names only the page-load session when no client data model is given', () => {
+  it('names only the page-load session when no data model of the renderer’s is given', () => {
     expect(buildActionMessageParams(ACTION).message!.metadata).toEqual(SESSION);
   });
 
   it('advertises the supported catalogs alongside the data model', () => {
     const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM, ['cat-a']);
     expect(params.message!.metadata).toEqual({
-      a2uiClientCapabilities: {
-        'v0.9': {supportedCatalogIds: ['cat-a']},
-        'v0.9.1': {supportedCatalogIds: ['cat-a']},
+      a2uiRendererCapabilities: {
+        '1.0': {supportedCatalogIds: ['cat-a']},
       },
-      a2uiClientDataModel: CLIENT_DM,
+      a2uiRendererDataModel: CLIENT_DM,
       ...SESSION,
     });
   });
@@ -219,16 +217,15 @@ describe('buildOperationMessageParams', () => {
       sentPart(
         {
           $case: 'data',
-          value: {version: 'v0.9', operation: {kind: 'include', sources: ['gmail']}},
+          value: {version: '1.0', operation: {kind: 'include', sources: ['gmail']}},
         },
         SHELL,
       ),
     ]);
     // It acts on the composition in its context: no data model rides it.
     expect(params.message!.metadata).toEqual({
-      a2uiClientCapabilities: {
-        'v0.9': {supportedCatalogIds: ['cat']},
-        'v0.9.1': {supportedCatalogIds: ['cat']},
+      a2uiRendererCapabilities: {
+        '1.0': {supportedCatalogIds: ['cat']},
       },
       ...SESSION,
     });
@@ -245,17 +242,16 @@ describe('buildOperationMessageParams', () => {
       sentPart(
         {
           $case: 'data',
-          value: {version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}},
+          value: {version: '1.0', operation: {kind: 'step', sources: ['github'], step: 0}},
         },
         SHELL,
       ),
     ]);
     expect(params.message!.metadata).toEqual({
-      a2uiClientCapabilities: {
-        'v0.9': {supportedCatalogIds: ['cat']},
-        'v0.9.1': {supportedCatalogIds: ['cat']},
+      a2uiRendererCapabilities: {
+        '1.0': {supportedCatalogIds: ['cat']},
       },
-      a2uiClientDataModel: CLIENT_DM,
+      a2uiRendererDataModel: CLIENT_DM,
       ...SESSION,
     });
   });
@@ -289,7 +285,7 @@ describe('extractA2uiMessagesFromEvent', () => {
 });
 
 describe('a part is A2UI by what its data holds (task-20.4 decisions 1 to 4)', () => {
-  const UPDATE = {version: 'v0.9', updateComponents: {surfaceId: 's', components: []}};
+  const UPDATE = {version: '1.0', updateComponents: {surfaceId: 's', components: []}};
 
   it.each<[string, Partial<Part>]>([
     ['application/a2ui+json in metadata.mimeType', {metadata: {mimeType: A2UI}}],
@@ -305,8 +301,8 @@ describe('a part is A2UI by what its data holds (task-20.4 decisions 1 to 4)', (
   });
 
   it('a bare list in data is read in order, beside a part carrying one message', () => {
-    const event = statusUpdate([dataPart([A2UI_DATA, UPDATE]), dataPart(A2UI_DATA_V091)]);
-    expect(extractA2uiMessagesFromEvent(event)).toEqual([A2UI_DATA, UPDATE, A2UI_DATA_V091]);
+    const event = statusUpdate([dataPart([A2UI_DATA, UPDATE]), dataPart(A2UI_DATA_TOO)]);
+    expect(extractA2uiMessagesFromEvent(event)).toEqual([A2UI_DATA, UPDATE, A2UI_DATA_TOO]);
   });
 
   it('each entry of a list is judged on its own: one in a version the platform does not speak is passed over', () => {
@@ -337,25 +333,28 @@ describe('a part is A2UI by what its data holds (task-20.4 decisions 1 to 4)', (
   });
 });
 
-describe('the message’s version on the way in and out (task-19.3 decisions 1, 2, 5)', () => {
+describe('the message’s version on the way in (task-21.14 decision 10)', () => {
   const part = (data: Record<string, unknown>): Part => dataPart(data);
 
-  it('takes a message in v0.9 and one in v0.9.1, side by side in one event, in order', () => {
-    const event = statusUpdate([DATA_PART, part(A2UI_DATA_V091)]);
-    expect(extractA2uiMessagesFromEvent(event)).toEqual([A2UI_DATA, A2UI_DATA_V091]);
+  it('takes the messages stamped 1.0, side by side in one event, in order', () => {
+    const event = statusUpdate([DATA_PART, part(A2UI_DATA_TOO)]);
+    expect(extractA2uiMessagesFromEvent(event)).toEqual([A2UI_DATA, A2UI_DATA_TOO]);
   });
 
-  it('passes over a message in a version the platform does not speak, saying nothing', () => {
+  it('passes over a message stamped anything but 1.0, saying nothing', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const foreign = [
       {version: 'v0.8', createSurface: {surfaceId: 'a', catalogId: 'cat'}},
-      {version: 'v1.0', createSurface: {surfaceId: 'b', catalogId: 'cat'}},
-      {version: '0.9', createSurface: {surfaceId: 'c', catalogId: 'cat'}},
+      {version: 'v0.9', createSurface: {surfaceId: 'b', catalogId: 'cat'}},
+      {version: 'v0.9.1', createSurface: {surfaceId: 'c', catalogId: 'cat'}},
+      {version: 'v1.0', createSurface: {surfaceId: 'e', catalogId: 'cat'}},
+      {version: '1.1', createSurface: {surfaceId: 'f', catalogId: 'cat'}},
+      {version: '2.0', createSurface: {surfaceId: 'g', catalogId: 'cat'}},
       {createSurface: {surfaceId: 'd', catalogId: 'cat'}},
     ];
-    const event = statusUpdate([...foreign.map(part), part(A2UI_DATA_V091)]);
-    expect(extractA2uiMessagesFromEvent(event)).toEqual([A2UI_DATA_V091]);
+    const event = statusUpdate([...foreign.map(part), part(A2UI_DATA_TOO)]);
+    expect(extractA2uiMessagesFromEvent(event)).toEqual([A2UI_DATA_TOO]);
     expect(error).not.toHaveBeenCalled();
     expect(warn).not.toHaveBeenCalled();
     error.mockRestore();
@@ -418,7 +417,7 @@ describe('the canvas on a message (task-9.2 decisions 1, 2)', () => {
     const params = buildTextMessageParams('what changed?', CLIENT_DM, undefined, 'ctx-parent');
     expect(params.message!.contextId).toBe('');
     expect(params.message!.metadata).toEqual({
-      a2uiClientDataModel: CLIENT_DM,
+      a2uiRendererDataModel: CLIENT_DM,
       a2uiverse: {session: PAGE_SESSION, ...CLOCK, parent: 'ctx-parent'},
     });
   });
@@ -442,7 +441,7 @@ describe('the canvas on a message (task-9.2 decisions 1, 2)', () => {
   it('an action carries its canvas as the contextId and no parent', () => {
     const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM);
     expect(params.message!.contextId).toBe('ctx-9');
-    expect(params.message!.metadata).toEqual({a2uiClientDataModel: CLIENT_DM, ...SESSION});
+    expect(params.message!.metadata).toEqual({a2uiRendererDataModel: CLIENT_DM, ...SESSION});
   });
 });
 

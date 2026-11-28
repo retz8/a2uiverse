@@ -1,4 +1,4 @@
-import type {ComponentApi, MessageProcessor, Subscription} from '@a2ui/web_core/v0_9';
+import type {ComponentApi, MessageProcessor, Subscription} from '@a2ui/web_core/v1_0';
 
 /**
  * Writes what each of the processor's surfaces reports through its `onError` to the browser

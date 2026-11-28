@@ -92,6 +92,12 @@ export function linkStylesheetLoader(
 /** What a surface's frame carries naming its catalog's build (task-14.11 decision 39). */
 export const BUILD_ATTRIBUTE = 'data-catalog-build';
 
+/**
+ * What the mark of a frame at a change of catalog carries: the id of the catalog drawn inside it
+ * (task-21.14 decision 2).
+ */
+export const FRAME_ATTRIBUTE = 'data-catalog-frame';
+
 /** The build a stylesheet belongs to: the artifact id its URL is under; none outside an artifact. */
 export function buildOfStylesheet(url: string): string | undefined {
   return /\/artifacts\/(sha256-[\w-]+)\//.exec(url)?.[1];
@@ -169,9 +175,10 @@ function selectorsOf(rule: string): string[] {
 }
 
 /**
- * A build's sheet held to that build's surfaces (task-14.11 decision 39): its rules inside an
+ * A build's sheet held to that build's components (task-14.11 decision 39): its rules inside an
  * `@scope` rooted at every frame marked with the build, so two builds of one catalog never style
- * each other's surfaces. What names a thing for the whole page — a font, keyframes, a registered
+ * each other's surfaces, and ending at the mark of a frame for another catalog, so a component of
+ * another catalog inside the build's is never styled by it (task-21.14 decision 2). What names a thing for the whole page — a font, keyframes, a registered
  * property, a layer order — and a rule aimed only at the document itself stay at the top, as the
  * sheet had them.
  */
@@ -186,7 +193,9 @@ export function scopeToBuild(rules: readonly string[], build: string): string {
       : selectorsOf(head).every(selector => DOCUMENT_SELECTOR.test(selector));
     (stays ? top : scoped).push(text);
   }
-  return [...top, `@scope ([${BUILD_ATTRIBUTE}="${build}"]) {`, ...scoped, '}'].join('\n');
+  const root = `[${BUILD_ATTRIBUTE}="${build}"]`;
+  const limit = `[${FRAME_ATTRIBUTE}]:not(${root})`;
+  return [...top, `@scope (${root}) to (${limit}) {`, ...scoped, '}'].join('\n');
 }
 
 /** A `url()` in a sheet, its quote kept apart from its address. */

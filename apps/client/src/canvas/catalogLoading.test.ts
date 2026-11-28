@@ -9,9 +9,9 @@
  */
 import {describe, expect, it, vi} from 'vitest';
 import {TaskState, type SendMessageRequest} from '@a2a-js/sdk';
-import {Catalog, type A2uiMessage} from '@a2ui/web_core/v0_9';
-import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import {Catalog, type AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {basicCatalog} from '@a2ui/web_core/catalogs/basic/v1';
+import type {ReactCatalogComponent} from '@a2ui/react';
 import {BASIC_CATALOG_ID, CATALOG_LOAD_FAILED} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2AMessageSender} from '../a2a/client';
@@ -25,11 +25,11 @@ import {capturePaint} from './history/paintCopy';
 const LATE = 'urn:catalog:late';
 const LAYOUT = COMPOSED_BEAT.turns[0]!.batches[0]!.messages;
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 
 const event = (
-  messages: A2uiMessage[],
+  messages: AgentToRendererMessage[],
   stamp: Record<string, unknown>,
   final = false,
 ): A2AStreamEventData =>
@@ -152,9 +152,8 @@ describe('a fragment in a catalog the canvas does not hold yet', () => {
     const {wiring, sent} = canvasWith(() => Promise.resolve(lateBuild('sha256-late')));
     await wiring.sendUtterance('what needs my attention');
     // Under each version's key (task-19.3 decision 3).
-    expect(sent[0]!.message!.metadata?.a2uiClientCapabilities).toEqual({
-      'v0.9': {supportedCatalogIds: [BASIC_CATALOG_ID, SHELL_CATALOG_ID]},
-      'v0.9.1': {supportedCatalogIds: [BASIC_CATALOG_ID, SHELL_CATALOG_ID]},
+    expect(sent[0]!.message!.metadata?.a2uiRendererCapabilities).toEqual({
+      '1.0': {supportedCatalogIds: [BASIC_CATALOG_ID, SHELL_CATALOG_ID]},
     });
   });
 });

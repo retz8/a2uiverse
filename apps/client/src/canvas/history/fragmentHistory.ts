@@ -36,14 +36,18 @@ import type {HistoryStep} from '@a2uiverse/shell-catalog';
 /** One paint as the stack keeps it: the surface's wire shape, ready to be created again. */
 export interface PaintCopy {
   surfaceId: string;
-  catalogId: string;
+  /** The surface's default catalog; none for a surface whose components each name their own. */
+  catalogId?: string;
   /** The create's own flag: a surface the client reports in its data model stays one when restored. */
   sendDataModel: boolean;
   /** Flat component-id → component-tree node — the A2UI wire shape. */
   tree: Readonly<Record<string, unknown>>;
   dataModel: unknown;
-  /** The build it was drawn in, by artifact id, and is restored in (task-15.6); none for the client's own. */
-  build?: string;
+  /**
+   * The build each of its catalogs was drawn in, by catalog id, and is restored in (task-15.6,
+   * task-21.14 decision 5): an artifact id; none for the client's own catalogs.
+   */
+  builds?: Readonly<Record<string, string>>;
 }
 
 /** Where a source stands in its history: the paint ids it visited, and the position reported. */

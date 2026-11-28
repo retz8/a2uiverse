@@ -31,8 +31,8 @@
  * marketplace up. Each installs from the offer by id, sends `useApp`, connects Shop B's key and
  * sends the slot's resume press.
  *
- * Beat 35 is task-19.6's: beat 1's question on GitHub's v0.9.1-only card, through the daily
- * orchestrator as beats 1–9 are, so the client's replay tests hold a recorded paint stamped `v0.9.1`.
+ * Beat 35 is task-19.6's: beat 1's question again, through the daily orchestrator as beats 1–9
+ * are, a recording of its own with three pull requests and both paints accepted.
  *
  * Beat 36 is task-20.12's: beat 5's question on the kit apps spread over the six paths, a binding
  * at an A2A version each, through the daily orchestrator as beats 1–9 are, so the client's replay

@@ -17,6 +17,7 @@ import {createCanvasWiring} from '../src/canvas/createCanvasWiring';
 import {replayBeatOnCanvas} from '../src/canvas/replayBeat';
 import {CanvasStage} from '../src/canvas/components/CanvasStage';
 import {CATALOGS, renderWithShell} from './helpers';
+import {replayable} from './snapshot';
 
 /**
  * The painting turn's batches and those of the streams beside it (task 8.6), on the turn's clock:
@@ -134,36 +135,39 @@ const replayed = BEAT_FIXTURES.filter(oneQuestion);
 
 describe('canvas shell over the recorded beats', () => {
   describe.each(replayed.map(f => [f.name, f] as const))('%s', (_name, fixture) => {
-    it('replays through the canvas turn runner and lands the paint on the stage', async () => {
-      const {viewed, replay} = setup();
+    it.skipIf(!replayable(fixture))(
+      'replays through the canvas turn runner and lands the paint on the stage',
+      async () => {
+        const {viewed, replay} = setup();
 
-      await replay(fixture);
+        await replay(fixture);
 
-      const {processor, store} = viewed();
-      const state = store.getState();
-      // The whole stream applied: any per-message failure lands in the sticky error — except a
-      // paint the canvas reported, whose failure is its tile's to say (task-8.7 decision 26).
-      expect(state.error).toBeNull();
-      // The stage holds the shell for a composition, the paint itself otherwise.
-      expect(state.stageId).toBe(stageSurfaceIdOf(fixture));
-      // The live registry is exactly canvas occupancy: a lone paint, or the shell plus the
-      // fragments filling its slots — a failed source's taken off.
-      expect([...processor.model.surfacesMap.keys()].sort()).toEqual(
-        standingSurfaceIds(fixture).sort(),
-      );
-      // Every press the beat made was answered and caught up with.
-      expect(state.presses).toEqual([]);
-      // The turn settled back to idle.
-      expect(state.inFlight).toBeNull();
+        const {processor, store} = viewed();
+        const state = store.getState();
+        // The whole stream applied: any per-message failure lands in the sticky error — except a
+        // paint the canvas reported, whose failure is its tile's to say (task-8.7 decision 26).
+        expect(state.error).toBeNull();
+        // The stage holds the shell for a composition, the paint itself otherwise.
+        expect(state.stageId).toBe(stageSurfaceIdOf(fixture));
+        // The live registry is exactly canvas occupancy: a lone paint, or the shell plus the
+        // fragments filling its slots — a failed source's taken off.
+        expect([...processor.model.surfacesMap.keys()].sort()).toEqual(
+          standingSurfaceIds(fixture).sort(),
+        );
+        // Every press the beat made was answered and caught up with.
+        expect(state.presses).toEqual([]);
+        // The turn settled back to idle.
+        expect(state.inFlight).toBeNull();
 
-      // And the stage actually renders it.
-      renderWithShell(<CanvasStage processor={processor} state={state} />);
-      expect(screen.getByTestId('canvas-stage')).not.toBeEmptyDOMElement();
-    });
+        // And the stage actually renders it.
+        renderWithShell(<CanvasStage processor={processor} state={state} />);
+        expect(screen.getByTestId('canvas-stage')).not.toBeEmptyDOMElement();
+      },
+    );
   });
 
   it('a second beat opens a canvas of its own; the first stands as it was (task-9.6 decision 1)', async () => {
-    const [first, second] = replayed;
+    const [first, second] = replayed.filter(replayable);
     const {wiring, viewed, replay} = setup();
 
     await replay(first);

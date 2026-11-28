@@ -33,7 +33,7 @@ const SIGN_IN = {
   security: [{linear: []}],
 };
 
-const LINEAR_CATALOG = 'https://a2uiverse.dev/linear/linear-catalog/catalogs/v0.9.1/catalog.json';
+const LINEAR_CATALOG = 'https://a2uiverse.dev/linear/linear-catalog/catalogs/v1.0/catalog.json';
 const LINEAR_BUILD = 'sha256-3f2aAbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_abc';
 
 const entry = (appId: string, name: string, more: Partial<IndexEntry> = {}): IndexEntry => ({
@@ -211,7 +211,7 @@ const preview = (appId: string): PreviewDocument => ({
   appId,
   version: '0.4.0',
   words: 'What’s assigned to me in Linear?',
-  messages: [{version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'x'}}],
+  messages: [{version: '1.0', createSurface: {surfaceId: 's', catalogId: 'x'}}],
   capturedBy: 'publisher',
   capturedAt: '2026-10-03T09:00:00Z',
 });

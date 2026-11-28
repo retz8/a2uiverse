@@ -1,7 +1,7 @@
-import type {A2uiClientDataModel} from '@a2ui/web_core/v0_9';
+import type {RendererDataModel} from './messages';
 
 /**
- * Measures what the client data model costs on the wire, so its growth through a conversation is
+ * Measures what the renderer's data model costs on the wire, so its growth through a conversation is
  * observable rather than inferred.
  *
  * Every surface created with `sendDataModel: true` contributes its whole data tree to the metadata
@@ -10,7 +10,7 @@ import type {A2uiClientDataModel} from '@a2ui/web_core/v0_9';
  * which is why the total is expected to climb monotonically within one conversation.
  */
 
-export interface ClientDataModelSize {
+export interface RendererDataModelSize {
   /** Serialized size of the whole payload, including the version envelope. */
   totalBytes: number;
   surfaceCount: number;
@@ -19,7 +19,7 @@ export interface ClientDataModelSize {
 }
 
 /** Console prefix, so a live session can be filtered down to just these lines. */
-export const CLIENT_DATA_MODEL_LOG_PREFIX = '[a2ui:datamodel]';
+export const RENDERER_DATA_MODEL_LOG_PREFIX = '[a2ui:datamodel]';
 
 const encoder = new TextEncoder();
 
@@ -27,25 +27,25 @@ function jsonByteLength(value: unknown): number {
   return encoder.encode(JSON.stringify(value)).length;
 }
 
-export function measureClientDataModel(model: A2uiClientDataModel): ClientDataModelSize {
+export function measureRendererDataModel(model: RendererDataModel): RendererDataModelSize {
   const surfaces = Object.entries(model.surfaces)
     .map(([surfaceId, dataModel]) => ({surfaceId, bytes: jsonByteLength(dataModel)}))
     .sort((a, b) => b.bytes - a.bytes);
   return {totalBytes: jsonByteLength(model), surfaceCount: surfaces.length, surfaces};
 }
 
-export function formatClientDataModelSize(size: ClientDataModelSize): string {
+export function formatRendererDataModelSize(size: RendererDataModelSize): string {
   const breakdown = size.surfaces.map(s => `${s.surfaceId}=${s.bytes}B`).join(' ');
   return (
-    `${CLIENT_DATA_MODEL_LOG_PREFIX} send carries ${size.surfaceCount} surface(s), ` +
+    `${RENDERER_DATA_MODEL_LOG_PREFIX} send carries ${size.surfaceCount} surface(s), ` +
     `${size.totalBytes}B total${breakdown ? ` — ${breakdown}` : ''}`
   );
 }
 
 /** Logs the payload size of one send. Injectable sink so the format stays under test. */
-export function logClientDataModelSize(
-  model: A2uiClientDataModel,
+export function logRendererDataModelSize(
+  model: RendererDataModel,
   log: (message: string) => void = console.info,
 ): void {
-  log(formatClientDataModelSize(measureClientDataModel(model)));
+  log(formatRendererDataModelSize(measureRendererDataModel(model)));
 }

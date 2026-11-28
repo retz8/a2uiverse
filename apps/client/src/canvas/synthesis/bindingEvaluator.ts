@@ -23,7 +23,7 @@
  * (decision 8). Nothing is written at `match` (decision 9): the evidence is on each cell's join.
  * Every cell with a ref carries the element a tap on it navigates to (task-7.5 decision 12).
  */
-import type {DataContext, FunctionImplementation} from '@a2ui/web_core/v0_9';
+import type {DataContext, FunctionImplementation} from '@a2ui/web_core/v1_0';
 import {
   isFormula,
   MATCH_KEY,

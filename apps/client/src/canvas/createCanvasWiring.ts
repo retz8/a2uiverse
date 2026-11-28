@@ -12,8 +12,8 @@
  * slot's Install, Update and Show it here with the consent card over the slot (task 15.9).
  */
 import type {CompositionOperation} from '@a2uiverse/sdk';
-import type {Catalog} from '@a2ui/web_core/v0_9';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import type {Catalog} from '@a2ui/web_core/v1_0';
+import type {ReactCatalogComponent} from '@a2ui/react';
 import type {PressHandler, ShellAction, SignInHandler} from '@a2uiverse/shell-catalog';
 import type {A2AMessageSender, A2ASenderOptions} from '../a2a/client';
 import {createSenderResolver} from '../a2a/client';

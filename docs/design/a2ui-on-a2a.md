@@ -36,7 +36,7 @@ An A2UI message is a JSON object with a `version` string. A data part is A2UI wh
 
 ### 2. `data` holds one message or a bare list
 
-`{"version": "v0.9", "createSurface": {…}}` is read, and so is `[{…}, {…}]`. Each entry of a list is judged on its own: an entry that is not a message is passed over and the others are taken. An object that wraps a list, `{"messages": [...]}`, is not read. No upstream source defines that form as a part. A list an A2A 0.3 layer wrapped to send it, `{"value": [...]}`, is read when it arrives still wrapped, an object holding `value` and nothing else; that happens on the two paths where the flag that says so is lost (below).
+`{"version": "1.0", "createSurface": {…}}` is read, and so is `[{…}, {…}]`. Each entry of a list is judged on its own: an entry that is not a message is passed over and the others are taken. An object that wraps a list, `{"messages": [...]}`, is not read. No upstream source defines that form as a part. A list an A2A 0.3 layer wrapped to send it, `{"value": [...]}`, is read when it arrives still wrapped, an object holding `value` and nothing else; that happens on the two paths where the flag that says so is lost (below).
 
 ### 3. A2UI rides a message, never an artifact
 
@@ -58,11 +58,11 @@ The orchestrator relays an agent's part to the client in the form the agent chos
 
 You asked "Show me one timeline of my week from Gmail, Google Calendar and GitHub", and Gmail's inbox is on the canvas. You press the first thread.
 
-1. The client builds the press. `buildActionMessageParams` wraps the A2UI `action` with the client's A2UI version and hands it to `a2uiPart`, which returns the part in the A2A SDK's in-memory shape:
+1. The client builds the press. `buildActionMessageParams` wraps the A2UI `action`, stamped `1.0`, and hands it to `a2uiPart`, which returns the part in the A2A SDK's in-memory shape:
 
    ```ts
    {
-     content: {$case: 'data', value: {version: 'v0.9', action: {name: 'open-thread', surfaceId: 'gmail.1:gmail-2', …}}},
+     content: {$case: 'data', value: {version: '1.0', action: {name: 'open-thread', surfaceId: 'gmail.1:gmail-2', …}}},
      metadata: {mimeType: 'application/a2ui+json'},
      filename: '',
      mediaType: 'application/a2ui+json',
@@ -76,7 +76,7 @@ You asked "Show me one timeline of my week from Gmail, Google Calendar and GitHu
 
    ```jsonc
    {
-     "data": {"version": "v0.9", "action": {"name": "open-thread", "surfaceId": "gmail-2", …}},
+     "data": {"version": "1.0", "action": {"name": "open-thread", "surfaceId": "gmail-2", …}},
      "metadata": {"mimeType": "application/a2ui+json"},
      "mediaType": "application/a2ui+json"
    }
@@ -87,7 +87,7 @@ You asked "Show me one timeline of my week from Gmail, Google Calendar and GitHu
    ```jsonc
    {
      "kind": "data",
-     "data": {"version": "v0.9", "action": {…}},
+     "data": {"version": "1.0", "action": {…}},
      "metadata": {"mimeType": "application/a2ui+json"}
    }
    ```
@@ -138,7 +138,7 @@ export function a2uiMessagesIn(data: unknown): A2uiMessage[] {
 
 `wrappedList` takes a list an A2A 0.3 layer wrapped as `{value: [...]}` and left wrapped. `a2uiMessagesIn` lives in the platform sdk and takes a part's `data`, not the part, so the sdk needs no A2A package. Three readers go through it:
 
-1. The client's `extractA2uiMessagesFromEvent`. It then keeps the messages whose `version` is one the platform speaks, `v0.9` or `v0.9.1`, and passes over the rest with nothing said, an entry of a list like a message alone.
+1. The client's `extractA2uiMessagesFromEvent`. It then keeps the messages stamped `1.0`, by the sdk's one reading of a stamp, and passes over the rest with nothing said, an entry of a list like a message alone.
 2. The orchestrator. Its dispatch reads an agent's event for the catalog check, the credential bar and whether the answer painted. Once an event is relayed, the same reading feeds the journal's list of surfaces touched, the copy of each surface's data model, and the count of paints.
 3. The smoke runner, for the marketplace's publish and Stellify's `preview`.
 
@@ -303,7 +303,7 @@ pnpm --filter @a2uiverse/sdk build
 cd packages/sdk/js
 node --input-type=module -e "
 import {a2uiMessagesIn, a2uiPart, readAuthRequired} from './dist/index.js';
-const create = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'c'}};
+const create = {version: '1.0', createSurface: {surfaceId: 's', catalogId: 'c'}};
 console.log(a2uiMessagesIn([create, {note: 1}]), a2uiMessagesIn({messages: [create]}));
 console.log(JSON.stringify(a2uiPart(create)));
 console.log(JSON.stringify(readAuthRequired({security: [{signIn: ['messages']}]})));

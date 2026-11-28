@@ -1,6 +1,6 @@
 import {ClientFactory, JsonRpcTransportFactory} from '@a2a-js/sdk/client';
 import type {SendMessageRequest} from '@a2a-js/sdk';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import type {CompositionStamp, PaintMeta, SynthesisPayload} from '@a2uiverse/sdk';
 import type {A2AStreamEventData} from './messages';
 import {
@@ -77,7 +77,11 @@ export interface SendAndApplyOptions {
    * along: it is what tells the canvas whether these messages paint the shell or fill a slot.
    * The synthesis payload rides beside the stamp on the event that paints the merged view.
    */
-  apply: (messages: A2uiMessage[], stamp?: CompositionStamp, synthesis?: SynthesisPayload) => void;
+  apply: (
+    messages: AgentToRendererMessage[],
+    stamp?: CompositionStamp,
+    synthesis?: SynthesisPayload,
+  ) => void;
   session?: A2ASession;
   /**
    * One streamed chunk of agent prose, with the stamp of the event carrying it — which is what

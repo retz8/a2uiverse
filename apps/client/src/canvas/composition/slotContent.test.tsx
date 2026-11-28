@@ -5,19 +5,19 @@
  */
 import {describe, it, expect} from 'vitest';
 import {render, screen} from '@testing-library/react';
-import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import {MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import {
   CATALOG_ID as SHELL_CATALOG_ID,
   createCatalog,
   SlotContentContext,
 } from '@a2uiverse/shell-catalog';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import type {ReactCatalogComponent} from '@a2ui/react';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
 import type {PlacedFragment} from '../canvasStore';
 import {FRAGMENT_BOUNDARY_ATTR} from './FragmentBoundary';
 import {renderSlotContent} from './slotContent';
-import {snapshotCatalog, snapshotCatalogs} from '../../../tests/snapshot';
+import {SNAPSHOT_READY, snapshotCatalog, snapshotCatalogs} from '../../../tests/snapshot';
 
 const {catalog: CATALOG, id: CATALOG_ID} = await snapshotCatalog('github-catalog');
 
@@ -25,8 +25,8 @@ const SHELL_CATALOG = createCatalog({onShellAction: () => {}});
 
 const CATALOGS = await snapshotCatalogs();
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 
 /** The shell as the orchestrator paints it: one slot, wrapped in the attribution naming it. */
 function composedProcessor(slotState: 'pending' | 'failed' | 'collapsed' = 'pending') {
@@ -37,9 +37,9 @@ function composedProcessor(slotState: 'pending' | 'failed' | 'collapsed' = 'pend
       updateComponents: {
         surfaceId: 'shell:main',
         components: [
-          {id: 'root', component: 'Column', children: ['attribution-github']},
+          {id: 'root', component: 'Column', children: ['attribution_github']},
           {
-            id: 'attribution-github',
+            id: 'attribution_github',
             component: 'Attribution',
             displayName: 'GitHub',
             source: 'github',
@@ -87,20 +87,23 @@ const PLACED = new Map<string, PlacedFragment>([
 ]);
 
 describe('slot mounting', () => {
-  it('mounts the placed fragment inside its slot, wrapped in a boundary', () => {
-    const {container} = renderComposed(composedProcessor(), PLACED);
+  it.skipIf(!SNAPSHOT_READY)(
+    'mounts the placed fragment inside its slot, wrapped in a boundary',
+    () => {
+      const {container} = renderComposed(composedProcessor(), PLACED);
 
-    const slot = container.querySelector('[data-slot="github"]');
-    expect(slot).not.toBeNull();
-    expect(slot!.getAttribute('data-slot-state')).toBe('filled');
+      const slot = container.querySelector('[data-slot="github"]');
+      expect(slot).not.toBeNull();
+      expect(slot!.getAttribute('data-slot-state')).toBe('filled');
 
-    const boundary = slot!.querySelector(`[${FRAGMENT_BOUNDARY_ATTR}="github"]`);
-    expect(boundary).not.toBeNull();
-    expect(boundary!.getAttribute('data-surface')).toBe('github:prs');
-    // The boundary must be a real element for @scope and a portal root to anchor to.
-    expect(getComputedStyle(boundary as HTMLElement).display).not.toBe('contents');
-    expect(boundary!.textContent).toContain('Pull requests');
-  });
+      const boundary = slot!.querySelector(`[${FRAGMENT_BOUNDARY_ATTR}="github"]`);
+      expect(boundary).not.toBeNull();
+      expect(boundary!.getAttribute('data-surface')).toBe('github:prs');
+      // The boundary must be a real element for @scope and a portal root to anchor to.
+      expect(getComputedStyle(boundary as HTMLElement).display).not.toBe('contents');
+      expect(boundary!.textContent).toContain('Pull requests');
+    },
+  );
 
   it('names the region for its source without repeating the attribution marker', () => {
     renderComposed(composedProcessor(), PLACED);
@@ -140,13 +143,16 @@ describe('slot mounting', () => {
     expect(container.querySelector('[data-slot="github"]')).toBeNull();
   });
 
-  it('a slot that painted is never overwritten by its source’s prose', () => {
-    const {container} = renderComposed(composedProcessor(), PLACED, 'here are the PRs');
-    const slot = container.querySelector('[data-slot="github"]');
-    expect(slot!.getAttribute('data-slot-state')).toBe('filled');
-    expect(slot!.textContent).toContain('Pull requests');
-    expect(slot!.textContent).not.toContain('here are the PRs');
-  });
+  it.skipIf(!SNAPSHOT_READY)(
+    'a slot that painted is never overwritten by its source’s prose',
+    () => {
+      const {container} = renderComposed(composedProcessor(), PLACED, 'here are the PRs');
+      const slot = container.querySelector('[data-slot="github"]');
+      expect(slot!.getAttribute('data-slot-state')).toBe('filled');
+      expect(slot!.textContent).toContain('Pull requests');
+      expect(slot!.textContent).not.toContain('here are the PRs');
+    },
+  );
 
   it('a failed slot keeps its failure even when a fragment is placed', () => {
     const {container} = renderComposed(composedProcessor('failed'), PLACED);

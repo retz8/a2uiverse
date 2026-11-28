@@ -8,9 +8,10 @@
  * implementation and one of a custom element, the basic catalog's, are read alike, and nothing of
  * the shell's stands in a vendor's DOM.
  *
- * A component is bound to a path when one of its properties binds exactly that path, a `{path}`
- * inside a function call's arguments included; or it is the root of a template instance whose
- * base path is that path; or it owns a template child list over it. What a component binds is
+ * A component is bound to a path when one of its properties binds exactly that path, a
+ * `{"@path"}` inside a function call's arguments included; or it is the root of a template
+ * instance whose base path is that path; or it owns a template child list over it, whose `path`
+ * v1.0 writes plain. What a component binds is
  * read from the surface's component model, by the node's component id, and resolved against the
  * node's data path, its base path (task-21.5 decision 6): the node's resolved props keep the path
  * of a property bound directly, and none inside a function call's arguments or of a template child
@@ -18,10 +19,10 @@
  * component.
  */
 import {createContext} from 'react';
-import {DataContext, isComponentNode} from '@a2ui/web_core/v0_9';
-import type {ComponentNode, SurfaceModel} from '@a2ui/web_core/v0_9';
-import type {A2uiWebComponentElement} from '@a2ui/web_core/v0_9/universal';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
+import {DataContext, isComponentNode} from '@a2ui/web_core/v1_0';
+import type {ComponentNode, SurfaceModel} from '@a2ui/web_core/v1_0';
+import type {A2uiWebComponentElement} from '@a2ui/web_core/universal';
+import type {ReactCatalogComponent} from '@a2ui/react';
 
 /** The index the mounted canvas owns; with none provided, boundaries register nowhere. */
 export const BindingIndexContext = createContext<BindingIndex | null>(null);
@@ -52,7 +53,8 @@ function propertyPaths({surface, node}: IndexedComponent): Set<string> {
     if (Array.isArray(value)) return value.forEach(visit);
     if (typeof value !== 'object' || value === null) return;
     const record = value as Record<string, unknown>;
-    if (typeof record.path === 'string') paths.add(normalize(scope.resolvePath(record.path)));
+    const bound = record['@path'] ?? record.path;
+    if (typeof bound === 'string') paths.add(normalize(scope.resolvePath(bound)));
     Object.values(record).forEach(visit);
   };
   visit(surface.componentsModel.get(node.componentId)?.properties);

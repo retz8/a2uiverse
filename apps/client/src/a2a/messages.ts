@@ -6,7 +6,12 @@ import {
   type SendMessageRequest,
   type StreamResponse,
 } from '@a2a-js/sdk';
-import type {A2uiClientAction, A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {
+  ActionMessage,
+  AgentToRendererMessage,
+  CallAgentFunctionMessage,
+  RendererFunctionResponseMessage,
+} from '@a2ui/web_core/v1_0';
 import type {
   CompositionOperation,
   CompositionStamp,
@@ -14,20 +19,22 @@ import type {
   SynthesisPayload,
 } from '@a2uiverse/sdk';
 import {
-  A2UI_CLIENT_CAPABILITIES_KEY,
-  A2UI_CLIENT_DATA_MODEL_KEY,
-  A2UI_VERSIONS,
+  A2UI_RENDERER_CAPABILITIES_KEY,
+  A2UI_RENDERER_DATA_MODEL_KEY,
+  A2UI_VERSION,
   a2uiMessagesIn,
   a2uiPart,
-  clientCapabilities,
   clientSessionMetadata,
   operationData,
+  readA2uiStamp,
   readPaintMeta,
   readStamp,
   readSynthesis,
+  rendererCapabilities,
+  rendererDataModel,
   shellPart,
 } from '@a2uiverse/sdk';
-import {logClientDataModelSize} from './dataModelSize';
+import {logRendererDataModelSize} from './dataModelSize';
 import {PAGE_SESSION} from './pageSession';
 import {readClock} from './clock';
 
@@ -148,33 +155,38 @@ function sendRequest(
   };
 }
 
-/**
- * The A2UI version the client writes — on every action, error report, operation and data model it
- * sends, and on the messages it builds for itself. The client's choice, not read from the sdk's
- * list (phase 19 decision 5): v0.9.1's schemas admit `v0.9` and a v0.9 agent requires it, so no
- * agent is reached by echoing a fragment's version that is not reached without it.
- */
-export const CLIENT_A2UI_VERSION = 'v0.9' as const;
+/** A renderer action, the body of the A2UI `action` message the client sends for a press in a surface. */
+export type RendererAction = ActionMessage['action'];
 
-/** Whether a data part's `version` is one the platform speaks, `v0.9` or `v0.9.1` (task-19.3 decision 1). */
-const isSpokenVersion = (version: unknown): boolean =>
-  (A2UI_VERSIONS as readonly unknown[]).includes(version);
+/** The renderer's data model: each surface created with `sendDataModel: true`, by surface id. */
+export type RendererDataModel = ReturnType<typeof rendererDataModel>;
+
+/**
+ * What the release sends to an agent on its own (task-21.14 decisions 8, 9): a renderer
+ * function's answer, and a component's call of an agent function.
+ */
+export type RendererOutbound = RendererFunctionResponseMessage | CallAgentFunctionMessage;
+
+/**
+ * Whether a message is one the client reads (task-21.14 decision 10): stamped `1.0`, by the
+ * sdk's one reading of a stamp.
+ */
+const isCurrent = (message: unknown): boolean => readA2uiStamp(message)?.current === true;
 
 function messageMetadata(
-  clientDataModel?: A2uiClientDataModel,
+  rendererData?: RendererDataModel,
   supportedCatalogIds?: string[],
   parent?: string,
 ): {[k: string]: unknown} {
   const metadata: {[k: string]: unknown} = {};
   if (supportedCatalogIds) {
-    // Under each version's key, as the hub writes an app's entitlement in its place (task-19.3
-    // decision 3).
-    metadata[A2UI_CLIENT_CAPABILITIES_KEY] = clientCapabilities(supportedCatalogIds);
+    // Under v1.0's key alone, as the hub writes an app's entitlement in its place.
+    metadata[A2UI_RENDERER_CAPABILITIES_KEY] = rendererCapabilities(supportedCatalogIds);
   }
-  if (clientDataModel) {
-    // Both send paths funnel through here, so this is the one place that sees every payload.
-    logClientDataModelSize(clientDataModel);
-    metadata[A2UI_CLIENT_DATA_MODEL_KEY] = clientDataModel;
+  if (rendererData) {
+    // Every send path funnels through here, so this is the one place that sees every payload.
+    logRendererDataModelSize(rendererData);
+    metadata[A2UI_RENDERER_DATA_MODEL_KEY] = rendererData;
   }
   // The page load's session and the person's clock, on every message, and the canvas this
   // question was asked from ride under the stamp key (task-12.5 decision 6, task-9.2 decision 2,
@@ -184,18 +196,36 @@ function messageMetadata(
 }
 
 /**
- * Wrap an A2UI client action as A2A send params carrying one A2UI part in the client's version:
- * one message in the part, marked `application/a2ui+json` (task-20.4 decision 5).
+ * Wrap a renderer action as A2A send params carrying one A2UI part stamped `1.0`: one message in
+ * the part, marked `application/a2ui+json` (task-20.4 decision 5).
  */
 export function buildActionMessageParams(
-  action: A2uiClientAction,
+  action: RendererAction,
   contextId?: string,
-  clientDataModel?: A2uiClientDataModel,
+  rendererData?: RendererDataModel,
   supportedCatalogIds?: string[],
 ): SendMessageRequest {
   return sendRequest(
-    [a2uiPart({version: CLIENT_A2UI_VERSION, action})],
-    messageMetadata(clientDataModel, supportedCatalogIds),
+    [a2uiPart({version: A2UI_VERSION, action})],
+    messageMetadata(rendererData, supportedCatalogIds),
+    contextId,
+  );
+}
+
+/**
+ * Wrap what the release sends an agent on its own — a renderer function's answer, carrying the
+ * call's id as received, or a component's `callAgentFunction` — as A2A send params carrying that
+ * one message as an A2UI part (task-21.14 decisions 8, 9; task-21.13 decisions 8, 9).
+ */
+export function buildOutboundMessageParams(
+  message: RendererOutbound,
+  contextId?: string,
+  rendererData?: RendererDataModel,
+  supportedCatalogIds?: string[],
+): SendMessageRequest {
+  return sendRequest(
+    [a2uiPart(message as Record<string, unknown>)],
+    messageMetadata(rendererData, supportedCatalogIds),
     contextId,
   );
 }
@@ -203,8 +233,8 @@ export function buildActionMessageParams(
 /** The protocol's `VALIDATION_FAILED` code — a fragment that would not validate or mount. */
 export const VALIDATION_FAILED = 'VALIDATION_FAILED';
 
-/** The protocol's client→server error report. */
-export interface A2uiClientError {
+/** The protocol's renderer-to-agent error report. */
+export interface RendererError {
   code: string;
   /** Namespaced, as the hub sent it: an un-namespaced id silently no-ops hub-side. */
   surfaceId: string;
@@ -220,14 +250,14 @@ export interface A2uiClientError {
  * journals the rest.
  */
 export function buildErrorMessageParams(
-  error: A2uiClientError,
+  error: RendererError,
   contextId?: string,
-  clientDataModel?: A2uiClientDataModel,
+  rendererData?: RendererDataModel,
   supportedCatalogIds?: string[],
 ): SendMessageRequest {
   return sendRequest(
-    [a2uiPart({version: CLIENT_A2UI_VERSION, error})],
-    messageMetadata(clientDataModel, supportedCatalogIds),
+    [a2uiPart({version: A2UI_VERSION, error})],
+    messageMetadata(rendererData, supportedCatalogIds),
     contextId,
   );
 }
@@ -243,11 +273,11 @@ export function buildOperationMessageParams(
   operation: CompositionOperation,
   contextId?: string,
   supportedCatalogIds?: string[],
-  clientDataModel?: A2uiClientDataModel,
+  rendererData?: RendererDataModel,
 ): SendMessageRequest {
   return sendRequest(
-    [shellPart(operationData(operation, CLIENT_A2UI_VERSION))],
-    messageMetadata(clientDataModel, supportedCatalogIds),
+    [shellPart(operationData(operation, A2UI_VERSION))],
+    messageMetadata(rendererData, supportedCatalogIds),
     contextId,
   );
 }
@@ -259,14 +289,11 @@ export function buildOperationMessageParams(
  */
 export function buildTextMessageParams(
   text: string,
-  clientDataModel?: A2uiClientDataModel,
+  rendererData?: RendererDataModel,
   supportedCatalogIds?: string[],
   parent?: string,
 ): SendMessageRequest {
-  return sendRequest(
-    [textPart(text)],
-    messageMetadata(clientDataModel, supportedCatalogIds, parent),
-  );
+  return sendRequest([textPart(text)], messageMetadata(rendererData, supportedCatalogIds, parent));
 }
 
 /**
@@ -277,14 +304,13 @@ export function buildTextMessageParams(
  * is A2UI by what its `data` holds — one message, or a bare list of them — and no mark is read
  * (decisions 1 to 3).
  *
- * A message is taken when its version is one the sdk lists, `v0.9` or `v0.9.1`: web_core draws
- * both through one adapter. A message in any other version is passed over with nothing said, an
- * entry of a list like a message alone (task-19.3 decisions 1, 2).
+ * A message is taken when it is stamped `1.0`. A message in any other version is passed over with
+ * nothing said, an entry of a list like a message alone (task-21.14 decision 10).
  */
-export function extractA2uiMessagesFromEvent(event: A2AStreamEventData): A2uiMessage[] {
+export function extractA2uiMessagesFromEvent(event: A2AStreamEventData): AgentToRendererMessage[] {
   return (messageOf(event)?.parts ?? [])
     .flatMap(part => a2uiMessagesIn(valueOf(part)))
-    .filter(message => isSpokenVersion(message.version)) as A2uiMessage[];
+    .filter(isCurrent) as AgentToRendererMessage[];
 }
 
 /**

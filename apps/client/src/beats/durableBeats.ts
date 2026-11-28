@@ -9,8 +9,8 @@
  * titled — so it is a step in that store's history with a way back; the merged view re-synthesized
  * over it rides the action's stream, as the orchestrator's walk puts it there.
  */
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {CompositionOperation} from '@a2uiverse/sdk';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {A2UI_VERSION, type CompositionOperation} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {BeatBatch, BeatFixture, BeatTurn} from './beatFixtures';
 import {
@@ -29,8 +29,8 @@ import {
 } from './lateFailureBeats';
 import {listMessages, SHOP_A, SHOP_A_ITEMS, SHOP_B, SHOP_B_PRODUCTS} from './synthesisFixture';
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: A2UI_VERSION, ...m}) as unknown as AgentToRendererMessage;
 
 const base = {
   model: 'synthetic',
@@ -51,7 +51,7 @@ const beat = (name: string, number: number, title: string, turns: BeatTurn[]): B
 export const SHIPPING = 'which of my cameras ship this week?';
 
 /** The stores' list paints, each titled by its store: what a way back is named by. */
-const titled = (store: Store): A2uiMessage[] => {
+const titled = (store: Store): AgentToRendererMessage[] => {
   const messages = PAINTS[store]();
   const create = (messages[0] as unknown as {createSurface: {surfaceId: string}}).createSurface;
   return [msg({paintMeta: {surfaceId: create.surfaceId, title: NAMES[store]}}), ...messages];

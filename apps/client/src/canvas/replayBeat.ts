@@ -32,7 +32,7 @@
  * make — the slot's Install through its consent card, Connect, Update — and answers the press they
  * make with it.
  */
-import type {A2uiClientAction} from '@a2ui/web_core/v0_9';
+import type {RendererAction} from '../a2a/messages';
 import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {A2AMessageSender} from '../a2a/client';
 import {isBesideTurn, type BeatFixture, type BeatTurn} from '../beats/beatFixtures';
@@ -84,7 +84,7 @@ const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, m
 
 function causeOf(turn: BeatTurn): PaintCause {
   if (turn.kind === 'surface-action' && turn.action) {
-    return {kind: 'surface-action', payload: {action: turn.action as unknown as A2uiClientAction}};
+    return {kind: 'surface-action', payload: {action: turn.action as unknown as RendererAction}};
   }
   return {kind: 'utterance', payload: {text: turn.prompt}};
 }

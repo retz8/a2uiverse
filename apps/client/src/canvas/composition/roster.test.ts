@@ -3,7 +3,7 @@
  * reach the client nowhere else.
  */
 import {describe, it, expect} from 'vitest';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
 import {
   authorityOf,
   escalationsOf,
@@ -15,8 +15,8 @@ import {
   updatesOf,
 } from './roster';
 
-const msg = (m: Record<string, unknown>): A2uiMessage =>
-  ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
+const msg = (m: Record<string, unknown>): AgentToRendererMessage =>
+  ({version: '1.0', ...m}) as unknown as AgentToRendererMessage;
 
 /**
  * As the shell painter emits it (task-6.4 decision 3): the model's tree and ids, each vendor
@@ -28,10 +28,10 @@ const shellPaint = (leaves: Array<{source: string; name?: string}>) =>
     updateComponents: {
       surfaceId: 'shell:main',
       components: [
-        {id: 'root', component: 'Row', children: leaves.map(l => `attribution-${l.source}`)},
+        {id: 'root', component: 'Row', children: leaves.map(l => `attribution_${l.source}`)},
         ...leaves.flatMap(l => [
           {
-            id: `attribution-${l.source}`,
+            id: `attribution_${l.source}`,
             component: 'Attribution',
             source: l.source,
             child: l.source,
@@ -47,7 +47,7 @@ describe('rosterFromShellMessages', () => {
   it('two accounts of one app are two sources, each named by the app and its account’s label (task 12.4)', () => {
     const attributed = (source: string, account: string) => [
       {
-        id: `attribution-${source}`,
+        id: `attribution_${source}`,
         component: 'Attribution',
         displayName: 'Gmail',
         source,
@@ -64,7 +64,7 @@ describe('rosterFromShellMessages', () => {
             {
               id: 'root',
               component: 'Row',
-              children: ['attribution-gmail.1', 'attribution-gmail.2'],
+              children: ['attribution_gmail_1', 'attribution_gmail_2'],
             },
             ...attributed('gmail.1', 'alice@example.com'),
             ...attributed('gmail.2', 'bob@example.com'),
@@ -111,18 +111,18 @@ describe('rosterFromShellMessages', () => {
           {id: 'root', component: 'Column', children: ['heading', 'row']},
           {id: 'heading', component: 'Text', text: 'Your morning'},
           {id: 'mail', component: 'Slot', source: 'gmail', state: 'pending'},
-          {id: 'row', component: 'Row', children: ['attribution-mail', 'card']},
-          {id: 'card', component: 'Card', child: 'attribution-code'},
+          {id: 'row', component: 'Row', children: ['attribution_mail', 'card']},
+          {id: 'card', component: 'Card', child: 'attribution_code'},
           {id: 'code', component: 'Slot', source: 'github', state: 'pending'},
           {
-            id: 'attribution-code',
+            id: 'attribution_code',
             component: 'Attribution',
             source: 'github',
             displayName: 'GitHub',
             child: 'code',
           },
           {
-            id: 'attribution-mail',
+            id: 'attribution_mail',
             component: 'Attribution',
             source: 'gmail',
             displayName: 'Gmail',
@@ -145,7 +145,7 @@ describe('rosterFromShellMessages', () => {
       updateComponents: {
         surfaceId: 'shell:main',
         components: [
-          {id: 'root', component: 'Row', children: ['merged', 'attribution-github']},
+          {id: 'root', component: 'Row', children: ['merged', 'attribution_github']},
           {
             id: 'merged',
             component: 'Slot',
@@ -155,7 +155,7 @@ describe('rosterFromShellMessages', () => {
             content: 'shell',
           },
           {
-            id: 'attribution-github',
+            id: 'attribution_github',
             component: 'Attribution',
             source: 'github',
             displayName: 'GitHub',
@@ -219,9 +219,9 @@ describe('rosterFromShellMessages', () => {
       updateComponents: {
         surfaceId: 'shell:main',
         components: [
-          {id: 'root', component: 'Column', children: ['attribution-github', 'gmail']},
+          {id: 'root', component: 'Column', children: ['attribution_github', 'gmail']},
           {
-            id: 'attribution-github',
+            id: 'attribution_github',
             component: 'Attribution',
             source: 'github',
             displayName: 'GitHub',
@@ -244,8 +244,8 @@ describe('rosterFromShellMessages', () => {
       updateComponents: {
         surfaceId: 'shell:main',
         components: [
-          {id: 'root', component: 'Column', children: ['attribution-x']},
-          {id: 'attribution-x', component: 'Attribution', source: 'github', child: 'x'},
+          {id: 'root', component: 'Column', children: ['attribution_x']},
+          {id: 'attribution_x', component: 'Attribution', source: 'github', child: 'x'},
           {id: 'x', component: 'Slot', source: 'gmail', state: 'pending'},
         ],
       },
@@ -327,7 +327,7 @@ describe('slotStatesOf', () => {
 
 describe('mergeFactsOf', () => {
   const paint = (components: Record<string, unknown>[]) =>
-    [{version: 'v0.9', updateComponents: {surfaceId: 'shell:main', components}}] as never;
+    [{version: '1.0', updateComponents: {surfaceId: 'shell:main', components}}] as never;
 
   it('reads what the orchestrator painted on the merged view’s slot (task-8.4 decision 13)', () => {
     expect(

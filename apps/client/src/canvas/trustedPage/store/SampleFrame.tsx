@@ -13,10 +13,10 @@
  */
 import {useEffect, useMemo, useState} from 'react';
 import {Button, Dialog} from '@radix-ui/themes';
-import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {ReactCatalogComponent} from '@a2ui/react/v0_9';
-import {BASIC_CATALOG_ID, type PreviewDocument} from '@a2uiverse/sdk';
+import {MessageProcessor} from '@a2ui/web_core/v1_0';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import type {ReactCatalogComponent} from '@a2ui/react';
+import {A2UI_VERSION, BASIC_CATALOG_ID, readA2uiStamp, type PreviewDocument} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {applyA2uiMessages} from '../../../a2ui/applyMessages';
 import {logSurfaceErrors} from '../../../a2ui/surfaceErrors';
@@ -88,13 +88,24 @@ function useSample(listing: StoreListing, catalogs: PageCatalogs, orchestrator: 
           buildsOf(listing, catalogs, orchestrator),
         ]);
         if (!read.ok) throw new Error(`the preview could not be read: ${read.reason}`);
+        // Read as the canvas reads a paint (task-21.14 decision 10): a message stamped anything
+        // but `1.0` leaves the sample unshown, and a function call inside it is not run.
+        const messages = read.value.messages as unknown as AgentToRendererMessage[];
+        if (!messages.every(message => readA2uiStamp(message)?.current === true))
+          throw new Error('the sample is not in A2UI 1.0');
         const held = [...ownCatalogs(catalogs), ...loaded];
-        const processor = new MessageProcessor<ReactCatalogComponent>(held.map(c => c.catalog));
+        const processor = new MessageProcessor<ReactCatalogComponent>(
+          held.map(c => c.catalog),
+          undefined,
+          {version: A2UI_VERSION},
+        );
         logSurfaceErrors(processor);
         let failed = false;
-        applyA2uiMessages(processor, read.value.messages as unknown as A2uiMessage[], {
-          onMessageError: () => (failed = true),
-        });
+        applyA2uiMessages(
+          processor,
+          messages.filter(message => !('callRendererFunction' in message)),
+          {onMessageError: () => (failed = true)},
+        );
         if (failed || processor.model.surfacesMap.size === 0) throw new Error('nothing to draw');
         value = {status: 'ready', preview: read.value, catalogs: held, processor};
       } catch (err) {

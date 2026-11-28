@@ -56,8 +56,8 @@
  *
  * The live processor is the live registry — exactly what the agent may see.
  */
-import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {A2uiIntegrityError, A2uiValidationError} from '@a2ui/web_core/v0_9';
+import type {AgentToRendererMessage} from '@a2ui/web_core/v1_0';
+import {A2uiIntegrityError, A2uiValidationError} from '@a2ui/web_core/v1_0';
 import type {CompositionStamp, PaintMeta, SynthesisPayload} from '@a2uiverse/sdk';
 import {QUESTION_PAINT_KIND, readPaintMeta} from '@a2uiverse/sdk';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
@@ -77,7 +77,7 @@ import type {SynthesisIntake} from '../synthesis/synthesisSession';
 import type {FragmentHistory, PaintCopy, RestorableStep} from '../history/fragmentHistory';
 import {capturePaint, rebuildMessages} from '../history/paintCopy';
 import type {TurnProcessor} from './turnMessages';
-import {ROOT_COMPONENT_ID, invalidComponentsOf, targetOf} from './turnMessages';
+import {ROOT_COMPONENT_ID, callSurfaceOf, invalidComponentsOf, targetOf} from './turnMessages';
 
 export type {CanvasSurface, TurnProcessor} from './turnMessages';
 
@@ -91,7 +91,11 @@ export interface TurnHandle {
    * `fragment` fills the `Slot` whose `source` the stamp names. A payload beside the stamp is the synthesis
    * paint's, handed to the synthesis session once the surface it describes is live.
    */
-  apply(messages: A2uiMessage[], stamp?: CompositionStamp, synthesis?: SynthesisPayload): void;
+  apply(
+    messages: AgentToRendererMessage[],
+    stamp?: CompositionStamp,
+    synthesis?: SynthesisPayload,
+  ): void;
   /**
    * Accept one paintMeta shell object: the agent-authored title names the step in its source's
    * history when its fragment claims a slot; `kind: "question"` marks a paint that asks the reader
@@ -145,14 +149,18 @@ export interface TurnRunnerOptions {
    * A copy's messages, its create drawn in the build the paint was drawn in (phase-15 decision 13;
    * task 15.6); the copy's plain messages when none.
    */
-  rebuild?: (copy: PaintCopy) => A2uiMessage[];
+  rebuild?: (copy: PaintCopy) => AgentToRendererMessage[];
 }
 
 /** A stream beside the turn: a press's, or a side report's answer (module header). */
 export interface SideStream {
   /** Aborts the stream's transport when the composition retires or the canvas closes. */
   readonly signal: AbortSignal;
-  apply(messages: A2uiMessage[], stamp?: CompositionStamp, synthesis?: SynthesisPayload): void;
+  apply(
+    messages: AgentToRendererMessage[],
+    stamp?: CompositionStamp,
+    synthesis?: SynthesisPayload,
+  ): void;
   acceptPaintMeta(meta: PaintMeta): void;
   /** The stream is exhausted: its fragments are judged, once. */
   end(): void;
@@ -219,7 +227,7 @@ export function createTurnRunner({
   const dropped = new Set<string>();
   /** A failed slot's fragment as it was taken off, by surface id: what a Retry's answer revives. */
   const takenDown = new Map<string, {source: string; copy: PaintCopy}>();
-  const admits = (message: A2uiMessage) => {
+  const admits = (message: AgentToRendererMessage) => {
     const {kind, surfaceId} = targetOf(message);
     if (surfaceId === undefined || !dropped.has(surfaceId)) return true;
     if (kind !== 'create') return false;
@@ -248,7 +256,7 @@ export function createTurnRunner({
    * that surface comes back from its copy into its slot, and the answer lands on it (task-15.12
    * decision 11). While the slot stands failed, a message for it is still dropped.
    */
-  const revive = (messages: A2uiMessage[]) => {
+  const revive = (messages: AgentToRendererMessage[]) => {
     for (const message of messages) {
       const {kind, surfaceId} = targetOf(message);
       if (kind === 'create' || surfaceId === undefined) continue;
@@ -282,7 +290,7 @@ export function createTurnRunner({
   };
 
   /** The surfaces a refused paint's take-down names. */
-  const takenDownIn = (messages: A2uiMessage[]) =>
+  const takenDownIn = (messages: AgentToRendererMessage[]) =>
     messages.flatMap(message => {
       const {kind, surfaceId} = targetOf(message);
       return kind === 'delete' && surfaceId !== undefined ? [surfaceId] : [];
@@ -294,7 +302,7 @@ export function createTurnRunner({
    * fragment off the canvas (task-8.5 decision 3). Returns the vendor slots painted with no
    * attribution around them.
    */
-  const applyShellPaint = (messages: A2uiMessage[]): string[] => {
+  const applyShellPaint = (messages: AgentToRendererMessage[]): string[] => {
     const {roster, unattributed} = shellPaintSlots(messages);
     if (roster) store.setRoster(roster);
     const states = slotStatesOf(messages);
@@ -337,7 +345,7 @@ export function createTurnRunner({
    * at the wire, before refusal, admission or staging decide what becomes of it — the
    * orchestrator counted it when it relayed it. The shell's own surfaces never count.
    */
-  const countPaints = (messages: A2uiMessage[], stamp?: CompositionStamp) => {
+  const countPaints = (messages: AgentToRendererMessage[], stamp?: CompositionStamp) => {
     const source = slotOf(stamp);
     if (!history || source === undefined || source === SHELL_SOURCE) return;
     for (const message of messages) {
@@ -368,7 +376,7 @@ export function createTurnRunner({
    * surface filling its slot — the half-drawn view going with the collapse. The slot empties, the
    * view's payload goes, the reader's sort choices stay for the view a press may bring back.
    */
-  const takeDownSynthesis = (messages: A2uiMessage[], stamp?: CompositionStamp) => {
+  const takeDownSynthesis = (messages: AgentToRendererMessage[], stamp?: CompositionStamp) => {
     if (slotOf(stamp) !== SHELL_SOURCE) return;
     const placed = store.getState().placement.get(SHELL_SOURCE);
     if (!placed) return;
@@ -390,7 +398,10 @@ export function createTurnRunner({
    * The surface a payload describes: the fragment created in its batch, or the one already
    * filling the stamp's source's slot when the paint is a bare update.
    */
-  const synthesisTarget = (messages: A2uiMessage[], stamp: CompositionStamp | undefined) => {
+  const synthesisTarget = (
+    messages: AgentToRendererMessage[],
+    stamp: CompositionStamp | undefined,
+  ) => {
     const source = slotOf(stamp);
     if (!source) return undefined;
     const created = messages.map(targetOf).find(t => t.kind === 'create' && t.surfaceId);
@@ -415,7 +426,7 @@ export function createTurnRunner({
       onFragmentFailure({surfaceId, source, path, message, ...(refused ? {refused} : {})});
     };
     /** A batch for a refused source: nothing of it enters the registry; its create is reported. */
-    const refuse = (messages: A2uiMessage[], source: string) => {
+    const refuse = (messages: AgentToRendererMessage[], source: string) => {
       for (const message of messages) {
         const {kind, surfaceId} = targetOf(message);
         if (kind !== 'create' || !surfaceId) continue;
@@ -520,7 +531,7 @@ export function createTurnRunner({
     /** Staged-mode slot claims, applied once their surfaces reach the live processor. */
     const claims: Claim[] = [];
     /** Staged-mode buffer: the messages replayed into the live processor at swap. */
-    const buffered: A2uiMessage[] = [];
+    const buffered: AgentToRendererMessage[] = [];
     /** Staged-mode payload, handed over once its surface reaches the live processor at swap. */
     let pendingSynthesis:
       {surfaceId: string; source: string; payload: SynthesisPayload} | undefined;
@@ -561,7 +572,7 @@ export function createTurnRunner({
     const failFragment = ledger.fail;
     const refuseBatch = ledger.refuse;
 
-    const onMessageError = (err: unknown, message: A2uiMessage) => {
+    const onMessageError = (err: unknown, message: AgentToRendererMessage) => {
       if (isPartialFailure(err)) {
         deferredValidation.push(err);
         return;
@@ -638,7 +649,7 @@ export function createTurnRunner({
      * does this — a bare shell repaint (a slot flipping to failed) targets the live surface and
      * must not tear the canvas down.
      */
-    const opensComposition = (messages: A2uiMessage[], stamp?: CompositionStamp) =>
+    const opensComposition = (messages: AgentToRendererMessage[], stamp?: CompositionStamp) =>
       stamp?.role === 'shell' && messages.some(m => targetOf(m).kind === 'create');
 
     const goProgressive = () => {
@@ -651,7 +662,7 @@ export function createTurnRunner({
     };
 
     const applyProgressive = (
-      messages: A2uiMessage[],
+      messages: AgentToRendererMessage[],
       stamp?: CompositionStamp,
       payload?: SynthesisPayload,
     ) => {
@@ -686,7 +697,7 @@ export function createTurnRunner({
     };
 
     const applyStaged = (
-      messages: A2uiMessage[],
+      messages: AgentToRendererMessage[],
       stamp?: CompositionStamp,
       payload?: SynthesisPayload,
     ) => {
@@ -724,6 +735,20 @@ export function createTurnRunner({
             processor.model.deleteSurface(surfaceId);
           }
           touchedLive = true;
+          continue;
+        }
+        // An agent's renderer function call runs in its place (task-21.14 decision 6): against the
+        // staging processor when the surface it names was created in this answer and is still
+        // staged, otherwise against the live one; never buffered, so the swap does not call again.
+        if (kind === 'call') {
+          const named = callSurfaceOf(message);
+          const staged =
+            named !== undefined &&
+            createdIds.has(named) &&
+            (staging as TurnProcessor).model.getSurface(named) !== undefined;
+          applyA2uiMessages(staged ? (staging as TurnProcessor) : processor, [message], {
+            onMessageError,
+          });
           continue;
         }
         // Unknown target (an update racing ahead of its create, or a malformed message):
@@ -860,7 +885,7 @@ export function createTurnRunner({
         // Replay tolerance: a recorded fixture carries paintMeta objects inline with the
         // A2UI messages (they ride the same recorded batches); route them to the meta
         // acceptor instead of the processor. Live streams deliver metas via acceptPaintMeta.
-        const rest: A2uiMessage[] = [];
+        const rest: AgentToRendererMessage[] = [];
         for (const message of messages) {
           const meta = readPaintMeta(message);
           if (meta) acceptPaintMeta(meta);
@@ -986,7 +1011,7 @@ export function createTurnRunner({
       onPaintMeta?.(meta);
     };
 
-    const onMessageError = (err: unknown, message: A2uiMessage) => {
+    const onMessageError = (err: unknown, message: AgentToRendererMessage) => {
       // A partial the vendor completes in its next batch fails validation on the way; the
       // fragment is judged whole at the stream's end.
       if (isPartialFailure(err)) return;
@@ -999,7 +1024,7 @@ export function createTurnRunner({
       signal: controller.signal,
       apply: (messages, stamp, payload) => {
         if (!open) return;
-        const rest: A2uiMessage[] = [];
+        const rest: AgentToRendererMessage[] = [];
         for (const message of messages) {
           const meta = readPaintMeta(message);
           if (meta) accept(meta);
