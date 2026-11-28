@@ -1,3 +1,4 @@
+import {spec} from '@a2ui/web_core/v1_0';
 import {z} from 'zod';
 import {BindingSchema} from '../../binding.js';
 import type {CellJoin, CellTarget} from './join.js';
@@ -14,26 +15,38 @@ import type {CellJoin, CellTarget} from './join.js';
  *   bound: the view compares the evaluated value against them and draws a match in the danger
  *   tone. The Synthesizer judges what a word means; the client only compares.
  */
-export const FormatSchema = z
-  .object({
-    kind: z.enum(['text', 'number', 'currency', 'datetime']),
-    currency: z.string().optional(),
-    prefix: z.string().optional(),
-  })
-  .strict()
-  .refine(f => f.kind !== 'currency' || typeof f.currency === 'string', {
-    message: 'currency format needs a currency code',
-  });
+export const FormatSchema = spec(
+  z
+    .object({
+      kind: z.enum(['text', 'number', 'currency', 'datetime']),
+      currency: z.string().optional(),
+      prefix: z.string().optional(),
+    })
+    .strict()
+    .refine(f => f.kind !== 'currency' || typeof f.currency === 'string', {
+      message: 'currency format needs a currency code',
+    }),
+  // The refinement as the document writes it.
+  {
+    keywords: {
+      if: {properties: {kind: {const: 'currency'}}},
+      then: {required: ['kind', 'currency']},
+    },
+  },
+);
 
 export const DerivedValueApi = {
   name: 'DerivedValue',
-  schema: z
-    .object({
-      cell: BindingSchema,
-      format: FormatSchema.optional(),
-      danger: z.array(z.string()).min(1).optional(),
-    })
-    .strict(),
+  schema: spec(
+    z
+      .object({
+        cell: BindingSchema,
+        format: FormatSchema.optional(),
+        danger: z.array(z.string()).min(1).optional(),
+      })
+      .strict(),
+    {mixins: []},
+  ),
 } as const;
 
 export type DerivedValueProps = z.infer<typeof DerivedValueApi.schema>;

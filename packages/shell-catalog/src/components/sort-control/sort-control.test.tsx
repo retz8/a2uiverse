@@ -68,9 +68,9 @@ test('sort is binding-only: a literal object is rejected', () => {
 });
 
 test('schema binds sort as a dynamic value and rejects extras', () => {
-  expect(SortControlApi.schema.safeParse({sort: {path: '/sorts/0'}}).success).toBe(true);
+  expect(SortControlApi.schema.safeParse({sort: {'@path': '/sorts/0'}}).success).toBe(true);
   expect(SortControlApi.schema.safeParse({}).success).toBe(false);
-  expect(SortControlApi.schema.safeParse({sort: {path: '/sorts/0'}, label: 'x'}).success).toBe(
+  expect(SortControlApi.schema.safeParse({sort: {'@path': '/sorts/0'}, label: 'x'}).success).toBe(
     false,
   );
 });

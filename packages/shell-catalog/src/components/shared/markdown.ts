@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {useMarkdownRenderer} from '@a2ui/react/v0_9';
+import {useMarkdownRenderer} from '@a2ui/react';
 
 /**
  * Body text through upstream's markdown contract (task-5.9 decision 4): `@a2ui/react` exposes a

@@ -3,7 +3,7 @@
  * evaluator resolves refs, drops absents and counts contributors around the call. Nothing
  * here knows about surfaces.
  */
-import type {DataContext} from '@a2ui/web_core/v0_9';
+import type {DataContext} from '@a2ui/web_core/v1_0';
 import {expect, test} from 'vitest';
 import {OPERATORS, operatorFunctions} from './operators';
 

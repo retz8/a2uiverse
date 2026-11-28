@@ -1,6 +1,6 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {createComponentImplementation} from '@a2ui/react/v0_9';
-import {ListApi} from '@a2ui/web_core/v0_9';
+import {createComponentImplementation} from '@a2ui/react';
+import {ListApi} from '@a2ui/web_core/catalogs/basic/v1';
 import {Flex} from '@radix-ui/themes';
 import {renderChildList} from '../shared/child-list.js';
 import {alignProp, weightStyle, type BasicAlign} from '../shared/layout.js';

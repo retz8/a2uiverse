@@ -8,12 +8,8 @@
  * catalog `createCatalog` binds its React implementations to the same schemas, so the two faces
  * cannot disagree about a prop. Imports no React and no stylesheet.
  */
-import {
-  BASIC_COMPONENTS,
-  Catalog,
-  type ComponentApi,
-  V09_SPEC_FUNCTIONS,
-} from '@a2ui/web_core/v0_9';
+import {Catalog, type ComponentApi} from '@a2ui/web_core/v1_0';
+import {BASIC_COMPONENTS, BASIC_FUNCTIONS} from '@a2ui/web_core/catalogs/basic/v1';
 import {CATALOG_ID, CATALOG_PROTOCOL_VERSION} from './catalog-id.js';
 import {AttributionApi} from './components/attribution/attribution.schema.js';
 import {DerivedValueApi} from './components/derived-value/derived-value.schema.js';
@@ -132,7 +128,7 @@ export const SCHEMA_CATALOG: Catalog<ComponentApi> = new Catalog<ComponentApi>(
     ...SHELL_COMPONENT_APIS,
   ],
   [
-    ...V09_SPEC_FUNCTIONS,
+    ...BASIC_FUNCTIONS,
     ...operatorFunctions,
     ...relationFunctions,
     ...shellActionFunctions(() => {}),

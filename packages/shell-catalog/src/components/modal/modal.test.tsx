@@ -5,8 +5,8 @@ import {renderTree, type TreeComponent} from '../../testing/render';
 
 const MODAL: TreeComponent[] = [
   {id: 'root', component: 'Modal', trigger: 'open', content: 'body'},
-  {id: 'open', component: 'Button', child: 'open-label', action: {event: {name: 'open'}}},
-  {id: 'open-label', component: 'Text', text: 'Open'},
+  {id: 'open', component: 'Button', child: 'open_label', action: {event: {name: 'open'}}},
+  {id: 'open_label', component: 'Text', text: 'Open'},
   {id: 'body', component: 'Text', text: 'Hello from the dialog'},
 ];
 
@@ -33,7 +33,7 @@ test('the close button closes it', async () => {
 test('the trigger still fires its own action', async () => {
   const user = userEvent.setup();
   const actions: string[] = [];
-  renderTree(MODAL, {onAction: action => actions.push(action.name)});
+  renderTree(MODAL, {onAction: action => void actions.push(action.name)});
   await user.click(screen.getByRole('button', {name: 'Open'}));
   expect(actions).toEqual(['open']);
 });

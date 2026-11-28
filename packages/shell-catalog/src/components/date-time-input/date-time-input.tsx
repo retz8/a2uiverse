@@ -1,6 +1,6 @@
 import {useId, type CSSProperties} from 'react';
-import {createComponentImplementation} from '@a2ui/react/v0_9';
-import {DateTimeInputApi} from '@a2ui/web_core/v0_9';
+import {createComponentImplementation} from '@a2ui/react';
+import {DateTimeInputApi} from '@a2ui/web_core/catalogs/basic/v1';
 import {TextField} from '@radix-ui/themes';
 import {Field} from '../shared/field.js';
 import {weightStyle} from '../shared/layout.js';

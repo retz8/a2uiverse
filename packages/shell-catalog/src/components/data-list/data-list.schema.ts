@@ -1,4 +1,4 @@
-import {ChildListSchema, componentId, DynamicStringSchema} from '@a2ui/web_core/v0_9';
+import {ChildListSchema, componentId, DynamicStringSchema, spec} from '@a2ui/web_core/v1_0';
 import {z} from 'zod';
 
 /**
@@ -10,22 +10,28 @@ import {z} from 'zod';
  */
 export const DataListApi = {
   name: 'DataList',
-  schema: z
-    .object({
-      orientation: z.enum(['horizontal', 'vertical']).optional(),
-      children: ChildListSchema,
-    })
-    .strict(),
+  schema: spec(
+    z
+      .object({
+        orientation: z.enum(['horizontal', 'vertical']).optional(),
+        children: ChildListSchema,
+      })
+      .strict(),
+    {mixins: []},
+  ),
 } as const;
 
 export const DataListItemApi = {
   name: 'DataListItem',
-  schema: z
-    .object({
-      label: DynamicStringSchema,
-      child: componentId(),
-    })
-    .strict(),
+  schema: spec(
+    z
+      .object({
+        label: DynamicStringSchema,
+        child: componentId(),
+      })
+      .strict(),
+    {mixins: []},
+  ),
 } as const;
 
 export type DataListProps = z.infer<typeof DataListApi.schema>;

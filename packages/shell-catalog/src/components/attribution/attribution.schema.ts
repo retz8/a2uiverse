@@ -1,4 +1,4 @@
-import {componentId} from '@a2ui/web_core/v0_9';
+import {componentId, spec} from '@a2ui/web_core/v1_0';
 import {z} from 'zod';
 
 /**
@@ -24,20 +24,23 @@ import {z} from 'zod';
  */
 export const AttributionApi = {
   name: 'Attribution',
-  schema: z
-    .object({
-      displayName: z.string(),
-      source: z.string().optional(),
-      account: z.string().nullable().optional(),
-      escalation: z
-        .object({scopes: z.array(z.string()).min(1)})
-        .strict()
-        .optional(),
-      child: componentId().optional(),
-      weight: z.number().optional(),
-      fromOffer: z.boolean().optional(),
-    })
-    .strict(),
+  schema: spec(
+    z
+      .object({
+        displayName: z.string(),
+        source: z.string().optional(),
+        account: z.string().nullable().optional(),
+        escalation: z
+          .object({scopes: z.array(z.string()).min(1)})
+          .strict()
+          .optional(),
+        child: componentId().optional(),
+        weight: z.number().optional(),
+        fromOffer: z.boolean().optional(),
+      })
+      .strict(),
+    {mixins: []},
+  ),
 } as const;
 
 export type AttributionProps = z.infer<typeof AttributionApi.schema>;

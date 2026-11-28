@@ -13,8 +13,8 @@
 import {StrictMode, useEffect, useMemo, useState, type ReactNode} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Theme} from '@radix-ui/themes';
-import {A2uiSurface, type ReactComponentImplementation} from '@a2ui/react/v0_9';
-import {MessageProcessor, type SurfaceModel} from '@a2ui/web_core/v0_9';
+import {A2uiSurface, type ReactComponentImplementation} from '@a2ui/react';
+import {MessageProcessor, type SurfaceModel} from '@a2ui/web_core/v1_0';
 import {parseSourceId, resolvePointer, type SortDeclaration} from '@a2uiverse/sdk';
 import {
   AppActContext,
@@ -32,7 +32,7 @@ import {
   SlotStateContext,
   SlotView,
 } from '../src/index.js';
-import schema from '../catalogs/v0.9.1/catalog.json';
+import schema from '../catalogs/v1.0/catalog.json';
 import {componentNames, sweep, type CatalogSchema, type TreeComponent} from './matrix.js';
 import {TODAY_TIMELINE, type TimelineExample} from './timeline-example.js';
 
@@ -62,9 +62,9 @@ function surfaceFor(
   );
   const id = 'fixture';
   processor.processMessages([
-    {version: 'v0.9', createSurface: {surfaceId: id, catalogId: CATALOG_ID}},
-    {version: 'v0.9', updateDataModel: {surfaceId: id, path: '/', value: data}},
-    {version: 'v0.9', updateComponents: {surfaceId: id, components}},
+    {version: '1.0', createSurface: {surfaceId: id, catalogId: CATALOG_ID}},
+    {version: '1.0', updateDataModel: {surfaceId: id, path: '/', value: data}},
+    {version: '1.0', updateComponents: {surfaceId: id, components}},
   ] as never);
   return processor.model.surfacesMap.get(id)!;
 }
@@ -434,7 +434,7 @@ function FailureMatrix() {
 
 const RESERVED_TABLE: TreeComponent[] = [
   {id: 'root', component: 'Column', children: ['label', 'table']},
-  {id: 'label', component: 'Text', variant: 'h5', text: 'Active work status'},
+  {id: 'label', component: 'Text', text: '##### Active work status'},
   {
     id: 'table',
     component: 'Table',
@@ -442,11 +442,11 @@ const RESERVED_TABLE: TreeComponent[] = [
     columnSources: ['linear', 'linear', 'github', 'circleci'],
     children: {path: '/rows', componentId: 'row'},
   },
-  {id: 'row', component: 'TableRow', children: ['c-issue', 'c-status', 'c-pr', 'c-ci']},
-  {id: 'c-issue', component: 'Text', text: {path: 'issue'}},
-  {id: 'c-status', component: 'Text', text: {path: 'status'}},
-  {id: 'c-pr', component: 'Text', text: {path: 'pr'}},
-  {id: 'c-ci', component: 'Text', text: '—'},
+  {id: 'row', component: 'TableRow', children: ['c_issue', 'c_status', 'c_pr', 'c_ci']},
+  {id: 'c_issue', component: 'Text', text: {'@path': 'issue'}},
+  {id: 'c_status', component: 'Text', text: {'@path': 'status'}},
+  {id: 'c_pr', component: 'Text', text: {'@path': 'pr'}},
+  {id: 'c_ci', component: 'Text', text: '—'},
 ];
 const RESERVED_ROWS = {
   rows: [
@@ -908,13 +908,13 @@ const JOIN_PROPS: Record<string, Record<string, unknown>> = {
   handle: {format: {kind: 'text', prefix: '#'}},
 };
 const JOIN_TREE: TreeComponent[] = [
-  {id: 'root', component: 'DataList', children: Object.keys(JOIN_CELLS).map(k => `i-${k}`)},
+  {id: 'root', component: 'DataList', children: Object.keys(JOIN_CELLS).map(k => `i_${k}`)},
   ...Object.keys(JOIN_CELLS).flatMap(key => [
-    {id: `i-${key}`, component: 'DataListItem', label: JOIN_LABELS[key]!, child: `v-${key}`},
+    {id: `i_${key}`, component: 'DataListItem', label: JOIN_LABELS[key]!, child: `v_${key}`},
     {
-      id: `v-${key}`,
+      id: `v_${key}`,
       component: 'DerivedValue',
-      cell: {path: `/cells/${key}`},
+      cell: {'@path': `/cells/${key}`},
       ...JOIN_PROPS[key],
     },
   ]),
@@ -1251,7 +1251,7 @@ function Everything() {
 const PROOF: TreeComponent[] = [
   {id: 'root', component: 'Card', child: 'col'},
   {id: 'col', component: 'Column', children: ['h', 'p', 'b']},
-  {id: 'h', component: 'Text', variant: 'h4', text: 'Same tree, two hosts'},
+  {id: 'h', component: 'Text', text: '#### Same tree, two hosts'},
   {
     id: 'p',
     component: 'Text',

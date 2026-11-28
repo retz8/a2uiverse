@@ -32,7 +32,7 @@ test('a template child list expands one child per element, each in its own data 
   const {container} = renderTree(
     [
       {id: 'root', component: 'Column', children: {path: '/rows', componentId: 'row'}},
-      {id: 'row', component: 'Text', text: {path: 'name'}},
+      {id: 'row', component: 'Text', text: {'@path': 'name'}},
     ],
     {data: {rows: [{name: 'one'}, {name: 'two'}, {name: 'three'}]}},
   );

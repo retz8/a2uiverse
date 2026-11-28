@@ -3,7 +3,7 @@
  * claim's relation, returning whether it holds. The evaluator resolves the refs and calls a
  * relation absent when either side does not resolve; nothing here knows about surfaces.
  */
-import type {DataContext} from '@a2ui/web_core/v0_9';
+import type {DataContext} from '@a2ui/web_core/v1_0';
 import {describe, expect, test} from 'vitest';
 import {OPERATORS} from './operators';
 import {RELATIONS, relationFunctions, relationKind} from './relations';

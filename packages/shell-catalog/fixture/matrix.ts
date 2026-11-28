@@ -81,12 +81,13 @@ function sampleFragment(fragment: JsonSchema, ctx: SampleContext): unknown {
         return [];
       case 'ChildList':
         return [ctx.leaf()];
+      case 'Child':
       case 'ComponentId':
         return ctx.leaf();
       case 'Action':
         return {event: {name: 'tap'}};
       case 'DataBinding':
-        return {path: '/value'};
+        return {'@path': '/value'};
       default:
         return 'x';
     }
@@ -166,8 +167,8 @@ const SEEDS: Record<
   Modal: {
     props: {trigger: 'open', content: 'body'},
     extra: [
-      {id: 'open', component: 'Button', child: 'open-label', action: {event: {name: 'open'}}},
-      text('open-label', 'Open'),
+      {id: 'open', component: 'Button', child: 'open_label', action: {event: {name: 'open'}}},
+      text('open_label', 'Open'),
       text('body', 'Hello from the dialog'),
     ],
   },
@@ -176,8 +177,11 @@ const SEEDS: Record<
     props: {child: 'label', action: {event: {name: 'save'}}},
     extra: [text('label', 'Save')],
   },
-  TextField: {props: {label: 'Name', value: {path: '/name'}}, data: {name: 'Ada Lovelace'}},
-  CheckBox: {props: {label: 'Subscribe', value: {path: '/subscribed'}}, data: {subscribed: true}},
+  TextField: {props: {label: 'Name', value: {'@path': '/name'}}, data: {name: 'Ada Lovelace'}},
+  CheckBox: {
+    props: {label: 'Subscribe', value: {'@path': '/subscribed'}},
+    data: {subscribed: true},
+  },
   ChoicePicker: {
     props: {
       label: 'Size',
@@ -186,13 +190,16 @@ const SEEDS: Record<
         {label: 'Medium', value: 'm'},
         {label: 'Large', value: 'l'},
       ],
-      value: {path: '/size'},
+      value: {'@path': '/size'},
     },
     data: {size: ['m']},
   },
-  Slider: {props: {label: 'Volume', min: 0, max: 10, value: {path: '/volume'}}, data: {volume: 4}},
+  Slider: {
+    props: {label: 'Volume', min: 0, max: 10, value: {'@path': '/volume'}},
+    data: {volume: 4},
+  },
   DateTimeInput: {
-    props: {label: 'When', enableDate: true, enableTime: true, value: {path: '/when'}},
+    props: {label: 'When', enableDate: true, enableTime: true, value: {'@path': '/when'}},
     data: {when: '2026-09-05T11:00'},
   },
   Slot: {props: {source: 'gmail', label: 'Gmail'}},
@@ -228,11 +235,11 @@ const SEEDS: Record<
   },
   DataListItem: {props: {label: 'Source', child: 'v1'}, extra: [text('v1', 'gmail')]},
   DerivedValue: {
-    props: {cell: {path: '/cell'}, format: {kind: 'currency', currency: 'USD'}},
+    props: {cell: {'@path': '/cell'}, format: {kind: 'currency', currency: 'USD'}},
     data: {cell: {value: 899, contributed: 1, of: 2, absent: ['shop-b:list']}},
   },
   SortControl: {
-    props: {sort: {path: '/sorts/0'}},
+    props: {sort: {'@path': '/sorts/0'}},
     data: {
       sorts: [
         {
@@ -250,6 +257,23 @@ const SEEDS: Record<
 };
 
 /**
+ * The samples an enum cannot reach, each one prop over the seeded default: a text's five heading
+ * levels, written with their markers (task-21.12 decision 9), and the three properties v1's basic
+ * catalog adds (task-21.12 decision 6).
+ */
+const SAMPLES: Record<string, Array<{label: string; props: Record<string, unknown>}>> = {
+  Text: [1, 2, 3, 4, 5].map(level => {
+    const markers = '#'.repeat(level);
+    return {label: `text=${markers}`, props: {text: `${markers} A heading of level ${level}`}};
+  }),
+  Video: [{label: 'posterUrl', props: {posterUrl: IMAGE_URL}}],
+  TextField: [
+    {label: 'placeholder', props: {value: {'@path': '/blank'}, placeholder: 'Ada Lovelace'}},
+  ],
+  Slider: [{label: 'steps=5', props: {steps: 5}}],
+};
+
+/**
  * A minimal valid tree for the component: `root` is the component itself, then the leaves the
  * sample needed. `overrides` is the sweep's one varied prop.
  */
@@ -264,7 +288,7 @@ export function sampleTree(
   const ctx: SampleContext = {
     leaves,
     leaf() {
-      const id = `leaf-${leaves.length + 1}`;
+      const id = `leaf_${leaves.length + 1}`;
       leaves.push(text(id, `Child ${leaves.length + 1}`));
       return id;
     },
@@ -289,6 +313,7 @@ export function sampleTree(
 function childIdsIn(fragment: JsonSchema, value: unknown): string[] {
   if (fragment.$ref) {
     switch (refName(fragment.$ref)) {
+      case 'Child':
       case 'ComponentId':
         return typeof value === 'string' ? [value] : [];
       case 'ChildList':
@@ -322,7 +347,10 @@ export function namedChildIds(schema: CatalogSchema, sample: Sample): string[] {
   });
 }
 
-/** The whole sweep for one component: the seeded default, then one tree per enum value. */
+/**
+ * The whole sweep for one component: the seeded default, then one tree per enum value, then the
+ * samples no enum reaches.
+ */
 export function sweep(
   schema: CatalogSchema,
   name: string,
@@ -337,5 +365,9 @@ export function sweep(
         sample: sampleTree(schema, name, {[prop]: value}),
       })),
     ),
+    ...(SAMPLES[name] ?? []).map(({label, props}) => ({
+      label,
+      sample: sampleTree(schema, name, props),
+    })),
   ];
 }

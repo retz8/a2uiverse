@@ -4,7 +4,16 @@ import {renderTree} from '../../testing/render';
 
 test('moving the thumb writes the number back to the bound path', () => {
   const {surface} = renderTree(
-    [{id: 'root', component: 'Slider', label: 'Volume', min: 0, max: 10, value: {path: '/volume'}}],
+    [
+      {
+        id: 'root',
+        component: 'Slider',
+        label: 'Volume',
+        min: 0,
+        max: 10,
+        value: {'@path': '/volume'},
+      },
+    ],
     {data: {volume: 4}},
   );
   const thumb = screen.getByRole('slider');
@@ -23,4 +32,28 @@ test('renders on Radix Slider with the value shown beside the label', () => {
   expect(container.querySelector('.rt-SliderRoot')).not.toBeNull();
   expect(screen.getByText('7')).toBeInTheDocument();
   expect(screen.getByRole('slider')).toHaveAttribute('aria-valuemax', '10');
+});
+
+test('steps divides the range into that many steps the thumb snaps to (task-21.12 decision 6)', () => {
+  const {surface} = renderTree(
+    [
+      {
+        id: 'root',
+        component: 'Slider',
+        label: 'Volume',
+        min: 0,
+        max: 100,
+        steps: 4,
+        value: {'@path': '/volume'},
+      },
+    ],
+    {data: {volume: 50}},
+  );
+  const thumb = screen.getByRole('slider');
+  thumb.focus();
+  fireEvent.keyDown(thumb, {key: 'ArrowRight'});
+  expect(surface.dataModel.get('/volume')).toBe(75);
+  fireEvent.keyDown(screen.getByRole('slider'), {key: 'ArrowLeft'});
+  fireEvent.keyDown(screen.getByRole('slider'), {key: 'ArrowLeft'});
+  expect(surface.dataModel.get('/volume')).toBe(25);
 });

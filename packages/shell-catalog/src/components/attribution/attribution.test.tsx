@@ -114,7 +114,7 @@ import {FragmentHistoryContext, type FragmentHistory} from '../../fragment-histo
 import {PressStateContext} from '../../press-state';
 import {renderTree, surfaceFor, SURFACE_ID} from '../../testing/render';
 import type {PressHandler} from '../slot/slot';
-import {A2uiSurface} from '@a2ui/react/v0_9';
+import {A2uiSurface} from '@a2ui/react';
 import {Provider} from '../../provider';
 
 function withHistory(history: Record<string, FragmentHistory>, node: React.ReactNode) {
@@ -552,7 +552,7 @@ test('a repaint that drops the request takes the chip and its card away', async 
   await act(async () =>
     processor.processMessages([
       {
-        version: 'v0.9',
+        version: '1.0',
         updateComponents: {
           surfaceId: SURFACE_ID,
           components: [

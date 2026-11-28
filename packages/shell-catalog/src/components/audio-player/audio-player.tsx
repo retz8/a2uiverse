@@ -1,6 +1,6 @@
 import type {CSSProperties} from 'react';
-import {createComponentImplementation} from '@a2ui/react/v0_9';
-import {AudioPlayerApi} from '@a2ui/web_core/v0_9';
+import {createComponentImplementation} from '@a2ui/react';
+import {AudioPlayerApi} from '@a2ui/web_core/catalogs/basic/v1';
 import {Flex, Text} from '@radix-ui/themes';
 import {weightStyle} from '../shared/layout.js';
 

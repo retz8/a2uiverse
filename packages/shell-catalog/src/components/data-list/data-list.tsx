@@ -1,4 +1,4 @@
-import {createComponentImplementation} from '@a2ui/react/v0_9';
+import {createComponentImplementation} from '@a2ui/react';
 import {DataList, Flex, Text} from '@radix-ui/themes';
 import {createContext, useContext, type ReactNode} from 'react';
 import {renderChildList, type BuildChild} from '../shared/child-list.js';
@@ -59,7 +59,7 @@ export const DataListComponent = createComponentImplementation(
 /** Catalog entry: `label` resolves through the binder; `child` is built by the renderer. */
 export const DataListItemComponent = createComponentImplementation(
   DataListItemApi,
-  ({props, buildChild}: {props: {label: unknown; child: string}; buildChild: BuildChild}) => (
+  ({props, buildChild}: {props: {label?: unknown; child: string}; buildChild: BuildChild}) => (
     <DataListItemView label={String(props.label ?? '')}>
       {props.child ? buildChild(props.child) : null}
     </DataListItemView>

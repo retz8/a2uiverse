@@ -1,6 +1,6 @@
 import {useContext, type CSSProperties, type ReactNode} from 'react';
-import {createComponentImplementation} from '@a2ui/react/v0_9';
-import {ModalApi} from '@a2ui/web_core/v0_9';
+import {createComponentImplementation} from '@a2ui/react';
+import {ModalApi} from '@a2ui/web_core/catalogs/basic/v1';
 import {Cross1Icon} from '@radix-ui/react-icons';
 import {Dialog, Flex, IconButton, VisuallyHidden} from '@radix-ui/themes';
 import {PortalRootContext} from '../../provider.js';

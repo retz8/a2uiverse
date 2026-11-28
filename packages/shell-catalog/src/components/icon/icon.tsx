@@ -1,6 +1,6 @@
 import type {CSSProperties} from 'react';
-import {createComponentImplementation} from '@a2ui/react/v0_9';
-import {IconApi} from '@a2ui/web_core/v0_9';
+import {createComponentImplementation} from '@a2ui/react';
+import {IconApi} from '@a2ui/web_core/catalogs/basic/v1';
 import {QuestionMarkIcon} from '@radix-ui/react-icons';
 import {weightStyle} from '../shared/layout.js';
 import {ICON_GLYPHS, isIconName} from './glyphs.js';

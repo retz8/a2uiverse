@@ -33,7 +33,7 @@ test('orientation lays the list out in a column or side by side, and a bound lab
   const {container} = renderTree(
     [
       {id: 'root', component: 'DataList', orientation: 'vertical', children: ['i1']},
-      {id: 'i1', component: 'DataListItem', label: {path: '/label'}, child: 'v1'},
+      {id: 'i1', component: 'DataListItem', label: {'@path': '/label'}, child: 'v1'},
       {id: 'v1', component: 'Text', text: 'x'},
     ],
     {data: {label: 'Bound label'}},

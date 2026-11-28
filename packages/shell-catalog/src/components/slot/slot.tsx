@@ -4,7 +4,7 @@ import {
   createComponentImplementation,
   type NodeViewProps,
   type ReactComponentImplementation,
-} from '@a2ui/react/v0_9';
+} from '@a2ui/react';
 import {CheckIcon, ExternalLinkIcon, LockClosedIcon, UpdateIcon} from '@radix-ui/react-icons';
 import {Button, Flex, Link, Spinner, Table, Text} from '@radix-ui/themes';
 import {parseSourceId, type CompositionOperation} from '@a2uiverse/sdk';

@@ -51,8 +51,8 @@ test('a template child list expands one row per element, each cell in the elemen
         children: {path: '/rows', componentId: 'row'},
       },
       {id: 'row', component: 'TableRow', children: ['what', 'when']},
-      {id: 'what', component: 'Text', text: {path: 'what'}},
-      {id: 'when', component: 'Text', text: {path: 'when'}},
+      {id: 'what', component: 'Text', text: {'@path': 'what'}},
+      {id: 'when', component: 'Text', text: {'@path': 'when'}},
     ],
     {
       data: {
@@ -269,8 +269,8 @@ describe('the merged view drawn as it is written (task-17.10 decision 4)', () =>
           children: {path: '/rows', componentId: 'row'},
         },
         {id: 'row', component: 'TableRow', children: ['c1', 'c2']},
-        {id: 'c1', component: 'Text', text: {path: 'name'}},
-        {id: 'c2', component: 'Text', text: {path: 'price'}},
+        {id: 'c1', component: 'Text', text: {'@path': 'name'}},
+        {id: 'c2', component: 'Text', text: {'@path': 'price'}},
       ],
       {
         data: {rows: Array.from({length: rows}, (_, i) => ({name: `Camera ${i}`, price: `${i}`}))},

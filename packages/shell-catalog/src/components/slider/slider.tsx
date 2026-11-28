@@ -1,19 +1,21 @@
 import type {CSSProperties} from 'react';
-import {createComponentImplementation} from '@a2ui/react/v0_9';
-import {SliderApi} from '@a2ui/web_core/v0_9';
+import {createComponentImplementation} from '@a2ui/react';
+import {SliderApi} from '@a2ui/web_core/catalogs/basic/v1';
 import {Flex, Slider, Text} from '@radix-ui/themes';
 import {weightStyle} from '../shared/layout.js';
 
 /**
  * `Slider` on Radix `Slider`: the label and the current value in a header row, the control
  * below. Radix's slider is a range of thumbs; the catalog's is one value, so one thumb. Radix
- * Themes exposes no way to name the thumb, so the label stands beside the control.
+ * Themes exposes no way to name the thumb, so the label stands beside the control. `steps` divides
+ * the range into that many equal steps the thumb snaps to, as upstream's implementation reads it.
  */
 export function SliderView({
   label,
   min = 0,
   max,
   value,
+  steps,
   errors,
   onChange,
   style,
@@ -22,11 +24,14 @@ export function SliderView({
   min?: number;
   max: number;
   value?: number;
+  steps?: number;
   errors?: string[];
   onChange?: (value: number) => void;
   style?: CSSProperties;
 }) {
   const current = typeof value === 'number' ? value : min;
+  const step =
+    typeof steps === 'number' && steps > 0 && max > min ? (max - min) / steps : undefined;
   const error = errors?.[0];
   return (
     <Flex direction="column" gap="2" style={style}>
@@ -44,6 +49,7 @@ export function SliderView({
         size="2"
         min={min}
         max={max}
+        step={step}
         value={[current]}
         onValueChange={([next]) => onChange?.(next)}
       />
@@ -56,13 +62,14 @@ export function SliderView({
   );
 }
 
-/** Catalog entry: `label` and `value` arrive resolved; `min`/`max` are fixed; `setValue` is the binder's two-way write. */
+/** Catalog entry: `label` and `value` arrive resolved; `min`/`max`/`steps` are fixed; `setValue` is the binder's two-way write. */
 export const SliderComponent = createComponentImplementation(SliderApi, ({props}) => (
   <SliderView
     label={props.label}
     min={props.min}
     max={props.max}
     value={props.value}
+    steps={props.steps}
     errors={props.validationErrors}
     onChange={props.setValue}
     style={weightStyle(props.weight)}
