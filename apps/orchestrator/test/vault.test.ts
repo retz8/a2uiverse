@@ -433,6 +433,13 @@ async function signInLinesWith(expected: object): Promise<Record<string, unknown
   return lines;
 }
 
+/** Whether the token the vault would send for `source` is one the authorization server holds live. */
+async function liveAt(orchestrator: Orchestrator, source: string): Promise<boolean> {
+  const prepared = await orchestrator.vault.prepare(source);
+  const bearer = prepared && 'headers' in prepared ? prepared.headers.Authorization : undefined;
+  return bearer !== undefined && auth.scopesOf(bearer.replace(/^Bearer /, '')) !== undefined;
+}
+
 describe('before dispatch and the sign-in', () => {
   test('a card the vault cannot meet takes the full tile at first paint, and its agent is not called', async () => {
     const {client} = await boot({
@@ -875,6 +882,8 @@ describe('on the wire', () => {
     expect(said).toContain(
       'bob@example.com is already added to Shop. Close this window and sign in with a different account.',
     );
+    // The server ended bob's earlier sign-in for the refused one: bob holds the refused one's tokens.
+    expect(await liveAt(orchestrator, 'shop.2')).toBe(true);
   });
 });
 
@@ -1673,6 +1682,7 @@ describe("the App Library's side (task 14.3)", () => {
     expect(shownText(await held.callback!.text())).toContain(
       'bob@example.com is already added to Shop. Close this window and sign in with a different account.',
     );
+    expect(await liveAt(orchestrator, 'shop.2')).toBe(true);
     auth.account = {sub: 'sub-cy', email: 'cy@example.com'};
     const back = await signIn(base, canvas, 'shop.1');
     expect(back.outcome).toMatchObject({

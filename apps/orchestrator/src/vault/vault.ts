@@ -918,7 +918,7 @@ export class AuthVault implements AccountStore {
           );
         }
         const other = apps.accounts.find(held => held.sub === claims!.sub && held.n !== attempt.n);
-        if (other) return this.#failHeld(attempt, other, 'accountHeld');
+        if (other) return await this.#refusedAsHeld(attempt, other, grant, tokens);
         rebound = true;
       }
       const bound = attempt.purpose === 'again' || attempt.purpose === 'escalation';
@@ -928,7 +928,7 @@ export class AuthVault implements AccountStore {
         const held = apps.accounts.find(other => other.sub === claims!.sub);
         // A signed-out number comes back as itself, never onto another account (decision 5).
         if (attempt.restore && held && held.n !== attempt.n) {
-          return this.#failHeld(attempt, held, 'accountHeld');
+          return await this.#refusedAsHeld(attempt, held, grant, tokens);
         }
         account = held ?? (attempt.restore ? this.#account(attempt.appId, attempt.n) : undefined);
       }
@@ -1115,6 +1115,28 @@ export class AuthVault implements AccountStore {
     });
     logLine(`🔑 ${attempt.result} signed in (${attempt.purpose})`);
     return attempt;
+  }
+
+  /**
+   * A sign-in that came back as an identity another of the app's accounts holds: refused, naming
+   * that account. The server signed that account in again all the same, and one that keeps a single
+   * sign-in per account and client, as the agent kit's does, ended the held one's with it: the held
+   * account takes the tokens the refused sign-in brought back, so it stays signed in (task 21.9).
+   */
+  async #refusedAsHeld(
+    attempt: Attempt,
+    held: VaultAccount,
+    grant: Grant,
+    tokens: TokenResponse,
+  ): Promise<Attempt> {
+    if (held.kind === 'oauth' && held.issuer === grant.metadata.issuer) {
+      held.clientId = grant.clientId;
+      held.tokenEndpoint = grant.metadata.token_endpoint;
+      applyTokens(held, tokens, union(held.scopes, attempt.keys));
+      delete held.again;
+      await this.#deps.store.save();
+    }
+    return this.#failHeld(attempt, held, 'accountHeld');
   }
 
   /** An identity or a key another of the app's accounts holds: refused, naming that account. */
