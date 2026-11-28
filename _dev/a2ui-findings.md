@@ -1447,3 +1447,40 @@ A2UIVerse's validator sets `targetVersion` to `1.0`, so every message stamped ot
 ### Prior art
 
 Pull request [#2997](https://github.com/a2ui-project/a2ui/pull/2997) (merged) added a version adapter registry to the Dart core. No issue or pull request reports a message applied to a surface of another version (searched "targetVersion", "version mismatch surface", "v0.9 message on v1.0 surface", "mixed version surface", "protocolVersion surface message version", "message version differs surface", on 2026-11-28).
+
+## 40. The v1.0 evolution guide names the identifier rule for catalog entity names, and a component's `id` must follow it too (spec)
+
+**Component:** at `7a776e7a4`, the commit `@a2ui/web_core` 0.16.1 was released from: the evolution guide, `specification/v1_0/docs/evolution_guide.md`, its summary (line 20), its catalog changes (line 50), its processing rules (line 116) and its migration steps for agents (line 171) and renderers (line 190); beside it the protocol document, `specification/v1_0/docs/a2ui_protocol.md` (line 501), and `PayloadValidator` in `typescript/core/web_core/src/validation/payload-validator.ts` (line 230).
+
+**Severity:** a v0.9 payload migrated by the guide's steps is refused on v1.0 whenever a component id holds a hyphen, the commonest spelling in upstream's own v0.9 examples. Nothing in the guide tells an agent author to rename the ids.
+
+**Reported:** not filed.
+
+### Issue
+
+Every time the evolution guide states the identifier rule, it names catalog entities: "component names, function names, and argument keys" (lines 20 and 50), "catalog entity naming compliance" (line 116), "all generated catalog entity names" (line 171) and "all catalog entity names (components, functions, prop keys)" (line 190). None of its migration steps names component ids.
+
+The protocol document requires the rule of every component instance: `id` "MUST follow the Catalog Entity Naming Rules (UAX #31): `user_card` and `userCard` are valid; `user-card` and `1st_item` are not" (line 501). `@a2ui/web_core` 0.16.1 enforces it on a v1.0 surface (line 230).
+
+Upstream's basic catalog examples follow the protocol document, not the guide. The 43 examples kept as a v0.9, a v0.9.1 and a v1 copy hold 574 component ids in each copy. The v0.9 and v0.9.1 copies hold 398 ids the rule refuses; the v1 copies hold none, every hyphen an underscore.
+
+### Reproduction
+
+`MessageProcessor` from `@a2ui/web_core` 0.16.1 with the v1 basic catalog read by `Catalog.fromJson` at `1.0`: a `createSurface` at `1.0`, then an `updateComponents` at `1.0` with a root `Column` whose child is a `Text` with the id `go-label`. Run on 2026-11-28.
+
+| Rules                | The `updateComponents`                                                                    |
+| -------------------- | ----------------------------------------------------------------------------------------- |
+| no options           | refused: `A2uiValidationError: Component id 'go-label' must be a valid UAX #31 identifier` |
+| `validationConfig: {}` | refused: `A2uiValidationError: Component id 'go-label' must be a valid UAX #31 identifier` |
+
+The same payload with the id `go_label` is applied.
+
+### Fix
+
+Name component ids beside catalog entity names in the guide's summary and processing rules, and add a migration step for agents: rename every component id that is not a UAX #31 identifier, with every reference to it, as the v1 copies of the basic catalog examples have them.
+
+A2UIVerse's converter renames each refused id by turning its hyphens into underscores, at its definition and wherever a position refers to it, and stops on an id the rewrite does not make conform or on two ids of a surface landing on one (task-21.11 decision 4).
+
+### Prior art
+
+Issue [#3390](https://github.com/a2ui-project/a2ui/issues/3390) (closed by pull request [#3394](https://github.com/a2ui-project/a2ui/pull/3394), merged 2026-10-22) reported that the Express decompilers did not account for the v1.0 rule that component ids themselves must be UAX 31 identifiers; the fix is in the Express grammar and decompilers, not the guide. No issue or pull request reports the guide's migration steps leaving out component ids (searched "UAX component id", "evolution guide component id", "hyphen component id", "UAX #31 migration", "component id identifier v1.0", "identifier rule", "XID_Start", on 2026-11-28).
