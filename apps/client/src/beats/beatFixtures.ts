@@ -94,6 +94,8 @@ export interface BeatFixture {
   contextId: string;
   /** Set when the beat was recorded as a follow-up inside another beat's conversation. */
   chainedFrom: string | null;
+  /** Set on a beat the converter carried to A2UI v1.0: the versions its messages were stamped before. */
+  convertedFrom?: string[];
   /** Set when the recorder started the orchestrator itself, so it knows them. */
   deadlines?: BeatDeadlines;
   /** The AgentsPool's fault map the beat was recorded under (`A2UIVERSE_FAULTS`), when any. */

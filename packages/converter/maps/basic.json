@@ -1,0 +1,14 @@
+{
+  "name": "basic",
+  "from": {
+    "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+    "repo": "a2uiverse",
+    "path": "packages/sdk/a2ui-spec/catalogs/basic/v0_9_1/catalog.json"
+  },
+  "to": {
+    "catalogId": "https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json",
+    "repo": "a2uiverse",
+    "path": "packages/sdk/a2ui-spec/catalogs/basic/v1/catalog.json"
+  },
+  "heading": "Text"
+}
