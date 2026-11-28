@@ -1946,13 +1946,17 @@ describe('quiescence (task 8.10)', () => {
     const contextId = crypto.randomUUID();
     const turn = streamOf(client, utterance('compare', contextId));
     await until(() => synthesizer.calls.length === 1, 'the merge is being made');
-    const before = turn.events.length;
+    const working = (e: AnyEvent) =>
+      isStatusUpdate(e) && stateOf(e) === TaskState.TASK_STATE_WORKING && !endsTurn(e);
+    const bare = (e: AnyEvent) =>
+      working(e) && statusOf(e)?.message === undefined && stampOf(e) === undefined;
+    // The silence starts at the first beat: what the turn sent before it may still be arriving
+    // as the merge begins, and one stream delivers in order.
+    const opened = turn.events.length;
+    await until(() => turn.events.slice(opened).some(bare), 'a first beat');
+    const before = turn.events.findIndex((e, i) => i >= opened && bare(e));
     await wait(700);
-    const beats = turn.events
-      .slice(before)
-      .filter(
-        e => isStatusUpdate(e) && stateOf(e) === TaskState.TASK_STATE_WORKING && !endsTurn(e),
-      );
+    const beats = turn.events.slice(before).filter(working);
     expect(beats.length).toBeGreaterThanOrEqual(2);
     for (const beat of beats) {
       expect(statusOf(beat)?.message).toBeUndefined();
