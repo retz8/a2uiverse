@@ -124,14 +124,14 @@ The **descriptor**, `artifact.json`, names everything:
   "schema": "catalog.json",
   "hostInterface": "0.16.1",
   "files": {
-    "catalog.json": "sha256-Oh2nkmMlLbWW3dMdYNClrCyQ6PQCTX6Ta8rkWBIxcLQ=",
+    "catalog.json": "sha256-OwxkiVSgeVnR9tyPR+ID+VEd8fZnUYdDAqgiB8qDZaU=",
     "dist/primer-scoped.css": "sha256-wUxytl+aoj55Eo3DO4U/78JsiZffBgRd0Hd/uzQ0jNo=",
-    "index.js": "sha256-XJaOMAzaicLz0wXSPnP+V2kYRXVeDLJpHiOvrrBWyJE=",
+    "index.js": "sha256-V/LiCEUuiqDLhu2wlZFFm6EILy7TiTkxFEkxX+oDLfk=",
     "node_modules/@primer/react/dist/ActionBar/ActionBar-3767d551.css": "sha256-70jMseXmGWC1itfLStJn1OMCy+3PJpF3meCiRx3uVC0="
     // …
   },
-  "package": {"name": "github-catalog", "version": "0.2.2"},
-  "packedBy": {"tool": "@a2uiverse/stellify", "version": "0.3.0"}
+  "package": {"name": "github-catalog", "version": "0.3.0"},
+  "packedBy": {"tool": "@a2uiverse/stellify", "version": "0.13.0"}
 }
 ```
 
