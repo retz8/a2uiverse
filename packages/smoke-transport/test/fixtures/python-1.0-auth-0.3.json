@@ -43,7 +43,7 @@
       "streaming": true,
       "extensions": [
         {
-          "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+          "uri": "https://a2ui.org/a2a-extension/a2ui/v1.0",
           "params": {
             "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
           },
@@ -107,7 +107,7 @@
     "url": "http://127.0.0.1:18741/",
     "headers": {
       "a2a-version": "1.0",
-      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v1.0",
       "accept": "text/event-stream",
       "content-type": "application/json"
     },
@@ -116,7 +116,7 @@
       "method": "SendStreamingMessage",
       "params": {
         "message": {
-          "messageId": "c6c78b6f-c8db-4315-867e-8c104d64b918",
+          "messageId": "2fc2c866-904a-4553-9fb9-04bb9d806ea3",
           "role": "ROLE_USER",
           "parts": [
             {
@@ -124,11 +124,8 @@
             }
           ],
           "metadata": {
-            "a2uiClientCapabilities": {
-              "v0.9": {
-                "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
-              },
-              "v0.9.1": {
+            "a2uiRendererCapabilities": {
+              "1.0": {
                 "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
               }
             }
@@ -142,7 +139,7 @@
   "response": {
     "status": 200,
     "contentType": "text/event-stream",
-    "body": "data: {\"result\": {\"task\": {\"id\": \"37f93a98-829a-4a5d-b1e5-9ae64eb54230\", \"contextId\": \"9746e10e-eff6-41d8-a1cf-d72d8b0b1906\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"c6c78b6f-c8db-4315-867e-8c104d64b918\", \"contextId\": \"9746e10e-eff6-41d8-a1cf-d72d8b0b1906\", \"taskId\": \"37f93a98-829a-4a5d-b1e5-9ae64eb54230\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"auth-0.3\"}], \"metadata\": {\"a2uiClientCapabilities\": {\"v0.9\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}, \"v0.9.1\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\ndata: {\"result\": {\"statusUpdate\": {\"taskId\": \"37f93a98-829a-4a5d-b1e5-9ae64eb54230\", \"contextId\": \"9746e10e-eff6-41d8-a1cf-d72d8b0b1906\", \"status\": {\"state\": \"TASK_STATE_AUTH_REQUIRED\", \"message\": {\"messageId\": \"b12b59c7-9f77-462c-9280-0fd79e9a629c\", \"contextId\": \"9746e10e-eff6-41d8-a1cf-d72d8b0b1906\", \"taskId\": \"37f93a98-829a-4a5d-b1e5-9ae64eb54230\", \"role\": \"ROLE_AGENT\", \"parts\": [{\"text\": \"Please sign in.\"}, {\"data\": {\"security\": [{\"signIn\": [\"things.write\"]}]}}]}, \"timestamp\": \"2026-11-14T00:23:58.051297Z\"}}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\n",
+    "body": "data: {\"result\": {\"task\": {\"id\": \"f3f006fe-4b9f-434a-90c8-a93aa6436d9f\", \"contextId\": \"502f2da4-9b1c-4848-b194-d31ba08385bc\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"2fc2c866-904a-4553-9fb9-04bb9d806ea3\", \"contextId\": \"502f2da4-9b1c-4848-b194-d31ba08385bc\", \"taskId\": \"f3f006fe-4b9f-434a-90c8-a93aa6436d9f\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"auth-0.3\"}], \"metadata\": {\"a2uiRendererCapabilities\": {\"1.0\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\ndata: {\"result\": {\"statusUpdate\": {\"taskId\": \"f3f006fe-4b9f-434a-90c8-a93aa6436d9f\", \"contextId\": \"502f2da4-9b1c-4848-b194-d31ba08385bc\", \"status\": {\"state\": \"TASK_STATE_AUTH_REQUIRED\", \"message\": {\"messageId\": \"f83e22b7-5edd-4211-931c-bea137c49a31\", \"contextId\": \"502f2da4-9b1c-4848-b194-d31ba08385bc\", \"taskId\": \"f3f006fe-4b9f-434a-90c8-a93aa6436d9f\", \"role\": \"ROLE_AGENT\", \"parts\": [{\"text\": \"Please sign in.\"}, {\"data\": {\"security\": [{\"signIn\": [\"things.write\"]}]}}]}, \"timestamp\": \"2026-11-28T07:52:51.592772Z\"}}}, \"id\": 1, \"jsonrpc\": \"2.0\"}\r\n\r\n",
     "closedByAgent": true
   }
 }

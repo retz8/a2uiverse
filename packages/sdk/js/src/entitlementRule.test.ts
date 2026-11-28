@@ -76,6 +76,18 @@ describe('the four places', () => {
     ]);
   });
 
+  test("a bare catalogId on a surface created in an earlier event, read by the surface's default the caller names", () => {
+    const table = {id: 'root', component: 'Table', catalogId: OUT};
+    const surfaceCatalog = (id: string) => (id === 's' ? IN : undefined);
+    expect(catalogsOutside([update(table)], entitlement, {schemaFor, surfaceCatalog})).toEqual([]);
+    // A create in the messages is read before the caller's record.
+    expect(
+      catalogsOutside([create(), update(table)], entitlement, {schemaFor, surfaceCatalog}).map(
+        o => o.place,
+      ),
+    ).toEqual(['bareComponent']);
+  });
+
   test("a function call's catalogId: in a property, in an action, in callRendererFunction", () => {
     const call = {'@call': 'formatString', catalogId: OUT, args: {value: 'x'}};
     const text = {id: 'root', component: 'Text', text: call};

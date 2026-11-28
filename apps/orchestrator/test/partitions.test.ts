@@ -51,8 +51,8 @@ describe('materialization', () => {
   test('a rootless updateDataModel replaces the whole model; a bare list of messages is read too', () => {
     const p = new Partitions();
     const event = carrying([
-      {version: 'v0.9', createSurface: {surfaceId: S, catalogId: 'cat'}},
-      {version: 'v0.9', updateDataModel: {surfaceId: S, value: {items, note: 'hi'}}},
+      {version: '1.0', createSurface: {surfaceId: S, catalogId: 'cat'}},
+      {version: '1.0', updateDataModel: {surfaceId: S, value: {items, note: 'hi'}}},
     ]);
     p.apply(event);
     expect(p.get(S)).toEqual({items, note: 'hi'});
@@ -62,8 +62,8 @@ describe('materialization', () => {
     const p = new Partitions();
     const event = carrying({
       messages: [
-        {version: 'v0.9', createSurface: {surfaceId: S, catalogId: 'cat'}},
-        {version: 'v0.9', updateDataModel: {surfaceId: S, value: {items}}},
+        {version: '1.0', createSurface: {surfaceId: S, catalogId: 'cat'}},
+        {version: '1.0', updateDataModel: {surfaceId: S, value: {items}}},
       ],
     });
     expect(p.apply(event)).toEqual([]);

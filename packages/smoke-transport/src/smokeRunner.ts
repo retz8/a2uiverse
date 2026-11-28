@@ -24,13 +24,12 @@ import {
 import {ServiceParameters, withA2AExtensions} from '@a2a-js/sdk/client';
 import {noInterfaceFinding, spokenInterfaces} from '@a2uiverse/card';
 import {
-  A2UI_CLIENT_CAPABILITIES_KEY,
-  A2UI_EXTENSION_URIS,
+  A2UI_EXTENSION_URI,
+  A2UI_RENDERER_CAPABILITIES_KEY,
   a2uiMessagesIn,
-  clientCapabilities,
   readAuthRequired,
+  rendererCapabilities,
   type A2uiMessage,
-  type CatalogIdsByVersion,
 } from '@a2uiverse/sdk';
 import {UnauthorizedError} from './answers.js';
 import {Dialer, NoInterfaceReachedError, type NotReached} from './dial.js';
@@ -63,10 +62,10 @@ export interface SmokeRequest {
    */
   card: AgentCard;
   /**
-   * What the request advertises: the app's catalog ids plus the basic catalog — per A2UI version,
-   * each version's set under its own key, as the hub advertises (task-19.2 decision 6).
+   * What the request advertises: the app's catalog ids plus the basic catalog, under v1.0's key,
+   * as the hub advertises.
    */
-  entitlement: readonly string[] | CatalogIdsByVersion;
+  entitlement: readonly string[];
   words: string;
   timeoutMs: number;
   /** The credential, as the header the card's scheme names; none for a request sent without one. */
@@ -146,7 +145,7 @@ export function a2aSmokeRunner(options: SmokeRunnerOptions = {}): SmokeRunner {
       parts: [
         {content: {$case: 'text', value: words}, metadata: undefined, filename: '', mediaType: ''},
       ],
-      metadata: {[A2UI_CLIENT_CAPABILITIES_KEY]: clientCapabilities(entitlement)},
+      metadata: {[A2UI_RENDERER_CAPABILITIES_KEY]: rendererCapabilities(entitlement)},
       extensions: [],
       referenceTaskIds: [],
     };
@@ -162,9 +161,7 @@ export function a2aSmokeRunner(options: SmokeRunnerOptions = {}): SmokeRunner {
         card,
         params: {tenant: '', message, configuration: undefined, metadata: undefined},
         ...(headers ? {credential: headers} : {}),
-        serviceParameters: ServiceParameters.create(
-          withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS)),
-        ),
+        serviceParameters: ServiceParameters.create(withA2AExtensions(A2UI_EXTENSION_URI)),
         signal,
       });
       reached = {taken: dialed.taken, notReached: dialed.notReached};

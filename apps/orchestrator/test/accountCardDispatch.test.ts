@@ -10,7 +10,7 @@ import {createServer} from 'node:net';
 import {afterEach, describe, expect, test, vi} from 'vitest';
 import {AgentCard} from '@a2a-js/sdk';
 import {readCard, type ServedCard} from '@a2uiverse/card';
-import {A2UI_CLIENT_CAPABILITIES_KEY} from '@a2uiverse/sdk';
+import {A2UI_RENDERER_CAPABILITIES_KEY} from '@a2uiverse/sdk';
 import {
   cardForV1,
   completingScriptV1,
@@ -180,7 +180,7 @@ describe("what the account's card says of sign-in and catalogs changes nothing (
     const sent = agent.requests.at(-1)!;
     expect(sent.headers['x-shop-key']).toBe('alice');
     const capabilities = (sent.message?.metadata as Record<string, unknown>)[
-      A2UI_CLIENT_CAPABILITIES_KEY
+      A2UI_RENDERER_CAPABILITIES_KEY
     ];
     expect(JSON.stringify(capabilities)).toContain(CAT);
     expect(JSON.stringify(capabilities)).not.toContain('other-cat');

@@ -4,6 +4,9 @@ import type {PlanInput, Planner, PlanOutcome, PlanStream} from '../src/planner/p
 import {LAYOUT_SURFACE_TAG} from '../src/planner/prompt.js';
 import {SHELL_SOURCE_ID} from '../src/registry/types.js';
 
+/** The id the fake gives a source's slot: an identifier, the source's dot written as an underscore. */
+export const slotIdOf = (source: string): string => `slot_${source.replace(/[^A-Za-z0-9_]/g, '_')}`;
+
 /** Wraps a document the way the model is asked to answer. */
 export function taggedLayout(document: LayoutSurface): string {
   return `<${LAYOUT_SURFACE_TAG}>\n${JSON.stringify(document)}\n</${LAYOUT_SURFACE_TAG}>`;
@@ -59,8 +62,8 @@ export function layoutFor(
   const request = options.request ?? ((source: string) => `Paint a compact ${source} card.`);
   const ids = [
     ...(options.merged ? ['merged'] : []),
-    ...sources.map(s => `slot-${s}`),
-    ...(options.gaps ?? []).map((_, i) => `gap-${i}`),
+    ...sources.map(slotIdOf),
+    ...(options.gaps ?? []).map((_, i) => `gap_${i}`),
   ];
   return {
     dispatch: [
@@ -82,9 +85,9 @@ export function layoutFor(
       components: [
         {id: 'root', component: 'Column', children: ids},
         ...(options.merged ? [{id: 'merged', component: 'Slot', source: SHELL_SOURCE_ID}] : []),
-        ...sources.map(s => ({id: `slot-${s}`, component: 'Slot', source: s})),
+        ...sources.map(s => ({id: slotIdOf(s), component: 'Slot', source: s})),
         ...(options.gaps ?? []).map((gap, i) => ({
-          id: `gap-${i}`,
+          id: `gap_${i}`,
           component: 'Slot',
           gap: typeof gap === 'string' ? gap : gap.gap,
         })),

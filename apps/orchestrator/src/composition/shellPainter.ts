@@ -1,5 +1,6 @@
 import type {Part} from '@a2a-js/sdk';
 import {
+  A2UI_VERSION,
   a2uiPart as markedA2uiPart,
   paintMetaData,
   shellPart,
@@ -19,9 +20,6 @@ import {
   type GapEntry,
   type SlotAuthorityState,
 } from './state.js';
-
-/** The client's extractor keys off this inline version field. */
-export const A2UI_VERSION = 'v0.9';
 
 type ShellComponent = A2uiComponent;
 

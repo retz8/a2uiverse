@@ -4,7 +4,7 @@ import {dataPart, textPart} from '../src/a2a/parts.js';
 import {workingUpdate, type WireEvent} from '../src/a2a/wire.js';
 import {emptyTouches, mergeTouches, touchesOf} from '../src/journal/surfaces.js';
 
-const a2ui = (op: Record<string, unknown>): Part => dataPart({version: 'v0.9', ...op});
+const a2ui = (op: Record<string, unknown>): Part => dataPart({version: '1.0', ...op});
 
 function statusUpdate(parts: Part[]): WireEvent {
   return workingUpdate({taskId: 't', contextId: 'c'}, {parts});
@@ -51,9 +51,9 @@ describe('touchesOf', () => {
   test('reads a bare list of messages in data, each entry on its own (task-20.4 decision 3)', () => {
     const ev = statusUpdate([
       dataPart([
-        {version: 'v0.9.1', createSurface: {surfaceId: 'arr'}},
+        {version: '1.0', createSurface: {surfaceId: 'arr'}},
         {createSurface: {surfaceId: 'no-version'}},
-        {version: 'v0.9', deleteSurface: {surfaceId: 'gone'}},
+        {version: '1.0', deleteSurface: {surfaceId: 'gone'}},
       ]),
     ]);
     expect(touchesOf(ev)).toEqual({created: ['arr'], updated: [], deleted: ['gone']});
@@ -61,7 +61,7 @@ describe('touchesOf', () => {
 
   test('does not read an object holding a messages list (task-20.4 decision 3)', () => {
     const ev = statusUpdate([
-      dataPart({messages: [{version: 'v0.9.1', createSurface: {surfaceId: 'arr'}}]}),
+      dataPart({messages: [{version: '1.0', createSurface: {surfaceId: 'arr'}}]}),
     ]);
     expect(touchesOf(ev)).toEqual(emptyTouches());
   });

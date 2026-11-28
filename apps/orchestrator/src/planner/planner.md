@@ -185,7 +185,8 @@ in the same tree.
 
 `tree.components` is the list of components a surface is painted from, in the catalog you were
 given: the same components list an agent puts in an `updateComponents`. One component has the id
-`root`; parents come before their children; every id a parent names is declared once.
+`root`; parents come before their children; every id a parent names is declared once. An id is
+letters, digits and underscores, starting with a letter: `app_row`, never `app-row`.
 
 - **`Slot` is your placeholder for an answer.** Write exactly one `Slot` per dispatch entry: for an
   agent or the merged view, `{"component": "Slot", "source": "<its source>"}`; for a gap,
@@ -222,8 +223,8 @@ given: the same components list an agent puts in an `updateComponents`. One comp
 `dataModel` holds the values the tree binds to, as plain JSON: strings, numbers, booleans, arrays,
 objects. **Every value is a literal.** Never a formula, never a reference into an agent's data — the
 layout surface holds the platform's own values only. A list the tree templates over
-(`{"path": "/apps", "componentId": "app-row"}`) is an array in the model; each element's bindings
-are relative to it (`{"path": "name"}`). Leave it `{}` when the tree binds nothing.
+(`{"path": "/apps", "componentId": "app_row"}`) is an array in the model; each element's bindings
+are relative to it (`{"@path": "name"}`). Leave it `{}` when the tree binds nothing.
 
 ## The title
 

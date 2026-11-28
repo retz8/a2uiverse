@@ -58,15 +58,15 @@ type Path = 'A2A 0.3' | 'A2A 1.0' | 'A2A 1.0 through its 0.3 layer';
 const PATHS: Path[] = ['A2A 0.3', 'A2A 1.0', 'A2A 1.0 through its 0.3 layer'];
 
 /** The two A2UI messages of one paint, as `data` carries them. */
-const CREATE = {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: CAT}};
+const CREATE = {version: '1.0', createSurface: {surfaceId: 's1', catalogId: CAT}};
 const UPDATE = {
-  version: 'v0.9',
+  version: '1.0',
   updateComponents: {surfaceId: 's1', components: [{id: 'root', component: 'Text', text: 'hi'}]},
 };
 const NAMESPACED = [
-  {version: 'v0.9', createSurface: {surfaceId: 'shop:s1', catalogId: CAT}},
+  {version: '1.0', createSurface: {surfaceId: 'shop:s1', catalogId: CAT}},
   {
-    version: 'v0.9',
+    version: '1.0',
     updateComponents: {
       surfaceId: 'shop:s1',
       components: [{id: 'root', component: 'Text', text: 'hi'}],
@@ -223,25 +223,19 @@ describe.each(PATHS)('what the dispatch and the relay read from an agent on %s',
   });
 
   test('a bare list in data is read, each entry on its own, and relayed as a list', async () => {
-    const unspoken = {version: 'v0.8', beginRendering: {surfaceId: 's1'}};
-    const {pool} = await poolFor(
-      path,
-      answering({data: [CREATE, {note: 'no version'}, unspoken, UPDATE]}),
-    );
+    const {pool} = await poolFor(path, answering({data: [CREATE, {note: 'no version'}, UPDATE]}));
     const {record, composed, touches, history, partitions} = await relayed(
       pool.dispatch('shop', turn()),
     );
     expect(record.outcome).toBe('completed');
-    expect(valuesOf(composed)).toEqual([
-      [NAMESPACED[0], {note: 'no version'}, unspoken, NAMESPACED[1]],
-    ]);
+    expect(valuesOf(composed)).toEqual([[NAMESPACED[0], {note: 'no version'}, NAMESPACED[1]]]);
     expect(touches).toEqual({created: ['shop:s1'], updated: ['shop:s1'], deleted: []});
     expect(history.paintsOf('shop')).toEqual({count: 1, at: 0});
     expect(partitions.has('shop:s1')).toBe(true);
   });
 
   test('a paint outside the entitlement is refused inside a list as it is alone', async () => {
-    const outside = {version: 'v0.9', createSurface: {surfaceId: 's2', catalogId: 'urn:other'}};
+    const outside = {version: '1.0', createSurface: {surfaceId: 's2', catalogId: 'urn:other'}};
     const {pool} = await poolFor(path, answering({data: [CREATE, outside]}));
     const {record, composed} = await relayed(pool.dispatch('shop', turn()));
     expect(record).toMatchObject({outcome: 'failed', cause: 'catalog', catalogId: 'urn:other'});
@@ -262,7 +256,7 @@ describe.each(PATHS)('what the dispatch and the relay read from an agent on %s',
   });
 
   test('A2UI in an artifact is not read: relayed as it is, no surface, no paint, nothing refused', async () => {
-    const outside = {version: 'v0.9', createSurface: {surfaceId: 's2', catalogId: 'urn:other'}};
+    const outside = {version: '1.0', createSurface: {surfaceId: 's2', catalogId: 'urn:other'}};
     const carried: Carried[] = [{data: CREATE}, {data: UPDATE}, {data: outside}];
     const {pool} = await poolFor(path, {
       v03: ({ctx}) => [
@@ -296,7 +290,7 @@ describe.each(PATHS)('what the dispatch and the relay read from an agent on %s',
 
 describe('what an agent receives for a press (task-20.4 decisions 5, 7)', () => {
   const ACTION = {
-    version: 'v0.9',
+    version: '1.0',
     action: {name: 'open', surfaceId: 's1', sourceComponentId: 'row', timestamp: 't', context: {}},
   };
   const press = () => turn([a2uiPart(ACTION)]);
@@ -311,7 +305,7 @@ describe('what an agent receives for a press (task-20.4 decisions 5, 7)', () => 
     expect(extensionsHeader).toContain('https://a2ui.org/a2a-extension/a2ui/');
     expect(headers['a2a-extensions']).toBeUndefined();
     expect(message.extensions ?? []).toEqual([]);
-    expect(message.metadata).toHaveProperty('a2uiClientCapabilities');
+    expect(message.metadata).toHaveProperty('a2uiRendererCapabilities');
   });
 
   test('an agent on A2A 1.0: one message in the part, marked in metadata.mimeType and in mediaType', async () => {
@@ -329,7 +323,7 @@ describe('what an agent receives for a press (task-20.4 decisions 5, 7)', () => 
     expect(headers['a2a-extensions']).toContain('https://a2ui.org/a2a-extension/a2ui/');
     expect(headers['x-a2a-extensions']).toBeUndefined();
     expect(message?.extensions ?? []).toEqual([]);
-    expect(message?.metadata).toHaveProperty('a2uiClientCapabilities');
+    expect(message?.metadata).toHaveProperty('a2uiRendererCapabilities');
   });
 
   test('an agent on A2A 1.0 reached through its 0.3 layer: the 0.3 wire, mediaType left off', async () => {
@@ -427,11 +421,11 @@ describe.each(['1.0', '0.3'])(
   version => {
     const FIXTURE_CATALOG = 'https://example.com/catalogs/fake/v1/catalog.json';
     const create = {
-      version: 'v0.9',
+      version: '1.0',
       createSurface: {surfaceId: 'shop:s1', catalogId: FIXTURE_CATALOG},
     };
     const update = {
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {
         surfaceId: 'shop:s1',
         components: [{id: 'root', component: 'Text', text: 'hi'}],

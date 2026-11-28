@@ -2,9 +2,9 @@
 import {dataPart} from '../src/a2a/parts.js';
 import {workingUpdate, type WireStatusUpdate} from '../src/a2a/wire.js';
 
-/** A relayed paint: a working status update whose message carries each A2UI v0.9 op as a data part. */
+/** A relayed paint: a working status update whose message carries each A2UI op as a data part. */
 export function paint(...ops: Array<Record<string, unknown>>): WireStatusUpdate {
-  return carrying(...ops.map(op => ({version: 'v0.9', ...op})));
+  return carrying(...ops.map(op => ({version: '1.0', ...op})));
 }
 
 /** A working status update whose message carries each object as a data part, as written. */

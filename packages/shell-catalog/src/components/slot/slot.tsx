@@ -796,19 +796,28 @@ export function failureStatement(failure: SlotFailure | undefined): string {
       // The app's live card is signed and did not pass the check (task-20.7 decision 13); the
       // words name no signature and no key.
       return 'This app’s details couldn’t be confirmed, so it isn’t shown.';
+    case 'older':
+      // The app paints, or declares on its card, only an A2UI version below the one the platform
+      // speaks (task-21.13 decisions 6, 7); the words name no version.
+      return 'This app is built in an older format A2UIVerse no longer supports.';
+    case 'newer':
+      return 'This app is built in a newer format than this A2UIVerse supports.';
     default:
       return 'This app couldn’t answer.';
   }
 }
 
+/** The causes whose tile offers no Retry. */
+const NO_RETRY: ReadonlySet<string> = new Set(['catalog', 'credential', 'older', 'newer']);
+
 /**
  * Whether the tile offers Retry (task-11.5 decision 9): every cause but `catalog` — a paint the
  * hub refused outside the app's catalogs fails the same way again, so there is nothing to retry —
- * and `credential`, a paint refused for a credential field the agent did not repair (task-12.2
- * decision 7).
+ * `credential`, a paint refused for a credential field the agent did not repair (task-12.2
+ * decision 7), and `older` and `newer`, an app on another A2UI version (task-21.13 decision 6).
  */
 export function failureRetries(failure: SlotFailure | undefined): boolean {
-  return failure?.cause !== 'catalog' && failure?.cause !== 'credential';
+  return failure === undefined || !NO_RETRY.has(failure.cause);
 }
 
 /**

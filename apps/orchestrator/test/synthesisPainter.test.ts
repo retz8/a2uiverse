@@ -4,17 +4,21 @@ import type {SynthesisTree} from '../src/synthesizer/document.js';
 import {TaskState} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
 import {dataOf} from '../src/a2a/parts.js';
+import {partsChecked} from './paintChecked.js';
 import {
   synthesisEnvelope,
-  synthesisParts,
+  synthesisParts as paintSynthesisParts,
   synthesisSurfaceId,
 } from '../src/composition/synthesisPainter.js';
+
+const synthesisParts = (...args: Parameters<typeof paintSynthesisParts>) =>
+  partsChecked(paintSynthesisParts(...args));
 
 const tree: SynthesisTree = {
   components: [
     {id: 'root', component: 'Column', children: ['sort', 'cell']},
-    {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
-    {id: 'cell', component: 'DerivedValue', cell: {path: '/best'}, format: {kind: 'number'}},
+    {id: 'sort', component: 'SortControl', sort: {'@path': '/sorts/0'}},
+    {id: 'cell', component: 'DerivedValue', cell: {'@path': '/best'}, format: {kind: 'number'}},
   ],
 };
 
@@ -25,7 +29,7 @@ describe('the model-authored tree (task-5.4 decision 10)', () => {
     const parts = synthesisParts(tree);
     expect(synthesisSurfaceId()).toBe('shell:synthesis');
     expect(dataOf(parts[0])).toEqual({
-      version: 'v0.9',
+      version: '1.0',
       createSurface: {surfaceId: 'shell:synthesis', catalogId: SHELL_CATALOG_ID},
     });
   });
@@ -33,7 +37,7 @@ describe('the model-authored tree (task-5.4 decision 10)', () => {
   test('paints the components verbatim', () => {
     const parts = synthesisParts(tree);
     expect(dataOf(parts[1])).toEqual({
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {surfaceId: 'shell:synthesis', components: tree.components},
     });
   });

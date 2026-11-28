@@ -1,12 +1,6 @@
 import {Ajv2020} from 'ajv/dist/2020.js';
-import {
-  formatA2uiFinding,
-  parseSourceId,
-  schemaErrors,
-  type A2uiComponent,
-  type A2uiFinding,
-  type A2uiValidator,
-} from '@a2uiverse/sdk';
+import {parseSourceId, schemaErrors, type A2uiComponent} from '@a2uiverse/sdk';
+import type {TreeCheck} from '../authoring/treeCheck.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import {
   isAccountChoice,
@@ -44,8 +38,8 @@ import type {SearchRecord} from './storeSearch.js';
  * blank; it holds one `Slot` by its app, and is no vendor source of a merged view (decision 6).
  */
 export interface LayoutChecks {
-  /** The sdk's A2UI validator over the layout surface's pruned catalog. */
-  tree: A2uiValidator;
+  /** The tree check over the layout surface's pruned catalog: the validator and the schema form. */
+  tree: TreeCheck;
   /**
    * The sources of the apps on this turn's shortlist — every account of each (task-12.4
    * decision 2) — the only sources the dispatch may name.
@@ -66,7 +60,7 @@ export interface LayoutChecks {
 export type LayoutValidation = {ok: true; document: LayoutSurface} | {ok: false; errors: string[]};
 
 /** The id prefix the painter uses for the wrappers it adds; a model id must not collide with it. */
-export const PAINTER_ID_PREFIX = 'attribution-';
+export const PAINTER_ID_PREFIX = 'attribution_';
 
 const ajv = new Ajv2020({allErrors: true, strict: true, allowUnionTypes: true});
 const outputSchema = ajv.compile(LAYOUT_SURFACE_SCHEMA);
@@ -81,7 +75,7 @@ export function validateLayoutSurface(input: unknown, checks: LayoutChecks): Lay
   const document = withAccounts(input as LayoutSurface, checks.shortlist);
   const {components} = document.tree;
   const errors = [
-    ...treeErrors(document, checks.tree),
+    ...checks.tree.tree(document.tree.components),
     ...dispatchErrors(document, checks.shortlist),
     ...offerErrors(document, checks.searches ?? [], checks.installed),
     ...slotErrors(document.dispatch, components, {whole: true}),
@@ -150,7 +144,7 @@ export function validateComponent(
   const own = resolved!;
   const before = checks.before;
   const errors = [
-    ...componentTreeErrors(own, checks.tree),
+    ...checks.tree.component(own),
     ...(before.some(({id}) => id === own.id)
       ? [`/tree (${own.id}): the id '${own.id}' is written twice`]
       : []),
@@ -226,46 +220,6 @@ function withAccounts(document: LayoutSurface, shortlist: readonly string[]): La
     return {...rest, source};
   });
   return JSON.stringify(rewritten) === JSON.stringify(document) ? document : rewritten;
-}
-
-const TREE_SURFACE = 'main';
-
-/** The tree as the surface it paints, through the A2UI validator; paths rebased onto `/tree`. */
-function treeErrors(document: LayoutSurface, validator: A2uiValidator): string[] {
-  const findings = validator.validate([
-    {version: 'v0.9', createSurface: {surfaceId: TREE_SURFACE, catalogId: 'shell'}},
-    {
-      version: 'v0.9',
-      updateComponents: {surfaceId: TREE_SURFACE, components: document.tree.components},
-    },
-  ]);
-  return findings.map((finding: A2uiFinding) => {
-    const components = '/1/updateComponents/components';
-    const path = finding.path?.startsWith(components)
-      ? `/tree/components${finding.path.slice(components.length)}`
-      : '/tree';
-    return formatA2uiFinding({...finding, path});
-  });
-}
-
-/**
- * One component through the A2UI validator as an update of a surface already on the client: what
- * it says of the component itself — its type, its props — and nothing of a graph one component
- * cannot complete.
- */
-function componentTreeErrors(component: A2uiComponent, validator: A2uiValidator): string[] {
-  const own = '/0/updateComponents/components/0';
-  return validator
-    .validate([
-      {version: 'v0.9', updateComponents: {surfaceId: TREE_SURFACE, components: [component]}},
-    ])
-    .filter(finding => finding.path?.startsWith(own))
-    .map(finding =>
-      formatA2uiFinding({
-        ...finding,
-        path: `/tree (${component.id})${finding.path!.slice(own.length)}`,
-      }),
-    );
 }
 
 function dispatchErrors(document: LayoutSurface, shortlist: readonly string[]): string[] {
@@ -619,7 +573,7 @@ function appLibraryErrors(
       return;
     }
     if (!isRecord(value)) return;
-    if (value.call === 'openAppLibrary' && isRecord(value.args)) {
+    if (value['@call'] === 'openAppLibrary' && isRecord(value.args)) {
       const app = value.args.app;
       if (typeof app === 'string' && !installed.includes(app)) {
         errors.push(`/tree (${id}): openAppLibrary names '${app}', which is not installed`);

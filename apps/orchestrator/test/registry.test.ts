@@ -2,23 +2,12 @@
 import {readdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {afterEach, describe, expect, test} from 'vitest';
-import {
-  A2UI_EXTENSION_URIS,
-  ARTIFACT_DESCRIPTOR_FILE,
-  artifactIdOf,
-  BASIC_CATALOG_ID,
-} from '@a2uiverse/sdk';
+import {ARTIFACT_DESCRIPTOR_FILE, artifactIdOf, BASIC_CATALOG_ID} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {readCard} from '@a2uiverse/card';
 import {corpusDoc, FakeEmbedder} from '@a2uiverse/embedder';
 import {Registry} from '../src/registry/registry.js';
-import {
-  cardFor,
-  cardUrlOf,
-  fixtureArtifact,
-  testRegistry,
-  type TestRegistry,
-} from './registryFixture.js';
+import {cardFor, fixtureArtifact, testRegistry, type TestRegistry} from './registryFixture.js';
 
 const GMAIL = 'https://example.com/gmail/catalog.json';
 const CALENDAR = 'https://example.com/calendar/catalog.json';
@@ -75,76 +64,6 @@ describe('install', () => {
       agentUrl: 'http://127.0.0.1:12001',
       catalogs: [],
       entitlement: [BASIC_CATALOG_ID],
-      entitlementByVersion: {'v0.9': [BASIC_CATALOG_ID], 'v0.9.1': [BASIC_CATALOG_ID]},
-    });
-  });
-
-  describe('the entitlement per version on the run-time record (task-19.2 decision 1)', () => {
-    test('a one-entry card: both versions one set', async () => {
-      const {registry, cards} = await fresh();
-      const card = cardFor('http://127.0.0.1:11002', {name: 'Gmail', catalogs: [GMAIL]});
-      await registry.install({
-        appId: 'gmail',
-        cardUrl: cards.serve(card),
-        catalogs: [await fixtureArtifact(GMAIL)],
-      });
-      expect(registry.get('gmail').entitlementByVersion).toEqual({
-        'v0.9': [BASIC_CATALOG_ID, GMAIL],
-        'v0.9.1': [BASIC_CATALOG_ID, GMAIL],
-      });
-    });
-
-    test('a two-entry card naming different sets: each version its own, the flat entitlement the union', async () => {
-      const {registry, cards} = await fresh();
-      const card = {
-        ...cardFor('http://127.0.0.1:11002', {name: 'Gmail'}),
-        capabilities: {
-          streaming: true,
-          extensions: [
-            {uri: A2UI_EXTENSION_URIS['v0.9'], params: {supportedCatalogIds: [GMAIL]}},
-            {uri: A2UI_EXTENSION_URIS['v0.9.1'], params: {supportedCatalogIds: [CALENDAR]}},
-          ],
-        },
-      };
-      await registry.install({
-        appId: 'gmail',
-        cardUrl: cards.serve(card),
-        catalogs: [await fixtureArtifact(GMAIL), await fixtureArtifact(CALENDAR)],
-      });
-      expect(registry.get('gmail')).toMatchObject({
-        entitlement: [BASIC_CATALOG_ID, GMAIL, CALENDAR],
-        entitlementByVersion: {
-          'v0.9': [BASIC_CATALOG_ID, GMAIL],
-          'v0.9.1': [BASIC_CATALOG_ID, CALENDAR],
-        },
-      });
-    });
-
-    test('a stored card that does not read: the flat entitlement under both versions', async () => {
-      const {registry, cards, stateDir} = await fresh();
-      const card = cardFor('http://127.0.0.1:11002', {name: 'Gmail', catalogs: [GMAIL]});
-      await registry.install({
-        appId: 'gmail',
-        cardUrl: cards.serve(card),
-        catalogs: [await fixtureArtifact(GMAIL)],
-      });
-      const path = join(stateDir, 'registry', 'registry.json');
-      const file = JSON.parse(await readFile(path, 'utf8')) as {
-        apps: {card: {capabilities: {extensions: {params: unknown}[]}}}[];
-      };
-      file.apps[0].card.capabilities.extensions[0].params = {supportedCatalogIds: 'not-a-list'};
-      await writeFile(path, JSON.stringify(file));
-      cards.hanging.add(cardUrlOf('http://127.0.0.1:11002'));
-      const reopened = new Registry({
-        stateDir,
-        fetchCard: cards.fetch,
-        embedder: new FakeEmbedder(),
-      });
-      await reopened.load();
-      expect(reopened.get('gmail').entitlementByVersion).toEqual({
-        'v0.9': [BASIC_CATALOG_ID, GMAIL],
-        'v0.9.1': [BASIC_CATALOG_ID, GMAIL],
-      });
     });
   });
 
@@ -272,7 +191,7 @@ describe('install', () => {
     test('a malformed catalog declaration is refused with the schema’s error, never read as none', async () => {
       const findings = await refused({card: {catalogs: 'nope' as unknown as string[]}});
       expect(findings).toHaveLength(1);
-      expect(findings[0]).toMatch(/^the card's A2UI v0\.9\.1 extension params/);
+      expect(findings[0]).toMatch(/^the card's A2UI v1\.0 extension params/);
     });
 
     test('a file that does not match its hash, and a file the descriptor does not list', async () => {
@@ -301,13 +220,17 @@ describe('install', () => {
 
     test('a schema whose id is not the descriptor’s, and one that does not compile', async () => {
       const other = await fixtureArtifact(GMAIL, {
-        schema: {catalogId: CALENDAR, components: {Text: {type: 'object'}}},
+        schema: {catalogId: CALENDAR, protocolVersion: '1.0', components: {Text: {type: 'object'}}},
       });
       expect(await refused({card: {catalogs: [GMAIL]}, catalogs: [other]})).toEqual([
         `catalog artifact 1 (${GMAIL}): catalog.json: catalogId is "${CALENDAR}", the descriptor says "${GMAIL}"`,
       ]);
       const broken = await fixtureArtifact(GMAIL, {
-        schema: {catalogId: GMAIL, components: {Broken: {$ref: '#/$defs/nowhere'}}},
+        schema: {
+          catalogId: GMAIL,
+          protocolVersion: '1.0',
+          components: {Broken: {$ref: '#/$defs/nowhere'}},
+        },
       });
       const findings = await refused({card: {catalogs: [GMAIL]}, catalogs: [broken]});
       expect(findings).toEqual([
@@ -318,7 +241,7 @@ describe('install', () => {
     test('a host interface the platform does not supply', async () => {
       const artifact = await fixtureArtifact(GMAIL, {hostInterface: '1.0.0'});
       expect(await refused({card: {catalogs: [GMAIL]}, catalogs: [artifact]})).toEqual([
-        `catalog artifact 1 (${GMAIL}): host interface "1.0.0" is not one the platform supplies (it supplies "0.16.1")`,
+        `catalog artifact 1 (${GMAIL}): host interface "1.0.0" is not one the platform supplies (it supplies "0.16.1-v1.0")`,
       ]);
     });
 
@@ -424,7 +347,11 @@ describe('a held catalog id', () => {
     ]);
     const breaking = await fixtureArtifact(GMAIL, {
       version: '0.2.0',
-      schema: {catalogId: GMAIL, components: {Badge: {type: 'object', properties: {}}}},
+      schema: {
+        catalogId: GMAIL,
+        protocolVersion: '1.0',
+        components: {Badge: {type: 'object', properties: {}}},
+      },
     });
     const result = await registry.install({
       appId: 'inbox',
@@ -449,7 +376,11 @@ describe('a held catalog id', () => {
     ]);
     const breaking = await fixtureArtifact(GMAIL, {
       version: '0.2.0',
-      schema: {catalogId: GMAIL, components: {Badge: {type: 'object', properties: {}}}},
+      schema: {
+        catalogId: GMAIL,
+        protocolVersion: '1.0',
+        components: {Badge: {type: 'object', properties: {}}},
+      },
     });
     const result = await registry.install({
       appId: 'gmail',

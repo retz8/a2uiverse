@@ -17,7 +17,7 @@ afterEach(() => rm(dir, {recursive: true, force: true}));
 
 const utterance: Message = {
   ...userMessage([textPart('what needs my review?')], {
-    metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}, unrelatedKey: {paintId: 1}},
+    metadata: {a2uiRendererDataModel: {version: '1.0', surfaces: {}}, unrelatedKey: {paintId: 1}},
   }),
   messageId: 'u1',
 };
@@ -121,8 +121,8 @@ describe('IntentJournal', () => {
     await turn.close('completed');
     const [entry] = await lines(file);
     expect(entry.clientMetadata).toEqual({
-      keys: ['a2uiClientDataModel', 'unrelatedKey'],
-      dataModelBytes: Buffer.byteLength(JSON.stringify({version: 'v0.9', surfaces: {}})),
+      keys: ['a2uiRendererDataModel', 'unrelatedKey'],
+      dataModelBytes: Buffer.byteLength(JSON.stringify({version: '1.0', surfaces: {}})),
     });
     expect(JSON.stringify(entry)).not.toContain('"surfaces":{}');
   });

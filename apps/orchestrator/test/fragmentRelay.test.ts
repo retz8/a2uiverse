@@ -31,7 +31,7 @@ function statusUpdate(
   };
 }
 
-const a2uiPart = (op: Record<string, unknown>) => dataPart({version: 'v0.9', ...op});
+const a2uiPart = (op: Record<string, unknown>) => dataPart({version: '1.0', ...op});
 
 /** The state a composed event names; an artifact update names none. */
 const stateOf = (event: WireEvent) =>
@@ -56,27 +56,27 @@ describe('composeFragment', () => {
     const unspoken = {version: 'v0.8', beginRendering: {surfaceId: 's1'}};
     const event = statusUpdate([
       dataPart([
-        {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: 'cat'}},
+        {version: '1.0', createSurface: {surfaceId: 's1', catalogId: 'cat'}},
         {note: {surfaceId: 's1'}},
         unspoken,
-        {version: 'v0.9', deleteSurface: {surfaceId: 's2'}},
+        {version: '1.0', deleteSurface: {surfaceId: 's2'}},
       ]),
     ]);
     const [part] = partsOf(composeFragment(event, ctx));
     expect(part.content).toEqual({
       $case: 'data',
       value: [
-        {version: 'v0.9', createSurface: {surfaceId: 'github:s1', catalogId: 'cat'}},
+        {version: '1.0', createSurface: {surfaceId: 'github:s1', catalogId: 'cat'}},
         {note: {surfaceId: 's1'}},
         unspoken,
-        {version: 'v0.9', deleteSurface: {surfaceId: 'github:s2'}},
+        {version: '1.0', deleteSurface: {surfaceId: 'github:s2'}},
       ],
     });
   });
 
   test('an object holding a messages list is not read: relayed as written (task-20.4 decision 3)', () => {
     const wrapped = dataPart({
-      messages: [{version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: 'cat'}}],
+      messages: [{version: '1.0', createSurface: {surfaceId: 's1', catalogId: 'cat'}}],
     });
     const [part] = partsOf(composeFragment(statusUpdate([wrapped]), ctx));
     expect(part).toBe(wrapped);
@@ -178,7 +178,7 @@ describe('composeFragment', () => {
     expect(out.data).toMatchObject({taskId: 't1', contextId: 'c1'});
     expect(stateOf(out)).toBe(TaskState.TASK_STATE_WORKING);
     expect(dataOf(partsOf(out)[0])).toEqual({
-      version: 'v0.9',
+      version: '1.0',
       createSurface: {surfaceId: 'github:s1', catalogId: 'cat'},
     });
     expect(out.data.metadata?.a2uiverse).toEqual({source: 'github', role: 'fragment'});
@@ -327,7 +327,7 @@ describe('retask', () => {
     const event = workingUpdate(
       {taskId: 'plan', contextId: 'ctx'},
       {
-        parts: [dataPart({version: 'v0.9', createSurface: {surfaceId: 'gmail:s1'}})],
+        parts: [dataPart({version: '1.0', createSurface: {surfaceId: 'gmail:s1'}})],
         metadata: {a2uiverse: {source: 'gmail', role: 'fragment'}},
       },
     );

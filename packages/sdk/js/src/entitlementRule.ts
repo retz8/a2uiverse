@@ -41,6 +41,12 @@ export interface EntitlementRuleOptions {
    * the caller does not hold reads every bare `catalogId` as the component's catalog.
    */
   schemaFor?: (catalogId: string) => A2uiCatalogSchema | undefined;
+  /**
+   * The default catalog of a surface created before these messages, by the surface id they name:
+   * a bare `catalogId` on such a surface is read against that catalog's schema (task-21.13
+   * decision 4). A surface these messages create is read by its own create.
+   */
+  surfaceCatalog?: (surfaceId: string) => string | undefined;
 }
 
 type Json = Record<string, unknown>;
@@ -89,7 +95,7 @@ export function catalogsNamed(
   options: EntitlementRuleOptions = {},
 ): NamedCatalog[] {
   const named: NamedCatalog[] = [];
-  const defaults = new Map<string, string>();
+  const defaults = new Map<string, string | undefined>();
   messages.forEach((message, index) => {
     if (!isObject(message)) return;
     const at = `/${index}`;
@@ -113,8 +119,7 @@ export function catalogsNamed(
       const surfaceId = typeof body.surfaceId === 'string' ? body.surfaceId : undefined;
       const tag = surfaceId !== undefined ? {surfaceId} : {};
       if (key === 'createSurface' && surfaceId !== undefined) {
-        if (typeof body.catalogId === 'string') defaults.set(surfaceId, body.catalogId);
-        else defaults.delete(surfaceId);
+        defaults.set(surfaceId, typeof body.catalogId === 'string' ? body.catalogId : undefined);
       }
       if (key === 'createSurface' && typeof body.catalogId === 'string') {
         named.push({
@@ -125,7 +130,12 @@ export function catalogsNamed(
         });
       }
       if (!Array.isArray(body.components)) continue;
-      const fallback = surfaceId !== undefined ? defaults.get(surfaceId) : undefined;
+      const fallback =
+        surfaceId === undefined
+          ? undefined
+          : defaults.has(surfaceId)
+            ? defaults.get(surfaceId)
+            : options.surfaceCatalog?.(surfaceId);
       const schema = fallback !== undefined ? options.schemaFor?.(fallback) : undefined;
       body.components.forEach((component, i) => {
         if (!isObject(component)) return;

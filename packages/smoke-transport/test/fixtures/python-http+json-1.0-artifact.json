@@ -43,7 +43,7 @@
       "streaming": true,
       "extensions": [
         {
-          "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+          "uri": "https://a2ui.org/a2a-extension/a2ui/v1.0",
           "params": {
             "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
           },
@@ -107,13 +107,13 @@
     "url": "http://127.0.0.1:18741/rest/message:stream",
     "headers": {
       "a2a-version": "1.0",
-      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v0.9,https://a2ui.org/a2a-extension/a2ui/v0.9.1",
+      "a2a-extensions": "https://a2ui.org/a2a-extension/a2ui/v1.0",
       "accept": "text/event-stream",
       "content-type": "application/json"
     },
     "body": {
       "message": {
-        "messageId": "8578d37a-a740-408b-b689-05d6139e7c06",
+        "messageId": "b499839a-8ad9-4bd2-bf86-f7398baee992",
         "role": "ROLE_USER",
         "parts": [
           {
@@ -121,11 +121,8 @@
           }
         ],
         "metadata": {
-          "a2uiClientCapabilities": {
-            "v0.9": {
-              "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
-            },
-            "v0.9.1": {
+          "a2uiRendererCapabilities": {
+            "1.0": {
               "supportedCatalogIds": ["https://example.com/catalogs/fake/v1/catalog.json"]
             }
           }
@@ -137,7 +134,7 @@
   "response": {
     "status": 200,
     "contentType": "text/event-stream",
-    "body": "data: {\"task\": {\"id\": \"2d833b03-6d68-4689-a0ac-69f009d17777\", \"contextId\": \"a9fc2566-38cb-4d9f-afd3-6f4f95d2278b\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"8578d37a-a740-408b-b689-05d6139e7c06\", \"contextId\": \"a9fc2566-38cb-4d9f-afd3-6f4f95d2278b\", \"taskId\": \"2d833b03-6d68-4689-a0ac-69f009d17777\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"artifact\"}], \"metadata\": {\"a2uiClientCapabilities\": {\"v0.9\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}, \"v0.9.1\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}\r\n\r\ndata: {\"artifactUpdate\": {\"taskId\": \"2d833b03-6d68-4689-a0ac-69f009d17777\", \"contextId\": \"a9fc2566-38cb-4d9f-afd3-6f4f95d2278b\", \"artifact\": {\"artifactId\": \"ac974cdc-24c3-4e4e-8bd9-d2d117805995\", \"name\": \"paint\", \"parts\": [{\"data\": {\"createSurface\": {\"catalogId\": \"https://example.com/catalogs/fake/v1/catalog.json\", \"surfaceId\": \"s1\"}, \"version\": \"v0.9\"}}, {\"data\": {\"updateComponents\": {\"surfaceId\": \"s1\", \"components\": [{\"id\": \"root\", \"text\": \"hi\", \"component\": \"Text\"}]}, \"version\": \"v0.9\"}}]}}}\r\n\r\ndata: {\"statusUpdate\": {\"taskId\": \"2d833b03-6d68-4689-a0ac-69f009d17777\", \"contextId\": \"a9fc2566-38cb-4d9f-afd3-6f4f95d2278b\", \"status\": {\"state\": \"TASK_STATE_COMPLETED\", \"timestamp\": \"2026-11-14T00:24:05.474557Z\"}}}\r\n\r\n",
+    "body": "data: {\"task\": {\"id\": \"c9c248f5-725b-4131-8396-1c0fd152b66c\", \"contextId\": \"1bb28c99-168f-448e-8949-424bee78e516\", \"status\": {\"state\": \"TASK_STATE_SUBMITTED\"}, \"history\": [{\"messageId\": \"b499839a-8ad9-4bd2-bf86-f7398baee992\", \"contextId\": \"1bb28c99-168f-448e-8949-424bee78e516\", \"taskId\": \"c9c248f5-725b-4131-8396-1c0fd152b66c\", \"role\": \"ROLE_USER\", \"parts\": [{\"text\": \"artifact\"}], \"metadata\": {\"a2uiRendererCapabilities\": {\"1.0\": {\"supportedCatalogIds\": [\"https://example.com/catalogs/fake/v1/catalog.json\"]}}}}]}}\r\n\r\ndata: {\"artifactUpdate\": {\"taskId\": \"c9c248f5-725b-4131-8396-1c0fd152b66c\", \"contextId\": \"1bb28c99-168f-448e-8949-424bee78e516\", \"artifact\": {\"artifactId\": \"4c9f5403-7ee4-4b40-badc-c2635ee0419a\", \"name\": \"paint\", \"parts\": [{\"data\": {\"version\": \"1.0\", \"createSurface\": {\"surfaceId\": \"s1\", \"catalogId\": \"https://example.com/catalogs/fake/v1/catalog.json\"}}}, {\"data\": {\"updateComponents\": {\"components\": [{\"id\": \"root\", \"component\": \"Text\", \"text\": \"hi\"}], \"surfaceId\": \"s1\"}, \"version\": \"1.0\"}}]}}}\r\n\r\ndata: {\"statusUpdate\": {\"taskId\": \"c9c248f5-725b-4131-8396-1c0fd152b66c\", \"contextId\": \"1bb28c99-168f-448e-8949-424bee78e516\", \"status\": {\"state\": \"TASK_STATE_COMPLETED\", \"timestamp\": \"2026-11-28T07:52:59.039821Z\"}}}\r\n\r\n",
     "closedByAgent": true
   }
 }

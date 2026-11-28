@@ -74,7 +74,7 @@ def card_for(port: int, variant: str) -> AgentCard:
             streaming=True,
             extensions=[
                 AgentExtension(
-                    uri='https://a2ui.org/a2a-extension/a2ui/v0.9.1', params=params
+                    uri='https://a2ui.org/a2a-extension/a2ui/v1.0', params=params
                 )
             ],
         ),

@@ -1,11 +1,10 @@
 import {
-  createA2uiValidator,
   type A2uiCatalogSchema,
-  type A2uiValidator,
   type DerivedModel,
   type SortDeclaration,
   type SynthesisPayload,
 } from '@a2uiverse/sdk';
+import {createTreeCheck, type TreeCheck} from '../authoring/treeCheck.js';
 import {RELATIONS} from '@a2uiverse/shell-catalog/schema';
 import {streamText, type LanguageModel} from 'ai';
 import type {Effort, Reasoning} from '../model/getModel.js';
@@ -144,7 +143,7 @@ export class Synthesizer {
   readonly #model: SynthesisModel;
   readonly #effort: Effort | undefined;
   readonly #system: string;
-  readonly #tree: A2uiValidator;
+  readonly #tree: TreeCheck;
   readonly #operators: readonly string[];
   readonly #relations: readonly string[];
 
@@ -159,7 +158,7 @@ export class Synthesizer {
     this.#model = options.model;
     this.#effort = options.effort;
     this.#system = options.systemPrompt;
-    this.#tree = createA2uiValidator({catalog: options.catalog});
+    this.#tree = createTreeCheck(options.catalog, 'synthesis');
     const functions = Object.keys(options.catalog.functions ?? {});
     this.#relations = functions.filter(name => (RELATIONS as readonly string[]).includes(name));
     this.#operators = functions.filter(name => !this.#relations.includes(name));
@@ -300,7 +299,7 @@ const MODEL = 'dataModel';
 class AnswerFollower {
   readonly #stream: SynthesisStream;
   readonly #checks: SynthesisChecks;
-  readonly #validator: A2uiValidator;
+  readonly #validator: TreeCheck;
   readonly #reader = new TaggedBlockReader(SYNTHESIS_TAG, {elements: [[MODEL]]});
   #tree: SynthesisTree | undefined;
   #sorts: SortDeclaration[] | undefined;
@@ -314,7 +313,7 @@ class AnswerFollower {
   #waiting: BlockPiece[] = [];
   #telling = true;
 
-  constructor(stream: SynthesisStream, checks: SynthesisChecks, validator: A2uiValidator) {
+  constructor(stream: SynthesisStream, checks: SynthesisChecks, validator: TreeCheck) {
     this.#stream = stream;
     this.#checks = checks;
     this.#validator = validator;

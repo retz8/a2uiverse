@@ -99,6 +99,8 @@ export const FAILURE_CAUSES = [
   'credential',
   'interface',
   'unconfirmed',
+  'older',
+  'newer',
 ] as const;
 export type FailureCause = (typeof FAILURE_CAUSES)[number];
 

@@ -53,11 +53,11 @@ describe.skipIf(!live)('Synthesizer (live)', () => {
       parts: [
         {
           kind: 'data' as const,
-          data: {version: 'v0.9', createSurface: {surfaceId: surface, catalogId: 'c'}},
+          data: {version: '1.0', createSurface: {surfaceId: surface, catalogId: 'c'}},
         },
         {
           kind: 'data' as const,
-          data: {version: 'v0.9', updateDataModel: {surfaceId: surface, value: data}},
+          data: {version: '1.0', updateDataModel: {surfaceId: surface, value: data}},
         },
       ],
     });

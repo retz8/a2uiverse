@@ -2,7 +2,7 @@
  * The Synthesizer (task-5.4 decisions 3–5, task-6.3 decision 9): the text loop — extract,
  * validate, one retry — and the one validator over the document.
  */
-import {createA2uiValidator} from '@a2uiverse/sdk';
+import {createTreeCheck} from '../src/authoring/treeCheck.js';
 import {OPERATORS, RELATIONS} from '@a2uiverse/shell-catalog/schema';
 import {MockLanguageModelV4} from 'ai/test';
 import {describe, expect, test, vi} from 'vitest';
@@ -35,7 +35,7 @@ const files = readSynthesizerFiles();
 const functions = Object.keys(files.catalog.functions!);
 const relations = functions.filter(name => (RELATIONS as readonly string[]).includes(name));
 const operators = functions.filter(name => !relations.includes(name));
-const tree = createA2uiValidator({catalog: files.catalog});
+const tree = createTreeCheck(files.catalog, 'synthesis');
 
 function partitionsOf(surfaces: Record<string, unknown>): Partitions {
   const p = new Partitions();
@@ -119,7 +119,7 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
   test('a faulty sort declaration withholds none of the other findings (task-7.13 decision 2)', () => {
     const doc = good();
     doc.sorts[0]!.options.push({key: '/priority', label: 'Priority'});
-    doc.tree.components[5] = {id: 'c-best', component: 'DerivedValue', cell: {path: 'pr.title'}};
+    doc.tree.components[5] = {id: 'c_best', component: 'DerivedValue', cell: {'@path': 'pr.title'}};
     (doc.dataModel.rows as Array<{id: {args: {pointer: string}[]}}>)[0]!.id.args[0]!.pointer =
       '/items[id="gone"]/id';
     expect(checkSynthesis(doc)).toEqual([
@@ -133,38 +133,38 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
     const doc = good();
     (doc.dataModel.rows as Array<{id: {args: {pointer: string}[]}}>)[0]!.id.args[0]!.pointer =
       '/items[id=x100]/id';
-    doc.tree.components[5] = {id: 'c-best', component: 'DerivedValue', cell: {path: 'pr.title'}};
+    doc.tree.components[5] = {id: 'c_best', component: 'DerivedValue', cell: {'@path': 'pr.title'}};
     expect(checkSynthesis(doc)).toEqual([expect.stringContaining('/items[id=x100]/id')]);
   });
 
   test('a component outside the Synthesizer’s catalog, and a prop its schema refuses, are found by the A2UI validator', () => {
     const unknown = good();
-    unknown.tree.components[1] = {id: 'sort', component: 'Sorter', sort: {path: '/sorts/0'}};
+    unknown.tree.components[1] = {id: 'sort', component: 'Sorter', sort: {'@path': '/sorts/0'}};
     expect(checkSynthesis(unknown)).toEqual([
       expect.stringMatching(
         /^\/tree\/components\/1\/component \(sort\): Unknown component type 'Sorter'/,
       ),
     ]);
     const badProp = good();
-    badProp.tree.components[4] = {id: 'c-id', component: 'DerivedValue', cell: 'literal'};
-    expect(checkSynthesis(badProp).join('\n')).toMatch(/^\/tree\/components\/4\/cell \(c-id\): /m);
+    badProp.tree.components[4] = {id: 'c_id', component: 'DerivedValue', cell: 'literal'};
+    expect(checkSynthesis(badProp).join('\n')).toMatch(/^\/tree\/components\/4\/cell \(c_id\): /m);
   });
 
   test('a value’s danger words and a format prefix pass the catalog; an unknown format key does not (task 7.16)', () => {
     const toned = good();
     toned.tree.components[4] = {
-      id: 'c-id',
+      id: 'c_id',
       component: 'DerivedValue',
-      cell: {path: 'id'},
+      cell: {'@path': 'id'},
       format: {kind: 'text', prefix: '#'},
       danger: ['out of stock'],
     };
     expect(checkSynthesis(toned)).toEqual([]);
     const unknownKey = good();
     unknownKey.tree.components[4] = {
-      id: 'c-id',
+      id: 'c_id',
       component: 'DerivedValue',
-      cell: {path: 'id'},
+      cell: {'@path': 'id'},
       format: {kind: 'text', suffix: '!'},
     };
     expect(checkSynthesis(unknownKey).join('\n')).toMatch(/^\/tree\/components\/4\/format/m);
@@ -175,7 +175,7 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
     dangling.tree.components[3] = {
       id: 'row',
       component: 'Row',
-      children: ['c-id', 'ghost', 'c-best'],
+      children: ['c_id', 'ghost', 'c_best'],
     };
     expect(checkSynthesis(dangling)).toEqual([
       expect.stringMatching(
@@ -203,12 +203,12 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
 
   test('the derived-value rule: only DerivedValue binds a formula, through its template', () => {
     const text = good();
-    text.tree.components[4] = {id: 'c-id', component: 'Text', text: {path: 'id'}};
+    text.tree.components[4] = {id: 'c_id', component: 'Text', text: {'@path': 'id'}};
     expect(checkSynthesis(text, checks())).toEqual([
       expect.stringContaining('Text.text binds the formula at /rows/*/id'),
     ]);
     const absolute = good();
-    absolute.tree.components.push({id: 'n', component: 'Text', text: {path: '/rows/0/best'}});
+    absolute.tree.components.push({id: 'n', component: 'Text', text: {'@path': '/rows/0/best'}});
     absolute.tree.components[0] = {
       id: 'root',
       component: 'Column',
@@ -221,16 +221,16 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
 
   test('DerivedValue must bind a formula leaf, not a branch or a path outside the model', () => {
     const branch = good();
-    branch.tree.components.push({id: 'b', component: 'DerivedValue', cell: {path: '/rows'}});
+    branch.tree.components.push({id: 'b', component: 'DerivedValue', cell: {'@path': '/rows'}});
     branch.tree.components[0] = {id: 'root', component: 'Column', children: ['sort', 'rows', 'b']};
     expect(checkSynthesis(branch, checks())).toEqual([
       expect.stringContaining('DerivedValue.cell must bind a formula leaf; /rows is a branch'),
     ]);
     const missing = good();
     missing.tree.components[5] = {
-      id: 'c-best',
+      id: 'c_best',
       component: 'DerivedValue',
-      cell: {path: 'cheapest'},
+      cell: {'@path': 'cheapest'},
     };
     expect(checkSynthesis(missing, checks())).toEqual([
       expect.stringContaining('/rows/*/cheapest is not in the derived model'),
@@ -253,7 +253,7 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
     wrongIndex.tree.components[1] = {
       id: 'sort',
       component: 'SortControl',
-      sort: {path: '/sorts/3'},
+      sort: {'@path': '/sorts/3'},
     };
     expect(checkSynthesis(wrongIndex, checks()).join('\n')).toContain('1 declared');
   });
@@ -348,21 +348,21 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
 
     test('a DerivedValue bound to a relation is refused', () => {
       const doc = withMatch();
-      doc.tree.components[3] = {id: 'row', component: 'Row', children: ['c-id', 'c-best', 'c-m']};
+      doc.tree.components[3] = {id: 'row', component: 'Row', children: ['c_id', 'c_best', 'c_m']};
       doc.tree.components.push({
-        id: 'c-m',
+        id: 'c_m',
         component: 'DerivedValue',
-        cell: {path: 'match/same camera'},
+        cell: {'@path': 'match/same camera'},
       });
       expect(checkSynthesis(doc)).toEqual([
-        '/tree (c-m): DerivedValue.cell binds /rows/*/match/same camera, under match; the tree binds no path under match',
+        '/tree (c_m): DerivedValue.cell binds /rows/*/match/same camera, under match; the tree binds no path under match',
       ]);
     });
 
     test('any other component bound under match is refused too', () => {
       const doc = withMatch();
       doc.tree.components[0] = {id: 'root', component: 'Column', children: ['sort', 'rows', 'm']};
-      doc.tree.components.push({id: 'm', component: 'Text', text: {path: '/rows/0/match'}});
+      doc.tree.components.push({id: 'm', component: 'Text', text: {'@path': '/rows/0/match'}});
       expect(checkSynthesis(doc).join('\n')).toContain(
         'Text.text binds /rows/0/match, under match; the tree binds no path under match',
       );
@@ -383,10 +383,10 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
       runs: [{when: run('x100')}],
       runCount: {op: 'count', args: [run('x100').args[0]!]},
     });
-    doc.tree.components[3] = {id: 'row', component: 'Row', children: ['c-id', 'c-best', 'c-runs']};
+    doc.tree.components[3] = {id: 'row', component: 'Row', children: ['c_id', 'c_best', 'c_runs']};
     doc.tree.components.push(
-      {id: 'c-runs', component: 'Column', children: {path: 'runs', componentId: 'c-run'}},
-      {id: 'c-run', component: 'DerivedValue', cell: {path: 'when'}},
+      {id: 'c_runs', component: 'Column', children: {path: 'runs', componentId: 'c_run'}},
+      {id: 'c_run', component: 'DerivedValue', cell: {'@path': 'when'}},
     );
     doc.sorts.push({
       path: '/rows/*/runs',
@@ -459,7 +459,7 @@ describe('the Table’s column marks (task-8.3 decision 13)', () => {
     tree: {
       components: [
         {id: 'root', component: 'Column', children: ['sort', 'table']},
-        {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
+        {id: 'sort', component: 'SortControl', sort: {'@path': '/sorts/0'}},
         {
           id: 'table',
           component: 'Table',
@@ -467,9 +467,9 @@ describe('the Table’s column marks (task-8.3 decision 13)', () => {
           ...(columnSources ? {columnSources} : {}),
           children: {path: '/rows', componentId: 'row'},
         },
-        {id: 'row', component: 'TableRow', children: ['c-id', 'c-best']},
-        {id: 'c-id', component: 'DerivedValue', cell: {path: 'id'}},
-        {id: 'c-best', component: 'DerivedValue', cell: {path: 'best'}},
+        {id: 'row', component: 'TableRow', children: ['c_id', 'c_best']},
+        {id: 'c_id', component: 'DerivedValue', cell: {'@path': 'id'}},
+        {id: 'c_best', component: 'DerivedValue', cell: {'@path': 'best'}},
       ],
     },
   });
@@ -811,7 +811,7 @@ describe('the Synthesizer’s answer followed as it is written (task 17.10)', ()
     good.tree.components.push({
       id: 'count',
       component: 'DerivedValue',
-      cell: {path: '/summary/count'},
+      cell: {'@path': '/summary/count'},
     });
     good.dataModel.summary = {
       count: {
@@ -923,5 +923,41 @@ describe('the Synthesizer’s answer followed as it is written (task 17.10)', ()
         input,
       }),
     ).rejects.toThrow('the model request ran past its 0.05 s limit');
+  });
+});
+
+describe("v1.0's forms, each a finding the retry carries (task-21.13 decisions 15 to 17)", () => {
+  type Mutate = (doc: Synthesis) => void;
+  const at = (doc: Synthesis, i: number) => doc.tree.components[i] as Record<string, unknown>;
+  test.each<[string, Mutate, string]>([
+    ['a binding written path', doc => (at(doc, 4).cell = {path: 'id'}), '/tree/components/4/cell'],
+    [
+      'a call written call',
+      doc =>
+        doc.tree.components.push({
+          id: 'note',
+          component: 'Text',
+          text: {call: 'formatString', args: {value: 'x'}},
+        }),
+      '/tree/components/6/text',
+    ],
+    [
+      'a heading variant',
+      doc =>
+        doc.tree.components.push({id: 'label', component: 'Text', text: 'Prices', variant: 'h5'}),
+      '/tree/components/6/variant',
+    ],
+    [
+      'a hyphenated id',
+      doc => {
+        at(doc, 3).children = ['c-id', 'c_best'];
+        at(doc, 4).id = 'c-id';
+      },
+      '/tree/components/4/id',
+    ],
+  ])('%s is refused', (_form, mutate, path) => {
+    const doc = good();
+    mutate(doc);
+    expect(checkSynthesis(doc).some(finding => finding.startsWith(path))).toBe(true);
   });
 });

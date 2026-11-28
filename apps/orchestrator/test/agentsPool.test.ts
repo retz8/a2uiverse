@@ -11,7 +11,7 @@ import {
 import type {Fault} from '../src/agentsPool/faults.js';
 import type {DispatchTurn} from '../src/agentsPool/types.js';
 import type {Refetched, UpdateCase, UpdateFinding} from '../src/registry/updateTile.js';
-import {A2UI_EXTENSION_URIS, a2uiPart, BASIC_CATALOG_ID} from '@a2uiverse/sdk';
+import {a2uiPart, BASIC_CATALOG_ID} from '@a2uiverse/sdk';
 import {
   A2UI_PART,
   FAKE_CATALOG_ID,
@@ -55,42 +55,44 @@ async function poolFor(
   return {vendor, pool, registry};
 }
 
-/** The second catalog of a two-entry card: declared for v0.9.1 alone, beside the fake's for v0.9. */
-const V091_ONLY_CATALOG_ID = 'cat-v091';
-
-/**
- * A pool over a registry whose installed card declares different sets per version (task-19.2):
- * the fake's catalog under the v0.9 URI, the second catalog under the v0.9.1 URI, both handed.
- */
-async function poolForTwoEntries(
-  options: Parameters<typeof startFakeVendor>[0] = {},
-  extra: Partial<AgentsPoolOptions> = {},
-) {
-  const vendor = await startFakeVendor(options);
-  vendors.push(vendor);
-  const card = {
-    ...cardFor(vendor.url, {name: 'GitHub'}),
-    capabilities: {
-      streaming: true,
-      extensions: [
-        {uri: A2UI_EXTENSION_URIS['v0.9'], params: {supportedCatalogIds: [FAKE_CATALOG_ID]}},
-        {uri: A2UI_EXTENSION_URIS['v0.9.1'], params: {supportedCatalogIds: [V091_ONLY_CATALOG_ID]}},
-      ],
+/** A status update carrying each A2UI message as a data part of its own, in the state named. */
+function answer(
+  messages: readonly unknown[],
+  taskId: string,
+  contextId: string,
+  state: 'working' | 'completed',
+): VendorStatusUpdate {
+  return {
+    kind: 'status-update',
+    taskId,
+    contextId,
+    final: state === 'completed',
+    status: {
+      state,
+      message: {
+        kind: 'message',
+        messageId: crypto.randomUUID(),
+        role: 'agent',
+        parts: messages.map(data => ({
+          kind: 'data' as const,
+          data: data as Record<string, unknown>,
+        })),
+        contextId,
+        taskId,
+      },
     },
   };
-  const {registry} = await testRegistry([
-    {
-      id: 'github',
-      card,
-      catalogs: [
-        await fixtureArtifact(FAKE_CATALOG_ID),
-        await fixtureArtifact(V091_ONLY_CATALOG_ID),
-      ],
-    },
-  ]);
-  const pool = new AgentsPool(registry, {hardCapMs: 30000, debugIds: false, ...extra});
-  return {vendor, pool, registry};
 }
+
+/** A script answering the messages in one completed status update. */
+const messagesScript =
+  (messages: readonly unknown[]): Script =>
+  ({ctx, vendorContextId}) => [answer(messages, ctx.taskId, vendorContextId, 'completed')];
+
+/** A script answering the messages while its task still works: what a refusal cancels. */
+const workingScript =
+  (messages: readonly unknown[]): Script =>
+  ({ctx, vendorContextId}) => [answer(messages, ctx.taskId, vendorContextId, 'working')];
 
 /** A script answering one message that paints one surface: `stamp` its version, when given. */
 const paintScript =
@@ -118,7 +120,7 @@ function turn(overrides: Partial<DispatchTurn> = {}): DispatchTurn {
   const message = userMessage([textPart('hello')], {
     contextId: 'o-ctx',
     taskId: 'o-task',
-    metadata: {a2uiClientDataModel: {v: 1}},
+    metadata: {a2uiRendererDataModel: {v: 1}},
   });
   return {clientContextId: 'o-ctx', clientTaskId: 'o-task', message, ...overrides};
 }
@@ -164,7 +166,7 @@ describe('AgentsPool.dispatch', () => {
     expect(record.vendorContextId).not.toBe('o-ctx');
   });
 
-  test('forwards parts and metadata, strips orchestrator ids, sends both A2UI extension URIs', async () => {
+  test('forwards parts and metadata, strips orchestrator ids, asks for the one v1.0 A2UI extension (task-21.13 decision 2)', async () => {
     const {pool, vendor} = await poolFor();
     const t = turn();
     await drain(pool.dispatch('github', t));
@@ -174,8 +176,7 @@ describe('AgentsPool.dispatch', () => {
     expect(received.message.metadata).toMatchObject(t.message.metadata!);
     expect(received.message.taskId).toBeUndefined();
     expect(received.message.contextId).toBeUndefined();
-    expect(received.extensionsHeader).toContain('https://a2ui.org/a2a-extension/a2ui/v0.9.1');
-    expect(received.extensionsHeader).toContain('https://a2ui.org/a2a-extension/a2ui/v0.9');
+    expect(received.extensionsHeader).toBe('https://a2ui.org/a2a-extension/a2ui/v1.0');
   });
 
   test('turn 2 on the same client context resends the vendor contextId learned in turn 1', async () => {
@@ -581,7 +582,7 @@ describe('AgentsPool — the fault map (task 8.3 decision 14)', () => {
               {
                 kind: 'data',
                 data: {
-                  version: 'v0.9',
+                  version: '1.0',
                   updateComponents: {
                     surfaceId: 's1',
                     components: [
@@ -637,99 +638,148 @@ describe('AgentsPool — catalog entitlement and the installed set (task-11.4 de
     const t = turn();
     t.message.metadata = {
       ...t.message.metadata,
-      a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['every', 'catalog', 'held']}},
+      a2uiRendererCapabilities: {'1.0': {supportedCatalogIds: ['every', 'catalog', 'held']}},
     };
     await drain(pool.dispatch('github', t));
-    // A one-entry card: the entitlement under each version's key, one set (task-19.2 decision 1).
-    expect(vendor.requests[0].message.metadata?.a2uiClientCapabilities).toEqual({
-      'v0.9': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
-      'v0.9.1': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
+    // Under v1.0's key alone (task-21.13 decision 2).
+    expect(vendor.requests[0].message.metadata?.a2uiRendererCapabilities).toEqual({
+      '1.0': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
     });
   });
 
-  test("a two-entry card naming different sets: each version's own set under its key (task-19.2 decision 1)", async () => {
-    const {pool, vendor} = await poolForTwoEntries();
-    const t = turn();
-    t.message.metadata = {
-      ...t.message.metadata,
-      a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['every', 'catalog', 'held']}},
-    };
-    await drain(pool.dispatch('github', t));
-    expect(vendor.requests[0].message.metadata?.a2uiClientCapabilities).toEqual({
-      'v0.9': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
-      'v0.9.1': {supportedCatalogIds: [BASIC_CATALOG_ID, V091_ONLY_CATALOG_ID]},
+  describe('a paint names a catalog in four places (task-21.13 decision 4)', () => {
+    const create = (catalogId?: string) => ({
+      version: '1.0',
+      createSurface: {surfaceId: 's1', ...(catalogId !== undefined ? {catalogId} : {})},
     });
-  });
-
-  describe('a paint is checked against the set of its stamp (task-19.2 decisions 2, 3)', () => {
-    test('stamped v0.9 in a catalog the card declares for v0.9.1 only: refused, never relayed, the error naming the stamp', async () => {
-      const {pool} = await poolForTwoEntries({script: paintScript(V091_ONLY_CATALOG_ID, 'v0.9')});
-      const {events, record} = await drain(pool.dispatch('github', turn()));
-      expect(JSON.stringify(events)).not.toContain(V091_ONLY_CATALOG_ID);
-      expect(record).toMatchObject({
-        outcome: 'failed',
-        cause: 'catalog',
-        catalogId: V091_ONLY_CATALOG_ID,
-        error: `painted in catalog "${V091_ONLY_CATALOG_ID}" stamped v0.9, which its card declares for v0.9.1 only`,
-      });
+    const update = (...components: unknown[]) => ({
+      version: '1.0',
+      updateComponents: {surfaceId: 's1', components},
     });
+    const OTHER = 'urn:other';
 
-    test('stamped v0.9.1 in that catalog: relayed', async () => {
-      const {pool} = await poolForTwoEntries({script: paintScript(V091_ONLY_CATALOG_ID, 'v0.9.1')});
-      const {events, record} = await drain(pool.dispatch('github', turn()));
-      expect(record.outcome).toBe('completed');
-      expect(JSON.stringify(events)).toContain(V091_ONLY_CATALOG_ID);
-    });
-
-    test('a stamp that is neither version is checked against the union: in either set relayed, outside both refused with the plain line', async () => {
-      for (const [catalogId, stamp] of [
-        [FAKE_CATALOG_ID, 'v0.8'],
-        [V091_ONLY_CATALOG_ID, 'v1.0'],
-      ] as const) {
-        const {pool} = await poolForTwoEntries({script: paintScript(catalogId, stamp)});
+    test.each([
+      ['createSurface', [create(OTHER)], '/0/createSurface/catalogId'],
+      [
+        "a component's @catalogId",
+        [
+          create(FAKE_CATALOG_ID),
+          update({id: 'root', component: 'Text', text: 'x', '@catalogId': OTHER}),
+        ],
+        '/1/updateComponents/components/0/@catalogId',
+      ],
+      [
+        "a component's bare catalogId",
+        [
+          create(FAKE_CATALOG_ID),
+          update({id: 'root', component: 'Text', text: 'x', catalogId: OTHER}),
+        ],
+        '/1/updateComponents/components/0/catalogId',
+      ],
+      [
+        "a function call's catalogId",
+        [
+          {
+            version: '1.0',
+            callRendererFunction: {
+              functionCallId: 'call_1',
+              callFunction: {'@call': 'now', args: {}, catalogId: OTHER},
+            },
+          },
+        ],
+        '/0/callRendererFunction/callFunction/catalogId',
+      ],
+    ] as const)(
+      '%s outside the entitlement fails the dispatch under catalog, never relayed',
+      async (_place, messages, path) => {
+        const {pool} = await poolFor({script: messagesScript(messages)});
         const {events, record} = await drain(pool.dispatch('github', turn()));
-        expect(record.outcome).toBe('completed');
-        expect(JSON.stringify(events)).toContain(catalogId);
-      }
-      const {pool} = await poolForTwoEntries({script: paintScript('urn:other', 'v1.0')});
+        expect(JSON.stringify(events)).not.toContain(OTHER);
+        expect(record).toMatchObject({outcome: 'failed', cause: 'catalog', catalogId: OTHER});
+        expect(record.error).toContain(`(${path})`);
+      },
+    );
+
+    test('a bare catalogId on a surface created in an earlier event is read by that surface’s default', async () => {
+      // The fake catalog's Text declares no `catalogId`, so a bare one is the component's catalog.
+      const script: Script = ({ctx, vendorContextId}) => [
+        answer([create(FAKE_CATALOG_ID)], ctx.taskId, vendorContextId, 'working'),
+        answer(
+          [update({id: 'root', component: 'Text', text: 'x', catalogId: OTHER})],
+          ctx.taskId,
+          vendorContextId,
+          'completed',
+        ),
+      ];
+      const {pool} = await poolFor({script});
       const {record} = await drain(pool.dispatch('github', turn()));
-      expect(record).toMatchObject({
-        outcome: 'failed',
-        cause: 'catalog',
-        catalogId: 'urn:other',
-        error: 'painted in catalog "urn:other", outside its entitlement',
-      });
+      expect(record).toMatchObject({outcome: 'failed', cause: 'catalog', catalogId: OTHER});
     });
 
-    test('a createSurface carrying no version is no A2UI message: relayed as written, judged by no reader (task-20.4 decisions 1, 2)', async () => {
-      const {pool} = await poolForTwoEntries({script: paintScript('urn:other')});
+    test('a surface mixing two entitled catalogs is relayed whole', async () => {
+      const messages = [
+        create(FAKE_CATALOG_ID),
+        update(
+          {id: 'root', component: 'Column', children: ['basic_text']},
+          {id: 'basic_text', component: 'Text', text: 'x', '@catalogId': BASIC_CATALOG_ID},
+        ),
+      ];
+      const {pool} = await poolFor({script: messagesScript(messages)});
       const {events, record} = await drain(pool.dispatch('github', turn()));
       expect(record.outcome).toBe('completed');
-      expect(record.catalogId).toBeUndefined();
-      expect(events.flatMap(datasOf)).toEqual([
-        {createSurface: {surfaceId: 's1', catalogId: 'urn:other'}},
-      ]);
+      expect(events.flatMap(datasOf)).toEqual(messages);
+    });
+  });
+
+  describe('a paint in another A2UI version (task-21.13 decision 6)', () => {
+    const create = (version: string) => ({
+      version,
+      createSurface: {surfaceId: 's1', catalogId: FAKE_CATALOG_ID},
     });
 
-    test('the refetch after a refusal the axis made runs as today, on the union', async () => {
-      const calls: string[] = [];
-      const updates: UpdateGate = {
-        catalogsChanged: () => false,
-        permissionChanged: () => false,
-        finding: () => Promise.resolve(undefined),
-        refetched: appId => {
-          calls.push(`refetched ${appId}`);
-          return Promise.resolve('unchanged');
+    test.each([
+      ['a v0.9 create', [create('v0.9')], 'older'],
+      ['a stamp above 1.0', [create('1.1')], 'newer'],
+      ['a stamp that is no version', [create('latest')], 'invalid'],
+    ] as const)(
+      '%s fails the slot under %s, not relayed, A2A’s cancel sent',
+      async (_what, messages, cause) => {
+        const {pool, vendor} = await poolFor({script: workingScript(messages)});
+        const {events, record} = await drain(pool.dispatch('github', turn()));
+        expect(record).toMatchObject({outcome: 'failed', cause});
+        expect(events.flatMap(datasOf)).toEqual([]);
+        await vi.waitFor(() => expect(vendor.methods).toContain('tasks/cancel'));
+      },
+    );
+
+    test('a 1.0 create followed by a v0.9 update is refused at the update', async () => {
+      const update = {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: 's1',
+          components: [{id: 'root', component: 'Text', text: 'x'}],
         },
       };
-      const {pool} = await poolForTwoEntries(
-        {script: paintScript(V091_ONLY_CATALOG_ID, 'v0.9')},
-        {updates},
-      );
-      const {record} = await drain(pool.dispatch('github', turn()));
-      expect(record).toMatchObject({outcome: 'failed', cause: 'catalog', refetched: 'unchanged'});
-      expect(calls).toEqual(['refetched github']);
+      const script: Script = ({ctx, vendorContextId}) => [
+        answer([create('1.0')], ctx.taskId, vendorContextId, 'working'),
+        answer([update], ctx.taskId, vendorContextId, 'working'),
+      ];
+      const {pool, vendor} = await poolFor({script});
+      const {events, record} = await drain(pool.dispatch('github', turn()));
+      expect(record).toMatchObject({outcome: 'failed', cause: 'older'});
+      expect(events.flatMap(datasOf)).toEqual([create('1.0')]);
+      await vi.waitFor(() => expect(vendor.methods).toContain('tasks/cancel'));
     });
+  });
+
+  test('a createSurface carrying no version is no A2UI message: relayed as written, judged by no reader (task-20.4 decisions 1, 2)', async () => {
+    const {pool} = await poolFor({script: paintScript('urn:other')});
+    const {events, record} = await drain(pool.dispatch('github', turn()));
+    expect(record.outcome).toBe('completed');
+    expect(record.catalogId).toBeUndefined();
+    expect(events.flatMap(datasOf)).toEqual([
+      {createSurface: {surfaceId: 's1', catalogId: 'urn:other'}},
+    ]);
   });
 
   test('a paint in a catalog outside the entitlement fails the dispatch with the catalog cause and the id, never relayed', async () => {
@@ -748,7 +798,7 @@ describe('AgentsPool — catalog entitlement and the installed set (task-11.4 de
             parts: [
               {
                 kind: 'data',
-                data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: 'urn:other'}},
+                data: {version: '1.0', createSurface: {surfaceId: 's1', catalogId: 'urn:other'}},
               },
             ],
             contextId: vendorContextId,
@@ -772,7 +822,7 @@ describe('AgentsPool — catalog entitlement and the installed set (task-11.4 de
         parts: [
           {
             kind: 'data',
-            data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: BASIC_CATALOG_ID}},
+            data: {version: '1.0', createSurface: {surfaceId: 's1', catalogId: BASIC_CATALOG_ID}},
           },
         ],
         contextId: vendorContextId,
@@ -906,7 +956,7 @@ describe('AgentsPool — the update check (task-15.5 decisions 1 to 4)', () => {
       parts: [
         {
           kind: 'data',
-          data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: 'urn:v2'}},
+          data: {version: '1.0', createSurface: {surfaceId: 's1', catalogId: 'urn:v2'}},
         },
       ],
       contextId: vendorContextId,
@@ -1004,12 +1054,12 @@ describe('AgentsPool — the credential bar at the paint (task 12.7)', () => {
     return ({ctx, vendorContextId}) => {
       const secret = !(options.repairs ?? true) || !isRepair(ctx.userMessage);
       const update = {
-        version: 'v0.9',
+        version: '1.0',
         updateComponents: {surfaceId: 's1', components: secret ? [CLEAN, SECRET] : [CLEAN]},
       };
       // The basic catalog: its TextField declares `obscured`.
       const create = {
-        version: 'v0.9',
+        version: '1.0',
         createSurface: {surfaceId: 's1', catalogId: BASIC_CATALOG_ID},
       };
       const event = (parts: object[], final: boolean): VendorStatusUpdate => ({
@@ -1056,7 +1106,7 @@ describe('AgentsPool — the credential bar at the paint (task 12.7)', () => {
     ]);
     // The press or request is not sent again; the metadata it rode on is.
     expect(first!.message.parts).toEqual([{kind: 'text', text: 'hello'}]);
-    expect(repair!.message.metadata?.a2uiClientDataModel).toEqual({v: 1});
+    expect(repair!.message.metadata?.a2uiRendererDataModel).toEqual({v: 1});
   });
 
   test('what a streamed answer already showed is taken down, stamped refused, before the repair', async () => {
@@ -1070,7 +1120,7 @@ describe('AgentsPool — the credential bar at the paint (task 12.7)', () => {
     expect(stateOf(takenDown)).toBe(TaskState.TASK_STATE_WORKING);
     // In the platform's one spelling of an A2UI part (task-20.4 decision 5).
     expect(partsOf(takenDown)).toEqual([
-      a2uiPart({version: 'v0.9', deleteSurface: {surfaceId: 's1'}}),
+      a2uiPart({version: '1.0', deleteSurface: {surfaceId: 's1'}}),
     ]);
     expect(JSON.stringify(events)).not.toContain('obscured');
     expect(record.outcome).toBe('completed');
@@ -1111,7 +1161,7 @@ describe('AgentsPool — the credential bar at the paint (task 12.7)', () => {
           {
             kind: 'data',
             data: {
-              version: 'v0.9',
+              version: '1.0',
               updateComponents: {
                 surfaceId: 's1',
                 components: [{id: 'root', component: 'Text', text: 'password'}],
@@ -1164,11 +1214,11 @@ describe('AgentsPool — the credential bar reads the painter’s catalog (task-
       },
     ];
   const field = {id: 'pw', component: 'TextField', label: 'Password', variant: 'obscured'};
-  const update = {version: 'v0.9', updateComponents: {surfaceId: 's1', components: [field]}};
+  const update = {version: '1.0', updateComponents: {surfaceId: 's1', components: [field]}};
 
   test('an option its own catalog does not declare is not matched', async () => {
     // The fixture catalog declares no TextField: `obscured` is no option of it there.
-    const create = {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: FAKE_CATALOG_ID}};
+    const create = {version: '1.0', createSurface: {surfaceId: 's1', catalogId: FAKE_CATALOG_ID}};
     const {pool, vendor} = await poolFor({script: answer([create, update])});
     const {record} = await drain(pool.dispatch('github', turn()));
     expect(record.outcome).toBe('completed');
@@ -1177,7 +1227,7 @@ describe('AgentsPool — the credential bar reads the painter’s catalog (task-
 
   test('a later answer’s update is read against the catalog its surface was created in', async () => {
     let sends = 0;
-    const create = {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: BASIC_CATALOG_ID}};
+    const create = {version: '1.0', createSurface: {surfaceId: 's1', catalogId: BASIC_CATALOG_ID}};
     const script: Script = s => answer(++sends === 1 ? [create] : [update])(s);
     const {pool, vendor} = await poolFor({script});
     await drain(pool.dispatch('github', turn()));
@@ -1185,5 +1235,35 @@ describe('AgentsPool — the credential bar reads the painter’s catalog (task-
     // The press's answer painted the field on the basic surface: refused, repaired, refused again.
     expect(record).toMatchObject({outcome: 'failed', cause: 'credential'});
     expect(vendor.requests).toHaveLength(3);
+  });
+});
+
+describe('the credential bar on a surface that mixes catalogs (task-21.13 decision 5)', () => {
+  const obscured = (own: boolean) => ({
+    id: 'root',
+    component: 'TextField',
+    label: 'Code',
+    value: '',
+    variant: 'obscured',
+    ...(own ? {'@catalogId': BASIC_CATALOG_ID} : {}),
+  });
+  const paint = (own: boolean) => [
+    {version: '1.0', createSurface: {surfaceId: 's1', catalogId: FAKE_CATALOG_ID}},
+    {version: '1.0', updateComponents: {surfaceId: 's1', components: [obscured(own)]}},
+  ];
+
+  test('an input under a second catalog’s @catalogId is matched by that catalog’s options', async () => {
+    const {pool, vendor} = await poolFor({script: messagesScript(paint(true))});
+    const {events, record} = await drain(pool.dispatch('github', turn()));
+    expect(record).toMatchObject({outcome: 'failed', cause: 'credential'});
+    expect(vendor.requests).toHaveLength(2);
+    expect(events.flatMap(datasOf)).not.toContainEqual(paint(true)[1]);
+  });
+
+  test('the same input in the surface’s own catalog, which declares no such option, is not one', async () => {
+    const {pool, vendor} = await poolFor({script: messagesScript(paint(false))});
+    const {record} = await drain(pool.dispatch('github', turn()));
+    expect(record.outcome).toBe('completed');
+    expect(vendor.requests).toHaveLength(1);
   });
 });

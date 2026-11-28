@@ -2,7 +2,7 @@ import {randomUUID} from 'node:crypto';
 import {TaskState, type Message, type Part, type Task} from '@a2a-js/sdk';
 import type {AgentExecutor, ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
 import {
-  A2UI_CLIENT_DATA_MODEL_KEY,
+  A2UI_RENDERER_DATA_MODEL_KEY,
   a2uiPart,
   clipPaintMetaTitle,
   parseSourceId,
@@ -28,7 +28,12 @@ import {requestWords} from './agentsPool/requestWords.js';
 import {STAMP_KEY} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome, DispatchRecord} from './agentsPool/types.js';
 import type {Compositions} from './composition/compositions.js';
-import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify.js';
+import {
+  classifyTurn,
+  unnamespaceAction,
+  unnamespaceAnswer,
+  type Turn,
+} from './composition/classify.js';
 import {composeFragment, retask, withoutFailureWords} from './composition/fragmentRelay.js';
 import {changeAccount, firesResynthesis, seenOf, watchOf} from './composition/integrity.js';
 import {
@@ -161,6 +166,11 @@ interface PumpOptions {
   buffer?: boolean;
   /** A retried source: once the merge is decided its arrival is folded in, never late. */
   folding?: boolean;
+  /**
+   * A renderer function's answer (task-21.13 decision 10): a dispatch the agent never answered
+   * changes nothing on the slot — no failure tile, no sign-in, no update tile.
+   */
+  delivery?: boolean;
   /**
    * The plan's layout, checked and painted — true — or the plan broken — false: until it settles
    * nothing of the dispatch reaches the client and its end flips nothing; then what it sent is
@@ -304,6 +314,27 @@ export class OrchestratorExecutor implements AgentExecutor {
           bus.publish(finalStatus(ctx, COMPLETED));
           await turn.close('completed');
           break;
+        }
+        case 'functionAnswer': {
+          turn = this.#deps.journal.open({
+            turnId: ctx.taskId,
+            clientContextId: ctx.contextId,
+            message: ctx.userMessage,
+            source: parseSurfaceId(turnKind.callId)?.source,
+          });
+          await this.#functionAnswerTurn(ctx, bus, turn, turnKind);
+          break;
+        }
+        case 'agentFunction': {
+          // Not routed (phase-21 decision 5; task-21.13 decision 11): journaled, and no answer.
+          turn = this.#deps.journal.open({
+            turnId: ctx.taskId,
+            clientContextId: ctx.contextId,
+            message: ctx.userMessage,
+          });
+          const reason = 'A2UIVerse does not route agent function calls.';
+          turn.refused(reason);
+          throw new Error(reason);
         }
         case 'unknown':
           turn = this.#deps.journal.open({
@@ -957,6 +988,55 @@ export class OrchestratorExecutor implements AgentExecutor {
     // A press that asked for more access closes as the client was told, completed; its dispatch
     // stays failed with the request on it.
     void run.drained.then(() => turn.close(escalated ? 'completed' : outcome));
+  }
+
+  /**
+   * A renderer function's answer — a `rendererFunctionResponse`, or an `error` naming the call —
+   * delivered to the agent that called it (task-21.13 decisions 8 to 10): the call's id given back
+   * as the agent wrote it, a new message in that agent's own conversation naming no task, with the
+   * source's credential, capabilities and data model partition, through the AgentsPool as a press
+   * is; what the agent replies relayed as that source's fragment and judged as any paint is. It
+   * goes whatever else runs on the source, and is in flight for the merge until its dispatch
+   * settles. An answer that cannot be delivered is journaled with its cause and draws nothing: the
+   * fragment stays, no Retry keeps it, no sign-in is asked.
+   */
+  async #functionAnswerTurn(
+    ctx: RequestContext,
+    bus: ExecutionEventBus,
+    turn: JournalTurn,
+    answer: Turn & {kind: 'functionAnswer'},
+  ): Promise<void> {
+    const parsed = parseSurfaceId(answer.callId);
+    if (!parsed) throw new Error(`a function's answer names no source: ${answer.callId}`);
+    const owner = parsed.source;
+    const composition = this.#compositions.get(ctx.contextId);
+    composition?.partitions.applyClientDataModel(clientSurfaces(ctx.userMessage.metadata));
+    const sink: Sink = {ctx, bus, turn};
+    const message: Message = {
+      ...ctx.userMessage,
+      parts: ctx.userMessage.parts.map(part =>
+        dataOf(part) === answer.part
+          ? a2uiPart(unnamespaceAnswer(answer.part, parsed.surfaceId))
+          : part,
+      ),
+      metadata: vendorMetadata(ctx.userMessage.metadata, owner),
+    };
+    const handle = this.#deps.pool.dispatch(owner, {
+      clientContextId: ctx.contextId,
+      clientTaskId: ctx.taskId,
+      message,
+    });
+    const run = this.#pump(sink, undefined, handle, owner, {collapse: false, delivery: true});
+    composition?.presses.begin(owner, 'answer');
+    const outcome = await run.settled.finally(() => composition?.presses.end(owner, 'answer'));
+    if (composition) await this.#owe(composition, {}, 'walk', sink);
+    bus.publish(
+      finalStatus(
+        ctx,
+        outcome === 'completed' ? COMPLETED : outcome === 'cancelled' ? CANCELED : FAILED,
+      ),
+    );
+    void run.drained.then(() => turn.close(outcome));
   }
 
   /**
@@ -2203,6 +2283,12 @@ export class OrchestratorExecutor implements AgentExecutor {
     record: DispatchRecord,
     options: PumpOptions,
   ): void {
+    if (undelivered(options, record)) {
+      logLine(
+        `✗ ${source} task=${sink.ctx.taskId} a function's answer was not delivered (${record.error ?? record.outcome})`,
+      );
+      return;
+    }
     if (record.update) return this.#settleUpdate(sink, state, source, record.update);
     if (record.authority) return this.#settleAuthority(sink, state, source, record.authority);
     const next = outcomeToSlotState(record.outcome, state.partitions.holdsSurfaceOf(source));
@@ -2273,7 +2359,9 @@ export class OrchestratorExecutor implements AgentExecutor {
       capped = true;
       const slot = composition?.slots.get(source);
       if (slot) slot.running = handle;
-      if (composition) this.#failSlot(sink, composition, source, {cause: 'timeout'});
+      if (composition && !undelivered(options, record)) {
+        this.#failSlot(sink, composition, source, {cause: 'timeout'});
+      }
       settle('timeout');
     });
     const drained = (async () => {
@@ -2365,6 +2453,20 @@ function homeCollapse(state: CompositionState, home: string): SlotCollapse {
   return {cause: 'home', home: plan?.noun ?? plan?.name ?? home};
 }
 
+/**
+ * A function's answer the agent never answered (task-21.13 decision 10): no event of its own
+ * arrived, whatever ended the dispatch — the agent unreached, a sign-in or an update stopping it
+ * before the call, the hard cap.
+ */
+function undelivered(options: PumpOptions, record: DispatchRecord): boolean {
+  return (
+    options.delivery === true &&
+    record.outcome !== 'completed' &&
+    record.vendorTaskId === undefined &&
+    record.vendorContextId === undefined
+  );
+}
+
 /** Two values written alike. */
 function sameJson(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -2376,7 +2478,7 @@ function touchedAny(touches: SurfaceTouches): boolean {
 
 /** The client's returned data model, keyed by namespaced surface id; empty when absent. */
 function clientSurfaces(metadata: Message['metadata']): Record<string, unknown> {
-  const model = metadata?.[A2UI_CLIENT_DATA_MODEL_KEY];
+  const model = metadata?.[A2UI_RENDERER_DATA_MODEL_KEY];
   const surfaces = (model as {surfaces?: unknown} | undefined)?.surfaces;
   return typeof surfaces === 'object' && surfaces !== null
     ? (surfaces as Record<string, unknown>)

@@ -1,9 +1,5 @@
-import {
-  createA2uiValidator,
-  type A2uiCatalogSchema,
-  type A2uiComponent,
-  type A2uiValidator,
-} from '@a2uiverse/sdk';
+import {type A2uiCatalogSchema, type A2uiComponent} from '@a2uiverse/sdk';
+import {createTreeCheck, type TreeCheck} from '../authoring/treeCheck.js';
 import {stepCountIs, streamText, type LanguageModel, type ModelMessage} from 'ai';
 import type {Effort, Reasoning} from '../model/getModel.js';
 import {pastLimit, stepTimeout} from '../model/requestLimit.js';
@@ -132,7 +128,7 @@ export class ModelPlanner implements Planner {
   readonly #reasoning: Reasoning | undefined;
   readonly #effort: Effort | undefined;
   readonly #system: string;
-  readonly #tree: A2uiValidator;
+  readonly #tree: TreeCheck;
   readonly #readers: PlatformReaders;
   readonly #requestLimitMs: number | undefined;
   readonly #sourcesOf: SourcesOf;
@@ -165,7 +161,7 @@ export class ModelPlanner implements Planner {
     this.#reasoning = options.reasoning;
     this.#effort = options.effort;
     this.#system = options.systemPrompt;
-    this.#tree = createA2uiValidator({catalog: options.catalog});
+    this.#tree = createTreeCheck(options.catalog, 'main');
     this.#readers = options.readers;
     this.#sourcesOf = options.sourcesOf ?? (appId => [{source: appId}]);
     this.#store = options.store;

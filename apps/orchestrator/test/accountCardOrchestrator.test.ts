@@ -185,14 +185,14 @@ async function connect(base: string, key = 'alice') {
 function utterance(text: string): Message {
   return clientMessage([textPart(text)], {
     metadata: {
-      a2uiClientDataModel: {version: 'v0.9', surfaces: {}},
+      a2uiRendererDataModel: {version: '1.0', surfaces: {}},
       ...clientSessionMetadata('page-1'),
     },
   });
 }
 
 function retry(source: string, contextId: string): Message {
-  return clientMessage([dataPart(operationData({kind: 'retry', sources: [source]}, 'v0.9'))], {
+  return clientMessage([dataPart(operationData({kind: 'retry', sources: [source]}, '1.0'))], {
     contextId,
     metadata: clientSessionMetadata('page-1'),
   });

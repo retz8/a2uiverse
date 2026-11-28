@@ -144,7 +144,7 @@ describe('the Store’s reads (task-14.4 decisions 1, 3)', () => {
       appId: 'shop',
       version: '0.0.0',
       words: 'what do you sell?',
-      messages: [{version: 'v0.9', createSurface: {surfaceId: 's', catalogId: SHOP}}],
+      messages: [{version: '1.0', createSurface: {surfaceId: 's', catalogId: SHOP}}],
       capturedBy: 'marketplace',
       capturedAt: '2026-10-11T00:00:00.000Z',
     };
