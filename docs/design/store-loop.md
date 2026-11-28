@@ -286,7 +286,7 @@ Update is the install by id over the held app, journaled `install-over`; landed,
 
 ### A paint in the build of its arrival
 
-Every event carrying A2UI is stamped with `builds`, the app's catalogs at the builds the registry holds when it's relayed (`Registry.builds`). The client's gate loads that build and assigns it to the message; the canvas's processor draws a create in it, and a change to an existing surface's components in a newer build moves the surface there. A copy the way back keeps carries its build and is restored in it. [`app-install.md`](app-install.md#loading-in-the-client) has the structures.
+Every event carrying A2UI is stamped with `builds`, the app's catalogs at the builds the registry holds when it's relayed (`Registry.builds`). The client's gate loads each build a message names and assigns it to the message; the canvas's processor draws a create in them, and a change to an existing surface's components in a newer build of any of its catalogs moves the surface there. A copy the way back keeps carries each catalog's build and is restored in them. [`app-install.md`](app-install.md#loading-in-the-client) has the structures.
 
 ### The kit's two catalog ids
 
