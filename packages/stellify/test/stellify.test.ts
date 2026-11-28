@@ -8,7 +8,7 @@ import {
 import {existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {describe, expect, test} from 'vitest';
+import {describe, expect, test, vi} from 'vitest';
 import {artifactFiles, stellify, writeArtifact, type StellifyResult} from '../src/index.js';
 import {copyFixture, decode, edit, write} from './fixture.js';
 
@@ -141,9 +141,10 @@ describe('packing the fixture catalog', () => {
       evaluated = true;
       return module as Record<string, unknown>;
     });
-    await settle();
     // All three started before any finished, the cascade's order kept: the entry's own sheets,
-    // then the one the Provider imports only later.
+    // then the one the Provider imports only later. Waited for, as the host modules' import takes
+    // its own time on a slower machine.
+    await vi.waitFor(() => expect(asked).toHaveLength(3));
     expect(asked).toEqual([
       sheet('lib/base.css'),
       sheet('node_modules/star-dialog/lib/dialog.css'),
