@@ -184,12 +184,13 @@ The builder is in the platform sdk beside the reading. It returns a plain object
 | Client | a press inside a fragment, an error report | `a2uiPart` |
 | Client | a press on the composition: Retry, Include, Try again, a step, Not now, the close, an account chosen, an app used | `shellPart` |
 | Orchestrator | a press sent on to its agent | `a2uiPart` |
+| Orchestrator | a renderer function's answer, or an error naming the call, sent on to the agent that called it | `a2uiPart` |
 | Orchestrator | the layout surface, the merged view, a surface taken down | `a2uiPart` |
 | Orchestrator | the canvas's title, as `paintMeta` | `shellPart` |
 
 The string is `application/a2ui+json` whatever A2UI version the message is stamped with. The marketplace and Stellify write no A2UI: the smoke request is one text part.
 
-Three things around the part do not change. The A2A SDK spells the extensions header for each A2A version, `A2A-Extensions` to an agent on A2A 1.0 and `X-A2A-Extensions` to one on 0.3. `a2uiClientCapabilities` and `a2uiClientDataModel` ride on message metadata. A message's `extensions` field stays empty.
+Three things around the part do not change. The A2A SDK spells the extensions header for each A2A version, `A2A-Extensions` to an agent on A2A 1.0 and `X-A2A-Extensions` to one on 0.3; the orchestrator names the one v1.0 A2UI extension in it. `a2uiRendererCapabilities`, `{"1.0": {"supportedCatalogIds": […]}}`, and `a2uiRendererDataModel` ride on message metadata. A message's `extensions` field stays empty.
 
 ### Where a part is read from
 
