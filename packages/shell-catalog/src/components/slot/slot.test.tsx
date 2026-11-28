@@ -876,7 +876,7 @@ test('a collapsed merge’s lines keep the collapse’s markers on the first row
   expect(screen.getByRole('button', {name: 'Include Gmail'})).toBeInTheDocument();
 });
 
-test('a fact the runtime stops painting leaves the slot with its repaint (_dev/a2ui-findings.md §9)', async () => {
+test('a fact the runtime stops painting leaves the slot with its repaint', async () => {
   const merged = {
     id: 'root',
     component: 'Slot',

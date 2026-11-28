@@ -529,7 +529,7 @@ test('through the catalog: Allow hands the host the source, the surface and the 
   ]);
 });
 
-test('a repaint that drops the request takes the chip and its card away (_dev/a2ui-findings.md §9)', async () => {
+test('a repaint that drops the request takes the chip and its card away', async () => {
   const {surface, processor} = surfaceFor(
     [
       {

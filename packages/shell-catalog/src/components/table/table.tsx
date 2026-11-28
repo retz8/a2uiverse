@@ -324,12 +324,10 @@ function TableNodeView({node, buildChild}: NodeViewProps) {
 
 /**
  * Catalog entry: `columns` and `columnSources` are literal; the binder resolves `children`.
- * `columns` is a plain list of headings, which upstream types as a child list
- * (`_dev/a2ui-findings.md` §17).
  */
 export const TableComponent: ReactComponentImplementation = {
   ...createComponentImplementation(TableApi, ({props, buildChild}) => (
-    <TableView columns={props.columns as string[]} columnSources={props.columnSources}>
+    <TableView columns={props.columns} columnSources={props.columnSources}>
       {renderChildList(props.children, buildChild)}
     </TableView>
   )),
