@@ -1,7 +1,7 @@
 /**
  * The text the marketplace's search and the Router embed for a card (task-20.3 decision 21): the
  * same for a card read as for the card as its agent served it, over every tracked card written
- * for A2A 0.3 — the platform sdk's four card fixtures and the seven Store recordings.
+ * for A2A 0.3 — the platform sdk's five card fixtures and the seven Store recordings.
  */
 import {readdirSync, readFileSync} from 'node:fs';
 import {dirname, join} from 'node:path';
@@ -27,7 +27,7 @@ const tracked: [name: string, card: unknown][] = [
 
 describe('the corpus text of a card', () => {
   test('every tracked card is read', () => {
-    expect(tracked).toHaveLength(11);
+    expect(tracked).toHaveLength(12);
   });
 
   test.each(tracked)('%s embeds the same text read as served', (_name, served) => {

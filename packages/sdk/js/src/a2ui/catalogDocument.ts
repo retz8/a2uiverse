@@ -38,7 +38,11 @@ function compileErrors(catalog: A2uiCatalogSchema): string[] {
   delete own.$schema;
   const ajv = new Ajv2020({allErrors: true, strict: false, validateFormats: false});
   ajv.addSchema(COMMON_TYPES_SCHEMA);
-  ajv.addSchema(own);
+  try {
+    ajv.addSchema(own);
+  } catch (error) {
+    return [`is not a JSON Schema: ${messageOf(error)}`];
+  }
   const errors: string[] = [];
   for (const name of Object.keys(catalog.components ?? {})) {
     try {

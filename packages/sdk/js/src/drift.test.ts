@@ -70,7 +70,9 @@ describe('aheadOfStore', () => {
     });
     expect(result).toEqual({
       ok: false,
-      errors: ['the card declares A2UI v0.9, not v1.0'],
+      errors: [
+        'the card declares A2UI v0.9, which A2UIVerse no longer supports: A2UIVerse speaks A2UI v1.0',
+      ],
       otherVersions: {versions: ['v0.9'], allOlder: true},
     });
   });

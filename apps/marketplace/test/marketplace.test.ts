@@ -2,16 +2,18 @@
  * The marketplace's core (task 13.3): the claim, publish in order, the smoke test judged, unpublish,
  * search, the refresh and the report, the boot from a populated directory.
  */
+import {readFileSync} from 'node:fs';
 import {mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {createServer as createNetServer} from 'node:net';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {afterEach, describe, expect, test} from 'vitest';
+import {afterEach, describe, expect, test, vi} from 'vitest';
 import {
-  A2UI_CLIENT_CAPABILITIES_KEY,
-  A2UI_EXTENSION_URIS,
+  A2UI_EXTENSION_URI,
+  A2UI_RENDERER_CAPABILITIES_KEY,
   BASIC_CATALOG_ID,
-  clientCapabilities,
+  OLDER_VERSION_HELD,
+  rendererCapabilities,
   SMOKE_GREETING,
   type PublishBody,
 } from '@a2uiverse/sdk';
@@ -21,6 +23,7 @@ import {FakeEmbedder} from '@a2uiverse/embedder';
 import {a2aSmokeRunner, type SmokeRunner} from '@a2uiverse/smoke-transport';
 import {
   authRequiredBody,
+  completingScript,
   finalUpdate,
   firstTurnTask,
   paintParts,
@@ -53,7 +56,9 @@ import {
   ENTRY_FILE,
   INDEX_FILE,
   PREVIEW_FILE,
+  MarketplaceStore,
   PUBLIC_DIR,
+  type PublisherRecord,
 } from '../src/store.js';
 import {
   authRequiredScript,
@@ -71,7 +76,9 @@ import {
   type FakeAgentOptions,
 } from './fakeAgent.js';
 import {
+  cardFor,
   cardUrlOf,
+  entryFor,
   fixtureArtifact,
   idOf,
   previewFor,
@@ -268,7 +275,7 @@ describe('publish, the first time', () => {
       version: '0.1.0',
       words: 'Show my orders',
       messages: [
-        {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: CAT}},
+        {version: '1.0', createSurface: {surfaceId: 's1', catalogId: CAT}},
         expect.objectContaining({updateComponents: expect.anything()}),
       ],
       capturedBy: 'marketplace',
@@ -284,8 +291,8 @@ describe('publish, the first time', () => {
 
     const [request] = agent.requests;
     expect(request.message.parts).toEqual([{kind: 'text', text: 'Show my orders'}]);
-    expect(request.message.metadata?.[A2UI_CLIENT_CAPABILITIES_KEY]).toEqual(
-      clientCapabilities([BASIC_CATALOG_ID, CAT]),
+    expect(request.message.metadata?.[A2UI_RENDERER_CAPABILITIES_KEY]).toEqual(
+      rendererCapabilities([BASIC_CATALOG_ID, CAT]),
     );
     expect(request.headers.authorization).toBeUndefined();
     expect(marketplace.entries().map(e => e.appId)).toEqual(['shop']);
@@ -430,12 +437,17 @@ describe('publish, the findings collected', () => {
     ok(await marketplace.publish('acme', body('shop', url, [await fixtureArtifact(CAT)])));
     const breaking = await fixtureArtifact(CAT, {
       schema: schemaFor(CAT, {
-        Text: {type: 'object', properties: {text: {type: 'number'}}, required: ['text']},
+        Text: {
+          type: 'object',
+          properties: {component: {const: 'Text'}, text: {type: 'number'}},
+          required: ['component', 'text'],
+        },
       }),
     });
     const answer = refused(await marketplace.publish('acme', body('shop', url, [breaking])));
     expect(answer.findings).toEqual([
-      expect.stringMatching(/^catalog artifact 1 \(.*\): .*Text.*/),
+      `catalog artifact 1 (${CAT}): components/Text/properties/text/type: added`,
+      `catalog artifact 1 (${CAT}): components/Text/properties/text/$ref: removed`,
     ]);
   });
 
@@ -612,7 +624,7 @@ describe('publish, the smoke test', () => {
     expect(answer.summary).toMatch(/^published shop · card 0\.1\.0/);
   });
 
-  test('the smoke test advertises the entitlement per version read from the card, and judges the paint by its stamp (task-19.2 decision 6)', async () => {
+  test('the smoke test advertises the entitlement as one list read from the card', async () => {
     const advertised: unknown[] = [];
     const spy: SmokeRunner = request => {
       advertised.push(request.entitlement);
@@ -620,42 +632,17 @@ describe('publish, the smoke test', () => {
     };
     const {marketplace, cards} = await made(undefined, spy);
     await claimed(marketplace);
-    const twoEntries = {
-      capabilities: {
-        streaming: true,
-        extensions: [
-          {uri: A2UI_EXTENSION_URIS['v0.9'], params: {supportedCatalogIds: [CAT]}},
-          {uri: A2UI_EXTENSION_URIS['v0.9.1'], params: {supportedCatalogIds: [CAT2]}},
-        ],
-      },
-    };
-    // The default script paints CAT stamped v0.9: inside v0.9's set.
-    const agent = await agentOf({card: twoEntries});
-    const published = await marketplace.publish(
-      'acme',
-      body('shop', cards.serve(agent.card), [
-        await fixtureArtifact(CAT),
-        await fixtureArtifact(CAT2),
-      ]),
-    );
-    expect(published.ok).toBe(true);
-    expect(advertised).toEqual([
-      {'v0.9': [BASIC_CATALOG_ID, CAT], 'v0.9.1': [BASIC_CATALOG_ID, CAT2]},
-    ]);
-    // CAT2 stamped v0.9: the card declares it for v0.9.1 alone.
-    const stamped = await agentOf({card: twoEntries, script: paintingScript(CAT2)});
-    const out = refused(
+    const agent = await agentOf({catalogs: [CAT, CAT2]});
+    ok(
       await marketplace.publish(
         'acme',
-        body('shop-2', cards.serve(stamped.card), [
+        body('shop', cards.serve(agent.card), [
           await fixtureArtifact(CAT),
           await fixtureArtifact(CAT2),
         ]),
       ),
     );
-    expect(out.findings).toEqual([
-      `surface "s1" is painted in catalog ${JSON.stringify(CAT2)} stamped v0.9, which its card declares for v0.9.1 only`,
-    ]);
+    expect(advertised).toEqual([[BASIC_CATALOG_ID, CAT, CAT2]]);
   });
 
   test('a paint outside the entitlement, and a credential input', async () => {
@@ -669,7 +656,7 @@ describe('publish, the smoke test', () => {
       ),
     );
     expect(out.findings).toEqual([
-      `surface "s1" is painted in catalog ${JSON.stringify(CAT2)}, outside its entitlement`,
+      `surface "s1": its createSurface names catalog ${JSON.stringify(CAT2)}, outside its entitlement (/0/createSurface/catalogId)`,
     ]);
     const credential = await agentOf({script: credentialScript()});
     const cred = refused(
@@ -776,11 +763,11 @@ describe('publish, the smoke test', () => {
     ok(await marketplace.publish('acme', body('finder', cards.serve(agent.card))));
     const settled = [
       {
-        version: 'v0.9',
+        version: '1.0',
         createSurface: {surfaceId: STREAMED_SURFACE, catalogId: BASIC_CATALOG_ID},
       },
       {
-        version: 'v0.9',
+        version: '1.0',
         updateComponents: {surfaceId: STREAMED_SURFACE, components: STREAMED_SETTLED},
       },
     ];
@@ -795,7 +782,7 @@ describe('publish, the smoke test', () => {
     const agent = await agentOf({signIn: true, admit: () => false});
     const handed = previewFor('locked', '0.1.0', CAT, 'publisher');
     const copy = (text?: string) => ({
-      version: 'v0.9',
+      version: '1.0',
       updateComponents: {
         surfaceId: 's1',
         components: [{id: 'root', component: 'Text', ...(text === undefined ? {} : {text})}],
@@ -826,7 +813,7 @@ describe('publish, the smoke test', () => {
       ),
     );
     expect(answer.findings).toEqual([
-      `surface "s1" is painted in catalog ${JSON.stringify(CAT2)}, outside its entitlement`,
+      `surface "s1": its createSurface names catalog ${JSON.stringify(CAT2)}, outside its entitlement (/0/createSurface/catalogId)`,
     ]);
   });
 });
@@ -1299,9 +1286,7 @@ describe('publish, again', () => {
       version: '0.2.0',
       capabilities: {
         ...agent.card.capabilities,
-        extensions: [
-          {uri: 'https://a2ui.org/a2a-extension/a2ui/v0.9.1', params: {supportedCatalogIds: [CAT]}},
-        ],
+        extensions: [{uri: A2UI_EXTENSION_URI, params: {supportedCatalogIds: [CAT]}}],
       },
     };
     cards.cards.set(url, narrower);
@@ -1520,7 +1505,7 @@ describe('ahead of the Store', () => {
         ...agent.card.capabilities,
         extensions: [
           {
-            uri: 'https://a2ui.org/a2a-extension/a2ui/v0.9.1',
+            uri: A2UI_EXTENSION_URI,
             params: {supportedCatalogIds: [CAT, CAT2]},
           },
         ],
@@ -1678,5 +1663,318 @@ describe('the boot', () => {
     await expect(made(stateDir)).rejects.toThrow(
       'the entry of app "sky" is damaged: the last published version is "0.2.0", the stored card’s is "0.1.0"',
     );
+  });
+});
+
+/** A card fixture of the sdk: upstream's sample agents' cards as served (task-21.10 decision 23.3). */
+const upstreamCard = (name: string): ServedCard & {url: string} =>
+  JSON.parse(
+    readFileSync(
+      new URL(`../../../packages/sdk/js/test/fixtures/cards/${name}`, import.meta.url),
+      'utf8',
+    ),
+  );
+
+/** A card's A2UI entries, one per URI, written by hand. */
+const declaring = (...uris: string[]) => ({
+  capabilities: {
+    streaming: true,
+    extensions: uris.map(uri => ({uri, params: {supportedCatalogIds: [CAT]}})),
+  },
+});
+const A2UI_V09 = 'https://a2ui.org/a2a-extension/a2ui/v0.9';
+const A2UI_V11 = 'https://a2ui.org/a2a-extension/a2ui/v1.1';
+
+/** Paints the shared surface in `CAT`, every message stamped `version`: written to be refused. */
+const stampedScript = (version: string) =>
+  completingScript(
+    paintParts(CAT).map(part =>
+      part.kind === 'data' ? {...part, data: {...(part.data as object), version}} : part,
+    ),
+  );
+
+describe('an agent on another A2UI version at publish (task-21.15 decisions 1, 2, 3)', () => {
+  test("upstream's ADK restaurant finder, declaring v0.8 and v0.9: refused alone, nothing sent", async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const adk = upstreamCard('adk-restaurant-finder.json');
+    const url = cards.serveAt('http://127.0.0.1:1/.well-known/agent-card.json', adk);
+    // A bad app id and a missing artifact are not judged beside it.
+    const answer = await marketplace.publish('acme', body('Finder!', url));
+    expect(answer).toEqual({
+      ok: false,
+      kind: 'refused',
+      findings: [
+        'the card declares A2UI v0.8 and v0.9, which A2UIVerse no longer supports: A2UIVerse speaks A2UI v1.0',
+      ],
+    });
+    expect(marketplace.entries()).toEqual([]);
+  });
+
+  test('a card declaring only a newer version, and one declaring an older and a newer, each refused alone', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const newer = await agentOf({card: declaring(A2UI_V11)});
+    expect(
+      refused(await marketplace.publish('acme', body('shop', cards.serve(newer.card)))).findings,
+    ).toEqual([
+      'the card declares A2UI v1.1, which is newer than this A2UIVerse supports: A2UIVerse speaks A2UI v1.0',
+    ]);
+    const both = await agentOf({card: declaring(A2UI_V09, A2UI_V11)});
+    expect(
+      refused(await marketplace.publish('acme', body('shop', cards.serve(both.card)))).findings,
+    ).toEqual([
+      'the card declares A2UI v0.9 and v1.1, not v1.0: v1.1 is newer than this A2UIVerse supports, and A2UIVerse speaks A2UI v1.0',
+    ]);
+    expect(newer.requests).toEqual([]);
+    expect(both.requests).toEqual([]);
+  });
+
+  test('a malformed v1.0 declaration is collected beside the other findings', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const keyed = await agentOf({
+      card: {
+        description: '',
+        capabilities: {
+          streaming: true,
+          extensions: [{uri: A2UI_EXTENSION_URI, params: {'1.0': {supportedCatalogIds: [CAT]}}}],
+        },
+      },
+    });
+    const answer = refused(
+      await marketplace.publish('acme', body('shop', cards.serve(keyed.card))),
+    );
+    expect(answer.findings).toEqual([
+      'the card has no description',
+      'the card\'s A2UI v1.0 extension params: keyed under "1.0"; v1.0 params are read flat',
+    ]);
+    expect(keyed.requests).toEqual([]);
+  });
+
+  test("upstream's Node restaurant finder, with no A2UI entry, published on the basic catalog against a scripted agent", async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentOf({catalogs: [], script: paintingScript(BASIC_CATALOG_ID)});
+    const node = {...upstreamCard('node-restaurant-finder.json'), url: agent.url};
+    const answer = ok(
+      await marketplace.publish('acme', body('finder', cards.serveAt(cardUrlOf(agent.url), node))),
+    );
+    expect(answer.summary).toBe('published finder · card 1.0.0 · basic catalog');
+    expect(agent.requests[0]?.message.parts).toEqual([
+      {kind: 'text', text: 'Find me the top 10 chinese restaurants in the US'},
+    ]);
+    expect(agent.requests[0]?.message.metadata?.[A2UI_RENDERER_CAPABILITIES_KEY]).toEqual(
+      rendererCapabilities([BASIC_CATALOG_ID]),
+    );
+  });
+
+  test.each([
+    [
+      'v0.9',
+      'the answer is stamped A2UI "v0.9", an older version A2UIVerse no longer supports: A2UIVerse reads only what is stamped "1.0"',
+    ],
+    [
+      '1.1',
+      'the answer is stamped A2UI "1.1", a newer version than this A2UIVerse supports: A2UIVerse reads only what is stamped "1.0"',
+    ],
+    [
+      'abc',
+      'the answer is stamped "abc", which is no A2UI version: A2UIVerse reads only what is stamped "1.0"',
+    ],
+  ])(
+    'an answer stamped %s on a v1.0 card, refused by what its stamp reads as',
+    async (stamp, finding) => {
+      const {marketplace, cards} = await made();
+      await claimed(marketplace);
+      const agent = await agentOf({script: stampedScript(stamp)});
+      const answer = refused(
+        await marketplace.publish(
+          'acme',
+          body('shop', cards.serve(agent.card), [await fixtureArtifact(CAT)]),
+        ),
+      );
+      expect(answer.findings).toEqual([finding]);
+    },
+  );
+
+  test('an answer in v0.8, whose messages carry no version, refused as painting nothing', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const v08 = completingScript([
+      {kind: 'data', data: {beginRendering: {surfaceId: 's1', root: 'root'}}},
+      {
+        kind: 'data',
+        data: {
+          surfaceUpdate: {
+            surfaceId: 's1',
+            components: [{id: 'root', component: {Text: {text: {literalString: 'hi'}}}}],
+          },
+        },
+      },
+    ]);
+    const agent = await agentOf({script: v08});
+    const answer = refused(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serve(agent.card), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    expect(answer.findings).toEqual(['the answer paints nothing: no createSurface']);
+  });
+
+  test('an artifact packed for 0.16.1 refused by name', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const agent = await agentOf();
+    const old = await fixtureArtifact(CAT, {hostInterface: '0.16.1'});
+    const answer = refused(
+      await marketplace.publish('acme', body('shop', cards.serve(agent.card), [old])),
+    );
+    expect(answer.findings).toEqual([
+      `catalog artifact 1 (${CAT}): host interface "0.16.1" is not one the platform supplies (it supplies "0.16.1-v1.0")`,
+    ]);
+    expect(agent.requests).toEqual([]);
+  });
+});
+
+/** The catalog document a catalog for v0.9 carries: no protocolVersion, as `main` packed them. */
+const v09Schema = {
+  catalogId: CAT,
+  components: {Text: {type: 'object', properties: {text: {type: 'string'}}, required: ['text']}},
+};
+
+/**
+ * A state directory as `main` left it (task-21.15 decisions 4, 5, 6): app `old` listed by acme on a
+ * card declaring v0.9, its catalog row at a build packed for `hostInterface`, its preview stamped
+ * v0.9.
+ */
+async function stateBeforeFlip(hostInterface = '0.16.1', flagged = false) {
+  const stateDir = await mkdtemp(join(tmpdir(), 'a2uiverse-marketplace-'));
+  dirs.push(stateDir);
+  const store = new MarketplaceStore(stateDir);
+  await store.load();
+  const files = await fixtureArtifact(CAT, {hostInterface, schema: v09Schema});
+  const artifactId = await idOf(files);
+  const card = {...cardFor('http://127.0.0.1:1', {catalogs: [CAT]}), ...declaring(A2UI_V09)};
+  const entry = entryFor('old', card, {[CAT]: artifactId});
+  const preview = {
+    appId: 'old',
+    version: card.version,
+    words: SMOKE_GREETING,
+    messages: [
+      {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: CAT}},
+      {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: 's1',
+          components: [{id: 'root', component: 'Text', text: 'hi'}],
+        },
+      },
+    ],
+    capturedBy: 'marketplace' as const,
+    capturedAt: '2026-10-10T00:00:00.000Z',
+  };
+  const publisher: PublisherRecord = {
+    name: 'acme',
+    tokenHash: 'sha256-AAAA',
+    claimedAt: '2026-10-10T00:00:00.000Z',
+    apps: ['old'],
+    catalogs: [CAT],
+  };
+  const stored = flagged
+    ? {...entry, aheadOfStore: {catalogIds: [CAT2], seenAt: '2026-10-11T00:00:00.000Z'}}
+    : entry;
+  await store.writeArtifact(artifactId, files);
+  await store.writeEntry(stored);
+  await store.writePreview(preview);
+  await store.writePublishers([publisher]);
+  await store.writeIndex([stored]);
+  return {stateDir, artifactId, card};
+}
+
+describe('the held catalog rows and the listings from before the flip (task-21.15 decisions 4, 5, 6)', () => {
+  test('a v1.0 card naming an id held at a build packed for 0.16.1, no artifact handed: a coverage finding of its own', async () => {
+    const {stateDir} = await stateBeforeFlip('0.16.1');
+    const {marketplace, cards} = await made(stateDir);
+    const agent = await agentOf();
+    const answer = refused(
+      await marketplace.publish('acme', body('shop', cards.serve(agent.card))),
+    );
+    expect(answer.findings).toEqual([
+      `the card declares catalog ${JSON.stringify(CAT)} but no artifact for it was handed, and the build the marketplace holds for it is packed for host interface "0.16.1", while the platform supplies "0.16.1-v1.0"`,
+    ]);
+    expect(agent.requests).toEqual([]);
+  });
+
+  test('the same id held at a build packed for 0.16.1-v1.0 is covered', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const first = await agentOf();
+    ok(
+      await marketplace.publish(
+        'acme',
+        body('first', cards.serve(first.card), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    const agent = await agentOf();
+    const answer = ok(await marketplace.publish('acme', body('shop', cards.serve(agent.card))));
+    expect(answer.notes).toContain(
+      `catalog ${JSON.stringify(CAT)}: the held build counts as covered`,
+    );
+  });
+
+  test('a v1.0 artifact handed for an id held as an older-version catalog: one finding, no walk', async () => {
+    const {stateDir} = await stateBeforeFlip('0.16.1');
+    const {marketplace, cards} = await made(stateDir);
+    const agent = await agentOf();
+    const answer = refused(
+      await marketplace.publish(
+        'acme',
+        body('shop', cards.serve(agent.card), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    expect(answer.findings).toEqual([`catalog artifact 1 (${CAT}): ${OLDER_VERSION_HELD}`]);
+  });
+
+  test('the boot on a state directory from before the flip: its listings, artifacts and previews unchanged', async () => {
+    const {stateDir} = await stateBeforeFlip('0.16.1', true);
+    const tree = async () => {
+      const {readTree} = await import('../src/store.js');
+      return readTree(stateDir);
+    };
+    const before = await tree();
+    const {marketplace} = await made(stateDir);
+    expect(marketplace.entries().map(e => e.appId)).toEqual(['old']);
+    expect(marketplace.preview('old')?.messages[0]).toMatchObject({version: 'v0.9'});
+    expect(await tree()).toEqual(before);
+  });
+
+  test('the drift check on a live card declaring only v0.9: the flag left as it was, said in the log; a live card moved to v1.0 under a new id flagged', async () => {
+    const {stateDir, card} = await stateBeforeFlip('0.16.1', true);
+    const {marketplace, cards} = await made(stateDir);
+    const url = cards.serve(card);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      expect(await marketplace.report('old')).toBe('unchanged');
+      expect(log.mock.calls.map(([line]) => String(line))).toContainEqual(
+        expect.stringMatching(
+          /@a2uiverse\/marketplace: the live card of old declares A2UI v0\.9 and not v1\.0: its ahead-of-the-Store flag is left as it was$/,
+        ),
+      );
+    } finally {
+      log.mockRestore();
+    }
+    expect(marketplace.entry('old')?.aheadOfStore?.catalogIds).toEqual([CAT2]);
+    const NEW = 'https://example.com/fake/v1/catalog.json';
+    cards.serveAt(url, {
+      ...card,
+      capabilities: {
+        streaming: true,
+        extensions: [{uri: A2UI_EXTENSION_URI, params: {supportedCatalogIds: [NEW]}}],
+      },
+    });
+    expect(await marketplace.report('old')).toBe('changed');
+    expect(marketplace.entry('old')?.aheadOfStore?.catalogIds).toEqual([NEW]);
   });
 });

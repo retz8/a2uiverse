@@ -185,7 +185,7 @@ export interface CardOptions {
   transports?: Array<{transport: FakeBinding; url: string}>;
   /** The catalog ids the card declares under the A2UI extension; none declares nothing. */
   catalogs?: string[];
-  /** The card's extension entries written out, in place of the one v0.9.1 entry `catalogs` makes. */
+  /** The card's extension entries written out, in place of the one v1.0 entry `catalogs` makes. */
   extensions?: NonNullable<AgentCard['capabilities']['extensions']>;
   skills?: AgentCard['skills'];
   streaming?: boolean;

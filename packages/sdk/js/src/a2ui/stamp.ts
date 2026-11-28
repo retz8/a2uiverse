@@ -15,6 +15,8 @@ export interface A2uiStamp {
   current: boolean;
   /** Whether it reads as a version below 1.0. */
   older: boolean;
+  /** Whether it reads as a version above 1.0. */
+  newer: boolean;
 }
 
 const VERSION_PATTERN = /^v?(\d+)\.(\d+)(?:\.(\d+))?$/;
@@ -28,6 +30,14 @@ export function readsBelowV1(version: string): boolean {
   return parts !== null && Number(parts[1]) < 1;
 }
 
+/** Whether a version, written as {@link readsBelowV1} reads one, reads as one above 1.0. */
+export function readsAboveV1(version: string): boolean {
+  const parts = VERSION_PATTERN.exec(version);
+  if (parts === null) return false;
+  const [major, minor, patch] = [parts[1], parts[2], parts[3] ?? '0'].map(Number);
+  return major! > 1 || (major === 1 && (minor! > 0 || patch! > 0));
+}
+
 /**
  * The stamp a message carries: its `version`, when that is a string. Undefined when it is not,
  * and the message is not read as A2UI — v0.8 writes none.
@@ -36,5 +46,10 @@ export function readA2uiStamp(message: unknown): A2uiStamp | undefined {
   if (typeof message !== 'object' || message === null || Array.isArray(message)) return undefined;
   const stamp = (message as {version?: unknown}).version;
   if (typeof stamp !== 'string') return undefined;
-  return {stamp, current: stamp === A2UI_VERSION, older: readsBelowV1(stamp)};
+  return {
+    stamp,
+    current: stamp === A2UI_VERSION,
+    older: readsBelowV1(stamp),
+    newer: readsAboveV1(stamp),
+  };
 }

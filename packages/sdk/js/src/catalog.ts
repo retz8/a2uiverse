@@ -215,6 +215,26 @@ export interface OtherA2uiVersions {
   allOlder: boolean;
 }
 
+/** Items as a sentence lists them: `a`, `a and b`, `a, b and c`. */
+const listed = (items: readonly string[]): string =>
+  items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`;
+
+/**
+ * The publisher's line for a card that declares A2UI and not v1.0 (task-21.15 decision 2), in the
+ * pattern of the finding for a card listing no interface the platform speaks: what the card
+ * declares, then what A2UIVerse speaks. Publish and preview print it as written; the registry
+ * prints it beside its install refusal. A version that does not read below 1.0 is newer.
+ */
+function otherVersionsFinding(versions: readonly string[]): string {
+  const newer = versions.filter(version => !readsBelowV1(version));
+  const declares = `the card declares A2UI ${listed(versions)}`;
+  const speaks = `A2UIVerse speaks A2UI v${A2UI_VERSION}`;
+  const tooNew = `${newer.length === 1 ? 'is' : 'are'} newer than this A2UIVerse supports`;
+  if (newer.length === 0) return `${declares}, which A2UIVerse no longer supports: ${speaks}`;
+  if (newer.length === versions.length) return `${declares}, which ${tooNew}: ${speaks}`;
+  return `${declares}, not v${A2UI_VERSION}: ${listed(newer)} ${tooNew}, and ${speaks}`;
+}
+
 /**
  * What a card declares under the A2UI extension: its catalog ids, none for a card with no A2UI
  * entry — the basic-catalog fallback — or the errors that keep it from reading. A card declaring
@@ -243,9 +263,7 @@ export function readSupportedCatalogIds(card: CardWithExtensions): CardA2uiDecla
     const allOlder = versions.every(readsBelowV1);
     return {
       ok: false,
-      errors: [
-        `the card declares A2UI ${versions.join(' and ')}, not v${A2UI_VERSION}${allOlder ? '' : ', among them a version after it'}`,
-      ],
+      errors: [otherVersionsFinding(versions)],
       otherVersions: {versions, allOlder},
     };
   }

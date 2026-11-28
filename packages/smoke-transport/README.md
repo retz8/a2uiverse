@@ -14,7 +14,7 @@ const {served} = await fetchLiveCard('http://localhost:12001/.well-known/agent-c
 const card = readCard(served);
 const seen = await a2aSmokeRunner()({
   card,
-  entitlement: {'v0.9': [basicCatalogId], 'v0.9.1': [basicCatalogId, shopCatalogId]},
+  entitlement: [basicCatalogId, shopCatalogId],
   words: 'What cameras do you have?',
   timeoutMs: 60_000,
 });

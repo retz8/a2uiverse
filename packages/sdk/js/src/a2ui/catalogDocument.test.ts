@@ -75,6 +75,14 @@ describe('catalogDocumentErrors', () => {
     );
   });
 
+  test('a document that is no JSON Schema is a finding, never a throw', () => {
+    const errors = catalogDocumentErrors({
+      ...basic,
+      $defs: {...basic.$defs, anyFunction: {oneOf: []}},
+    });
+    expect(errors).toContainEqual(expect.stringMatching(/^is not a JSON Schema: /));
+  });
+
   test('anything but an object with components is one error', () => {
     expect(catalogDocumentErrors([])).toEqual(['not a JSON object']);
     expect(catalogDocumentErrors({catalogId: 'x'})).toEqual(['components is not an object']);

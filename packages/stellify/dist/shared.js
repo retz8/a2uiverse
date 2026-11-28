@@ -270,10 +270,39 @@ function schemaErrors(validate, input) {
 import { Ajv2020 as Ajv20202 } from "ajv/dist/2020.js";
 
 // ../sdk/js/dist/a2ui/spec.generated.js
-var COMMON_TYPES_SCHEMA = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://a2ui.org/specification/v0_9/common_types.json", "title": "A2UI Common Types", "description": "Common type definitions used across A2UI schemas.", "$defs": { "ComponentId": { "type": "string", "description": "The unique identifier for a component, used for both definitions and references within the same surface." }, "AccessibilityAttributes": { "type": "object", "description": "Attributes to enhance accessibility when using assistive technologies like screen readers.", "properties": { "label": { "$ref": "#/$defs/DynamicString", "description": "A short string, typically 1 to 3 words, used by assistive technologies to convey the purpose or intent of an element. For example, an input field might have an accessible label of 'User ID' or a button might be labeled 'Submit'." }, "description": { "$ref": "#/$defs/DynamicString", "description": "Additional information provided by assistive technologies about an element such as instructions, format requirements, or result of an action. For example, a mute button might have a label of 'Mute' and a description of 'Silences notifications about this conversation'." } } }, "ComponentCommon": { "type": "object", "properties": { "id": { "$ref": "#/$defs/ComponentId" }, "accessibility": { "$ref": "#/$defs/AccessibilityAttributes" } }, "required": ["id"] }, "ChildList": { "oneOf": [{ "type": "array", "description": "A static list of child component IDs.", "items": { "$ref": "#/$defs/ComponentId" } }, { "type": "object", "description": "A template for generating a dynamic list of children from a data model list. The `componentId` is the component to use as a template.", "properties": { "componentId": { "$ref": "#/$defs/ComponentId" }, "path": { "type": "string", "description": "The path to the list of component property objects in the data model." } }, "required": ["componentId", "path"], "additionalProperties": false }] }, "DataBinding": { "type": "object", "properties": { "path": { "type": "string", "description": "A JSON Pointer path to a value in the data model." } }, "required": ["path"], "additionalProperties": false }, "DynamicValue": { "description": "A value that can be a literal, a path, or a function call returning any type.", "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }, { "type": "array" }, { "$ref": "#/$defs/DataBinding" }, { "$ref": "#/$defs/FunctionCall" }] }, "DynamicString": { "description": "Represents a string", "oneOf": [{ "type": "string" }, { "$ref": "#/$defs/DataBinding" }, { "allOf": [{ "$ref": "#/$defs/FunctionCall" }, { "properties": { "returnType": { "const": "string" } } }] }] }, "DynamicNumber": { "description": "Represents a value that can be either a literal number, a path to a number in the data model, or a function call returning a number.", "oneOf": [{ "type": "number" }, { "$ref": "#/$defs/DataBinding" }, { "allOf": [{ "$ref": "#/$defs/FunctionCall" }, { "properties": { "returnType": { "const": "number" } } }] }] }, "DynamicBoolean": { "description": "A boolean value that can be a literal, a path, or a function call returning a boolean.", "oneOf": [{ "type": "boolean" }, { "$ref": "#/$defs/DataBinding" }, { "allOf": [{ "$ref": "#/$defs/FunctionCall" }, { "properties": { "returnType": { "const": "boolean" } } }] }] }, "DynamicStringList": { "description": "Represents a value that can be either a literal array of strings, a path to a string array in the data model, or a function call returning a string array.", "oneOf": [{ "type": "array", "items": { "type": "string" } }, { "$ref": "#/$defs/DataBinding" }, { "allOf": [{ "$ref": "#/$defs/FunctionCall" }, { "properties": { "returnType": { "const": "array" } } }] }] }, "FunctionCall": { "type": "object", "description": "Invokes a named function on the client.", "properties": { "call": { "type": "string", "description": "The name of the function to call." }, "args": { "type": "object", "description": "Arguments passed to the function.", "additionalProperties": { "anyOf": [{ "$ref": "#/$defs/DynamicValue" }, { "type": "object", "description": "A literal object argument (e.g. configuration)." }] } }, "returnType": { "type": "string", "description": "The expected return type of the function call.", "enum": ["string", "number", "boolean", "array", "object", "any", "void"], "default": "boolean" } }, "required": ["call"], "oneOf": [{ "$ref": "catalog.json#/$defs/anyFunction" }] }, "CheckRule": { "type": "object", "description": "A single validation rule applied to an input component.", "properties": { "condition": { "$ref": "#/$defs/DynamicBoolean" }, "message": { "type": "string", "description": "The error message to display if the check fails." } }, "required": ["condition", "message"], "additionalProperties": false }, "Checkable": { "type": "object", "description": "Properties for components that support client-side checks.", "properties": { "checks": { "type": "array", "description": "A list of checks to perform. These are function calls that must return a boolean indicating validity.", "items": { "$ref": "#/$defs/CheckRule" } } } }, "Action": { "description": "Defines an interaction handler that can either trigger a server-side event or execute a local client-side function.", "oneOf": [{ "type": "object", "description": "Triggers a server-side event.", "properties": { "event": { "type": "object", "description": "The event to dispatch to the server.", "properties": { "name": { "type": "string", "description": "The name of the action to be dispatched to the server." }, "context": { "type": "object", "description": "A JSON object containing the key-value pairs for the action context. Values can be literals or paths. Use literal values unless the value must be dynamically bound to the data model. Do NOT use paths for static IDs.", "additionalProperties": { "$ref": "#/$defs/DynamicValue" } } }, "required": ["name"], "additionalProperties": false } }, "required": ["event"], "additionalProperties": false }, { "type": "object", "description": "Executes a local client-side function.", "properties": { "functionCall": { "$ref": "#/$defs/FunctionCall" } }, "required": ["functionCall"], "additionalProperties": false }] } } };
-var SERVER_CAPABILITIES_SCHEMA = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://a2ui.org/specification/v0_9/server_capabilities.json", "title": "A2UI Server Capabilities Schema", "description": "A schema for the server capabilities object, which is used by an A2UI server (or Agent) to advertise its supported UI features to clients. This can be embedded in an Agent Card for A2A or used in other transport protocols like MCP.", "type": "object", "properties": { "v0.9": { "type": "object", "description": "The server capabilities structure for version 0.9 of the A2UI protocol.", "properties": { "supportedCatalogIds": { "type": "array", "description": "An array of strings, where each string is an ID identifying a Catalog Definition Schema that the server can generate. This is not necessarily a resolvable URI.", "items": { "type": "string" } }, "acceptsInlineCatalogs": { "type": "boolean", "description": "A boolean indicating if the server can accept an 'inlineCatalogs' array in the client's a2uiClientCapabilities. If omitted, this defaults to false.", "default": false } } } }, "required": ["v0.9"] };
-var BASIC_CATALOG_ID = "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json";
-var BASIC_CATALOG_SCHEMA = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json", "title": "A2UI Basic Catalog", "description": "Unified catalog of basic A2UI components and functions.", "catalogId": "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json", "components": { "Text": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "type": "object", "properties": { "component": { "const": "Text" }, "text": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "The text content to display. While simple Markdown formatting is supported (i.e. without HTML, images, or links), utilizing dedicated UI components is generally preferred for a richer and more structured presentation." }, "variant": { "type": "string", "description": "A hint for the base text style.", "enum": ["h1", "h2", "h3", "h4", "h5", "caption", "body"], "default": "body" } }, "required": ["component", "text"] }], "unevaluatedProperties": false }, "Image": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "type": "object", "properties": { "component": { "const": "Image" }, "url": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "The URL of the image to display." }, "description": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "Accessibility text for the image." }, "fit": { "type": "string", "description": "Specifies how the image should be resized to fit its container. This corresponds to the CSS 'object-fit' property.", "enum": ["contain", "cover", "fill", "none", "scaleDown"], "default": "fill" }, "variant": { "type": "string", "description": "A hint for the image size and style.", "enum": ["icon", "avatar", "smallFeature", "mediumFeature", "largeFeature", "header"], "default": "mediumFeature" } }, "required": ["component", "url"] }], "unevaluatedProperties": false }, "Icon": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "type": "object", "properties": { "component": { "const": "Icon" }, "name": { "description": "The name of the icon to display.", "oneOf": [{ "type": "string", "enum": ["accountCircle", "add", "arrowBack", "arrowForward", "attachFile", "calendarToday", "call", "camera", "check", "close", "delete", "download", "edit", "event", "error", "fastForward", "favorite", "favoriteOff", "folder", "help", "home", "info", "locationOn", "lock", "lockOpen", "mail", "menu", "moreVert", "moreHoriz", "notificationsOff", "notifications", "pause", "payment", "person", "phone", "photo", "play", "print", "refresh", "rewind", "search", "send", "settings", "share", "shoppingCart", "skipNext", "skipPrevious", "star", "starHalf", "starOff", "stop", "upload", "visibility", "visibilityOff", "volumeDown", "volumeMute", "volumeOff", "volumeUp", "warning"] }, { "type": "object", "properties": { "svgPath": { "type": "string" } }, "required": ["svgPath"], "additionalProperties": false }, { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DataBinding" }] } }, "required": ["component", "name"] }], "unevaluatedProperties": false }, "Video": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "type": "object", "properties": { "component": { "const": "Video" }, "url": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "The URL of the video to display." } }, "required": ["component", "url"] }], "unevaluatedProperties": false }, "AudioPlayer": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "type": "object", "properties": { "component": { "const": "AudioPlayer" }, "url": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "The URL of the audio to be played." }, "description": { "description": "A description of the audio, such as a title or summary.", "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString" } }, "required": ["component", "url"] }], "unevaluatedProperties": false }, "Row": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "type": "object", "description": "A layout component that arranges its children horizontally. To create a grid layout, nest Columns within this Row.", "properties": { "component": { "const": "Row" }, "children": { "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list. Children cannot be defined inline, they must be referred to by ID.", "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ChildList" }, "justify": { "type": "string", "description": "Defines the arrangement of children along the main axis (horizontally). Use 'spaceBetween' to push items to the edges, or 'start'/'end'/'center' to pack them together.", "enum": ["center", "end", "spaceAround", "spaceBetween", "spaceEvenly", "start", "stretch"], "default": "start" }, "align": { "type": "string", "description": "Defines the alignment of children along the cross axis (vertically). This is similar to the CSS 'align-items' property, but uses camelCase values (e.g., 'start').", "enum": ["start", "center", "end", "stretch"], "default": "stretch" } }, "required": ["component", "children"] }], "unevaluatedProperties": false }, "Column": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "type": "object", "description": "A layout component that arranges its children vertically. To create a grid layout, nest Rows within this Column.", "properties": { "component": { "const": "Column" }, "children": { "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list. Children cannot be defined inline, they must be referred to by ID.", "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ChildList" }, "justify": { "type": "string", "description": "Defines the arrangement of children along the main axis (vertically). Use 'spaceBetween' to push items to the edges (e.g. header at top, footer at bottom), or 'start'/'end'/'center' to pack them together.", "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly", "stretch"], "default": "start" }, "align": { "type": "string", "description": "Defines the alignment of children along the cross axis (horizontally). This is similar to the CSS 'align-items' property.", "enum": ["center", "end", "start", "stretch"], "default": "stretch" } }, "required": ["component", "children"] }], "unevaluatedProperties": false }, "List": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "type": "object", "properties": { "component": { "const": "List" }, "children": { "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list.", "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ChildList" }, "direction": { "type": "string", "description": "The direction in which the list items are laid out.", "enum": ["vertical", "horizontal"], "default": "vertical" }, "align": { "type": "string", "description": "Defines the alignment of children along the cross axis.", "enum": ["start", "center", "end", "stretch"], "default": "stretch" } }, "required": ["component", "children"] }], "unevaluatedProperties": false }, "Card": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "type": "object", "properties": { "component": { "const": "Card" }, "child": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentId", "description": "The ID of the single child component to be rendered inside the card. To display multiple elements, you MUST wrap them in a layout component (like Column or Row) and pass that container's ID here. Do NOT pass multiple IDs or a non-existent ID." } }, "required": ["component", "child"] }], "unevaluatedProperties": false }, "Tabs": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "type": "object", "properties": { "component": { "const": "Tabs" }, "tabs": { "type": "array", "description": "An array of objects, where each object defines a tab with a title and a child component.", "minItems": 1, "items": { "type": "object", "properties": { "title": { "description": "The tab title.", "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString" }, "child": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentId", "description": "The ID of the child component." } }, "required": ["title", "child"], "additionalProperties": false } } }, "required": ["component", "tabs"] }], "unevaluatedProperties": false }, "Modal": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "type": "object", "properties": { "component": { "const": "Modal" }, "trigger": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentId", "description": "The ID of the component that opens the modal when interacted with (e.g., a button)." }, "content": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentId", "description": "The ID of the component to be displayed inside the modal." } }, "required": ["component", "trigger", "content"] }], "unevaluatedProperties": false }, "Divider": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "type": "object", "properties": { "component": { "const": "Divider" }, "axis": { "type": "string", "description": "The orientation of the divider.", "enum": ["horizontal", "vertical"], "default": "horizontal" } }, "required": ["component"] }], "unevaluatedProperties": false }, "Button": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/Checkable" }, { "type": "object", "properties": { "component": { "const": "Button" }, "child": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentId", "description": "The ID of the child component. Use a 'Text' component for a labeled button. Only use an 'Icon' if the requirements explicitly ask for an icon-only button." }, "variant": { "type": "string", "description": "A hint for the button style. If omitted, a default button style is used. 'primary' indicates this is the main call-to-action button. 'borderless' means the button has no visual border or background, making its child content appear like a clickable link.", "enum": ["default", "primary", "borderless"], "default": "default" }, "action": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/Action" } }, "required": ["component", "child", "action"] }], "unevaluatedProperties": false }, "TextField": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/Checkable" }, { "type": "object", "properties": { "component": { "const": "TextField" }, "label": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "The text label for the input field." }, "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "The value of the text field." }, "variant": { "type": "string", "description": "The type of input field to display.", "enum": ["longText", "number", "shortText", "obscured"], "default": "shortText" }, "validationRegexp": { "type": "string", "description": "A regular expression used for client-side validation of the input." } }, "required": ["component", "label"] }], "unevaluatedProperties": false }, "CheckBox": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/Checkable" }, { "type": "object", "properties": { "component": { "const": "CheckBox" }, "label": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "The text to display next to the checkbox." }, "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicBoolean", "description": "The current state of the checkbox (true for checked, false for unchecked)." } }, "required": ["component", "label", "value"] }], "unevaluatedProperties": false }, "ChoicePicker": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/Checkable" }, { "type": "object", "description": "A component that allows selecting one or more options from a list.", "properties": { "component": { "const": "ChoicePicker" }, "label": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "The label for the group of options." }, "variant": { "type": "string", "description": "A hint for how the choice picker should be displayed and behave.", "enum": ["multipleSelection", "mutuallyExclusive"], "default": "mutuallyExclusive" }, "options": { "type": "array", "description": "The list of available options to choose from.", "items": { "type": "object", "properties": { "label": { "description": "The text to display for this option.", "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString" }, "value": { "type": "string", "description": "The stable value associated with this option." } }, "required": ["label", "value"], "additionalProperties": false } }, "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicStringList", "description": "The list of currently selected values. This should be bound to a string array in the data model." }, "displayStyle": { "type": "string", "description": "The display style of the component.", "enum": ["checkbox", "chips"], "default": "checkbox" }, "filterable": { "type": "boolean", "description": "If true, displays a search input to filter the options.", "default": false } }, "required": ["component", "options", "value"] }], "unevaluatedProperties": false }, "Slider": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/Checkable" }, { "type": "object", "properties": { "component": { "const": "Slider" }, "label": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "The label for the slider." }, "min": { "type": "number", "description": "The minimum value of the slider.", "default": 0 }, "max": { "type": "number", "description": "The maximum value of the slider." }, "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber", "description": "The current value of the slider." } }, "required": ["component", "value", "max"] }], "unevaluatedProperties": false }, "DateTimeInput": { "type": "object", "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentCommon" }, { "$ref": "#/$defs/CatalogComponentCommon" }, { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/Checkable" }, { "type": "object", "properties": { "component": { "const": "DateTimeInput" }, "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "The selected date and/or time value in ISO 8601 format. If not yet set, initialize with an empty string." }, "enableDate": { "type": "boolean", "description": "If true, allows the user to select a date.", "default": false }, "enableTime": { "type": "boolean", "description": "If true, allows the user to select a time.", "default": false }, "min": { "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString" }, { "if": { "type": "string" }, "then": { "oneOf": [{ "format": "date" }, { "format": "time" }, { "format": "date-time" }] } }], "description": "The minimum allowed date/time in ISO 8601 format." }, "max": { "allOf": [{ "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString" }, { "if": { "type": "string" }, "then": { "oneOf": [{ "format": "date" }, { "format": "time" }, { "format": "date-time" }] } }], "description": "The maximum allowed date/time in ISO 8601 format." }, "label": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "The text label for the input field." } }, "required": ["component", "value"] }], "unevaluatedProperties": false } }, "functions": { "required": { "type": "object", "description": "Checks that the value is not null, undefined, or empty.", "properties": { "call": { "const": "required" }, "args": { "type": "object", "properties": { "value": { "description": "The value to check." } }, "required": ["value"], "additionalProperties": false }, "returnType": { "const": "boolean" } }, "required": ["call", "args"], "unevaluatedProperties": false }, "regex": { "type": "object", "description": "Checks that the value matches a regular expression string.", "properties": { "call": { "const": "regex" }, "args": { "type": "object", "properties": { "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString" }, "pattern": { "type": "string", "description": "The regex pattern to match against." } }, "required": ["value", "pattern"], "unevaluatedProperties": false }, "returnType": { "const": "boolean" } }, "required": ["call", "args"], "unevaluatedProperties": false }, "length": { "type": "object", "description": "Checks string length constraints.", "properties": { "call": { "const": "length" }, "args": { "type": "object", "properties": { "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString" }, "min": { "type": "integer", "minimum": 0, "description": "The minimum allowed length." }, "max": { "type": "integer", "minimum": 0, "description": "The maximum allowed length." } }, "required": ["value"], "anyOf": [{ "required": ["min"] }, { "required": ["max"] }], "unevaluatedProperties": false }, "returnType": { "const": "boolean" } }, "required": ["call", "args"], "unevaluatedProperties": false }, "numeric": { "type": "object", "description": "Checks numeric range constraints.", "properties": { "call": { "const": "numeric" }, "args": { "type": "object", "properties": { "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber" }, "min": { "type": "number", "description": "The minimum allowed value." }, "max": { "type": "number", "description": "The maximum allowed value." } }, "required": ["value"], "anyOf": [{ "required": ["min"] }, { "required": ["max"] }], "unevaluatedProperties": false }, "returnType": { "const": "boolean" } }, "required": ["call", "args"], "unevaluatedProperties": false }, "email": { "type": "object", "description": "Checks that the value is a valid email address.", "properties": { "call": { "const": "email" }, "args": { "type": "object", "properties": { "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString" } }, "required": ["value"], "unevaluatedProperties": false }, "returnType": { "const": "boolean" } }, "required": ["call", "args"], "unevaluatedProperties": false }, "formatString": { "type": "object", "description": "Performs string interpolation of data model values and other functions in the catalog functions list and returns the resulting string. The value string can contain interpolated expressions in the `${expression}` format. Supported expression types include: JSON Pointer paths to the data model (e.g., `${/absolute/path}` or `${relative/path}`), and client-side function calls (e.g., `${now()}`). Function arguments must be named (e.g., `${formatDate(value:${/currentDate}, format:'MM-dd')}`). To include a literal `${` sequence, escape it as `\\${`.", "properties": { "call": { "const": "formatString" }, "args": { "type": "object", "properties": { "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString" } }, "required": ["value"], "unevaluatedProperties": false }, "returnType": { "const": "string" } }, "required": ["call", "args"], "unevaluatedProperties": false }, "formatNumber": { "type": "object", "description": "Formats a number with the specified grouping and decimal precision.", "properties": { "call": { "const": "formatNumber" }, "args": { "type": "object", "properties": { "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber", "description": "The number to format." }, "decimals": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber", "description": "Optional. The number of decimal places to show. Defaults to 0 or 2 depending on locale." }, "grouping": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicBoolean", "description": "Optional. If true, uses locale-specific grouping separators (e.g. '1,000'). If false, returns raw digits (e.g. '1000'). Defaults to true." } }, "required": ["value"], "unevaluatedProperties": false }, "returnType": { "const": "string" } }, "required": ["call", "args"], "unevaluatedProperties": false }, "formatCurrency": { "type": "object", "description": "Formats a number as a currency string.", "properties": { "call": { "const": "formatCurrency" }, "args": { "type": "object", "properties": { "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber", "description": "The monetary amount." }, "currency": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "The ISO 4217 currency code (e.g., 'USD', 'EUR')." }, "decimals": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber", "description": "Optional. The number of decimal places to show. Defaults to 0 or 2 depending on locale." }, "grouping": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicBoolean", "description": "Optional. If true, uses locale-specific grouping separators (e.g. '1,000'). If false, returns raw digits (e.g. '1000'). Defaults to true." } }, "required": ["currency", "value"], "unevaluatedProperties": false }, "returnType": { "const": "string" } }, "required": ["call", "args"], "unevaluatedProperties": false }, "formatDate": { "type": "object", "description": "Formats a timestamp into a string using a pattern.", "properties": { "call": { "const": "formatDate" }, "args": { "type": "object", "properties": { "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicValue", "description": "The date to format." }, "format": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "A Unicode TR35 date pattern string.\n\nToken Reference:\n- Year: 'yy' (26), 'yyyy' (2026)\n- Month: 'M' (1), 'MM' (01), 'MMM' (Jan), 'MMMM' (January)\n- Day: 'd' (1), 'dd' (01), 'E' (Tue), 'EEEE' (Tuesday)\n- Hour (12h): 'h' (1-12), 'hh' (01-12) - requires 'a' for AM/PM\n- Hour (24h): 'H' (0-23), 'HH' (00-23) - Military Time\n- Minute: 'mm' (00-59)\n- Second: 'ss' (00-59)\n- Period: 'a' (AM/PM)\n\nExamples:\n- 'MMM dd, yyyy' -> 'Jan 16, 2026'\n- 'HH:mm' -> '14:30' (Military)\n- 'h:mm a' -> '2:30 PM'\n- 'EEEE, d MMMM' -> 'Friday, 16 January'" } }, "required": ["format", "value"], "unevaluatedProperties": false }, "returnType": { "const": "string" } }, "required": ["call", "args"], "unevaluatedProperties": false }, "pluralize": { "type": "object", "description": "Returns a localized string based on the Common Locale Data Repository (CLDR) plural category of the count (zero, one, two, few, many, other). Requires an 'other' fallback. For English, just use 'one' and 'other'.", "properties": { "call": { "const": "pluralize" }, "args": { "type": "object", "properties": { "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber", "description": "The numeric value used to determine the plural category." }, "zero": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "String for the 'zero' category (e.g., 0 items)." }, "one": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "String for the 'one' category (e.g., 1 item)." }, "two": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "String for the 'two' category (used in Arabic, Welsh, etc.)." }, "few": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "String for the 'few' category (e.g., small groups in Slavic languages)." }, "many": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "String for the 'many' category (e.g., large groups in various languages)." }, "other": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString", "description": "The default/fallback string (used for general plural cases)." } }, "required": ["value", "other"], "unevaluatedProperties": false }, "returnType": { "const": "string" } }, "required": ["call", "args"], "unevaluatedProperties": false }, "openUrl": { "type": "object", "description": "Opens the specified URL in a browser or handler. This function has no return value.", "properties": { "call": { "const": "openUrl" }, "args": { "type": "object", "properties": { "url": { "type": "string", "format": "uri", "description": "The URL to open." } }, "required": ["url"], "additionalProperties": false }, "returnType": { "const": "void" } }, "required": ["call", "args"], "unevaluatedProperties": false }, "and": { "type": "object", "description": "Performs a logical AND operation on a list of boolean values.", "properties": { "call": { "const": "and" }, "args": { "type": "object", "properties": { "values": { "type": "array", "description": "The list of boolean values to evaluate.", "items": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicBoolean" }, "minItems": 2 } }, "required": ["values"], "unevaluatedProperties": false }, "returnType": { "const": "boolean" } }, "required": ["call", "args"], "unevaluatedProperties": false }, "or": { "type": "object", "description": "Performs a logical OR operation on a list of boolean values.", "properties": { "call": { "const": "or" }, "args": { "type": "object", "properties": { "values": { "type": "array", "description": "The list of boolean values to evaluate.", "items": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicBoolean" }, "minItems": 2 } }, "required": ["values"], "unevaluatedProperties": false }, "returnType": { "const": "boolean" } }, "required": ["call", "args"], "unevaluatedProperties": false }, "not": { "type": "object", "description": "Performs a logical NOT operation on a boolean value.", "properties": { "call": { "const": "not" }, "args": { "type": "object", "properties": { "value": { "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicBoolean", "description": "The boolean value to negate." } }, "required": ["value"], "unevaluatedProperties": false }, "returnType": { "const": "boolean" } }, "required": ["call", "args"], "unevaluatedProperties": false } }, "$defs": { "CatalogComponentCommon": { "type": "object", "properties": { "weight": { "type": "number", "description": "The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column." } } }, "theme": { "type": "object", "properties": { "primaryColor": { "type": "string", "description": "The primary brand color used for highlights (e.g., primary buttons, active borders). Renderers may generate variants of this color for different contexts. Format: Hexadecimal code (e.g., '#00BFFF').", "pattern": "^#[0-9a-fA-F]{6}$" }, "iconUrl": { "type": "string", "format": "uri", "description": "A URL for an image that identifies the agent or tool associated with the surface." }, "agentDisplayName": { "type": "string", "description": "Text to be displayed next to the surface to identify the agent or tool that created it." } }, "additionalProperties": true }, "anyComponent": { "oneOf": [{ "$ref": "#/components/Text" }, { "$ref": "#/components/Image" }, { "$ref": "#/components/Icon" }, { "$ref": "#/components/Video" }, { "$ref": "#/components/AudioPlayer" }, { "$ref": "#/components/Row" }, { "$ref": "#/components/Column" }, { "$ref": "#/components/List" }, { "$ref": "#/components/Card" }, { "$ref": "#/components/Tabs" }, { "$ref": "#/components/Modal" }, { "$ref": "#/components/Divider" }, { "$ref": "#/components/Button" }, { "$ref": "#/components/TextField" }, { "$ref": "#/components/CheckBox" }, { "$ref": "#/components/ChoicePicker" }, { "$ref": "#/components/Slider" }, { "$ref": "#/components/DateTimeInput" }], "discriminator": { "propertyName": "component" } }, "anyFunction": { "oneOf": [{ "$ref": "#/functions/required" }, { "$ref": "#/functions/regex" }, { "$ref": "#/functions/length" }, { "$ref": "#/functions/numeric" }, { "$ref": "#/functions/email" }, { "$ref": "#/functions/formatString" }, { "$ref": "#/functions/formatNumber" }, { "$ref": "#/functions/formatCurrency" }, { "$ref": "#/functions/formatDate" }, { "$ref": "#/functions/pluralize" }, { "$ref": "#/functions/openUrl" }, { "$ref": "#/functions/and" }, { "$ref": "#/functions/or" }, { "$ref": "#/functions/not" }] } } };
+var BASIC_CATALOG_ID = "https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json";
+var COMMON_TYPES_SCHEMA = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://a2ui.org/specification/v1_0/common_types.json", "title": "A2UI Common Types", "description": "Common type definitions used across A2UI schemas.", "$defs": { "ComponentId": { "type": "string", "description": "The unique identifier for a component, used for both definitions and references within the same surface." }, "CallId": { "type": "string", "description": "The unique identifier for a function call." }, "AccessibilityAttributes": { "type": "object", "description": "Attributes to enhance accessibility when using assistive technologies like screen readers or model understanding.", "properties": { "label": { "$ref": "#/$defs/DynamicString", "description": "A short string, typically 1 to 3 words, used by assistive technologies to convey the purpose or intent of an element. For example, an input field might have an accessible label of 'User ID' or a button might be labeled 'Submit'." }, "description": { "$ref": "#/$defs/DynamicString", "description": "Additional information provided by assistive technologies about an element such as instructions, format requirements, or result of an action. For example, a mute button might have a label of 'Mute' and a description of 'Silences notifications about this conversation'." }, "live": { "type": "string", "description": "Controls screen reader announcements for dynamic updates (WAI-ARIA aria-live). 'polite' waits for user pause; 'assertive' interrupts immediately for alerts.", "enum": ["off", "polite", "assertive"], "default": "off" }, "hidden": { "$ref": "#/$defs/DynamicBoolean", "description": "Hides the element and its children from assistive technologies when true. Default is false." } }, "additionalProperties": false }, "Extensions": { "type": "object", "description": "Optional extension metadata. Keys MUST be Unicode identifiers (UAX #31). Keys starting with 'a2ui_' are reserved for official extensions.", "patternProperties": { "^[\\p{XID_Start}_][\\p{XID_Continue}]*$": {} }, "additionalProperties": false }, "ComponentCommon": { "type": "object", "properties": { "id": { "$ref": "#/$defs/ComponentId" }, "@catalogId": { "type": "string", "description": "The catalog ID for this component, overriding any surface-level default catalogId." }, "@accessibility": { "$ref": "#/$defs/AccessibilityAttributes" }, "@metadata": { "type": "object", "description": "Optional component-level metadata for vendor extensions.", "properties": { "extensions": { "$ref": "#/$defs/Extensions" } }, "additionalProperties": false } }, "required": ["id"] }, "Child": { "$ref": "#/$defs/ComponentId", "description": "A reference to a single child component ID." }, "ChildList": { "oneOf": [{ "type": "array", "description": "A static list of child component IDs.", "items": { "$ref": "#/$defs/ComponentId" } }, { "type": "object", "description": "A template for generating a dynamic list of children from a data model list. The `componentId` is the component to use as a template.", "properties": { "componentId": { "$ref": "#/$defs/ComponentId" }, "path": { "type": "string", "description": "The path to the list of component property objects in the data model." } }, "required": ["componentId", "path"], "additionalProperties": false }] }, "DataBinding": { "type": "object", "properties": { "@path": { "type": "string", "description": "A JSON Pointer path to a value in the data model." } }, "required": ["@path"], "additionalProperties": false }, "DynamicValue": { "description": "A value that can be a literal, a path, or a function call returning any type.", "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }, { "type": "array" }, { "type": "object", "propertyNames": { "not": { "pattern": "^@([^@]|$)" } }, "not": { "anyOf": [{ "required": ["@path"] }, { "required": ["@call"] }] } }, { "$ref": "#/$defs/DataBinding" }, { "$ref": "#/$defs/FunctionCall" }] }, "DynamicString": { "description": "Represents a string", "oneOf": [{ "type": "string" }, { "$ref": "#/$defs/DataBinding" }, { "$ref": "#/$defs/FunctionCall" }] }, "DynamicNumber": { "description": "Represents a value that can be either a literal number, a path to a number in the data model, or a function call returning a number.", "oneOf": [{ "type": "number" }, { "$ref": "#/$defs/DataBinding" }, { "$ref": "#/$defs/FunctionCall" }] }, "DynamicBoolean": { "description": "A boolean value that can be a literal, a path, or a function call returning a boolean or a validation result object (coerced to its 'valid' boolean).", "oneOf": [{ "type": "boolean" }, { "$ref": "#/$defs/DataBinding" }, { "$ref": "#/$defs/FunctionCall" }] }, "DynamicStringList": { "description": "Represents a value that can be either a literal array of strings, a path to a string array in the data model, or a function call returning a string array.", "oneOf": [{ "type": "array", "items": { "type": "string" } }, { "$ref": "#/$defs/DataBinding" }, { "$ref": "#/$defs/FunctionCall" }] }, "FunctionCommon": { "type": "object", "description": "Baseline envelope properties common to all function calls. Function-specific argument schemas ('args') are defined individually by each function in the active catalog.", "properties": { "@call": { "type": "string", "description": "The name of the function to call." }, "catalogId": { "type": "string", "description": "The catalog ID for this function, overriding any surface-level default catalogId." } }, "required": ["@call"] }, "IndexSystemFunction": { "type": "object", "description": "Returns the 0-based index of the current item when rendering a dynamic list from a template. This function MUST ONLY be available when evaluating template items within a list context.", "properties": { "@call": { "const": "@index" }, "args": { "type": "object", "properties": { "offset": { "$ref": "#/$defs/DynamicNumber", "description": "Optional. An offset to add to the 0-based index (e.g., 1 for 1-based indexing). Defaults to 0.", "default": 0 } }, "unevaluatedProperties": false } }, "required": ["@call"], "unevaluatedProperties": false, "returnType": "number" }, "FunctionCall": { "type": "object", "description": "Invokes a named function, combining common function properties with the catalog function definition.", "allOf": [{ "$ref": "#/$defs/FunctionCommon" }, { "oneOf": [{ "$ref": "catalog.json#/$defs/anyFunction" }, { "$ref": "#/$defs/IndexSystemFunction" }] }], "unevaluatedProperties": false }, "CheckRule": { "type": "object", "description": "A single validation check rule applied to an input component. The condition function or path evaluates to a structured validation result object or a boolean (which is coerced to a validation result object).", "properties": { "condition": { "description": "Path or function call evaluating to a structured validation result object or a boolean.", "oneOf": [{ "$ref": "#/$defs/DataBinding" }, { "$ref": "#/$defs/FunctionCall" }] }, "message": { "type": "string", "description": "Optional fallback error message." } }, "required": ["condition"], "additionalProperties": false }, "Checkable": { "type": "object", "description": "Properties for components that support renderer-side checks.", "properties": { "@checks": { "type": "array", "description": "A list of validation check rules to perform on the component.", "items": { "$ref": "#/$defs/CheckRule" } } } }, "Action": { "description": "Defines an interaction handler that can either trigger an agent-side event or execute a local renderer-side function.", "oneOf": [{ "type": "object", "description": "Triggers an agent-side event.", "properties": { "event": { "type": "object", "description": "The event to dispatch to the agent.", "properties": { "name": { "type": "string", "description": "The name of the action to be dispatched to the agent." }, "userMessage": { "$ref": "#/$defs/DynamicString", "description": "An optional human-readable message describing the action performed by the user, resolved by the renderer and included in the outbound action message." }, "context": { "type": "object", "description": "A JSON object containing the key-value pairs for the action context. Values can be literals or paths. Use literal values unless the value must be dynamically bound to the data model. Do NOT use paths for static IDs.", "additionalProperties": { "$ref": "#/$defs/DynamicValue" } } }, "required": ["name"], "additionalProperties": false } }, "required": ["event"], "additionalProperties": false }, { "type": "object", "description": "Executes a renderer or agent-side function.", "properties": { "functionCall": { "$ref": "#/$defs/FunctionCall" } }, "required": ["functionCall"], "additionalProperties": false }] }, "Surface": { "title": "Surface Container Component", "description": "The reserved canonical container component representing an A2UI surface. The Surface component is immutable and always has 'child': 'root'.", "type": "object", "allowedParents": [], "properties": { "component": { "const": "Surface" }, "child": { "const": "root" } }, "additionalProperties": false }, "FunctionResponse": { "type": "object", "description": "The return response matching a callAgentFunction or callRendererFunction invocation.", "properties": { "functionCallId": { "$ref": "#/$defs/CallId", "description": "The unique ID matching the initiating function call." }, "value": { "description": "The return value of the function." }, "error": { "type": "object", "description": "An error object indicating failure of the function execution.", "properties": { "code": { "type": "string" }, "message": { "type": "string" } }, "required": ["code", "message"], "additionalProperties": false } }, "required": ["functionCallId"], "oneOf": [{ "required": ["value"] }, { "required": ["error"] }], "additionalProperties": false } } };
+var AGENT_CAPABILITIES_SCHEMA = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://a2ui.org/specification/v1_0/agent_capabilities.json", "title": "A2UI Agent Capabilities Schema", "description": "A schema for the agent capabilities object, which is used by an A2UI Agent to advertise its supported UI features to renderers. This can be embedded in an Agent Card for A2A or used in other transport protocols like MCP.", "type": "object", "properties": { "1.0": { "type": "object", "description": "The agent capabilities structure for version 1.0 of the A2UI protocol.", "properties": { "supportedCatalogIds": { "type": "array", "description": "An array of strings, where each is an ID identifying a Catalog for which the agent can generate content. This is not a resolvable URI. Multiple catalogs can be mixed in a single surface.", "items": { "type": "string" } }, "acceptsInlineCatalogs": { "type": "boolean", "description": "A boolean indicating if the agent can accept an 'inlineCatalogs' array in the renderer's a2uiRendererCapabilities. If omitted, this defaults to false.", "default": false } } } }, "required": ["1.0"] };
+var CATALOG_DEFINITION_SCHEMA = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://a2ui.org/specification/v1_0/catalog_definition.json", "title": "A2UI Catalog Definition Schema", "description": "A collection of component and function definitions.", "type": "object", "properties": { "$schema": { "type": "string" }, "$id": { "type": "string" }, "protocolVersion": { "type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:\\.(0|[1-9][0-9]*))?(?:-((?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$", "default": "0.9", "description": "The A2UI specification version of this catalog definition (e.g. '1.0'). Defaults to '0.9' if omitted." }, "$defs": { "type": "object", "description": "Standardized schema definitions referenced from outside the catalog file, and custom leaf definitions.", "properties": { "anyComponent": { "title": "A2UI Any Component Schema", "description": "Unified validation schema for all components.", "$ref": "https://json-schema.org/draft/2020-12/schema" }, "anyFunction": { "title": "A2UI Any Function Schema", "description": "Unified validation schema for all functions.", "$ref": "https://json-schema.org/draft/2020-12/schema" } }, "required": ["anyComponent", "anyFunction"], "additionalProperties": { "$ref": "#/$defs/LeafDefinition" } }, "title": { "type": "string", "description": "The title of the catalog." }, "description": { "type": "string", "description": "A human-readable description of the catalog." }, "catalogId": { "type": "string", "description": "Unique identifier for this catalog." }, "metadata": { "type": "object", "description": "Optional catalog-level metadata.", "properties": { "extensions": { "$ref": "common_types.json#/$defs/Extensions" } }, "additionalProperties": false }, "instructions": { "type": "string", "description": "Markdown-formatted design guidelines or instructions specific to this catalog." }, "components": { "type": "object", "description": "Definitions for UI components supported by this catalog.", "propertyNames": { "not": { "const": "Surface" } }, "additionalProperties": { "$ref": "#/$defs/ComponentDefinition" } }, "functions": { "type": "object", "description": "Definitions for functions supported by this catalog.", "additionalProperties": { "$ref": "#/$defs/FunctionDefinition" } } }, "required": ["catalogId"], "additionalProperties": false, "$defs": { "FunctionCallValidationSchema": { "type": "object", "description": "JSON Schema structure that validates a wire-level FunctionCall object.", "properties": { "type": { "const": "object" }, "description": { "type": "string" }, "properties": { "type": "object", "properties": { "@call": { "type": "object", "properties": { "const": { "type": "string" } }, "required": ["const"] }, "args": { "type": "object", "description": "A JSON Schema describing the expected arguments (args) for this function.", "$ref": "https://json-schema.org/draft/2020-12/schema" } }, "required": ["@call"], "additionalProperties": false }, "required": { "type": "array", "items": { "type": "string" }, "contains": { "const": "@call" } } }, "required": ["type", "properties", "required"] }, "FunctionDefinition": { "type": "object", "description": "Describes a function's validation schema and interface metadata.", "allOf": [{ "$ref": "#/$defs/FunctionCallValidationSchema" }, { "type": "object", "properties": { "returnType": { "type": "string", "enum": ["string", "number", "boolean", "array", "object", "validationResult", "any", "void"], "description": "The type of value this function returns." }, "allowedCallers": { "type": "string", "enum": ["rendererOnly", "agentOnly", "rendererOrAgent"], "default": "rendererOnly", "description": "Specifies which roles are authorized to invoke this function." }, "requiresUserActivation": { "type": "boolean", "default": false, "description": "Specifies whether this function requires a user activation context to execute." } }, "required": ["returnType"] }, { "if": { "properties": { "requiresUserActivation": { "const": true } }, "required": ["requiresUserActivation"] }, "then": { "properties": { "allowedCallers": { "enum": ["rendererOnly"] } } } }], "unevaluatedProperties": false }, "LeafDefinition": { "type": "object", "description": "Describes a reusable leaf data type (e.g. design token, value union, or payload structure). Must not define a component schema.", "allOf": [{ "$ref": "https://json-schema.org/draft/2020-12/schema" }, { "not": { "anyOf": [{ "properties": { "properties": { "type": "object", "properties": { "component": { "type": "object", "required": ["const"] } }, "required": ["component"] } }, "required": ["properties"] }, { "properties": { "allOf": { "type": "array", "contains": { "properties": { "properties": { "type": "object", "properties": { "component": { "type": "object", "required": ["const"] } }, "required": ["component"] } }, "required": ["properties"] } } }, "required": ["allOf"] }] } }] }, "ComponentDefinition": { "type": "object", "description": "Describes a component's validation schema and composition constraints.", "allOf": [{ "$ref": "https://json-schema.org/draft/2020-12/schema" }, { "type": "object", "properties": { "allowedParents": { "type": "array", "items": { "type": "string" }, "description": `The list of parent component type names that can contain this component type. If omitted, all parent component types are allowed. To restrict a component so it can appear only as the top-level component (id='root') of a surface, set "allowedParents": ["Surface"]. To allow a component as either the top-level component of a surface or a child of a specific container, specify both (e.g., "allowedParents": ["Surface", "CanvasContainer"]).`, "uniqueItems": true }, "allowedChildren": { "type": "array", "items": { "type": "string" }, "description": "The list of child component type names allowed inside this container or slot. If omitted, all child component types are allowed.", "uniqueItems": true }, "metadata": { "type": "object", "description": "Optional static metadata.", "properties": { "extensions": { "$ref": "common_types.json#/$defs/Extensions" } }, "additionalProperties": false } }, "not": { "anyOf": [{ "required": ["anyOf"] }, { "required": ["oneOf"] }] } }] }, "ValidationResult": { "type": "object", "description": "Dynamic validation result object returned by a validation condition function or data binding.", "properties": { "valid": { "type": "boolean", "description": "Whether the check passed." }, "code": { "type": "string", "description": "Machine-readable error code (e.g. EXPIRED_CARD, OUT_OF_RANGE)." }, "message": { "type": "string", "description": "Human-readable error or warning message." }, "severity": { "type": "string", "enum": ["error", "warning", "info"], "default": "error", "description": "Severity level of the validation result." } }, "required": ["valid"] } } };
+var BASIC_CATALOG_SCHEMA = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json", "protocolVersion": "1.0", "title": "A2UI Basic Catalog", "description": "Unified catalog of basic A2UI components and functions.", "catalogId": "https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json", "instructions": 'For layout, use the Row and Column components to organize other components.\n\n## Catalog Guidelines\n\n1. String Concatenation & Formatting: A2UI does not support binary operators like \'+\' or formatting symbols. To concatenate strings or dynamically inject data bindings into text, you must use the catalog function `formatString(value)` where the value string contains placeholders formatted as `${expression}`:\n   formatString("Hello ${/user/name}")\n\n2. Strict Hierarchy: You must strictly adhere to the requested component nesting and hierarchy. If the prompt specifies that a component is \'inside\' or \'contained in\' another component, you MUST place it as a child of that specific component, not as a sibling or in a different container.\n\n3. Validation Checks: When components support validation checks, specify any custom error messages directly as the \'message\' inside the check. Do NOT create separate text-display components to display validation errors.\n\n## Examples\n\nExample 1: Dynamic text form\n```json\n[\n  {\n    "version": "1.0",\n    "createSurface": {\n      "surfaceId": "main",\n      "catalogId": "https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json",\n      "components": [\n        {\n          "id": "root",\n          "component": "Column",\n          "children": ["repField", "valueField"]\n        },\n        {\n          "id": "repField",\n          "component": "TextField",\n          "label": "Representative",\n          "value": {"@path": "/form/rep"},\n          "placeholder": "Enter name"\n        },\n        {\n          "id": "valueField",\n          "component": "TextField",\n          "label": "Deal Value",\n          "value": {"@path": "/form/value"},\n          "placeholder": "0.00",\n          "variant": "number",\n          "@checks": [\n            {\n              "condition": {\n                "@call": "required",\n                "args": {"value": {"@path": "/form/value"}}\n              },\n              "message": "Deal value is required."\n            }\n          ]\n        }\n      ],\n      "dataModel": {\n        "form": {\n          "rep": "John Doe",\n          "value": 1500.00\n        }\n      }\n    }\n  }\n]\n```\n\nExample 2: Dynamic list with templates\n```json\n[\n  {\n    "version": "1.0",\n    "createSurface": {\n      "surfaceId": "main",\n      "catalogId": "https://a2ui.org/specification/v1_0/catalogs/basic/catalog.json",\n      "components": [\n        {\n          "id": "root",\n          "component": "Card",\n          "child": "breedList"\n        },\n        {\n          "id": "breedList",\n          "component": "List",\n          "children": {\n            "path": "/breeds",\n            "componentId": "breedTemplate"\n          },\n          "direction": "horizontal"\n        },\n        {\n          "id": "breedTemplate",\n          "component": "Image",\n          "url": {"@path": "url"}\n        }\n      ],\n      "dataModel": {\n        "breeds": [\n          {\n            "url": "https://example.com/poodle.jpg"\n          },\n          {\n            "url": "https://example.com/lab.jpg"\n          }\n        ]\n      }\n    }\n  }\n]\n```', "components": { "Text": { "type": "object", "properties": { "component": { "const": "Text" }, "text": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The text content to display. While simple Markdown formatting is supported (i.e. without HTML, images, or links), utilizing dedicated UI components is generally preferred for a richer and more structured presentation." }, "variant": { "type": "string", "description": "A hint for the base text style.", "enum": ["caption", "body"], "default": "body" }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "text"] }, "Image": { "type": "object", "properties": { "component": { "const": "Image" }, "url": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The URL of the image to display." }, "description": { "$ref": "common_types.json#/$defs/DynamicString", "description": "Accessibility text for the image." }, "fit": { "type": "string", "description": "Specifies how the image should be resized to fit its container. This corresponds to the CSS 'object-fit' property.", "enum": ["contain", "cover", "fill", "none", "scaleDown"], "default": "fill" }, "variant": { "type": "string", "description": "A hint for the image size and style.", "enum": ["icon", "avatar", "smallFeature", "mediumFeature", "largeFeature", "header"], "default": "mediumFeature" }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "url"] }, "Icon": { "type": "object", "properties": { "component": { "const": "Icon" }, "name": { "description": "The name of the icon to display.", "oneOf": [{ "type": "string", "enum": ["accountCircle", "add", "arrowBack", "arrowForward", "attachFile", "calendarToday", "call", "camera", "check", "close", "delete", "download", "edit", "event", "error", "fastForward", "favorite", "favoriteOff", "folder", "help", "home", "info", "locationOn", "lock", "lockOpen", "mail", "menu", "moreVert", "moreHoriz", "notificationsOff", "notifications", "pause", "payment", "person", "phone", "photo", "play", "print", "refresh", "rewind", "search", "send", "settings", "share", "shoppingCart", "skipNext", "skipPrevious", "star", "starHalf", "starOff", "stop", "upload", "visibility", "visibilityOff", "volumeDown", "volumeMute", "volumeOff", "volumeUp", "warning"] }, { "type": "object", "properties": { "svgPath": { "$ref": "common_types.json#/$defs/DynamicString" } }, "required": ["svgPath"], "additionalProperties": false }, { "$ref": "common_types.json#/$defs/DataBinding" }] }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "name"] }, "Video": { "type": "object", "properties": { "component": { "const": "Video" }, "url": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The URL of the video to display." }, "posterUrl": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The URL of the poster image to display before the video plays." }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "url"] }, "AudioPlayer": { "type": "object", "properties": { "component": { "const": "AudioPlayer" }, "url": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The URL of the audio to be played." }, "description": { "description": "A description of the audio, such as a title or summary.", "$ref": "common_types.json#/$defs/DynamicString" }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "url"] }, "Row": { "type": "object", "description": "A layout component that arranges its children horizontally. To create a grid layout, nest Columns within this Row.", "properties": { "component": { "const": "Row" }, "children": { "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list. Children cannot be defined inline, they must be referred to by ID.", "$ref": "common_types.json#/$defs/ChildList" }, "justify": { "type": "string", "description": "Defines the arrangement of children along the main axis (horizontally). Use 'spaceBetween' to push items to the edges, or 'start'/'end'/'center' to pack them together.", "enum": ["center", "end", "spaceAround", "spaceBetween", "spaceEvenly", "start", "stretch"], "default": "start" }, "align": { "type": "string", "description": "Defines the alignment of children along the cross axis (vertically). This is similar to the CSS 'align-items' property, but uses camelCase values (e.g., 'start').", "enum": ["start", "center", "end", "stretch"], "default": "stretch" }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "children"] }, "Column": { "type": "object", "description": "A layout component that arranges its children vertically. To create a grid layout, nest Rows within this Column.", "properties": { "component": { "const": "Column" }, "children": { "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list. Children cannot be defined inline, they must be referred to by ID.", "$ref": "common_types.json#/$defs/ChildList" }, "justify": { "type": "string", "description": "Defines the arrangement of children along the main axis (vertically). Use 'spaceBetween' to push items to the edges (e.g. header at top, footer at bottom), or 'start'/'end'/'center' to pack them together.", "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly", "stretch"], "default": "start" }, "align": { "type": "string", "description": "Defines the alignment of children along the cross axis (horizontally). This is similar to the CSS 'align-items' property.", "enum": ["center", "end", "start", "stretch"], "default": "stretch" }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "children"] }, "List": { "type": "object", "properties": { "component": { "const": "List" }, "children": { "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list.", "$ref": "common_types.json#/$defs/ChildList" }, "direction": { "type": "string", "description": "The direction in which the list items are laid out.", "enum": ["vertical", "horizontal"], "default": "vertical" }, "align": { "type": "string", "description": "Defines the alignment of children along the cross axis.", "enum": ["start", "center", "end", "stretch"], "default": "stretch" }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "children"] }, "Card": { "type": "object", "properties": { "component": { "const": "Card" }, "child": { "$ref": "common_types.json#/$defs/Child", "description": "The ID of the single child component to be rendered inside the card. To display multiple elements, you MUST wrap them in a layout component (like Column or Row) and pass that container's ID here. Do NOT pass multiple IDs or a non-existent ID." }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "child"] }, "Tabs": { "type": "object", "properties": { "component": { "const": "Tabs" }, "tabs": { "type": "array", "description": "An array of objects, where each object defines a tab with a title and a child component.", "minItems": 1, "items": { "type": "object", "properties": { "title": { "description": "The tab title.", "$ref": "common_types.json#/$defs/DynamicString" }, "child": { "$ref": "common_types.json#/$defs/Child", "description": "The ID of the child component." } }, "required": ["title", "child"], "additionalProperties": false } }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "tabs"] }, "Modal": { "type": "object", "properties": { "component": { "const": "Modal" }, "trigger": { "$ref": "common_types.json#/$defs/Child", "description": "The ID of the component that opens the modal when interacted with (e.g., a button)." }, "content": { "$ref": "common_types.json#/$defs/Child", "description": "The ID of the component to be displayed inside the modal." }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "trigger", "content"] }, "Divider": { "type": "object", "properties": { "component": { "const": "Divider" }, "axis": { "type": "string", "description": "The orientation of the divider.", "enum": ["horizontal", "vertical"], "default": "horizontal" }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component"] }, "Button": { "type": "object", "allOf": [{ "$ref": "common_types.json#/$defs/Checkable" }, { "type": "object", "properties": { "component": { "const": "Button" }, "child": { "$ref": "common_types.json#/$defs/Child", "description": "The ID of the child component. Use a 'Text' component for a labeled button. Only use an 'Icon' if the requirements explicitly ask for an icon-only button." }, "variant": { "type": "string", "description": "A hint for the button style. If omitted, a default button style is used. 'primary' indicates this is the main call-to-action button. 'borderless' means the button has no visual border or background, making its child content appear like a clickable link.", "enum": ["default", "primary", "borderless"], "default": "default" }, "action": { "$ref": "common_types.json#/$defs/Action" }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "child", "action"] }] }, "TextField": { "type": "object", "allOf": [{ "$ref": "common_types.json#/$defs/Checkable" }, { "type": "object", "properties": { "component": { "const": "TextField" }, "label": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The text label for the input field." }, "value": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The value of the text field." }, "placeholder": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The placeholder text for the input field." }, "variant": { "type": "string", "description": "The type of input field to display.", "enum": ["longText", "number", "shortText", "obscured"], "default": "shortText" }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "label", "value"] }] }, "CheckBox": { "type": "object", "allOf": [{ "$ref": "common_types.json#/$defs/Checkable" }, { "type": "object", "properties": { "component": { "const": "CheckBox" }, "label": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The text to display next to the checkbox." }, "value": { "$ref": "common_types.json#/$defs/DynamicBoolean", "description": "The current state of the checkbox (true for checked, false for unchecked)." }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "label", "value"] }] }, "ChoicePicker": { "type": "object", "description": "A component that allows selecting one or more options from a list.", "allOf": [{ "$ref": "common_types.json#/$defs/Checkable" }, { "type": "object", "properties": { "component": { "const": "ChoicePicker" }, "label": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The label for the group of options." }, "variant": { "type": "string", "description": "A hint for how the choice picker should be displayed and behave.", "enum": ["multipleSelection", "mutuallyExclusive"], "default": "mutuallyExclusive" }, "options": { "type": "array", "description": "The list of available options to choose from.", "items": { "type": "object", "properties": { "label": { "description": "The text to display for this option.", "$ref": "common_types.json#/$defs/DynamicString" }, "value": { "type": "string", "description": "The stable value associated with this option." } }, "required": ["label", "value"], "additionalProperties": false } }, "value": { "$ref": "common_types.json#/$defs/DynamicStringList", "description": "The list of currently selected values. This should be bound to a string array in the data model." }, "displayStyle": { "type": "string", "description": "The display style of the component.", "enum": ["checkbox", "chips"], "default": "checkbox" }, "filterable": { "type": "boolean", "description": "If true, displays a search input to filter the options.", "default": false }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "options", "value"] }] }, "Slider": { "type": "object", "allOf": [{ "$ref": "common_types.json#/$defs/Checkable" }, { "type": "object", "properties": { "component": { "const": "Slider" }, "label": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The label for the slider." }, "min": { "type": "number", "description": "The minimum value of the slider.", "default": 0 }, "max": { "type": "number", "description": "The maximum value of the slider." }, "value": { "$ref": "common_types.json#/$defs/DynamicNumber", "description": "The current value of the slider." }, "steps": { "type": "integer", "minimum": 1, "description": "The number of discrete divisions in the slider range. If specified, the slider will snap to discrete values." }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "value", "max"] }] }, "DateTimeInput": { "type": "object", "allOf": [{ "$ref": "common_types.json#/$defs/Checkable" }, { "type": "object", "properties": { "component": { "const": "DateTimeInput" }, "value": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The selected date and/or time value in ISO 8601 format. If not yet set, initialize with an empty string." }, "enableDate": { "type": "boolean", "description": "If true, allows the user to select a date.", "default": false }, "enableTime": { "type": "boolean", "description": "If true, allows the user to select a time.", "default": false }, "min": { "allOf": [{ "$ref": "common_types.json#/$defs/DynamicString" }, { "if": { "type": "string" }, "then": { "oneOf": [{ "format": "date" }, { "format": "time" }, { "format": "date-time" }] } }], "description": "The minimum allowed date/time in ISO 8601 format." }, "max": { "allOf": [{ "$ref": "common_types.json#/$defs/DynamicString" }, { "if": { "type": "string" }, "then": { "oneOf": [{ "format": "date" }, { "format": "time" }, { "format": "date-time" }] } }], "description": "The maximum allowed date/time in ISO 8601 format." }, "label": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The text label for the input field." }, "weight": { "$ref": "#/$defs/Weight" } }, "required": ["component", "value"] }] } }, "functions": { "required": { "type": "object", "description": "Checks that the value is not null, undefined, or empty.", "returnType": "validationResult", "properties": { "@call": { "const": "required" }, "args": { "type": "object", "properties": { "value": { "description": "The value to check." } }, "required": ["value"], "unevaluatedProperties": false } }, "required": ["@call", "args"] }, "regex": { "type": "object", "description": "Checks that the value matches a regular expression string.", "returnType": "validationResult", "properties": { "@call": { "const": "regex" }, "args": { "type": "object", "properties": { "value": { "$ref": "common_types.json#/$defs/DynamicString" }, "pattern": { "type": "string", "description": "The regular expression to search for in the value. Uses the A2UI regex dialect: a portable subset of ECMAScript pattern syntax in Unicode mode with no flags. Matching is case-sensitive, '.' excludes line terminators, and '^' and '$' match only at the ends of the value. Backreferences, lookbehind, named groups and '\\p{...}' are not allowed. Patterns longer than 256 code points or that could backtrack catastrophically are rejected." } }, "required": ["value", "pattern"], "unevaluatedProperties": false } }, "required": ["@call", "args"] }, "length": { "type": "object", "description": "Checks string length constraints.", "returnType": "validationResult", "properties": { "@call": { "const": "length" }, "args": { "type": "object", "properties": { "value": { "$ref": "common_types.json#/$defs/DynamicString" }, "min": { "type": "integer", "minimum": 0, "description": "The minimum allowed length." }, "max": { "type": "integer", "minimum": 0, "description": "The maximum allowed length." } }, "required": ["value"], "anyOf": [{ "required": ["min"] }, { "required": ["max"] }], "unevaluatedProperties": false } }, "required": ["@call", "args"] }, "numeric": { "type": "object", "description": "Checks numeric range constraints.", "returnType": "validationResult", "properties": { "@call": { "const": "numeric" }, "args": { "type": "object", "properties": { "value": { "$ref": "common_types.json#/$defs/DynamicNumber" }, "min": { "type": "number", "description": "The minimum allowed value." }, "max": { "type": "number", "description": "The maximum allowed value." } }, "required": ["value"], "anyOf": [{ "required": ["min"] }, { "required": ["max"] }], "unevaluatedProperties": false } }, "required": ["@call", "args"] }, "email": { "type": "object", "description": "Checks that the value is a valid email address.", "returnType": "validationResult", "properties": { "@call": { "const": "email" }, "args": { "type": "object", "properties": { "value": { "$ref": "common_types.json#/$defs/DynamicString" } }, "required": ["value"], "unevaluatedProperties": false } }, "required": ["@call", "args"] }, "formatString": { "type": "object", "description": "Performs string interpolation of data model values and other functions in the catalog functions list and returns the resulting string. The value string can contain interpolated expressions in the `${expression}` format. Supported expression types include: JSON Pointer paths to the data model (e.g., `${/absolute/path}` or `${relative/path}`), and renderer-side function calls (e.g., `${now()}`). Function arguments must be named (e.g., `${formatDate(value:${/currentDate}, format:'MM-dd')}`). To include a literal `${` sequence, escape it as `\\${`.", "returnType": "string", "properties": { "@call": { "const": "formatString" }, "args": { "type": "object", "properties": { "value": { "$ref": "common_types.json#/$defs/DynamicString" } }, "required": ["value"], "unevaluatedProperties": false } }, "required": ["@call", "args"] }, "formatNumber": { "type": "object", "description": "Formats a number with the specified grouping and decimal precision.", "returnType": "string", "properties": { "@call": { "const": "formatNumber" }, "args": { "type": "object", "properties": { "value": { "$ref": "common_types.json#/$defs/DynamicNumber", "description": "The number to format." }, "decimals": { "$ref": "common_types.json#/$defs/DynamicNumber", "description": "Optional. The number of decimal places to show. Defaults to 0 or 2 depending on locale." }, "grouping": { "$ref": "common_types.json#/$defs/DynamicBoolean", "description": "Optional. If true, uses locale-specific grouping separators (e.g. '1,000'). If false, returns raw digits (e.g. '1000'). Defaults to true." } }, "required": ["value"], "unevaluatedProperties": false } }, "required": ["@call", "args"] }, "formatCurrency": { "type": "object", "description": "Formats a number as a currency string.", "returnType": "string", "properties": { "@call": { "const": "formatCurrency" }, "args": { "type": "object", "properties": { "value": { "$ref": "common_types.json#/$defs/DynamicNumber", "description": "The monetary amount." }, "currency": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The ISO 4217 currency code (e.g., 'USD', 'EUR')." }, "decimals": { "$ref": "common_types.json#/$defs/DynamicNumber", "description": "Optional. The number of decimal places to show. Defaults to 0 or 2 depending on locale." }, "grouping": { "$ref": "common_types.json#/$defs/DynamicBoolean", "description": "Optional. If true, uses locale-specific grouping separators (e.g. '1,000'). If false, returns raw digits (e.g. '1000'). Defaults to true." } }, "required": ["currency", "value"], "unevaluatedProperties": false } }, "required": ["@call", "args"] }, "formatDate": { "type": "object", "description": "Formats a timestamp into a string using a pattern.", "returnType": "string", "properties": { "@call": { "const": "formatDate" }, "args": { "type": "object", "properties": { "value": { "$ref": "common_types.json#/$defs/DynamicValue", "description": "The date to format." }, "format": { "$ref": "common_types.json#/$defs/DynamicString", "description": "A Unicode TR35 date pattern string.\n\nToken Reference:\n- Year: 'yy' (26), 'yyyy' (2026)\n- Month: 'M' (1), 'MM' (01), 'MMM' (Jan), 'MMMM' (January)\n- Day: 'd' (1), 'dd' (01), 'E' (Tue), 'EEEE' (Tuesday)\n- Hour (12h): 'h' (1-12), 'hh' (01-12) - requires 'a' for AM/PM\n- Hour (24h): 'H' (0-23), 'HH' (00-23) - Military Time\n- Minute: 'mm' (00-59)\n- Second: 'ss' (00-59)\n- Period: 'a' (AM/PM)\n\nExamples:\n- 'MMM dd, yyyy' -> 'Jan 16, 2026'\n- 'HH:mm' -> '14:30' (Military)\n- 'h:mm a' -> '2:30 PM'\n- 'EEEE, d MMMM' -> 'Friday, 16 January'" } }, "required": ["format", "value"], "unevaluatedProperties": false } }, "required": ["@call", "args"] }, "pluralize": { "type": "object", "description": "Returns a localized string based on the Common Locale Data Repository (CLDR) plural category of the count (zero, one, two, few, many, other). Requires an 'other' fallback. For English, just use 'one' and 'other'.", "returnType": "string", "properties": { "@call": { "const": "pluralize" }, "args": { "type": "object", "properties": { "value": { "$ref": "common_types.json#/$defs/DynamicNumber", "description": "The numeric value used to determine the plural category." }, "zero": { "$ref": "common_types.json#/$defs/DynamicString", "description": "String for the 'zero' category (e.g., 0 items)." }, "one": { "$ref": "common_types.json#/$defs/DynamicString", "description": "String for the 'one' category (e.g., 1 item)." }, "two": { "$ref": "common_types.json#/$defs/DynamicString", "description": "String for the 'two' category (used in Arabic, Welsh, etc.)." }, "few": { "$ref": "common_types.json#/$defs/DynamicString", "description": "String for the 'few' category (e.g., small groups in Slavic languages)." }, "many": { "$ref": "common_types.json#/$defs/DynamicString", "description": "String for the 'many' category (e.g., large groups in various languages)." }, "other": { "$ref": "common_types.json#/$defs/DynamicString", "description": "The default/fallback string (used for general plural cases)." } }, "required": ["value", "other"], "unevaluatedProperties": false } }, "required": ["@call", "args"] }, "openUrl": { "type": "object", "description": "Opens the specified URL in a browser or handler (requires user activation). This function has no return value.", "returnType": "void", "requiresUserActivation": true, "properties": { "@call": { "const": "openUrl" }, "args": { "type": "object", "properties": { "url": { "description": "The URL to open.", "oneOf": [{ "type": "string", "format": "uri" }, { "$ref": "common_types.json#/$defs/DataBinding" }, { "$ref": "common_types.json#/$defs/FunctionCall" }] } }, "required": ["url"], "unevaluatedProperties": false } }, "required": ["@call", "args"] }, "and": { "type": "object", "description": "Performs a logical AND operation on a list of boolean values.", "returnType": "boolean", "properties": { "@call": { "const": "and" }, "args": { "type": "object", "properties": { "values": { "type": "array", "description": "The list of boolean values to evaluate.", "items": { "$ref": "common_types.json#/$defs/DynamicBoolean" }, "minItems": 2 } }, "required": ["values"], "unevaluatedProperties": false } }, "required": ["@call", "args"] }, "or": { "type": "object", "description": "Performs a logical OR operation on a list of boolean values.", "returnType": "boolean", "properties": { "@call": { "const": "or" }, "args": { "type": "object", "properties": { "values": { "type": "array", "description": "The list of boolean values to evaluate.", "items": { "$ref": "common_types.json#/$defs/DynamicBoolean" }, "minItems": 2 } }, "required": ["values"], "unevaluatedProperties": false } }, "required": ["@call", "args"] }, "not": { "type": "object", "description": "Performs a logical NOT operation on a boolean value.", "returnType": "boolean", "properties": { "@call": { "const": "not" }, "args": { "type": "object", "properties": { "value": { "$ref": "common_types.json#/$defs/DynamicBoolean", "description": "The boolean value to negate." } }, "required": ["value"], "unevaluatedProperties": false } }, "required": ["@call", "args"] } }, "$defs": { "anyComponent": { "oneOf": [{ "$ref": "#/components/Text" }, { "$ref": "#/components/Image" }, { "$ref": "#/components/Icon" }, { "$ref": "#/components/Video" }, { "$ref": "#/components/AudioPlayer" }, { "$ref": "#/components/Row" }, { "$ref": "#/components/Column" }, { "$ref": "#/components/List" }, { "$ref": "#/components/Card" }, { "$ref": "#/components/Tabs" }, { "$ref": "#/components/Modal" }, { "$ref": "#/components/Divider" }, { "$ref": "#/components/Button" }, { "$ref": "#/components/TextField" }, { "$ref": "#/components/CheckBox" }, { "$ref": "#/components/ChoicePicker" }, { "$ref": "#/components/Slider" }, { "$ref": "#/components/DateTimeInput" }], "discriminator": { "propertyName": "component" } }, "anyFunction": { "oneOf": [{ "$ref": "#/functions/required" }, { "$ref": "#/functions/regex" }, { "$ref": "#/functions/length" }, { "$ref": "#/functions/numeric" }, { "$ref": "#/functions/email" }, { "$ref": "#/functions/formatString" }, { "$ref": "#/functions/formatNumber" }, { "$ref": "#/functions/formatCurrency" }, { "$ref": "#/functions/formatDate" }, { "$ref": "#/functions/pluralize" }, { "$ref": "#/functions/openUrl" }, { "$ref": "#/functions/and" }, { "$ref": "#/functions/or" }, { "$ref": "#/functions/not" }] }, "Weight": { "type": "number", "description": "The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column." } } };
+
+// ../sdk/js/dist/a2ui/stamp.js
+var A2UI_VERSION = "1.0";
+var VERSION_PATTERN = /^v?(\d+)\.(\d+)(?:\.(\d+))?$/;
+function readsBelowV1(version) {
+  const parts = VERSION_PATTERN.exec(version);
+  return parts !== null && Number(parts[1]) < 1;
+}
+function readsAboveV1(version) {
+  const parts = VERSION_PATTERN.exec(version);
+  if (parts === null)
+    return false;
+  const [major, minor, patch] = [parts[1], parts[2], parts[3] ?? "0"].map(Number);
+  return major > 1 || major === 1 && (minor > 0 || patch > 0);
+}
+function readA2uiStamp(message) {
+  if (typeof message !== "object" || message === null || Array.isArray(message))
+    return void 0;
+  const stamp = message.version;
+  if (typeof stamp !== "string")
+    return void 0;
+  return {
+    stamp,
+    current: stamp === A2UI_VERSION,
+    older: readsBelowV1(stamp),
+    newer: readsAboveV1(stamp)
+  };
+}
 
 // ../sdk/js/dist/hostExports.generated.js
 var HOST_EXPORTS = {
@@ -343,378 +372,6 @@ var HOST_EXPORTS = {
     "version"
   ],
   "react-dom/client": ["createRoot", "default", "hydrateRoot", "version"],
-  "@a2ui/react/v0_9": [
-    "A2uiSurface",
-    "MarkdownComponentContext",
-    "MarkdownContext",
-    "createBinderlessComponentImplementation",
-    "createComponentImplementation",
-    "useMarkdownRenderer",
-    "useSignalValue"
-  ],
-  "@a2ui/web_core/v0_9": [
-    "A2uiAudioPlayer",
-    "A2uiButton",
-    "A2uiCard",
-    "A2uiCatalogError",
-    "A2uiCheckBox",
-    "A2uiChoicePicker",
-    "A2uiClientActionSchema",
-    "A2uiClientDataModelSchema",
-    "A2uiClientErrorSchema",
-    "A2uiClientMessageListSchema",
-    "A2uiClientMessageListWrapperSchema",
-    "A2uiClientMessageSchema",
-    "A2uiColumn",
-    "A2uiDataError",
-    "A2uiDateTimeInput",
-    "A2uiDivider",
-    "A2uiError",
-    "A2uiExpressionError",
-    "A2uiGenericErrorSchema",
-    "A2uiIcon",
-    "A2uiImage",
-    "A2uiIntegrityError",
-    "A2uiList",
-    "A2uiMessageListSchema",
-    "A2uiMessageListWrapperSchema",
-    "A2uiMessageSchema",
-    "A2uiModal",
-    "A2uiRecursionError",
-    "A2uiRow",
-    "A2uiRpcError",
-    "A2uiSlider",
-    "A2uiStateError",
-    "A2uiTabs",
-    "A2uiText",
-    "A2uiTextField",
-    "A2uiValidationError",
-    "A2uiValidationErrorSchema",
-    "A2uiVersionCapabilitiesSchema",
-    "A2uiVideo",
-    "AccessibilityAttributesSchema",
-    "ActionSchema",
-    "AddApi",
-    "AddImplementation",
-    "AgentFunction",
-    "AndApi",
-    "AndImplementation",
-    "AnyComponentSchema",
-    "AudioPlayerApi",
-    "BASIC_COMPONENTS",
-    "BASIC_FUNCTIONS",
-    "BASIC_FUNCTION_APIS",
-    "BasicCatalogThemeSchema",
-    "ButtonApi",
-    "CardApi",
-    "Catalog",
-    "CheckBoxApi",
-    "CheckRuleSchema",
-    "CheckableSchema",
-    "ChildListSchema",
-    "ChoicePickerApi",
-    "ColumnApi",
-    "CommonSchemas",
-    "ComponentCommonSchema",
-    "ComponentContext",
-    "ComponentIdSchema",
-    "ComponentModel",
-    "ContainsApi",
-    "ContainsImplementation",
-    "Context",
-    "CreateSurfaceMessageSchema",
-    "DataBindingSchema",
-    "DataContext",
-    "DataModel",
-    "DateTimeInputApi",
-    "DeleteSurfaceMessageSchema",
-    "DivideApi",
-    "DivideImplementation",
-    "DividerApi",
-    "DynamicBooleanSchema",
-    "DynamicNumberSchema",
-    "DynamicStringListSchema",
-    "DynamicStringSchema",
-    "DynamicValueSchema",
-    "EmailApi",
-    "EmailImplementation",
-    "EndsWithApi",
-    "EndsWithImplementation",
-    "EqualsApi",
-    "EqualsImplementation",
-    "EventEmitter",
-    "ExpressionParser",
-    "FormatCurrencyApi",
-    "FormatCurrencyImplementation",
-    "FormatDateApi",
-    "FormatDateImplementation",
-    "FormatNumberApi",
-    "FormatNumberImplementation",
-    "FormatStringApi",
-    "FormatStringImplementation",
-    "FunctionCallSchema",
-    "FunctionDefinitionSchema",
-    "GenericBinder",
-    "GreaterThanApi",
-    "GreaterThanImplementation",
-    "HEX_COLOR_REGEX",
-    "IconApi",
-    "ImageApi",
-    "InlineCatalogSchema",
-    "LEGACY_V09_FUNCTIONS",
-    "LEGACY_V09_FUNCTION_APIS",
-    "LengthApi",
-    "LengthImplementation",
-    "LessThanApi",
-    "LessThanImplementation",
-    "ListApi",
-    "MAX_ARRAY_INDEX",
-    "MAX_DYNAMIC_CHILD_LIST_SIZE",
-    "MAX_DYNAMIC_VALUE_DEPTH",
-    "MAX_EXPRESSION_PARTS",
-    "MAX_EXPRESSION_TEMPLATE_LENGTH",
-    "MAX_FUNCTION_CALL_ARGS",
-    "MAX_FUNC_CALL_DEPTH",
-    "MAX_GLOBAL_DEPTH",
-    "MAX_REGEX_PATTERN_CODE_POINTS",
-    "MAX_REGEX_VALUE_CODE_POINTS",
-    "MessageProcessor",
-    "ModalApi",
-    "MultiplyApi",
-    "MultiplyImplementation",
-    "NodeResolver",
-    "NotApi",
-    "NotEqualsApi",
-    "NotEqualsImplementation",
-    "NotImplementation",
-    "NumericApi",
-    "NumericImplementation",
-    "OpenUrlApi",
-    "OpenUrlImplementation",
-    "OrApi",
-    "OrImplementation",
-    "PLACEHOLDER_TYPE",
-    "PluralizeApi",
-    "PluralizeImplementation",
-    "RELAXED_PATH_PATTERN",
-    "RELAXED_VALIDATION",
-    "RegexApi",
-    "RegexImplementation",
-    "RegexSyntaxError",
-    "RequiredApi",
-    "RequiredImplementation",
-    "ResolvedBinding",
-    "RowApi",
-    "RpcErrorCode",
-    "STRICT_VALIDATION",
-    "Schemas",
-    "SliderApi",
-    "StartsWithApi",
-    "StartsWithImplementation",
-    "SubtractApi",
-    "SubtractImplementation",
-    "SurfaceComponentsModel",
-    "SurfaceGroupModel",
-    "SurfaceModel",
-    "TabsApi",
-    "TemplateChildListSchema",
-    "TextApi",
-    "TextFieldApi",
-    "ThemeSchema",
-    "UpdateComponentsMessageSchema",
-    "UpdateDataModelMessageSchema",
-    "V08_CHILD_REF_OPTIONS",
-    "V09_CHILD_REF_OPTIONS",
-    "V09_SPEC_FUNCTIONS",
-    "V09_SPEC_FUNCTION_APIS",
-    "V09_STANDARD_DEFS",
-    "V10_CHILD_REF_OPTIONS",
-    "VideoApi",
-    "WritableBinding",
-    "_PRIVATE_DEFAULT_SIGNAL_IMPLEMENTATION",
-    "analyzeChildRefSchema",
-    "analyzeRegex",
-    "assertUax31Identifier",
-    "basicCatalog",
-    "batchWrite",
-    "buildComponentRefMap",
-    "checkRegexSafety",
-    "childList",
-    "childRefKindOf",
-    "cloneMetadata",
-    "componentId",
-    "computeColorVariant",
-    "computed",
-    "createBasicCatalogFunctions",
-    "createFormatCurrencyImplementation",
-    "createFormatDateImplementation",
-    "createFormatNumberImplementation",
-    "createFunctionImplementation",
-    "createPluralizeImplementation",
-    "createV09SpecFunctions",
-    "dynamicBoolean",
-    "dynamicNumber",
-    "dynamicString",
-    "dynamicStringList",
-    "dynamicValue",
-    "effect",
-    "extractEnvelopeErrorContext",
-    "extractRefFields",
-    "formatZodIssue",
-    "getComponentReferences",
-    "getKnownSchemaKeys",
-    "getMarkdownRenderer",
-    "getSafeChildList",
-    "getValue",
-    "injectBasicCatalogStyles",
-    "isAgentFunction",
-    "isChildListSchema",
-    "isChildOrChildListSchema",
-    "isChildSchema",
-    "isComponentNode",
-    "isSafeRegex",
-    "isSignal",
-    "isSingleAtKey",
-    "isValidCssColor",
-    "isValidUax31Identifier",
-    "isWritable",
-    "mapErrorToRendererMessage",
-    "markChildRef",
-    "markdown",
-    "metadataEquals",
-    "normalizeJsonPointer",
-    "parseRegexSubset",
-    "peekValue",
-    "resolveContextIndex",
-    "sameBinding",
-    "scrapeComponentBehavior",
-    "scrapeSchemaBehavior",
-    "setMarkdownRenderer",
-    "setSignalImplementation",
-    "setValue",
-    "signal",
-    "unescapeObjectKey",
-    "validateFunctionArgs",
-    "validateMetadata",
-    "validateRecursionAndPaths",
-    "validateReservedDirectives"
-  ],
-  "@a2ui/web_core/v0_9/basic_catalog": [
-    "A2uiAudioPlayer",
-    "A2uiButton",
-    "A2uiCard",
-    "A2uiCheckBox",
-    "A2uiChoicePicker",
-    "A2uiColumn",
-    "A2uiDateTimeInput",
-    "A2uiDivider",
-    "A2uiIcon",
-    "A2uiImage",
-    "A2uiList",
-    "A2uiModal",
-    "A2uiRow",
-    "A2uiSlider",
-    "A2uiTabs",
-    "A2uiText",
-    "A2uiTextField",
-    "A2uiVideo",
-    "AddApi",
-    "AddImplementation",
-    "AndApi",
-    "AndImplementation",
-    "AudioPlayerApi",
-    "BASIC_COMPONENTS",
-    "BASIC_FUNCTIONS",
-    "BASIC_FUNCTION_APIS",
-    "BasicCatalogThemeSchema",
-    "ButtonApi",
-    "CardApi",
-    "CheckBoxApi",
-    "ChoicePickerApi",
-    "ColumnApi",
-    "ContainsApi",
-    "ContainsImplementation",
-    "Context",
-    "DateTimeInputApi",
-    "DivideApi",
-    "DivideImplementation",
-    "DividerApi",
-    "EmailApi",
-    "EmailImplementation",
-    "EndsWithApi",
-    "EndsWithImplementation",
-    "EqualsApi",
-    "EqualsImplementation",
-    "ExpressionParser",
-    "FormatCurrencyApi",
-    "FormatCurrencyImplementation",
-    "FormatDateApi",
-    "FormatDateImplementation",
-    "FormatNumberApi",
-    "FormatNumberImplementation",
-    "FormatStringApi",
-    "FormatStringImplementation",
-    "GreaterThanApi",
-    "GreaterThanImplementation",
-    "HEX_COLOR_REGEX",
-    "IconApi",
-    "ImageApi",
-    "LEGACY_V09_FUNCTIONS",
-    "LEGACY_V09_FUNCTION_APIS",
-    "LengthApi",
-    "LengthImplementation",
-    "LessThanApi",
-    "LessThanImplementation",
-    "ListApi",
-    "MAX_EXPRESSION_PARTS",
-    "MAX_EXPRESSION_TEMPLATE_LENGTH",
-    "ModalApi",
-    "MultiplyApi",
-    "MultiplyImplementation",
-    "NotApi",
-    "NotEqualsApi",
-    "NotEqualsImplementation",
-    "NotImplementation",
-    "NumericApi",
-    "NumericImplementation",
-    "OpenUrlApi",
-    "OpenUrlImplementation",
-    "OrApi",
-    "OrImplementation",
-    "PluralizeApi",
-    "PluralizeImplementation",
-    "RegexApi",
-    "RegexImplementation",
-    "RequiredApi",
-    "RequiredImplementation",
-    "RowApi",
-    "SliderApi",
-    "StartsWithApi",
-    "StartsWithImplementation",
-    "SubtractApi",
-    "SubtractImplementation",
-    "TabsApi",
-    "TextApi",
-    "TextFieldApi",
-    "ThemeSchema",
-    "V09_SPEC_FUNCTIONS",
-    "V09_SPEC_FUNCTION_APIS",
-    "VideoApi",
-    "basicCatalog",
-    "computeColorVariant",
-    "createBasicCatalogFunctions",
-    "createFormatCurrencyImplementation",
-    "createFormatDateImplementation",
-    "createFormatNumberImplementation",
-    "createPluralizeImplementation",
-    "createV09SpecFunctions",
-    "getMarkdownRenderer",
-    "injectBasicCatalogStyles",
-    "isSafeRegex",
-    "isValidCssColor",
-    "markdown",
-    "setMarkdownRenderer"
-  ],
   zod: [
     "BRAND",
     "DIRTY",
@@ -825,17 +482,366 @@ var HOST_EXPORTS = {
     "util",
     "void",
     "z"
+  ],
+  "@a2ui/react": [
+    "A2uiSurface",
+    "MarkdownComponentContext",
+    "MarkdownContext",
+    "createBinderlessComponentImplementation",
+    "createComponentImplementation",
+    "useA2uiSurface",
+    "useMarkdownRenderer",
+    "useNodeView",
+    "useSignalValue"
+  ],
+  "@a2ui/web_core/v1_0": [
+    "A2uiAudioPlayer",
+    "A2uiButton",
+    "A2uiCard",
+    "A2uiCatalogError",
+    "A2uiCheckBox",
+    "A2uiChoicePicker",
+    "A2uiColumn",
+    "A2uiController",
+    "A2uiDataError",
+    "A2uiDateTimeInput",
+    "A2uiDivider",
+    "A2uiError",
+    "A2uiExpressionError",
+    "A2uiIcon",
+    "A2uiImage",
+    "A2uiIntegrityError",
+    "A2uiList",
+    "A2uiLitElement",
+    "A2uiModal",
+    "A2uiRecursionError",
+    "A2uiRow",
+    "A2uiRpcError",
+    "A2uiSlider",
+    "A2uiStateError",
+    "A2uiTabs",
+    "A2uiText",
+    "A2uiTextField",
+    "A2uiValidationError",
+    "A2uiVideo",
+    "AccessibilityAttributesSchema",
+    "ActionMessageSchema",
+    "ActionSchema",
+    "AgentFunction",
+    "AgentFunctionResponseMessageSchema",
+    "AgentToRendererMessageSchema",
+    "AndApi",
+    "AndImplementation",
+    "AnyComponentSchema",
+    "AudioPlayerApi",
+    "BASIC_COMPONENTS",
+    "BASIC_FUNCTIONS",
+    "BASIC_FUNCTION_APIS",
+    "BaseVersionAdapter",
+    "BasicCatalogThemeSchema",
+    "ButtonApi",
+    "CallAgentFunctionMessageSchema",
+    "CallIdSchema",
+    "CallRendererFunctionMessageSchema",
+    "CardApi",
+    "Catalog",
+    "CheckBoxApi",
+    "CheckRuleSchema",
+    "CheckableSchema",
+    "ChildListSchema",
+    "ChildSchema",
+    "ChoicePickerApi",
+    "ColumnApi",
+    "CommonSchemas",
+    "ComponentCommonSchema",
+    "ComponentContext",
+    "ComponentDefinitionSchema",
+    "ComponentIdSchema",
+    "ComponentModel",
+    "ComponentsListSchema",
+    "Context",
+    "CreateSurfaceMessageSchema",
+    "DEFAULT_CATALOG_COMPATIBILITY",
+    "DataBindingSchema",
+    "DataContext",
+    "DataModel",
+    "DateTimeInputApi",
+    "DeleteSurfaceMessageSchema",
+    "DividerApi",
+    "DynamicBooleanSchema",
+    "DynamicNumberSchema",
+    "DynamicStringListSchema",
+    "DynamicStringSchema",
+    "DynamicValueSchema",
+    "EmailApi",
+    "EmailV1Point0Api",
+    "EmailV1Point0Implementation",
+    "ErrorMessageSchema",
+    "EventEmitter",
+    "ExpressionParser",
+    "ExtensionsSchema",
+    "FormatCurrencyApi",
+    "FormatCurrencyImplementation",
+    "FormatDateApi",
+    "FormatDateImplementation",
+    "FormatNumberApi",
+    "FormatNumberImplementation",
+    "FormatStringApi",
+    "FormatStringImplementation",
+    "FunctionCallSchema",
+    "FunctionCallValidationSchemaSchema",
+    "FunctionCommonSchema",
+    "FunctionDefinitionSchema",
+    "FunctionResponseSchema",
+    "GenericBinder",
+    "IconApi",
+    "ImageApi",
+    "IndexApi",
+    "IndexImplementation",
+    "IndexSystemFunctionSchema",
+    "JsonComponentApi",
+    "JsonFunctionApi",
+    "LeafDefinitionSchema",
+    "LengthApi",
+    "LengthV1Point0Api",
+    "LengthV1Point0Implementation",
+    "ListApi",
+    "MAX_ARRAY_INDEX",
+    "MAX_DYNAMIC_CHILD_LIST_SIZE",
+    "MAX_DYNAMIC_VALUE_DEPTH",
+    "MAX_EXPRESSION_PARTS",
+    "MAX_EXPRESSION_TEMPLATE_LENGTH",
+    "MAX_FUNC_CALL_DEPTH",
+    "MAX_GLOBAL_DEPTH",
+    "MAX_REGEX_PATTERN_CODE_POINTS",
+    "MAX_REGEX_VALUE_CODE_POINTS",
+    "MessageProcessor",
+    "ModalApi",
+    "NodeResolver",
+    "NotApi",
+    "NotImplementation",
+    "NumericApi",
+    "NumericV1Point0Api",
+    "NumericV1Point0Implementation",
+    "OpenUrlApi",
+    "OpenUrlImplementation",
+    "OrApi",
+    "OrImplementation",
+    "PLACEHOLDER_TYPE",
+    "PayloadValidator",
+    "PluralizeApi",
+    "PluralizeImplementation",
+    "RELAXED_PATH_PATTERN",
+    "RELAXED_VALIDATION",
+    "RegexApi",
+    "RegexSyntaxError",
+    "RegexV1Point0Api",
+    "RegexV1Point0Implementation",
+    "RendererCapabilitiesSchema",
+    "RendererFunctionResponseMessageSchema",
+    "RendererToAgentMessageSchema",
+    "RequiredApi",
+    "RequiredV1Point0Api",
+    "RequiredV1Point0Implementation",
+    "ResolvedBinding",
+    "RowApi",
+    "RpcErrorCode",
+    "RpcHandler",
+    "STRICT_VALIDATION",
+    "SUPPORTED_PROTOCOL_VERSIONS",
+    "SYSTEM_FUNCTIONS",
+    "Schemas",
+    "SliderApi",
+    "SpecVersion",
+    "SurfaceComponentsModel",
+    "SurfaceGroupModel",
+    "SurfaceModel",
+    "SurfaceSchema",
+    "TabsApi",
+    "TemplateChildListSchema",
+    "TextApi",
+    "TextFieldApi",
+    "ThemeSchema",
+    "UpdateComponentsMessageSchema",
+    "UpdateDataModelMessageSchema",
+    "V08_CHILD_REF_OPTIONS",
+    "V09_CHILD_REF_OPTIONS",
+    "V10RendererCapabilitiesSchema",
+    "V10_CHILD_REF_OPTIONS",
+    "V10_SPEC_FUNCTION_APIS",
+    "V10_STANDARD_DEFS",
+    "V10_VALIDATION_FUNCTION_APIS",
+    "V10_VALIDATION_FUNCTION_IMPLEMENTATIONS",
+    "ValidationResultSchema",
+    "VersionAdapterFactory",
+    "VideoApi",
+    "WeightSchema",
+    "WritableBinding",
+    "_PRIVATE_DEFAULT_SIGNAL_IMPLEMENTATION",
+    "analyzeChildRefSchema",
+    "analyzeRegex",
+    "assertUax31Identifier",
+    "basicCatalog",
+    "batchWrite",
+    "bindHostAccessibility",
+    "buildComponentRefMap",
+    "checkRegexSafety",
+    "childList",
+    "childRefKindOf",
+    "cloneMetadata",
+    "componentId",
+    "computeColorVariant",
+    "computed",
+    "createAccessibilityTargets",
+    "createBasicCatalogFunctions",
+    "createFormatCurrencyImplementation",
+    "createFormatDateImplementation",
+    "createFormatNumberImplementation",
+    "createFunctionImplementation",
+    "createPluralizeImplementation",
+    "defaultVersionAdapterFactory",
+    "dynamicBoolean",
+    "dynamicNumber",
+    "dynamicString",
+    "dynamicStringList",
+    "dynamicValue",
+    "effect",
+    "extractEnvelopeErrorContext",
+    "extractRefFields",
+    "formatZodIssue",
+    "getComponentReferences",
+    "getKnownSchemaKeys",
+    "getMarkdownRenderer",
+    "getSafeChildList",
+    "getValue",
+    "injectBasicCatalogStyles",
+    "isAgentFunction",
+    "isCatalogVersionCompatible",
+    "isChildListSchema",
+    "isChildOrChildListSchema",
+    "isChildSchema",
+    "isComponentNode",
+    "isSignal",
+    "isSingleAtKey",
+    "isValidCssColor",
+    "isValidUax31Identifier",
+    "isWebComponentImplementation",
+    "isWritable",
+    "mapErrorToRendererMessage",
+    "markChildRef",
+    "markdown",
+    "metadataEquals",
+    "normalizeJsonPointer",
+    "parseRegexSubset",
+    "peekValue",
+    "registerKnownActionsProvider",
+    "registerUniversalElement",
+    "renderA2uiNode",
+    "resolveContextIndex",
+    "sameBinding",
+    "sanitizeMediaUrl",
+    "scrapeComponentBehavior",
+    "scrapeSchemaBehavior",
+    "setMarkdownRenderer",
+    "setSignalImplementation",
+    "setValue",
+    "signal",
+    "spec",
+    "specDef",
+    "unescapeObjectKey",
+    "validateFunctionArgs",
+    "validateMetadata",
+    "validateRecursionAndPaths",
+    "validateReservedDirectives"
+  ],
+  "@a2ui/web_core/catalogs/basic/v1": [
+    "A2uiAudioPlayer",
+    "A2uiButton",
+    "A2uiCard",
+    "A2uiCheckBox",
+    "A2uiChoicePicker",
+    "A2uiColumn",
+    "A2uiDateTimeInput",
+    "A2uiDivider",
+    "A2uiIcon",
+    "A2uiImage",
+    "A2uiList",
+    "A2uiModal",
+    "A2uiRow",
+    "A2uiSlider",
+    "A2uiTabs",
+    "A2uiText",
+    "A2uiTextField",
+    "A2uiVideo",
+    "AndApi",
+    "AndImplementation",
+    "AudioPlayerApi",
+    "BASIC_COMPONENTS",
+    "BASIC_FUNCTIONS",
+    "BASIC_FUNCTION_APIS",
+    "BasicCatalogThemeSchema",
+    "ButtonApi",
+    "CardApi",
+    "CheckBoxApi",
+    "ChoicePickerApi",
+    "ColumnApi",
+    "Context",
+    "DateTimeInputApi",
+    "DividerApi",
+    "EmailApi",
+    "FormatCurrencyApi",
+    "FormatCurrencyImplementation",
+    "FormatDateApi",
+    "FormatDateImplementation",
+    "FormatNumberApi",
+    "FormatNumberImplementation",
+    "FormatStringApi",
+    "FormatStringImplementation",
+    "IconApi",
+    "ImageApi",
+    "LengthApi",
+    "ListApi",
+    "ModalApi",
+    "NotApi",
+    "NotImplementation",
+    "NumericApi",
+    "OpenUrlApi",
+    "OpenUrlImplementation",
+    "OrApi",
+    "OrImplementation",
+    "PluralizeApi",
+    "PluralizeImplementation",
+    "RegexApi",
+    "RequiredApi",
+    "RowApi",
+    "SliderApi",
+    "TabsApi",
+    "TextApi",
+    "TextFieldApi",
+    "ThemeSchema",
+    "V10_SPEC_FUNCTION_APIS",
+    "VideoApi",
+    "WeightSchema",
+    "basicCatalog",
+    "computeColorVariant",
+    "createBasicCatalogFunctions",
+    "createFormatCurrencyImplementation",
+    "createFormatDateImplementation",
+    "createFormatNumberImplementation",
+    "createPluralizeImplementation",
+    "getMarkdownRenderer",
+    "injectBasicCatalogStyles",
+    "isValidCssColor",
+    "markdown",
+    "setMarkdownRenderer"
   ]
 };
 
 // ../sdk/js/dist/catalog.js
-var A2UI_VERSIONS = ["v0.9", "v0.9.1"];
-var A2UI_EXTENSION_URIS = {
-  "v0.9": "https://a2ui.org/a2a-extension/a2ui/v0.9",
-  "v0.9.1": "https://a2ui.org/a2a-extension/a2ui/v0.9.1"
-};
-var A2UI_CLIENT_CAPABILITIES_KEY = "a2uiClientCapabilities";
-var HOST_INTERFACE_VERSION = "0.16.1";
+var A2UI_EXTENSION_BASE = "https://a2ui.org/a2a-extension/a2ui/";
+var A2UI_EXTENSION_URI = `${A2UI_EXTENSION_BASE}v${A2UI_VERSION}`;
+var A2UI_RENDERER_CAPABILITIES_KEY = "a2uiRendererCapabilities";
+var HOST_INTERFACE_VERSION = `0.16.1-v${A2UI_VERSION}`;
 var SUPPORTED_HOST_INTERFACES = [HOST_INTERFACE_VERSION];
 function checkHostInterface(version, supported = SUPPORTED_HOST_INTERFACES) {
   if (supported.includes(version))
@@ -851,10 +857,10 @@ var HOST_SPECIFIERS = [
   "react/jsx-runtime",
   "react-dom",
   "react-dom/client",
-  "@a2ui/react/v0_9",
-  "@a2ui/web_core/v0_9",
-  "@a2ui/web_core/v0_9/basic_catalog",
-  "zod"
+  "zod",
+  "@a2ui/react",
+  "@a2ui/web_core/v1_0",
+  "@a2ui/web_core/catalogs/basic/v1"
 ];
 var HOST_STYLESHEET_LOADER = "loadStylesheet";
 var HOST_PACKAGES = [
@@ -874,90 +880,58 @@ function classifySpecifier(specifier) {
   return HOST_PACKAGES.includes(packageOf(specifier)) ? "refuse" : "bundle";
 }
 var ajv2 = new Ajv20202({ allErrors: true, strict: true, allowUnionTypes: true });
-var serverCapabilitiesVersion = ajv2.compile(SERVER_CAPABILITIES_SCHEMA.properties["v0.9"]);
-var isVersionKey = (key) => /^v\d/.test(key);
-var isSpokenVersion = (key) => A2UI_VERSIONS.includes(key);
-var versionOfUri = (uri) => A2UI_VERSIONS.find((version) => A2UI_EXTENSION_URIS[version] === uri);
-var idsOf = (params) => params.supportedCatalogIds ?? [];
+var agentCapabilities = ajv2.compile(AGENT_CAPABILITIES_SCHEMA.properties[A2UI_VERSION]);
+var isVersionKey = (key) => /^v?\d/.test(key);
 var once = (ids) => [...new Set(ids)];
-function readCatalogIdsByVersion(card) {
-  const read = { "v0.9": [], "v0.9.1": [] };
-  const errors2 = [];
-  for (const entry of card.capabilities?.extensions ?? []) {
-    const version = versionOfUri(entry.uri);
-    const params = entry.params;
-    if (version === void 0 || params === void 0)
-      continue;
-    const where = `A2UI ${version} extension params`;
-    const versionKeys = Object.keys(params).filter(isVersionKey);
-    if (versionKeys.length === 0) {
-      const found = schemaErrors(serverCapabilitiesVersion, params);
-      if (found.length > 0)
-        errors2.push(...found.map((e) => `${where}${e}`));
-      else
-        read[version].push(...idsOf(params));
-      continue;
-    }
-    const spoken = versionKeys.filter(isSpokenVersion);
-    if (spoken.length === 0) {
-      errors2.push(`${where}: keyed under neither v0.9 nor v0.9.1 (${versionKeys.map((k) => JSON.stringify(k)).join(", ")})`);
-      continue;
-    }
-    for (const key of A2UI_VERSIONS.filter((v) => spoken.includes(v))) {
-      const object = params[key];
-      const found = schemaErrors(serverCapabilitiesVersion, object);
-      if (found.length > 0)
-        errors2.push(...found.map((e) => `${where}/${key}${e}`));
-      else
-        read[version].push(...idsOf(object));
-    }
-  }
-  if (errors2.length > 0)
-    return { ok: false, errors: errors2 };
-  const v09 = once(read["v0.9"]);
-  const v091 = once(read["v0.9.1"]);
-  return {
-    ok: true,
-    value: { "v0.9": v09.length > 0 ? v09 : v091, "v0.9.1": v091.length > 0 ? v091 : v09 }
-  };
+var listed = (items) => items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+function otherVersionsFinding(versions) {
+  const newer = versions.filter((version) => !readsBelowV1(version));
+  const declares2 = `the card declares A2UI ${listed(versions)}`;
+  const speaks = `A2UIVerse speaks A2UI v${A2UI_VERSION}`;
+  const tooNew = `${newer.length === 1 ? "is" : "are"} newer than this A2UIVerse supports`;
+  if (newer.length === 0)
+    return `${declares2}, which A2UIVerse no longer supports: ${speaks}`;
+  if (newer.length === versions.length)
+    return `${declares2}, which ${tooNew}: ${speaks}`;
+  return `${declares2}, not v${A2UI_VERSION}: ${listed(newer)} ${tooNew}, and ${speaks}`;
 }
 function readSupportedCatalogIds(card) {
-  const read = readCatalogIdsByVersion(card);
-  if (!read.ok)
-    return read;
-  return { ok: true, value: once(A2UI_VERSIONS.flatMap((version) => read.value[version])) };
+  const entries = (card.capabilities?.extensions ?? []).filter((entry) => typeof entry.uri === "string" && entry.uri.startsWith(A2UI_EXTENSION_BASE));
+  const ours = entries.filter((entry) => entry.uri === A2UI_EXTENSION_URI);
+  if (entries.length > 0 && ours.length === 0) {
+    const versions = once(entries.map((entry) => entry.uri.slice(A2UI_EXTENSION_BASE.length)));
+    const allOlder = versions.every(readsBelowV1);
+    return {
+      ok: false,
+      errors: [otherVersionsFinding(versions)],
+      otherVersions: { versions, allOlder }
+    };
+  }
+  const ids = [];
+  const errors2 = [];
+  const where = `A2UI v${A2UI_VERSION} extension params`;
+  for (const { params } of ours) {
+    if (params === void 0)
+      continue;
+    const keyed = Object.keys(params).filter(isVersionKey);
+    if (keyed.length > 0) {
+      errors2.push(...keyed.map((key) => `${where}: keyed under ${JSON.stringify(key)}; v${A2UI_VERSION} params are read flat`));
+      continue;
+    }
+    const found = schemaErrors(agentCapabilities, params);
+    if (found.length > 0)
+      errors2.push(...found.map((e) => `${where}${e}`));
+    else
+      ids.push(...params.supportedCatalogIds ?? []);
+  }
+  return errors2.length > 0 ? { ok: false, errors: errors2 } : { ok: true, value: once(ids) };
 }
-var isIdList = (sets) => Array.isArray(sets);
-function underEachVersion(sets) {
-  if (!isIdList(sets))
-    return sets;
-  return Object.fromEntries(A2UI_VERSIONS.map((version) => [version, [...sets]]));
-}
-function clientCapabilities(sets) {
-  const byVersion = underEachVersion(sets);
-  return Object.fromEntries(A2UI_VERSIONS.map((version) => [version, { supportedCatalogIds: [...byVersion[version]] }]));
+function rendererCapabilities(ids) {
+  return { [A2UI_VERSION]: { supportedCatalogIds: [...ids] } };
 }
 var PUBLIC_CATALOG_IDS = [BASIC_CATALOG_ID];
 function entitlementOf(handed, publicIds = PUBLIC_CATALOG_IDS) {
   return [.../* @__PURE__ */ new Set([...publicIds, ...handed])];
-}
-function entitlementByVersionOf(declared, publicIds = PUBLIC_CATALOG_IDS) {
-  return Object.fromEntries(A2UI_VERSIONS.map((version) => [version, entitlementOf(declared[version], publicIds)]));
-}
-function paintOutside(stamp, catalogId, sets) {
-  const byVersion = underEachVersion(sets);
-  const declaredFor = A2UI_VERSIONS.filter((version) => byVersion[version].includes(catalogId));
-  const spoken = typeof stamp === "string" && isSpokenVersion(stamp) ? stamp : void 0;
-  const inside = spoken !== void 0 ? declaredFor.includes(spoken) : declaredFor.length > 0;
-  if (inside)
-    return void 0;
-  return { ...typeof stamp === "string" ? { stamp } : {}, declaredFor };
-}
-function describePaintOutside(catalogId, outside) {
-  const id = JSON.stringify(catalogId);
-  if (outside.declaredFor.length === 0)
-    return `catalog ${id}, outside its entitlement`;
-  return `catalog ${id} stamped ${outside.stamp}, which its card declares for ${outside.declaredFor.join(" and ")} only`;
 }
 
 // ../sdk/js/dist/credential.js
@@ -1065,269 +1039,67 @@ function describeCredentialFinding(finding) {
 // ../sdk/js/dist/artifact.js
 import { Ajv2020 as Ajv20204 } from "ajv/dist/2020.js";
 
-// ../sdk/js/dist/a2ui/validator.js
+// ../sdk/js/dist/a2ui/catalogDocument.js
 import { Ajv2020 as Ajv20203 } from "ajv/dist/2020.js";
 import { Catalog } from "@a2ui/web_core/catalog";
-import { A2uiIntegrityError, A2uiRecursionError } from "@a2ui/web_core/errors";
-import { formatZodIssue, MessageProcessor } from "@a2ui/web_core/processing";
-import { ComponentModel, SurfaceComponentsModel } from "@a2ui/web_core/state";
-import { PayloadValidator, STRICT_VALIDATION, validateRecursionAndPaths } from "@a2ui/web_core/validation";
-import { UpdateComponentsMessageSchema } from "@a2ui/web_core/v0_9";
-var CATALOG_VERSION = "0.9";
-var MESSAGE_VERSION = "v0.9";
-var SURFACE_OPERATIONS = ["updateComponents", "updateDataModel"];
-var MESSAGE_TYPES = ["createSurface", "updateComponents", "updateDataModel", "deleteSurface"];
-var isObject2 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
-var categoryOf = (error) => error instanceof A2uiRecursionError ? "RecursionError" : error instanceof A2uiIntegrityError ? "IntegrityError" : "ValidationError";
 var messageOf2 = (error) => error instanceof Error ? error.message : String(error);
-var isErrorDetail = (value) => isObject2(value) && typeof value.path === "string" && typeof value.message === "string";
-function issueText(issue) {
-  const label = `${issue.path.length > 0 ? issue.path.join(".") : "root"}: `;
-  const parts = formatZodIssue(issue).split("; ").map((part) => part.startsWith(label) ? part.slice(label.length) : part);
-  return [...new Set(parts)].join("; ");
-}
-function callPath(value, name, at = "") {
-  if (Array.isArray(value)) {
-    for (const [i, item] of value.entries()) {
-      const found = callPath(item, name, `${at}/${i}`);
-      if (found !== void 0)
-        return found;
-    }
-    return void 0;
-  }
-  if (!isObject2(value))
-    return void 0;
-  if (value.call === name)
-    return `${at}/call`;
-  for (const [key, child] of Object.entries(value)) {
-    const found = callPath(child, name, `${at}/${key}`);
-    if (found !== void 0)
-      return found;
-  }
-  return void 0;
-}
-function componentFindings(error, component, base, componentId) {
-  const tag = componentId !== void 0 ? { componentId } : {};
-  const message = messageOf2(error);
-  const fn = /^(?:Validation failed for function|Unrecognized function) '([^']+)'/.exec(message);
-  if (fn) {
-    const at = callPath(component, fn[1]) ?? "";
-    return [{ category: "ValidationError", path: `${base}${at}`, ...tag, message }];
-  }
-  if (message.startsWith("Unknown component type")) {
-    return [{ category: "ValidationError", path: `${base}/component`, ...tag, message }];
-  }
-  const details = error.details;
-  const failures = Array.isArray(details) ? details.filter(isErrorDetail) : [];
-  if (failures.length === 0) {
-    return [{ category: categoryOf(error), path: base, ...tag, message }];
-  }
-  const byPath = /* @__PURE__ */ new Map();
-  for (const failure of failures) {
-    const path = `${base}${failure.path === "/" ? "" : failure.path}`;
-    const texts = byPath.get(path) ?? [];
-    if (!texts.includes(failure.message))
-      texts.push(failure.message);
-    byPath.set(path, texts);
-  }
-  return [...byPath].map(([path, texts]) => ({
-    category: "ValidationError",
-    path,
-    ...tag,
-    message: texts.join("; ")
-  }));
-}
-function compileErrorsOf(catalog) {
+var isObject2 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+var unionOf = (section, catalog) => {
+  const names = Object.keys(isObject2(catalog[section]) ? catalog[section] : {});
+  return names.length > 0 ? { oneOf: names.map((name) => ({ $ref: `#/${section}/${name}` })) } : false;
+};
+function compileErrors(catalog) {
   const catalogUri = new URL("catalog.json", String(COMMON_TYPES_SCHEMA.$id)).href;
   const defs = { ...catalog.$defs ?? {} };
-  defs.theme ??= { type: "object" };
-  defs.anyFunction ??= false;
+  defs.anyFunction ??= unionOf("functions", catalog);
+  defs.anyComponent ??= unionOf("components", catalog);
   const own = { ...catalog, $defs: defs, $id: catalogUri };
   delete own.$schema;
   const ajv5 = new Ajv20203({ allErrors: true, strict: false, validateFormats: false });
   ajv5.addSchema(COMMON_TYPES_SCHEMA);
-  ajv5.addSchema(own);
+  try {
+    ajv5.addSchema(own);
+  } catch (error) {
+    return [`is not a JSON Schema: ${messageOf2(error)}`];
+  }
   const errors2 = [];
   for (const name of Object.keys(catalog.components ?? {})) {
     try {
-      ajv5.compile({ $ref: `${catalogUri}#/components/${name}` });
+      ajv5.compile({ $ref: `${catalogUri}#/components/${encodeURIComponent(name)}` });
     } catch (error) {
       errors2.push(`components/${name}: ${messageOf2(error)}`);
     }
   }
   return errors2;
 }
-function createA2uiValidator(options) {
-  const schema = options.catalog;
-  const ownId = typeof schema.catalogId === "string" ? schema.catalogId : typeof schema.$id === "string" ? schema.$id : "catalog";
-  const catalogs = /* @__PURE__ */ new Map();
-  const catalogFor = (id) => {
-    let catalog = catalogs.get(id);
-    if (!catalog) {
-      catalog = Catalog.fromJson(schema, CATALOG_VERSION, id);
-      catalogs.set(id, catalog);
-    }
-    return catalog;
-  };
-  const validate = (payload) => {
-    const messages = Array.isArray(payload) ? payload : [payload];
-    let own;
-    try {
-      own = catalogFor(ownId);
-    } catch (error) {
-      return [
-        { category: "ValidationError", message: `the catalog does not load: ${messageOf2(error)}` }
-      ];
-    }
-    const findings = [];
-    const created = /* @__PURE__ */ new Map();
-    const surfaces = /* @__PURE__ */ new Map();
-    const surfaceOf = (id) => {
-      let surface = surfaces.get(id);
-      if (!surface) {
-        surface = { components: [], duplicate: false };
-        surfaces.set(id, surface);
-      }
-      return surface;
-    };
-    const touched = [];
-    messages.forEach((message, index) => {
-      const base = `/${index}`;
-      if (!isObject2(message)) {
-        findings.push({
-          category: "ValidationError",
-          path: base,
-          message: "a message must be an object"
-        });
-        return;
-      }
-      const create = message.createSurface;
-      if (isObject2(create) && typeof create.surfaceId === "string") {
-        created.set(create.surfaceId, typeof create.catalogId === "string" ? create.catalogId : ownId);
-      }
-      for (const operation of SURFACE_OPERATIONS) {
-        const op = message[operation];
-        if (isObject2(op) && typeof op.surfaceId === "string")
-          touched.push(op.surfaceId);
-      }
-      const update = message.updateComponents;
-      if (!isObject2(update) || !Array.isArray(update.components))
-        return;
-      const surface = typeof update.surfaceId === "string" ? surfaceOf(update.surfaceId) : void 0;
-      const seen = /* @__PURE__ */ new Set();
-      update.components.forEach((component, i) => {
-        const at = `${base}/updateComponents/components/${i}`;
-        if (!isObject2(component)) {
-          findings.push({
-            category: "ValidationError",
-            path: at,
-            message: "a component must be an object"
-          });
-          return;
-        }
-        const id = typeof component.id === "string" ? component.id : void 0;
-        if (id !== void 0 && seen.has(id)) {
-          findings.push({
-            category: "IntegrityError",
-            componentId: id,
-            message: `Duplicate component ID: '${id}'`
-          });
-          if (surface)
-            surface.duplicate = true;
-        }
-        if (id !== void 0)
-          seen.add(id);
-        surface?.components.push(component);
-        const { catalogId: _catalogId, ...judged } = component;
-        try {
-          new PayloadValidator(own, STRICT_VALIDATION).validateComponent(judged);
-        } catch (error) {
-          findings.push(...componentFindings(error, component, at, id));
-        }
-      });
-    });
-    const envelope = [];
-    messages.forEach((message, index) => {
-      const types = isObject2(message) ? MESSAGE_TYPES.filter((type) => type in message) : [];
-      if (types.length !== 1 || types[0] !== "updateComponents") {
-        if (isObject2(message))
-          envelope.push(message);
-        return;
-      }
-      const parsed = UpdateComponentsMessageSchema.safeParse(message);
-      if (parsed.success)
-        return;
-      for (const issue of parsed.error.issues) {
-        findings.push({
-          category: "ValidationError",
-          path: `/${index}${issue.path.map((part) => `/${part}`).join("")}`,
-          message: issueText(issue)
-        });
-      }
-    });
-    const missing = [...new Set(touched)].filter((id) => !created.has(id));
-    const lead = missing.map((surfaceId) => ({
-      version: MESSAGE_VERSION,
-      createSurface: { surfaceId, catalogId: ownId }
-    }));
-    const ids = /* @__PURE__ */ new Set([ownId, ...created.values()]);
-    const processed = [...ids].map(catalogFor);
-    try {
-      new MessageProcessor(processed, void 0, {
-        version: MESSAGE_VERSION,
-        validationConfig: STRICT_VALIDATION
-      }).processMessages(
-        // The processor judges the messages' shape itself: that is what this pass asks of it.
-        [...lead, ...envelope]
-      );
-    } catch (error) {
-      findings.push({ category: categoryOf(error), message: messageOf2(error) });
-    }
-    for (const [surfaceId, { components, duplicate }] of surfaces) {
-      if (duplicate || components.length === 0)
-        continue;
-      const model = new SurfaceComponentsModel(own);
-      for (const component of components) {
-        const { id, component: type, catalogId: _catalogId, ...properties } = component;
-        if (typeof id !== "string" || !id)
-          continue;
-        const existing = model.get(id);
-        const componentType = typeof type === "string" ? type : existing?.type;
-        if (!componentType)
-          continue;
-        if (existing && existing.type === componentType) {
-          existing.properties = properties;
-          continue;
-        }
-        if (existing)
-          model.removeComponent(id);
-        model.addComponent(new ComponentModel(id, componentType, properties, own));
-      }
-      try {
-        model.validateTopology({ ...STRICT_VALIDATION, allowMissingRoot: !created.has(surfaceId) });
-      } catch (error) {
-        findings.push({ category: categoryOf(error), message: messageOf2(error) });
-      }
-    }
-    try {
-      validateRecursionAndPaths(messages);
-    } catch (error) {
-      findings.push({ category: categoryOf(error), message: messageOf2(error) });
-    }
-    const said = /* @__PURE__ */ new Set();
-    return findings.filter((finding) => {
-      const key = `${finding.category}|${finding.path ?? ""}|${finding.message}`;
-      if (said.has(key))
-        return false;
-      said.add(key);
-      return true;
-    });
-  };
-  return { validate, compileErrors: () => compileErrorsOf(schema) };
+var definition;
+function catalogDefinition() {
+  if (!definition) {
+    const ajv5 = new Ajv20203({ allErrors: true, strict: false, validateFormats: false });
+    ajv5.addSchema(COMMON_TYPES_SCHEMA);
+    definition = ajv5.compile(CATALOG_DEFINITION_SCHEMA);
+  }
+  return definition;
 }
-function formatA2uiFinding(finding) {
-  const where = [finding.path, finding.componentId && `(${finding.componentId})`].filter(Boolean).join(" ");
-  return where ? `${where}: ${finding.message}` : finding.message;
+function catalogDocumentErrors(schema) {
+  if (!isObject2(schema))
+    return ["not a JSON object"];
+  const catalog = schema;
+  if (!isObject2(catalog.components))
+    return ["components is not an object"];
+  const errors2 = [];
+  if (catalog.protocolVersion !== A2UI_VERSION) {
+    errors2.push(catalog.protocolVersion === void 0 ? `declares no protocolVersion; a catalog for A2UI ${A2UI_VERSION} declares "${A2UI_VERSION}"` : `protocolVersion is ${JSON.stringify(catalog.protocolVersion)}, not "${A2UI_VERSION}"`);
+  }
+  const id = typeof catalog.catalogId === "string" ? catalog.catalogId : "catalog";
+  try {
+    Catalog.fromJson(catalog, A2UI_VERSION, id);
+  } catch (error) {
+    errors2.push(`does not load at A2UI ${A2UI_VERSION}: ${messageOf2(error)}`);
+  }
+  errors2.push(...compileErrors(catalog));
+  errors2.push(...schemaErrors(catalogDefinition(), catalog).map((e) => `catalog_definition.json${e}`));
+  return errors2;
 }
 
 // ../sdk/js/dist/artifact.js
@@ -1358,8 +1130,8 @@ var ARTIFACT_DESCRIPTOR_SCHEMA = {
     },
     hostInterface: {
       type: "string",
-      pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$",
-      description: "The version of the host-module interface the entry was built against — the A2UI runtime release the host lends."
+      pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+(-v[0-9]+\\.[0-9]+)?$",
+      description: "The host-module interface the entry was built against, by name: the A2UI runtime release the host lends and the A2UI version its entry points speak, as 0.16.1-v1.0."
     },
     files: {
       type: "object",
@@ -1462,19 +1234,8 @@ function checkArtifactSchema(descriptor, schema) {
   }
   return errors2;
 }
-function checkCatalogSchemaCompiles(schema) {
-  if (typeof schema !== "object" || schema === null || Array.isArray(schema)) {
-    return ["not a JSON object"];
-  }
-  const catalog = schema;
-  if (typeof catalog.components !== "object" || catalog.components === null) {
-    return ["components is not an object"];
-  }
-  try {
-    return createA2uiValidator({ catalog }).compileErrors();
-  } catch (error) {
-    return [`the catalog does not compile: ${error.message}`];
-  }
+function checkCatalogDocument(schema) {
+  return catalogDocumentErrors(schema);
 }
 
 // ../sdk/js/dist/gate.js
@@ -1493,18 +1254,18 @@ async function gateArtifact(files, index) {
   const descriptor = read.value;
   const at = `${label} (${descriptor.catalogId})`;
   const findings = [];
-  const listed = new Map(files);
-  listed.delete(ARTIFACT_DESCRIPTOR_FILE);
-  findings.push(...(await verifyArtifactFiles(descriptor, listed)).map((e) => `${at}: ${e}`));
+  const listed2 = new Map(files);
+  listed2.delete(ARTIFACT_DESCRIPTOR_FILE);
+  findings.push(...(await verifyArtifactFiles(descriptor, listed2)).map((e) => `${at}: ${e}`));
   findings.push(...checkHostInterface(descriptor.hostInterface).map((e) => `${at}: ${e}`));
-  const schemaBytes = listed.get(descriptor.schema);
+  const schemaBytes = listed2.get(descriptor.schema);
   if (schemaBytes) {
     const schema = parseJson(schemaBytes);
     if (!schema.ok) {
       findings.push(`${at}: ${descriptor.schema}: ${schema.error}`);
     } else {
       findings.push(...checkArtifactSchema(descriptor, schema.value).map((e) => `${at}: ${e}`));
-      findings.push(...checkCatalogSchemaCompiles(schema.value).map((e) => `${at}: ${descriptor.schema}: ${e}`));
+      findings.push(...checkCatalogDocument(schema.value).map((e) => `${at}: ${descriptor.schema}: ${e}`));
     }
   }
   if (findings.length > 0)
@@ -1652,9 +1413,9 @@ var PREVIEW_SCHEMA = {
         type: "object",
         required: ["version"],
         properties: { version: { type: "string" } },
-        description: "One A2UI server-to-client message, as the agent sent it, or a surface's component updates settled into one."
+        description: "One A2UI agent-to-renderer message, as the agent sent it, or a surface's component updates settled into one."
       },
-      description: "The A2UI server-to-client messages in order, settled: each surface's updateComponents collapsed into one in the place of the first, carrying each component's last copy drawn from the root; every other message — createSurface, updateDataModel, deleteSurface — as sent; surface ids as the agent wrote them."
+      description: "The A2UI agent-to-renderer messages in order, settled: each surface's updateComponents collapsed into one in the place of the first, carrying each component's last copy drawn from the root; every other message — createSurface, updateDataModel, deleteSurface — as sent; surface ids as the agent wrote them."
     },
     capturedBy: { type: "string", enum: [...PREVIEW_CAPTURED_BY] },
     capturedAt: { type: "string", minLength: 1 }
@@ -1667,24 +1428,435 @@ function validatePreview(input) {
 }
 
 // ../sdk/js/dist/smoke.js
+import { Catalog as Catalog3 } from "@a2ui/web_core/catalog";
+import { getComponentReferences as getComponentReferences2 } from "@a2ui/web_core/validation";
+
+// ../sdk/js/dist/a2ui/validator.js
 import { Catalog as Catalog2 } from "@a2ui/web_core/catalog";
-import { buildComponentRefMap, getComponentReferences, V09_CHILD_REF_OPTIONS } from "@a2ui/web_core/validation";
+import { A2uiIntegrityError, A2uiRecursionError } from "@a2ui/web_core/errors";
+import { MessageProcessor, STRICT_VALIDATION } from "@a2ui/web_core/processing";
+import { ComponentModel, SurfaceComponentsModel } from "@a2ui/web_core/state";
+import { getComponentReferences } from "@a2ui/web_core/validation";
+var STRICT = { ...STRICT_VALIDATION, targetVersion: A2UI_VERSION };
+var ON_THE_RENDERER = { ...STRICT, allowMissingRoot: true };
+var ON_ITS_OWN = {
+  ...STRICT,
+  allowDanglingReferences: true,
+  allowOrphanComponents: true,
+  allowMissingRoot: true
+};
+var SURFACE_OPERATIONS = [
+  "createSurface",
+  "updateComponents",
+  "updateDataModel",
+  "deleteSurface"
+];
+var isObject3 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+var categoryOf = (error) => error instanceof A2uiRecursionError ? "RecursionError" : error instanceof A2uiIntegrityError ? "IntegrityError" : "ValidationError";
+var messageOf3 = (error) => error instanceof Error ? error.message : String(error);
+var isErrorDetail = (value) => isObject3(value) && typeof value.path === "string" && typeof value.message === "string";
+function callPath(value, name, at = "") {
+  if (Array.isArray(value)) {
+    for (const [i, item] of value.entries()) {
+      const found = callPath(item, name, `${at}/${i}`);
+      if (found !== void 0)
+        return found;
+    }
+    return void 0;
+  }
+  if (!isObject3(value))
+    return void 0;
+  if (value["@call"] === name)
+    return `${at}/@call`;
+  for (const [key, child] of Object.entries(value)) {
+    const found = callPath(child, name, `${at}/${key.replace(/~/g, "~0").replace(/\//g, "~1")}`);
+    if (found !== void 0)
+      return found;
+  }
+  return void 0;
+}
+function componentFindings(error, component, base, componentId) {
+  const tag = componentId !== void 0 ? { componentId } : {};
+  const message = messageOf3(error);
+  const fn = /^(?:Validation failed for function|Unrecognized function) '([^']+)'/.exec(message);
+  if (fn) {
+    const at = callPath(component, fn[1]) ?? "";
+    return [{ category: "ValidationError", path: `${base}${at}`, ...tag, message }];
+  }
+  if (message.startsWith("Unknown component type")) {
+    return [{ category: "ValidationError", path: `${base}/component`, ...tag, message }];
+  }
+  const details = error.details;
+  const failures = Array.isArray(details) ? details.filter(isErrorDetail) : [];
+  if (failures.length === 0) {
+    return [{ category: categoryOf(error), path: base, ...tag, message }];
+  }
+  const byPath = /* @__PURE__ */ new Map();
+  for (const failure of failures) {
+    const path = `${base}${failure.path === "/" ? "" : failure.path}`;
+    const texts = byPath.get(path) ?? [];
+    if (!texts.includes(failure.message))
+      texts.push(failure.message);
+    byPath.set(path, texts);
+  }
+  return [...byPath].map(([path, texts]) => ({
+    category: "ValidationError",
+    path,
+    ...tag,
+    message: texts.join("; ")
+  }));
+}
+function operationOf(message) {
+  const keys = SURFACE_OPERATIONS.filter((key) => key in message);
+  if (keys.length !== 1)
+    return void 0;
+  const body = message[keys[0]];
+  return isObject3(body) ? { key: keys[0], body } : void 0;
+}
+var idOf = (schema) => typeof schema.catalogId === "string" ? schema.catalogId : typeof schema.$id === "string" ? schema.$id : "catalog";
+var catalogFor = (component, catalogs, fallback) => {
+  const named2 = component["@catalogId"];
+  return (typeof named2 === "string" ? catalogs.find((c) => c.id === named2) : void 0) ?? fallback;
+};
+var propertiesOf = (component) => Object.fromEntries(Object.entries(component).filter(([key]) => key !== "id" && key !== "component" && !/^@([^@]|$)/.test(key)));
+function childrenOf(component, catalog) {
+  if (typeof component.component !== "string")
+    return [];
+  try {
+    return [
+      ...getComponentReferences({ ...propertiesOf(component), id: component.id, component: component.component }, catalog)
+    ].map(([id]) => id);
+  } catch {
+    return [];
+  }
+}
+function topologyOf(tree, catalogs, config) {
+  const fallback = catalogs.find((c) => c.id === tree.catalogId);
+  if (!fallback || tree.components.size === 0)
+    return void 0;
+  const reached = /* @__PURE__ */ new Set();
+  const reach = (id) => {
+    const component = tree.components.get(id);
+    if (!component || reached.has(id))
+      return;
+    reached.add(id);
+    for (const child of childrenOf(component, catalogFor(component, catalogs, fallback)))
+      reach(child);
+  };
+  reach(config.rootId ?? "root");
+  const model = new SurfaceComponentsModel(fallback);
+  for (const [id, component] of tree.components) {
+    const type = component.component;
+    if (typeof type !== "string" || !type)
+      continue;
+    if (!reached.has(id) && tree.referenced.has(id) && reached.has("root"))
+      continue;
+    const catalog = catalogFor(component, catalogs, fallback);
+    model.addComponent(new ComponentModel(id, type, propertiesOf(component), catalog));
+  }
+  try {
+    model.validateTopology(config);
+    return void 0;
+  } catch (error) {
+    return { category: categoryOf(error), message: messageOf3(error) };
+  }
+}
+function load(schemas) {
+  if (schemas.length === 0) {
+    return { ok: false, finding: { category: "ValidationError", message: "no catalog to judge by" } };
+  }
+  const catalogs = [];
+  for (const schema of schemas) {
+    const id = idOf(schema);
+    try {
+      catalogs.push(Catalog2.fromJson(schema, A2UI_VERSION, id));
+    } catch (error) {
+      return {
+        ok: false,
+        finding: {
+          category: "ValidationError",
+          message: `catalog ${JSON.stringify(id)} does not load: ${messageOf3(error)}`
+        }
+      };
+    }
+  }
+  return { ok: true, catalogs, first: idOf(schemas[0]) };
+}
+function createA2uiValidator(options) {
+  let loaded;
+  const validate = (payload) => {
+    loaded ??= load(options.catalogs);
+    if (!loaded.ok)
+      return [loaded.finding];
+    const { catalogs, first } = loaded;
+    const processor = (config) => new MessageProcessor(catalogs, void 0, {
+      version: A2UI_VERSION,
+      validationConfig: config
+    });
+    const messages = Array.isArray(payload) ? payload : [payload];
+    const createdHere = /* @__PURE__ */ new Set();
+    for (const message of messages) {
+      const create = isObject3(message) ? message.createSurface : void 0;
+      if (isObject3(create) && typeof create.surfaceId === "string")
+        createdHere.add(create.surfaceId);
+    }
+    const onTheRenderer = /* @__PURE__ */ new Set();
+    for (const message of messages) {
+      const op = isObject3(message) ? operationOf(message) : void 0;
+      const id = op?.body.surfaceId;
+      if (typeof id === "string" && !createdHere.has(id))
+        onTheRenderer.add(id);
+    }
+    const findings = [];
+    const creations = new Map([...onTheRenderer].map((surfaceId) => [surfaceId, { surfaceId, catalogId: first }]));
+    const trees = new Map([...onTheRenderer].map((surfaceId) => [
+      surfaceId,
+      { catalogId: first, components: /* @__PURE__ */ new Map(), referenced: /* @__PURE__ */ new Set() }
+    ]));
+    const graphSaid = /* @__PURE__ */ new Set();
+    const whole = processor(ON_ITS_OWN);
+    for (const surfaceId of onTheRenderer) {
+      whole.processMessages([
+        { version: A2UI_VERSION, createSurface: { surfaceId, catalogId: first } }
+      ]);
+    }
+    messages.forEach((message, index) => {
+      const at = `/${index}`;
+      if (!isObject3(message)) {
+        findings.push({
+          category: "ValidationError",
+          path: at,
+          message: "a message must be an object"
+        });
+        return;
+      }
+      const op = operationOf(message);
+      const surfaceId = typeof op?.body.surfaceId === "string" ? op.body.surfaceId : void 0;
+      const current = readA2uiStamp(message)?.current === true;
+      if (op?.key === "createSurface" && surfaceId !== void 0) {
+        const { components: _components, dataModel: _dataModel, ...creation2 } = op.body;
+        creations.set(surfaceId, creation2);
+        trees.set(surfaceId, {
+          catalogId: creation2.catalogId,
+          components: /* @__PURE__ */ new Map(),
+          referenced: /* @__PURE__ */ new Set()
+        });
+      }
+      const components = op?.body.components;
+      if (current && surfaceId !== void 0 && (op?.key === "createSurface" || op?.key === "updateComponents") && Array.isArray(components)) {
+        const tree = trees.get(surfaceId);
+        const fallback = catalogs.find((c) => c.id === tree?.catalogId);
+        for (const component of components) {
+          if (!tree || !isObject3(component) || typeof component.id !== "string" || !component.id)
+            continue;
+          tree.components.set(component.id, component);
+          if (fallback) {
+            for (const child of childrenOf(component, catalogFor(component, catalogs, fallback)))
+              tree.referenced.add(child);
+          }
+        }
+      }
+      const judged = /* @__PURE__ */ new Set();
+      const said = /* @__PURE__ */ new Set();
+      const creation = surfaceId !== void 0 ? creations.get(surfaceId) : void 0;
+      if (current && (op?.key === "createSurface" || op?.key === "updateComponents") && Array.isArray(components) && creation) {
+        components.forEach((component, i) => {
+          if (!isObject3(component))
+            return;
+          const alone = processor(ON_ITS_OWN);
+          try {
+            alone.processMessages([{ version: A2UI_VERSION, createSurface: creation }]);
+          } catch {
+            return;
+          }
+          try {
+            alone.processMessages([
+              { version: A2UI_VERSION, updateComponents: { surfaceId, components: [component] } }
+            ]);
+          } catch (error) {
+            const id = typeof component.id === "string" ? component.id : void 0;
+            const found = componentFindings(error, component, `${at}/${op.key}/components/${i}`, id);
+            findings.push(...found);
+            said.add(messageOf3(error));
+            for (const finding of found)
+              said.add(finding.message);
+            judged.add(i);
+          }
+        });
+      }
+      try {
+        whole.processMessages([message]);
+      } catch (error) {
+        const where = error.path;
+        const component = typeof where === "string" ? /^\/components\/(\d+)/.exec(where) : null;
+        if (component && judged.has(Number(component[1])) || said.has(messageOf3(error)))
+          return;
+        const path = typeof where === "string" && op ? `${at}/${op.key}${where}` : at;
+        const category = categoryOf(error);
+        findings.push({ category, path, message: messageOf3(error) });
+        if (category !== "ValidationError" && surfaceId !== void 0)
+          graphSaid.add(surfaceId);
+      }
+      if (op?.key === "deleteSurface" && surfaceId !== void 0) {
+        creations.delete(surfaceId);
+        trees.delete(surfaceId);
+      }
+    });
+    for (const [surfaceId, tree] of trees) {
+      if (graphSaid.has(surfaceId))
+        continue;
+      const graph = topologyOf(tree, catalogs, onTheRenderer.has(surfaceId) ? ON_THE_RENDERER : STRICT);
+      if (graph)
+        findings.push(graph);
+    }
+    return findings;
+  };
+  return { validate };
+}
+function formatA2uiFinding(finding) {
+  const where = [finding.path, finding.componentId && `(${finding.componentId})`].filter(Boolean).join(" ");
+  return where ? `${where}: ${finding.message}` : finding.message;
+}
+
+// ../sdk/js/dist/entitlementRule.js
+var isObject4 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+var escape = (key) => key.replace(/~/g, "~0").replace(/\//g, "~1");
+function declares(schema, name, defs, seen = /* @__PURE__ */ new Set()) {
+  if (!isObject4(schema) || seen.has(schema))
+    return false;
+  seen.add(schema);
+  if (isObject4(schema.properties) && name in schema.properties)
+    return true;
+  const ref = schema.$ref;
+  if (typeof ref === "string" && ref.startsWith("#/$defs/")) {
+    if (declares(defs[decodeURIComponent(ref.slice("#/$defs/".length))], name, defs, seen))
+      return true;
+  }
+  for (const key of ["allOf", "anyOf", "oneOf"]) {
+    const branches = schema[key];
+    if (Array.isArray(branches) && branches.some((b) => declares(b, name, defs, seen)))
+      return true;
+  }
+  return false;
+}
+function* callsUnder(value, at) {
+  if (Array.isArray(value)) {
+    for (const [i, item] of value.entries())
+      yield* callsUnder(item, `${at}/${i}`);
+    return;
+  }
+  if (!isObject4(value))
+    return;
+  if (typeof value["@call"] === "string" && typeof value.catalogId === "string") {
+    yield [value.catalogId, `${at}/catalogId`];
+  }
+  for (const [key, child] of Object.entries(value)) {
+    if (key === "catalogId" && typeof value["@call"] === "string")
+      continue;
+    yield* callsUnder(child, `${at}/${escape(key)}`);
+  }
+}
+function catalogsNamed(messages, options = {}) {
+  const named2 = [];
+  const defaults = /* @__PURE__ */ new Map();
+  messages.forEach((message, index) => {
+    if (!isObject4(message))
+      return;
+    const at = `/${index}`;
+    const call = message.callRendererFunction;
+    if (isObject4(call)) {
+      const surfaceId = typeof call.surfaceId === "string" ? { surfaceId: call.surfaceId } : {};
+      const fn = call.callFunction;
+      if (isObject4(fn) && typeof fn.catalogId === "string") {
+        named2.push({
+          place: "functionCall",
+          catalogId: fn.catalogId,
+          path: `${at}/callRendererFunction/callFunction/catalogId`,
+          ...surfaceId
+        });
+      }
+      return;
+    }
+    for (const key of ["createSurface", "updateComponents"]) {
+      const body = message[key];
+      if (!isObject4(body))
+        continue;
+      const surfaceId = typeof body.surfaceId === "string" ? body.surfaceId : void 0;
+      const tag = surfaceId !== void 0 ? { surfaceId } : {};
+      if (key === "createSurface" && surfaceId !== void 0) {
+        defaults.set(surfaceId, typeof body.catalogId === "string" ? body.catalogId : void 0);
+      }
+      if (key === "createSurface" && typeof body.catalogId === "string") {
+        named2.push({
+          place: "createSurface",
+          catalogId: body.catalogId,
+          path: `${at}/createSurface/catalogId`,
+          ...tag
+        });
+      }
+      if (!Array.isArray(body.components))
+        continue;
+      const fallback = surfaceId === void 0 ? void 0 : defaults.has(surfaceId) ? defaults.get(surfaceId) : options.surfaceCatalog?.(surfaceId);
+      const schema = fallback !== void 0 ? options.schemaFor?.(fallback) : void 0;
+      body.components.forEach((component, i) => {
+        if (!isObject4(component))
+          return;
+        const base = `${at}/${key}/components/${i}`;
+        const own = component["@catalogId"];
+        if (typeof own === "string") {
+          named2.push({ place: "component", catalogId: own, path: `${base}/@catalogId`, ...tag });
+        } else if (typeof component.catalogId === "string") {
+          const type = component.component;
+          const definition2 = typeof type === "string" && isObject4(schema?.components) ? schema.components[type] : void 0;
+          const defs = isObject4(schema?.$defs) ? schema.$defs : {};
+          if (!declares(definition2, "catalogId", defs)) {
+            named2.push({
+              place: "bareComponent",
+              catalogId: component.catalogId,
+              path: `${base}/catalogId`,
+              ...tag
+            });
+          }
+        }
+        for (const [prop, value] of Object.entries(component)) {
+          if (prop === "id" || prop === "component" || prop === "@catalogId")
+            continue;
+          for (const [catalogId, path] of callsUnder(value, `${base}/${escape(prop)}`)) {
+            named2.push({ place: "functionCall", catalogId, path, ...tag });
+          }
+        }
+      });
+    }
+  });
+  return named2;
+}
+var PLACE_WORDS = {
+  createSurface: "its createSurface",
+  component: "a component's @catalogId",
+  bareComponent: "a component's catalogId",
+  functionCall: "a function call's catalogId"
+};
+function describeCatalogOutside(outside) {
+  return `${PLACE_WORDS[outside.place]} names catalog ${JSON.stringify(outside.catalogId)}, outside its entitlement (${outside.path})`;
+}
+
+// ../sdk/js/dist/smoke.js
 var SMOKE_GREETING = "Hello! Show me what you can do.";
 function smokeWords(card) {
   const example = card.skills?.[0]?.examples?.[0];
   return typeof example === "string" && example.trim() !== "" ? example : SMOKE_GREETING;
 }
-var isObject3 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+var isObject5 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 var OPERATIONS = ["createSurface", "updateComponents", "updateDataModel", "deleteSurface"];
 var ROOT_ID = "root";
-function settled(own, refs) {
+function settled(own, childrenOf2) {
   const byId = /* @__PURE__ */ new Map();
   const loose = [];
   const kept = [];
   let first;
   for (const [at2, message2] of own) {
     const update = message2.updateComponents;
-    if (!isObject3(update) || !Array.isArray(update.components)) {
+    if (!isObject5(update) || !Array.isArray(update.components)) {
       kept.push([at2, message2]);
       continue;
     }
@@ -1693,7 +1865,7 @@ function settled(own, refs) {
       kept.push([at2, message2]);
     }
     for (const component of update.components) {
-      if (isObject3(component) && typeof component.id === "string")
+      if (isObject5(component) && typeof component.id === "string")
         byId.set(component.id, component);
       else
         loose.push(component);
@@ -1707,7 +1879,7 @@ function settled(own, refs) {
     if (!component || drawn.has(id))
       return;
     drawn.add(id);
-    for (const [ref] of getComponentReferences(component, refs))
+    for (const ref of childrenOf2(component))
       visit(ref);
   };
   visit(ROOT_ID);
@@ -1717,77 +1889,121 @@ function settled(own, refs) {
   kept[first.index] = [at, { ...message, updateComponents: { ...first.update, components } }];
   return kept;
 }
+function stampFinding({ stamp, older, newer }) {
+  const quoted = JSON.stringify(stamp);
+  const reads = `A2UIVerse reads only what is stamped "${A2UI_VERSION}"`;
+  if (older) {
+    return `the answer is stamped A2UI ${quoted}, an older version A2UIVerse no longer supports: ${reads}`;
+  }
+  if (newer) {
+    return `the answer is stamped A2UI ${quoted}, a newer version than this A2UIVerse supports: ${reads}`;
+  }
+  return `the answer is stamped ${quoted}, which is no A2UI version: ${reads}`;
+}
 function checkPaint(messages, check) {
+  const stamps = /* @__PURE__ */ new Map();
+  for (const message of messages) {
+    const stamp = readA2uiStamp(message);
+    if (stamp && !stamp.current && !stamps.has(stamp.stamp))
+      stamps.set(stamp.stamp, stamp);
+  }
+  if (stamps.size > 0)
+    return { findings: [...stamps.values()].map(stampFinding), paint: [] };
   const findings = [];
   const surfaces = /* @__PURE__ */ new Map();
   for (const [at, message] of messages.entries()) {
     const create = message.createSurface;
-    if (isObject3(create) && typeof create.surfaceId === "string") {
+    if (isObject5(create) && typeof create.surfaceId === "string") {
       const catalogId = typeof create.catalogId === "string" ? create.catalogId : void 0;
-      surfaces.set(create.surfaceId, { catalogId, stamp: message.version, own: [] });
+      surfaces.set(create.surfaceId, { catalogId, own: [] });
     }
-    const operation = OPERATIONS.map((key) => message[key]).find(isObject3);
-    const surfaceId = isObject3(operation) ? operation.surfaceId : void 0;
+    const operation = OPERATIONS.map((key) => message[key]).find(isObject5);
+    const surfaceId = isObject5(operation) ? operation.surfaceId : void 0;
     if (typeof surfaceId === "string")
       surfaces.get(surfaceId)?.own.push([at, message]);
   }
   if (surfaces.size === 0) {
     return { findings: ["the answer paints nothing: no createSurface"], paint: [] };
   }
-  const placed = [];
-  const validators = /* @__PURE__ */ new Map();
-  const refMaps = /* @__PURE__ */ new Map();
-  const options = /* @__PURE__ */ new Map();
-  for (const [surfaceId, { catalogId, stamp, own }] of surfaces) {
-    const at = `surface ${JSON.stringify(surfaceId)}`;
-    if (catalogId === void 0) {
-      findings.push(`${at}: createSurface names no catalogId`);
-      placed.push(...own);
-      continue;
-    }
-    const outside = paintOutside(stamp, catalogId, check.entitlement);
-    if (outside) {
-      findings.push(`${at} is painted in ${describePaintOutside(catalogId, outside)}`);
-      placed.push(...own);
-      continue;
-    }
-    const schema = check.schemaFor(catalogId);
-    if (!schema) {
-      findings.push(`${at}: no schema for catalog ${JSON.stringify(catalogId)}`);
-      placed.push(...own);
-      continue;
-    }
-    let validator = validators.get(catalogId);
-    if (!validator) {
-      validator = createA2uiValidator({ catalog: schema });
-      validators.set(catalogId, validator);
-    }
-    let refs = refMaps.get(catalogId);
-    if (!refs) {
+  const entitled = new Set(check.entitlement);
+  const schemas = /* @__PURE__ */ new Map();
+  for (const id of check.entitlement) {
+    const schema = check.schemaFor(id);
+    if (schema)
+      schemas.set(id, { ...schema, catalogId: id });
+  }
+  const loaded = /* @__PURE__ */ new Map();
+  const catalogOf = (id) => {
+    const schema = schemas.get(id);
+    if (!schema)
+      return void 0;
+    let catalog = loaded.get(id);
+    if (!catalog) {
       try {
-        refs = buildComponentRefMap(Catalog2.fromJson(schema, "0.9", catalogId), V09_CHILD_REF_OPTIONS);
+        catalog = Catalog3.fromJson(schema, A2UI_VERSION, id);
       } catch (error) {
-        findings.push(`${at}: the catalog does not load: ${error.message}`);
-        placed.push(...own);
-        continue;
+        catalog = error instanceof Error ? error : new Error(String(error));
       }
-      refMaps.set(catalogId, refs);
+      loaded.set(id, catalog);
     }
-    const surface = settled(own, refs);
-    placed.push(...surface);
-    findings.push(...validator.validate(surface.map(([, message]) => message)).map((f) => `${at}: ${formatA2uiFinding(f)}`));
-    let declared = options.get(catalogId);
+    return catalog;
+  };
+  const options = /* @__PURE__ */ new Map();
+  const optionsOf = (id) => {
+    let declared = options.get(id);
     if (!declared) {
-      declared = catalogId === BASIC_CATALOG_ID ? basicCatalogOptions() : catalogOptions(schema);
-      options.set(catalogId, declared);
+      declared = id === BASIC_CATALOG_ID ? basicCatalogOptions() : catalogOptions(schemas.get(id));
+      options.set(id, declared);
     }
+    return declared;
+  };
+  const named2 = catalogsNamed(messages, { schemaFor: (id) => schemas.get(id) });
+  const placed = [];
+  let validator;
+  for (const [surfaceId, { catalogId, own }] of surfaces) {
+    const at = `surface ${JSON.stringify(surfaceId)}`;
+    const ids = new Set(own.map(([index]) => index));
+    const mine = named2.filter((n) => n.surfaceId === surfaceId && ids.has(Number(n.path.split("/")[1])));
+    const outside = mine.filter((n) => !entitled.has(n.catalogId));
+    findings.push(...outside.map((n) => `${at}: ${describeCatalogOutside(n)}`));
+    const unheld = [...new Set(mine.map((n) => n.catalogId))].filter((id) => entitled.has(id) && !schemas.has(id));
+    findings.push(...unheld.map((id) => `${at}: no schema for catalog ${JSON.stringify(id)}`));
+    const broken = [...new Set(mine.map((n) => n.catalogId))].flatMap((id) => {
+      const catalog = catalogOf(id);
+      return catalog instanceof Error ? [`${at}: the catalog does not load: ${catalog.message}`] : [];
+    });
+    findings.push(...broken);
+    if (outside.length > 0 || unheld.length > 0 || broken.length > 0) {
+      placed.push(...own);
+      continue;
+    }
+    const fallback = catalogId !== void 0 ? catalogOf(catalogId) : void 0;
+    const catalogFor2 = (component) => {
+      const name = component["@catalogId"];
+      const catalog = typeof name === "string" ? catalogOf(name) : fallback;
+      return catalog instanceof Error ? void 0 : catalog;
+    };
+    const surface = settled(own, (component) => {
+      const catalog = catalogFor2(component);
+      return catalog ? [...getComponentReferences2(component, catalog)].map(([id]) => id) : [];
+    });
+    placed.push(...surface);
+    validator ??= createA2uiValidator({ catalogs: [...schemas.values()] });
+    findings.push(...validator.validate(surface.map(([, message]) => message)).map((f) => `${at}: ${formatA2uiFinding(f)}`));
     for (const [, message] of own) {
-      const update = message.updateComponents;
-      if (!isObject3(update) || !Array.isArray(update.components))
+      const update = message.updateComponents ?? message.createSurface;
+      if (!isObject5(update) || !Array.isArray(update.components))
         continue;
-      const found = credentialInputIn(update.components, declared);
-      if (found)
-        findings.push(`${at}: a credential input: ${describeCredentialFinding(found)}`);
+      for (const component of update.components) {
+        if (!isObject5(component))
+          continue;
+        const name = component["@catalogId"];
+        const id = typeof name === "string" ? name : catalogId;
+        const declared = id !== void 0 && schemas.has(id) ? optionsOf(id) : /* @__PURE__ */ new Map();
+        const found = credentialInputIn([component], declared);
+        if (found)
+          findings.push(`${at}: a credential input: ${describeCredentialFinding(found)}`);
+      }
     }
   }
   const paint = placed.sort(([a], [b]) => a - b).map(([, message]) => message);
@@ -2132,7 +2348,7 @@ function readManifest(packageDir) {
 // src/pack.ts
 var TOOL_NAME = "@a2uiverse/stellify";
 var TOOL_VERSION = JSON.parse(readFileSync4(new URL("../package.json", import.meta.url), "utf8")).version;
-var DEFAULT_SCHEMA = "catalogs/v0.9.1/catalog.json";
+var DEFAULT_SCHEMA = `catalogs/v${A2UI_VERSION}/catalog.json`;
 var DEFAULT_OUT_DIR = "dist/artifact";
 var ENTRY_PATH = "index.js";
 var SCHEMA_PATH = "catalog.json";
@@ -2188,7 +2404,7 @@ async function stellify(packageDir, options = {}) {
         });
       }
     }
-    for (const error of checkCatalogSchemaCompiles(schema))
+    for (const error of checkCatalogDocument(schema))
       findings.push({ file: schemaRel, reason: error });
   }
   const entryRel = config.entry ?? manifest?.entry;
@@ -2323,8 +2539,8 @@ function atCardVersion(card) {
     return card;
   return {
     ...card,
-    supportedInterfaces: card.supportedInterfaces.map((listed) => ({
-      ...listed,
+    supportedInterfaces: card.supportedInterfaces.map((listed2) => ({
+      ...listed2,
       protocolVersion: version
     }))
   };
@@ -2571,7 +2787,7 @@ function a2aVersionOf(agentInterface) {
   const version = agentInterface.protocolVersion?.trim() ?? "";
   return version === "" ? ABSENT_A2A_VERSION : version;
 }
-function isSpokenVersion2(version) {
+function isSpokenVersion(version) {
   const [majorText, minorText = "0"] = version.split(".");
   if (!/^\d+$/.test(majorText ?? "") || !/^\d+$/.test(minorText))
     return false;
@@ -2583,16 +2799,16 @@ function isSpokenBinding(binding) {
   return SPOKEN_BINDINGS.some((spoken) => spoken.toUpperCase() === binding.toUpperCase());
 }
 function spokenInterfaces(card) {
-  return (card.supportedInterfaces ?? []).filter((agentInterface) => Boolean(agentInterface.url) && isSpokenBinding(agentInterface.protocolBinding ?? "") && isSpokenVersion2(a2aVersionOf(agentInterface)));
+  return (card.supportedInterfaces ?? []).filter((agentInterface) => Boolean(agentInterface.url) && isSpokenBinding(agentInterface.protocolBinding ?? "") && isSpokenVersion(a2aVersionOf(agentInterface)));
 }
 function cardToDial(card, taken) {
   return { ...card, supportedInterfaces: [taken] };
 }
 function noInterfaceFinding(card) {
-  const listed = card.supportedInterfaces ?? [];
-  if (listed.length === 0)
+  const listed2 = card.supportedInterfaces ?? [];
+  if (listed2.length === 0)
     return "the card lists no interface";
-  const lists = listed.map((agentInterface) => {
+  const lists = listed2.map((agentInterface) => {
     const version = agentInterface.protocolVersion?.trim() ?? "";
     const binding = agentInterface.protocolBinding || "no binding";
     const at = version === "" ? `${binding} with no A2A version` : `${binding} at A2A ${version}`;
@@ -2837,10 +3053,10 @@ function servedIn(kept, binding) {
   if (kept.status === void 0 || kept.status < 200 || kept.status >= 300)
     return void 0;
   const body = binding === "JSONRPC" ? resultOf(kept.body) : kept.body;
-  return isObject4(body) ? body : void 0;
+  return isObject6(body) ? body : void 0;
 }
 function resultOf(body) {
-  return isObject4(body) && !("error" in body) ? body.result : void 0;
+  return isObject6(body) && !("error" in body) ? body.result : void 0;
 }
 function servedFromMessage(message) {
   return AgentCard3.toJSON(message);
@@ -2873,12 +3089,12 @@ function noneAnswered(err, kept = {}) {
   return void 0;
 }
 function noneInBody(body) {
-  if (!isObject4(body))
+  if (!isObject6(body))
     return void 0;
   const { error, code, message } = body;
-  if (isObject4(error)) {
+  if (isObject6(error)) {
     const { details, code: errorCode, message: said } = error;
-    const named2 = Array.isArray(details) && details.some((detail) => isObject4(detail) && typeof detail.reason === "string" && NONE_REASONS.has(detail.reason));
+    const named2 = Array.isArray(details) && details.some((detail) => isObject6(detail) && typeof detail.reason === "string" && NONE_REASONS.has(detail.reason));
     if (named2 || typeof errorCode === "number" && NONE_CODES.has(errorCode)) {
       return typeof said === "string" ? said : "no extended card";
     }
@@ -2889,7 +3105,7 @@ function noneInBody(body) {
   }
   return void 0;
 }
-function isObject4(value) {
+function isObject6(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 async function takeExtendedCard(answer, { cardUrl, signal, timeoutMs, fetchImpl }) {
@@ -3162,8 +3378,8 @@ function answerOf(raw, taken, asked) {
 }
 function walkOrder(card, first) {
   const spoken = spokenInterfaces(card);
-  const remembered = first && spoken.find((listed) => sameInterface(listed, first));
-  return remembered ? [remembered, ...spoken.filter((listed) => listed !== remembered)] : spoken;
+  const remembered = first && spoken.find((listed2) => sameInterface(listed2, first));
+  return remembered ? [remembered, ...spoken.filter((listed2) => listed2 !== remembered)] : spoken;
 }
 function sameInterface(a, b) {
   return a.url === b.url && a.protocolBinding === b.protocolBinding && a.protocolVersion === b.protocolVersion && a.tenant === b.tenant;
@@ -3256,7 +3472,7 @@ function a2aSmokeRunner(options = {}) {
       parts: [
         { content: { $case: "text", value: words }, metadata: void 0, filename: "", mediaType: "" }
       ],
-      metadata: { [A2UI_CLIENT_CAPABILITIES_KEY]: clientCapabilities(entitlement) },
+      metadata: { [A2UI_RENDERER_CAPABILITIES_KEY]: rendererCapabilities(entitlement) },
       extensions: [],
       referenceTaskIds: []
     };
@@ -3269,7 +3485,7 @@ function a2aSmokeRunner(options = {}) {
         card,
         params: { tenant: "", message, configuration: void 0, metadata: void 0 },
         ...headers ? { credential: headers } : {},
-        serviceParameters: ServiceParameters2.create(withA2AExtensions(...Object.values(A2UI_EXTENSION_URIS))),
+        serviceParameters: ServiceParameters2.create(withA2AExtensions(A2UI_EXTENSION_URI)),
         signal
       });
       reached = { taken: dialed.taken, notReached: dialed.notReached };
@@ -3523,6 +3739,10 @@ function unusedOnAccountCard(publicCard, accountCard) {
     )
   ];
 }
+function heldElsewhereNote(catalogId, packedFor) {
+  const supplied = SUPPORTED_HOST_INTERFACES.map((name) => JSON.stringify(name)).join(", ");
+  return `the marketplace holds catalog ${JSON.stringify(catalogId)} at a build packed for host interface ${JSON.stringify(packedFor)}, while the platform supplies ${supplied}: it is not resolved, and publish takes a new build of it`;
+}
 function preview(options) {
   return previewWith(options, {});
 }
@@ -3558,18 +3778,17 @@ async function previewWith(options, deps) {
     findings.push(`the card at ${options.cardUrl} could not be read: ${err.message}`);
     return result(null);
   }
+  const read = readSupportedCatalogIds(card);
+  if (!read.ok && read.otherVersions) {
+    findings.push(...read.errors);
+    return result(null);
+  }
   if (!card.version) {
     findings.push("the card has no version: the card's `version` is the app's version");
   }
   if (spokenInterfaces(card).length === 0) findings.push(noInterfaceFinding(card));
-  let declared = [];
-  let declaredByVersion = { "v0.9": [], "v0.9.1": [] };
-  const read = readCatalogIdsByVersion(card);
-  if (read.ok) {
-    declaredByVersion = read.value;
-    const union = readSupportedCatalogIds(card);
-    if (union.ok) declared = union.value;
-  } else findings.push(...read.errors.map((e) => `the card's ${e}`));
+  const declared = read.ok ? read.value : [];
+  if (!read.ok) findings.push(...read.errors.map((e) => `the card's ${e}`));
   const signIn = asksSignIn(card);
   const given = options.credential !== void 0 && options.credential !== "";
   let headers;
@@ -3620,6 +3839,11 @@ async function previewWith(options, deps) {
           notes.push(`the marketplace’s artifact ${artifactId} has no readable descriptor`);
           continue;
         }
+        const packedFor = descriptor.value.hostInterface;
+        if (!SUPPORTED_HOST_INTERFACES.includes(packedFor)) {
+          notes.push(heldElsewhereNote(id, packedFor));
+          continue;
+        }
         const schema = parseJson2(
           await fetchArtifactFile(
             options.marketplace,
@@ -3665,7 +3889,7 @@ async function previewWith(options, deps) {
       notes.push(noAccountCardNote(taken, timeoutMs));
     }
   }
-  const entitlement = entitlementByVersionOf(declaredByVersion);
+  const entitlement = entitlementOf(declared);
   const words = smokeWords(card);
   const seen = await smoke({
     card: dialed,

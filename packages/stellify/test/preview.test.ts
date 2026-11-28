@@ -1,6 +1,6 @@
 /** `preview` (task-13.4 decisions 5–8, 12): the paint captured on the publisher's machine. */
 import {
-  A2UI_EXTENSION_URIS,
+  A2UI_EXTENSION_URI,
   ARTIFACT_DESCRIPTOR_FILE,
   artifactIdOf,
   BASIC_CATALOG_ID,
@@ -9,6 +9,7 @@ import {
 import {a2aSmokeRunner, type SmokeRunner} from '@a2uiverse/smoke-transport';
 import {
   authRequiredBody,
+  completingScript,
   finalUpdate,
   firstTurnTask,
   paintParts,
@@ -26,12 +27,14 @@ import {
 } from '@a2uiverse/smoke-transport/testing/v1';
 import {AgentCard} from '@a2a-js/sdk';
 import {keySetOf, signServed, testSigner, type TestSigner} from '@a2uiverse/card/testing';
+import {readFileSync} from 'node:fs';
 import {createServer as createNetServer} from 'node:net';
 import {afterEach, beforeAll, describe, expect, test} from 'vitest';
 import {UNSUPPORTED_SCHEME} from '../src/credential.js';
 import {artifactFiles, preview, stellify} from '../src/index.js';
-import {previewWith} from '../src/preview.js';
+import {heldElsewhereNote, previewWith} from '../src/preview.js';
 import {
+  authored,
   authRequiredScript,
   failedScript,
   hangingScript,
@@ -82,9 +85,9 @@ describe('preview of an app that needs no sign-in', () => {
       version: '0.4.0',
       words: SMOKE_GREETING,
       messages: [
-        {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: STAR_CATALOG_ID}},
+        {version: '1.0', createSurface: {surfaceId: 's1', catalogId: STAR_CATALOG_ID}},
         {
-          version: 'v0.9',
+          version: '1.0',
           updateComponents: {
             surfaceId: 's1',
             components: [{id: 'root', component: 'StarText', text: 'hi'}],
@@ -136,9 +139,9 @@ describe('preview of an app that needs no sign-in', () => {
     const result = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
     expect(result.findings).toEqual([]);
     expect(result.document?.messages).toEqual([
-      {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: STAR_CATALOG_ID}},
+      {version: '1.0', createSurface: {surfaceId: 's1', catalogId: STAR_CATALOG_ID}},
       {
-        version: 'v0.9',
+        version: '1.0',
         updateComponents: {
           surfaceId: 's1',
           components: [{id: 'root', component: 'StarText', text: 'hi'}],
@@ -610,41 +613,26 @@ describe('what refuses a preview', () => {
     expect(result.findings[0]).toMatch(/^surface "s1": /);
   });
 
-  test('the preview advertises the entitlement per version read from the card, and judges the paint by its stamp (task-19.2 decision 6)', async () => {
-    const OTHER = 'https://example.com/other.json';
-    const extensions = [
-      {uri: A2UI_EXTENSION_URIS['v0.9'], params: {supportedCatalogIds: [STAR_CATALOG_ID]}},
-      {uri: A2UI_EXTENSION_URIS['v0.9.1'], params: {supportedCatalogIds: [OTHER]}},
-    ];
+  test('the preview advertises the entitlement as one list read from the card', async () => {
     const advertised: unknown[] = [];
     const spy: SmokeRunner = request => {
       advertised.push(request.entitlement);
       return a2aSmokeRunner()(request);
     };
-    // The default script paints the star catalog stamped v0.9: inside v0.9's set.
-    agent = await startFakeAgent({extensions});
-    const fine = await previewWith(
+    agent = await startFakeAgent();
+    const result = await previewWith(
       {appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]},
       {smoke: spy},
     );
-    expect(fine.findings).toEqual([]);
-    expect(advertised).toEqual([
-      {'v0.9': [BASIC_CATALOG_ID, STAR_CATALOG_ID], 'v0.9.1': [BASIC_CATALOG_ID, OTHER]},
-    ]);
-    await agent.close();
-    // The other catalog stamped v0.9: the card declares it for v0.9.1 alone.
-    agent = await startFakeAgent({extensions, script: paintingScript(OTHER)});
-    const result = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
-    expect(result.findings).toEqual([
-      `surface "s1" is painted in catalog "${OTHER}" stamped v0.9, which its card declares for v0.9.1 only`,
-    ]);
+    expect(result.findings).toEqual([]);
+    expect(advertised).toEqual([[BASIC_CATALOG_ID, STAR_CATALOG_ID]]);
   });
 
   test('a paint outside the entitlement', async () => {
     agent = await startFakeAgent({script: paintingScript('https://example.com/other.json')});
     const result = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
     expect(result.findings).toEqual([
-      'surface "s1" is painted in catalog "https://example.com/other.json", outside its entitlement',
+      'surface "s1": its createSurface names catalog "https://example.com/other.json", outside its entitlement (/0/createSurface/catalogId)',
     ]);
   });
 
@@ -896,5 +884,194 @@ describe('preview of an agent that serves your account a card of its own (task-2
     const fake = await startOwn(fake => ownCard(fake));
     await preview({appId: 'star', cardUrl: fake.cardUrl, catalogs: [star]});
     expect(fake.requests).toEqual([]);
+  });
+});
+
+/** A card fixture of the sdk: upstream's sample agents' cards as served (task-21.10 decision 23.3). */
+const upstreamCard = (name: string): Record<string, unknown> =>
+  JSON.parse(
+    readFileSync(new URL(`../../sdk/js/test/fixtures/cards/${name}`, import.meta.url), 'utf8'),
+  );
+
+/** A card's A2UI entries, one per URI, written by hand. */
+const declaring = (...uris: string[]) =>
+  uris.map(uri => ({uri, params: {supportedCatalogIds: [STAR_CATALOG_ID]}}));
+const A2UI_V09 = 'https://a2ui.org/a2a-extension/a2ui/v0.9';
+const A2UI_V11 = 'https://a2ui.org/a2a-extension/a2ui/v1.1';
+
+/** The star paint, every message stamped `version`: written to be refused. */
+const stampedScript = (version: string) =>
+  completingScript(
+    paintParts(STAR_CATALOG_ID, {component: 'StarText'}).map(part =>
+      part.kind === 'data' ? {...part, data: {...(part.data as object), version}} : part,
+    ),
+  );
+
+/** A smoke runner that records each request it is handed and sends none. */
+const noSmoke = () => {
+  const sent: unknown[] = [];
+  const smoke: SmokeRunner = async request => {
+    sent.push(request);
+    throw new Error('the agent was called');
+  };
+  return {smoke, sent};
+};
+
+describe('preview of an agent on another A2UI version (task-21.15 decisions 1, 2, 3)', () => {
+  test("upstream's ADK restaurant finder, declaring v0.8 and v0.9: refused alone, nothing sent", async () => {
+    const cardUrl = 'http://127.0.0.1:1/.well-known/agent-card.json';
+    const {smoke, sent} = noSmoke();
+    const result = await previewWith(
+      {appId: 'finder', cardUrl, catalogs: [], credential: 'tok'},
+      {smoke, fetchImpl: async () => Response.json(upstreamCard('adk-restaurant-finder.json'))},
+    );
+    expect(result).toEqual({
+      document: null,
+      findings: [
+        'the card declares A2UI v0.8 and v0.9, which A2UIVerse no longer supports: A2UIVerse speaks A2UI v1.0',
+      ],
+      notices: [],
+      notes: [],
+    });
+    expect(sent).toEqual([]);
+  });
+
+  test('a card declaring only a newer version, and one declaring an older and a newer, each refused alone', async () => {
+    agent = await startFakeAgent({extensions: declaring(A2UI_V11)});
+    const newer = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
+    expect(newer.findings).toEqual([
+      'the card declares A2UI v1.1, which is newer than this A2UIVerse supports: A2UIVerse speaks A2UI v1.0',
+    ]);
+    expect(agent.requests).toEqual([]);
+    await agent.close();
+    agent = await startFakeAgent({extensions: declaring(A2UI_V09, A2UI_V11)});
+    const both = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
+    expect(both.findings).toEqual([
+      'the card declares A2UI v0.9 and v1.1, not v1.0: v1.1 is newer than this A2UIVerse supports, and A2UIVerse speaks A2UI v1.0',
+    ]);
+    expect(agent.requests).toEqual([]);
+  });
+
+  test('a malformed v1.0 declaration is collected beside the other findings', async () => {
+    agent = await startFakeAgent({
+      extensions: [
+        {uri: A2UI_EXTENSION_URI, params: {'1.0': {supportedCatalogIds: [STAR_CATALOG_ID]}}},
+      ],
+      signIn: 'bearer',
+    });
+    const result = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
+    expect(result.findings).toEqual([
+      'the card\'s A2UI v1.0 extension params: keyed under "1.0"; v1.0 params are read flat',
+      'the card requires sign-in: set STELLIFY_CREDENTIAL to a credential of your own for this agent',
+    ]);
+    expect(agent.requests).toEqual([]);
+  });
+
+  test("upstream's Node restaurant finder, with no A2UI entry, previewed on the basic catalog against a scripted agent", async () => {
+    const parts = paintParts(BASIC_CATALOG_ID);
+    authored(
+      BASIC_CATALOG_ID,
+      parts.map(part => (part.kind === 'data' ? part.data : undefined)),
+    );
+    agent = await startFakeAgent({catalogs: [], script: completingScript(parts)});
+    const node = {...upstreamCard('node-restaurant-finder.json'), url: agent.url};
+    const result = await previewWith(
+      {appId: 'finder', cardUrl: agent.cardUrl, catalogs: []},
+      {
+        fetchImpl: async (input, init) =>
+          String(input) === agent!.cardUrl ? Response.json(node) : fetch(input, init),
+      },
+    );
+    expect(result.findings).toEqual([]);
+    expect(result.document?.words).toBe('Find me the top 10 chinese restaurants in the US');
+    expect(result.document?.messages).toHaveLength(2);
+  });
+
+  test.each([
+    [
+      'v0.9',
+      'the answer is stamped A2UI "v0.9", an older version A2UIVerse no longer supports: A2UIVerse reads only what is stamped "1.0"',
+    ],
+    [
+      '1.1',
+      'the answer is stamped A2UI "1.1", a newer version than this A2UIVerse supports: A2UIVerse reads only what is stamped "1.0"',
+    ],
+    [
+      'abc',
+      'the answer is stamped "abc", which is no A2UI version: A2UIVerse reads only what is stamped "1.0"',
+    ],
+  ])(
+    'an answer stamped %s on a v1.0 card, refused by what its stamp reads as',
+    async (stamp, finding) => {
+      agent = await startFakeAgent({script: stampedScript(stamp)});
+      const result = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
+      expect(result.document).toBeNull();
+      expect(result.findings).toEqual([finding]);
+    },
+  );
+
+  test('an answer in v0.8, whose messages carry no version, refused as painting nothing', async () => {
+    agent = await startFakeAgent({
+      script: completingScript([
+        {kind: 'data', data: {beginRendering: {surfaceId: 's1', root: 'root'}}},
+        {kind: 'data', data: {surfaceUpdate: {surfaceId: 's1', components: []}}},
+      ]),
+    });
+    const result = await preview({appId: 'star', cardUrl: agent.cardUrl, catalogs: [star]});
+    expect(result.findings).toEqual(['the answer paints nothing: no createSurface']);
+  });
+});
+
+/** The star artifact as `main` packed it for host-module interface `0.16.1`: its descriptor alone changed. */
+const packedForOld = (files: ReadonlyMap<string, Uint8Array>): Map<string, Uint8Array> => {
+  const descriptor = JSON.parse(new TextDecoder().decode(files.get(ARTIFACT_DESCRIPTOR_FILE)!));
+  return new Map(files).set(
+    ARTIFACT_DESCRIPTOR_FILE,
+    new TextEncoder().encode(
+      `${JSON.stringify({...descriptor, hostInterface: '0.16.1'}, null, 2)}\n`,
+    ),
+  );
+};
+
+describe('a catalog held, or handed, at a build packed for 0.16.1 (task-21.15 decision 4)', () => {
+  test('an artifact packed for 0.16.1 is refused by name, nothing sent', async () => {
+    agent = await startFakeAgent();
+    const result = await preview({
+      appId: 'star',
+      cardUrl: agent.cardUrl,
+      catalogs: [packedForOld(star)],
+    });
+    expect(result.findings).toEqual([
+      `catalog artifact 1 (${STAR_CATALOG_ID}): host interface "0.16.1" is not one the platform supplies (it supplies "0.16.1-v1.0")`,
+    ]);
+    expect(agent.requests).toEqual([]);
+  });
+
+  test('a held row at a build packed for 0.16.1 is not resolved, a note saying why', async () => {
+    const old = packedForOld(star);
+    const oldId = await artifactIdOf(old.get(ARTIFACT_DESCRIPTOR_FILE)!);
+    agent = await startFakeAgent();
+    marketplace = await startFakeMarketplace({
+      entries: [entryFor('star', {publisher: 'acme', catalogs: {[STAR_CATALOG_ID]: oldId}})],
+      artifacts: [old],
+    });
+    const result = await preview({
+      appId: 'star',
+      cardUrl: agent.cardUrl,
+      catalogs: [],
+      marketplace: marketplace.url,
+      publisher: 'acme',
+    });
+    expect(result.notes).toEqual([heldElsewhereNote(STAR_CATALOG_ID, '0.16.1')]);
+    expect(result.notes[0]).toBe(
+      `the marketplace holds catalog "${STAR_CATALOG_ID}" at a build packed for host interface "0.16.1", while the platform supplies "0.16.1-v1.0": it is not resolved, and publish takes a new build of it`,
+    );
+    expect(result.findings).toEqual([
+      `surface "s1": no schema for catalog ${JSON.stringify(STAR_CATALOG_ID)}`,
+    ]);
+    expect(marketplace.requests.map(r => r.path)).toEqual([
+      'index.json',
+      `artifacts/${oldId}/artifact.json`,
+    ]);
   });
 });

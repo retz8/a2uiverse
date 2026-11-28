@@ -718,12 +718,16 @@ export class Registry {
       return refuse('no-interface', [noInterfaceFinding(card.card)], entry.cardUrl);
     }
     const drift = aheadOfStore(entry, card.card);
+    // A card on another A2UI version is refused in the sdk's own line, as written (task-21.15
+    // decision 2); a malformed declaration is the card's.
     if (!drift.ok)
-      return refuse(
-        'otherVersions' in drift ? versionRefusal(drift.otherVersions) : 'checks',
-        drift.errors.map(e => `the card's ${e}`),
-        entry.cardUrl,
-      );
+      return 'otherVersions' in drift
+        ? refuse(versionRefusal(drift.otherVersions), drift.errors, entry.cardUrl)
+        : refuse(
+            'checks',
+            drift.errors.map(e => `the card's ${e}`),
+            entry.cardUrl,
+          );
     if (drift.value) {
       // Drift seen from a live card is what the marketplace wants to hear about (decision 10).
       void marketplace.report(appId).catch((err: unknown) => {
@@ -911,9 +915,11 @@ export class Registry {
       if (read.ok) {
         declared = read.value;
         findings.push(...coverageErrors(checkCoverage(declared, [...counted.keys()])));
+      } else if (read.otherVersions) {
+        findings.push(...read.errors);
+        cause = versionRefusal(read.otherVersions);
       } else {
         findings.push(...read.errors.map(e => `the card's ${e}`));
-        if (read.otherVersions) cause = versionRefusal(read.otherVersions);
       }
     }
 

@@ -11,6 +11,7 @@ import {noInterfaceFinding, readCard, spokenInterfaces} from '@a2uiverse/card';
 import {
   A2UI_EXTENSION_URI,
   A2UI_RENDERER_CAPABILITIES_KEY,
+  BASIC_CATALOG_ID,
   readAuthRequired,
   rendererCapabilities,
 } from '@a2uiverse/sdk';
@@ -58,7 +59,7 @@ import {
 import {TaskState} from '@a2a-js/sdk';
 
 const CATALOG_ID = 'https://example.com/fake/catalog.json';
-const ENTITLEMENT = ['https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json', CATALOG_ID];
+const ENTITLEMENT = [BASIC_CATALOG_ID, CATALOG_ID];
 const PAINT = paintParts(CATALOG_ID);
 const OPERATIONS = ['createSurface', 'updateComponents'];
 

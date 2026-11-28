@@ -31,6 +31,11 @@ export declare function noAccountCardNote(taken: TakenExtendedCard, timeoutMs: n
  * 5): a sign-in scheme or a scope the public card does not ask, and a catalog id it does not name.
  */
 export declare function unusedOnAccountCard(publicCard: AgentCard, accountCard: AgentCard): string[];
+/**
+ * The note for a catalog the marketplace holds at a build packed for a host-module interface the
+ * platform no longer supplies (task-21.15 decision 4): its schema is not resolved.
+ */
+export declare function heldElsewhereNote(catalogId: string, packedFor: string): string;
 /** The public verb: no transport in its signature, so nothing of the A2A SDK's client reaches the API's types. */
 export declare function preview(options: PreviewOptions): Promise<PreviewResult>;
 export declare function previewWith(options: PreviewOptions, deps: PreviewDeps): Promise<PreviewResult>;

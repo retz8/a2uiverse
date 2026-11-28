@@ -26,13 +26,12 @@ import {
   BASIC_CATALOG_ID,
   BASIC_CATALOG_SCHEMA,
   checkPaint,
-  entitlementByVersionOf,
+  entitlementOf,
   gateArtifact,
   readAuthRequired,
-  readCatalogIdsByVersion,
   readSupportedCatalogIds,
-  type CatalogIdsByVersion,
   smokeWords,
+  SUPPORTED_HOST_INTERFACES,
   validateArtifactDescriptor,
   type A2uiCatalogSchema,
   type A2uiMessage,
@@ -135,6 +134,15 @@ export function unusedOnAccountCard(publicCard: AgentCard, accountCard: AgentCar
   ];
 }
 
+/**
+ * The note for a catalog the marketplace holds at a build packed for a host-module interface the
+ * platform no longer supplies (task-21.15 decision 4): its schema is not resolved.
+ */
+export function heldElsewhereNote(catalogId: string, packedFor: string): string {
+  const supplied = SUPPORTED_HOST_INTERFACES.map(name => JSON.stringify(name)).join(', ');
+  return `the marketplace holds catalog ${JSON.stringify(catalogId)} at a build packed for host interface ${JSON.stringify(packedFor)}, while the platform supplies ${supplied}: it is not resolved, and publish takes a new build of it`;
+}
+
 /** The public verb: no transport in its signature, so nothing of the A2A SDK's client reaches the API's types. */
 export function preview(options: PreviewOptions): Promise<PreviewResult> {
   return previewWith(options, {});
@@ -179,21 +187,22 @@ export async function previewWith(
     findings.push(`the card at ${options.cardUrl} could not be read: ${(err as Error).message}`);
     return result(null);
   }
+  // A card that declares A2UI and not v1.0 answers alone, its one line as the sdk writes it,
+  // nothing sent to the agent (task-21.15 decisions 1, 2).
+  const read = readSupportedCatalogIds(card);
+  if (!read.ok && read.otherVersions) {
+    findings.push(...read.errors);
+    return result(null);
+  }
   if (!card.version) {
     findings.push("the card has no version: the card's `version` is the app's version");
   }
   // An agent the platform cannot reach is sent nothing (task-20.3 decision 15).
   if (spokenInterfaces(card).length === 0) findings.push(noInterfaceFinding(card));
-  // The card's declaration per A2UI version, what the request advertises and the paint is judged
-  // by (task-19.2 decision 6); `declared` is its union, what the gate and the schemas read.
-  let declared: string[] = [];
-  let declaredByVersion: CatalogIdsByVersion = {'v0.9': [], 'v0.9.1': []};
-  const read = readCatalogIdsByVersion(card);
-  if (read.ok) {
-    declaredByVersion = read.value;
-    const union = readSupportedCatalogIds(card);
-    if (union.ok) declared = union.value;
-  } else findings.push(...read.errors.map(e => `the card's ${e}`));
+  // The card's declaration: what the request advertises, the paint is judged by, and the gate and
+  // the schemas read.
+  const declared = read.ok ? read.value : [];
+  if (!read.ok) findings.push(...read.errors.map(e => `the card's ${e}`));
 
   // The credential: required for a card that requires sign-in, not sent for one that does not.
   const signIn = asksSignIn(card);
@@ -250,6 +259,13 @@ export async function previewWith(
           notes.push(`the marketplace’s artifact ${artifactId} has no readable descriptor`);
           continue;
         }
+        // A held build packed for another host-module interface covers nothing at publish, so it
+        // is not resolved here either (task-21.15 decision 4).
+        const packedFor = descriptor.value.hostInterface;
+        if (!SUPPORTED_HOST_INTERFACES.includes(packedFor)) {
+          notes.push(heldElsewhereNote(id, packedFor));
+          continue;
+        }
         const schema = parseJson(
           await fetchArtifactFile(
             options.marketplace,
@@ -303,9 +319,9 @@ export async function previewWith(
     }
   }
 
-  // One request, judged as the marketplace judges a live paint, the paint through the sdk: the
-  // entitlement per version as the hub advertises it, each surface judged by its stamp.
-  const entitlement = entitlementByVersionOf(declaredByVersion);
+  // One request, judged as the marketplace judges a live paint, the paint through the sdk's
+  // validator (task-21.15 decision 7): the entitlement as the hub advertises it.
+  const entitlement = entitlementOf(declared);
   const words = smokeWords(card);
   const seen = await smoke({
     card: dialed,

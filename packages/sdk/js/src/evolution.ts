@@ -12,8 +12,10 @@
  * them: a function's `allowedCallers` narrowed, its `requiresUserActivation` turned on, a
  * component's `allowedParents` or `allowedChildren` added or narrowed. Accepted: a constraint
  * loosened or dropped; annotations changing freely. Any other keyword is ignored, so a harmless
- * keyword never blocks a publish. Each finding names the component or function and the path.
+ * keyword never blocks a publish. Each finding names the component or function and the path. A
+ * v1.0 catalog document handed for an id whose held document is not one is one finding, and no walk.
  */
+import {catalogDocumentErrors} from './a2ui/catalogDocument.js';
 import type {A2uiCatalogSchema} from './a2ui/types.js';
 
 type Json = Record<string, unknown>;
@@ -40,8 +42,18 @@ const UPPER_BOUNDS = ['maxLength', 'maximum', 'exclusiveMaximum', 'maxItems', 'm
 /** Keywords any change of which is a different constraint. */
 const EXACT = ['pattern', 'multipleOf'];
 
+/**
+ * The one finding for a v1.0 catalog document handed for an id held as a catalog for an older A2UI
+ * version (task-21.15 decision 5): judged before the walk, which does not run.
+ */
+export const OLDER_VERSION_HELD =
+  'the Store holds this catalog id as a catalog for an older A2UI version, and a catalog on v1.0 takes a new catalog id';
+
 /** Empty when `next` is an additive evolution of `held`; else each refusal with its path. */
 export function checkAdditiveEvolution(held: A2uiCatalogSchema, next: A2uiCatalogSchema): string[] {
+  if (catalogDocumentErrors(held).length > 0 && catalogDocumentErrors(next).length === 0) {
+    return [OLDER_VERSION_HELD];
+  }
   const findings: string[] = [];
   if (held.catalogId !== next.catalogId) {
     findings.push(

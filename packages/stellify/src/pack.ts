@@ -5,8 +5,9 @@
  * into the descriptor. Static throughout: nothing of the vendor's runs (decision 13).
  */
 import {
+  A2UI_VERSION,
   checkArtifactSchema,
-  checkCatalogSchemaCompiles,
+  checkCatalogDocument,
   hashArtifactFile,
   HOST_INTERFACE_VERSION,
   validateArtifactDescriptor,
@@ -26,7 +27,8 @@ export const TOOL_VERSION = (
   }
 ).version;
 
-const DEFAULT_SCHEMA = 'catalogs/v0.9.1/catalog.json';
+/** The zero-configuration place of the catalog schema, from the sdk's A2UI version (task-21.15 decision 8). */
+const DEFAULT_SCHEMA = `catalogs/v${A2UI_VERSION}/catalog.json`;
 const DEFAULT_OUT_DIR = 'dist/artifact';
 const ENTRY_PATH = 'index.js';
 const SCHEMA_PATH = 'catalog.json';
@@ -93,7 +95,7 @@ export async function stellify(
         });
       }
     }
-    for (const error of checkCatalogSchemaCompiles(schema))
+    for (const error of checkCatalogDocument(schema))
       findings.push({file: schemaRel, reason: error});
   }
 

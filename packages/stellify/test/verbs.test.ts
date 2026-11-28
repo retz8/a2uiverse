@@ -10,7 +10,7 @@ import {
   unpublish,
   type PreviewDocument,
 } from '../src/index.js';
-import {STAR_CATALOG_ID} from './fakeAgent.js';
+import {authored, STAR_CATALOG_ID} from './fakeAgent.js';
 import {entryFor, startFakeMarketplace, type FakeMarketplace} from './fakeMarketplace.js';
 import {copyFixture} from './fixture.js';
 
@@ -29,7 +29,9 @@ const PREVIEW: PreviewDocument = {
   appId: 'star',
   version: '0.1.0',
   words: 'Hello!',
-  messages: [{version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: STAR_CATALOG_ID}}],
+  messages: authored(STAR_CATALOG_ID, [
+    {version: '1.0', createSurface: {surfaceId: 's1', catalogId: STAR_CATALOG_ID}},
+  ]),
   capturedBy: 'publisher',
   capturedAt: '2026-10-10T00:00:00.000Z',
 };

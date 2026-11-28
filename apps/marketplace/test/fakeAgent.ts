@@ -17,7 +17,7 @@ import {
   type TaskState,
   type AdmitRequest,
 } from '@a2uiverse/smoke-transport/testing';
-import {cardFor, signInCardFor, type CardOptions} from './fixture.js';
+import {authored, cardFor, signInCardFor, type CardOptions} from './fixture.js';
 
 export {failedScript, hangingScript, submittedOnlyScript} from '@a2uiverse/smoke-transport/testing';
 export type {FakeAgent, Script};
@@ -35,73 +35,82 @@ export interface FakeAgentOptions extends CardOptions {
 /** The catalog the default script paints in. */
 export const FAKE_CATALOG_ID = 'https://example.com/fake/catalog.json';
 
+/** The shared paint in `catalogId`, held to the schema-form check as it is built. */
+const checkedParts = (catalogId: string, text?: string) => {
+  const parts = paintParts(catalogId, text === undefined ? {} : {text});
+  authored(
+    catalogId,
+    parts.map(part => (part.kind === 'data' ? part.data : undefined)),
+  );
+  return parts;
+};
+
 /** Paints one surface in `catalogId` and completes, as the deterministic roster does. */
 export const paintingScript = (catalogId = FAKE_CATALOG_ID, text = 'hi'): Script =>
-  completingScript(paintParts(catalogId, {text}));
+  completingScript(checkedParts(catalogId, text));
 
 /**
  * A tree streamed as upstream's restaurant finder streams it: each working update sends the tree so
  * far again, a Button's action `{}` in one copy and whole in the next, a placeholder child dropped
  * on the way; then the task completes with no parts. The basic catalog's web_core refuses the
- * half-written copy, so a paint kept as sent fails the Store's sample.
+ * half-written copy, so a paint kept as sent fails the Store's sample. Every copy but the
+ * half-written one passes the schema-form check.
  */
 export const STREAMED_SURFACE = 'list';
 const streamedCopy = (components: unknown[]) => ({
   kind: 'data' as const,
-  data: {version: 'v0.9', updateComponents: {surfaceId: STREAMED_SURFACE, components}},
+  data: {version: '1.0', updateComponents: {surfaceId: STREAMED_SURFACE, components}},
 });
-export const STREAMED_BOOK = {event: {name: 'book', context: {name: {path: '/name'}}}};
+export const STREAMED_BOOK = {event: {name: 'book', context: {name: {'@path': '/name'}}}};
 export const STREAMED_SETTLED = [
   {id: 'root', component: 'Column', children: ['title', 'book']},
   {id: 'title', component: 'Text', text: 'Restaurants'},
-  {id: 'book', component: 'Button', child: 'book-label', action: STREAMED_BOOK},
-  {id: 'book-label', component: 'Text', text: 'Book'},
+  {id: 'book', component: 'Button', child: 'book_label', action: STREAMED_BOOK},
+  {id: 'book_label', component: 'Text', text: 'Book'},
 ];
 export const streamedScript =
   (catalogId = BASIC_CATALOG_ID): Script =>
-  ({ctx, firstTurn}) => [
-    ...(firstTurn ? [firstTurnTask(ctx)] : []),
-    statusUpdate(
-      ctx,
-      'working',
-      [
-        {
-          kind: 'data',
-          data: {version: 'v0.9', createSurface: {surfaceId: STREAMED_SURFACE, catalogId}},
-        },
-        streamedCopy([
-          {id: 'root', component: 'Column', children: ['loading_title']},
-          {id: 'loading_title', component: 'Text', text: ''},
-        ]),
-      ],
-      false,
-    ),
-    statusUpdate(
-      ctx,
-      'working',
-      [
-        streamedCopy([
-          {id: 'root', component: 'Column', children: ['title', 'book']},
-          {id: 'title', component: 'Text', text: 'Restaurants'},
-          {id: 'book', component: 'Button', child: 'book-label', action: {}},
-        ]),
-      ],
-      false,
-    ),
-    statusUpdate(ctx, 'working', [streamedCopy(STREAMED_SETTLED)], false),
-    finalUpdate(ctx, 'completed', []),
-  ];
+  ({ctx, firstTurn}) => {
+    const create = {
+      kind: 'data' as const,
+      data: {version: '1.0', createSurface: {surfaceId: STREAMED_SURFACE, catalogId}},
+    };
+    const loading = streamedCopy([
+      {id: 'root', component: 'Column', children: ['loading_title']},
+      {id: 'loading_title', component: 'Text', text: ''},
+    ]);
+    const settled = streamedCopy(STREAMED_SETTLED);
+    authored(catalogId, [create.data, loading.data, settled.data]);
+    return [
+      ...(firstTurn ? [firstTurnTask(ctx)] : []),
+      statusUpdate(ctx, 'working', [create, loading], false),
+      statusUpdate(
+        ctx,
+        'working',
+        [
+          streamedCopy([
+            {id: 'root', component: 'Column', children: ['title', 'book']},
+            {id: 'title', component: 'Text', text: 'Restaurants'},
+            {id: 'book', component: 'Button', child: 'book_label', action: {}},
+          ]),
+        ],
+        false,
+      ),
+      statusUpdate(ctx, 'working', [settled], false),
+      finalUpdate(ctx, 'completed', []),
+    ];
+  };
 
-/** Paints, then the credential input the bar refuses. */
+/** Paints, then the credential input the bar refuses: written to fail, so held to no check. */
 export const credentialScript =
   (catalogId = FAKE_CATALOG_ID): Script =>
   ({ctx}) => [
     finalUpdate(ctx, 'completed', [
-      {kind: 'data', data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId}}},
+      {kind: 'data', data: {version: '1.0', createSurface: {surfaceId: 's1', catalogId}}},
       {
         kind: 'data',
         data: {
-          version: 'v0.9',
+          version: '1.0',
           updateComponents: {
             surfaceId: 's1',
             components: [{id: 'root', component: 'Text', text: 'Enter it', password: ''}],
@@ -120,7 +129,7 @@ export const authRequiredScript = (scheme = 'signIn', scopes = ['read']): Script
  * stream: upstream's restaurant finder ends its answers on `input-required` this way.
  */
 export const unmarkedScript = (states: TaskState[], catalogId = FAKE_CATALOG_ID): Script =>
-  sharedUnmarkedScript(states, paintParts(catalogId));
+  sharedUnmarkedScript(states, checkedParts(catalogId));
 
 export function startFakeAgent(options: FakeAgentOptions = {}): Promise<FakeAgent> {
   const {script = paintingScript(), catalogs = [FAKE_CATALOG_ID], admit, noCard} = options;
