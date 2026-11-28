@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@a2uiverse/card": "workspace:*",
+    "@a2uiverse/sdk": "workspace:*",
     "@a2uiverse/stellify": "workspace:*",
     "@eslint/js": "^9.39.1",
     "eslint": "^9.39.1",

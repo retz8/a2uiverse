@@ -64,7 +64,7 @@ Each app is published again on a v1.0 card naming only its new catalog ids, whic
 
 ### 13. Recordings are converted, and a few are recorded fresh
 
-A converter rewrites each recorded payload into v1.0, changing only the positions the v1.0 evolution guide names, and every converted file validates against the v1.0 schemas and its v1.0 catalog. What a recording shows is unchanged: the suites' screen baselines, captured from `main` before the flip, hold across it, and a baseline that moves is a finding. Payloads written by code are migrated by hand. A small number of beats are recorded live on v1.0 beside the converted ones.
+A converter rewrites each recorded payload into v1.0, changing only the positions the v1.0 evolution guide names and the component ids the v1.0 protocol's identifier rule (UAX #31) refuses, each id with every reference to it, and every converted file validates against the v1.0 schemas and its v1.0 catalog. What a recording shows is unchanged: the suites' screen baselines, captured from `main` before the flip, hold across it, and a baseline that moves is a finding. Payloads written by code are migrated by hand. A small number of beats are recorded live on v1.0 beside the converted ones.
 
 ### 14. What proves step 1
 
