@@ -1348,3 +1348,122 @@ reports a union's other option being lost (searched "union ComponentId", "Compon
 string", "child ref union", "Placeholder union", "classifyExplicitUnionOptions", "union child
 reference string literal", "ComponentId literal none", and web_core issues on unions and child
 references opened since 2026-11-03, on 2026-11-27).
+
+---
+
+## 37. The v1.0 extension specification requires a list of messages in a part's `data`, and the released agent SDKs and upstream's samples carry one message per part (spec, a2ui-agent-sdk, @a2ui/agent, a2ui-a2a, samples)
+
+**Component:** at `7a776e7a4`, the commit `@a2ui/web_core` 0.16.1 and `@a2ui/agent` 0.2.1 were released from: `specification/v1_0/extensions/a2a/docs/a2ui_extension_specification.md`, lines 181 to 191; `typescript/agents/a2ui_agent/src/rpc/renderer-to-agent-message-processor.ts`, `processMessage` (line 144); `python/a2ui_agent/src/a2ui/rpc/processor.py`, `RendererToAgentMessageProcessor.process_message` (line 168); `python/a2ui_a2a/src/a2ui/a2a/parts.py`, `create_a2ui_parts` (line 147) and `get_a2ui_messages` (line 124); `samples/agent/node/restaurant_finder/src/a2a.ts`, `readInboundMessage` (line 65); `samples/client/lit/shell/client.ts`, lines 81 to 84 and 111 to 115.
+
+**Severity:** specification and implementations disagree on v1.0. A renderer that follows the specification loses every press on upstream's agents, and an agent built on either agent SDK refuses it.
+
+**Reported:** not filed.
+
+### Issue
+
+The v1.0 extension specification: "The `data` field of the `DataPart` contains a list of A2UI JSON messages (e.g., `createSurface`, `updateComponents`, `action`). It MUST be an array of messages." Its processing rules and both of its examples build on the list.
+
+The released code at the same commit carries one message per part:
+
+1. `@a2ui/agent` 0.2.1's `RendererToAgentMessageProcessor.processMessage` refuses a list: "A renderer message must be a JSON object, got an array."
+2. `a2ui-agent-sdk` 0.12.1's `RendererToAgentMessageProcessor.process_message` refuses one: "A renderer-to-agent message must be an object, got list."
+3. `a2ui_a2a`'s `create_a2ui_parts` writes one message per part, and `get_a2ui_messages` reads a part's `data` as one message.
+4. The A2A Python SDK `a2ui_a2a` pins, `a2a-sdk` 0.3.25, cannot build a data part whose `data` is a list.
+5. The Node restaurant finder reads a press only from a `data` that holds `version` and `action`, so a list is read as no press at all.
+6. The Lit sample client sends a press as one object in `data`, and reads each data part as one message.
+
+Finding 29 recorded the same disagreement at v0.9.1 on `upstream/main` `8bf644a37`. On v1.0 it holds for both agent SDKs, whose renderer-message processors were added since.
+
+### Reproduction
+
+Run on 2026-11-28 from `../a2ui-upstream/` at `7a776e7a4`, with its own environment.
+
+```text
+a2ui_a2a create_a2ui_parts([create, delete]): 2 parts; ['dict', 'dict']
+a2a-sdk 0.3.25 DataPart(data=[...]): refused, Input should be a valid dictionary [type=dict_type, …, input_type=list]
+a2ui-agent-sdk RendererToAgentMessageProcessor.process_message([action]): raises A2uiValidationError: A renderer-to-agent message must be an object, got list.
+@a2ui/agent RendererToAgentMessageProcessor.processMessage([action]): throws A2uiValidationError: A renderer message must be a JSON object, got an array.
+```
+
+The Node restaurant finder, run with `STUB_LLM=true`, sent `message/send` with `a2uiRendererCapabilities` at `1.0` and one data part holding a `submit_booking` press: as one message the task ends `completed`, the booking taken; as a list of that one message it ends `input-required`, the press unread.
+
+### Fix
+
+Choose one and say it in the v1.0 specification: one message per part, as both agent SDKs, the helper and the samples do; or a list, with the processors and the samples changed to take one. Either way the text and the code would agree.
+
+### Prior art
+
+Issue [#645](https://github.com/a2ui-project/a2ui/issues/645) ("A2UI spec requires DataParts to contain an array, which they can't do", closed 2026-05-14) was closed once "the underlying libraries now all support lists in a data part". Finding 29 gives the earlier issues. No issue or pull request reports the agent SDKs' processors refusing a list (searched "DataPart array messages", "data part list of messages", "MUST be an array of messages", "one message per part", on 2026-11-28).
+
+---
+
+## 38. `@a2ui/web_core` takes a v0.9 binding and a v0.9 call on a v1.0 surface, and draws them as literals (web_core)
+
+**Component:** at `7a776e7a4`, the commit `@a2ui/web_core` 0.16.1 was released from: `DataBindingSchema` (line 37) and `FunctionCommonSchema` (line 48) in `typescript/core/web_core/src/v1_0/schema/common-types.ts`, which `DynamicStringSchema` (line 74) and the other dynamic types are built on.
+
+**Severity:** a v0.9 payload sent at `1.0` passes strict validation and draws wrong. A bound text shows an object where the data should be, and a call to a function the catalog lacks is never refused.
+
+**Reported:** not filed.
+
+### Issue
+
+v1.0 writes a binding `{"@path": …}` and a call `{"@call": …}`. The evolution guide says plain objects holding `path` or `call` "are treated as literal dictionary values and are no longer intercepted as dynamic directives". The v1.0 JSON schema's `DataBinding` requires `@path` and its `FunctionCall` requires `@call`, so a `DynamicString` written `{"path": …}` or `{"call": …}` fails it.
+
+`@a2ui/web_core`'s v1.0 Zod schemas take both spellings: `DataBindingSchema` has `@path` and `path` both optional, refined to need one, and `FunctionCommonSchema` does the same for `@call` and `call`. Validation therefore passes `{"path": "/name"}` as a binding and `{"call": …}` as a call. Resolution reads only the `@` keys, so the component receives the object as written. The check of nested calls reads only `@call`, so a function the catalog lacks passes when it is written `call`.
+
+### Reproduction
+
+`MessageProcessor` with the v1 `basicCatalog`, `version: '1.0'` and `STRICT_VALIDATION`, one surface created at `1.0` with the data model `{name: "Ada"}`, a root `Text`, and `NodeResolver` over the surface. Run on 2026-11-28.
+
+| `Text.text` written                | Validation                                    | `text` resolves to                |
+| ---------------------------------- | --------------------------------------------- | --------------------------------- |
+| `{"@path": "/name"}`               | accepted                                      | `"Ada"`                           |
+| `{"path": "/name"}`                | accepted                                      | `{"path": "/name"}`               |
+| `{"@call": "nosuch", "args": {}}`  | refused: `Unrecognized function 'nosuch'`     |                                   |
+| `{"call": "nosuch", "args": {}}`   | accepted                                      | `{"call": "nosuch", "args": {}}`  |
+
+### Fix
+
+On a surface at `1.0` or later, refuse a `DataBinding` or a `FunctionCall` written without its `@` key, as the v1.0 schema does. Or take the bare keys as the literal dictionary the evolution guide says they are: validated against the property's literal branch, which a `DynamicString` does not have.
+
+A2UIVerse holds what it writes itself to the v1.0 JSON schemas, with the sdk's schema-form check beside the validator (task-21.10 decision 10).
+
+### Prior art
+
+Pull request [#4044](https://github.com/a2ui-project/a2ui/pull/4044) (merged 2026-11-11) moved the component envelope to `@` keys. For the envelope alone, the evolution guide keeps a bare key on v1.0 "when the component's schema does not declare a property of that name"; it names no such transition for `path` or `call`. No issue or pull request reports a bare `path` or `call` passing inside a dynamic value (searched "path binding literal v1.0", "@path legacy path", "call without @ prefix", "reserved key path literal", "plain object path DynamicString", "unknown function call key", on 2026-11-28).
+
+---
+
+## 39. `@a2ui/web_core`'s `MessageProcessor` applies a v0.9 `updateComponents` to a surface created at `1.0` (web_core)
+
+**Component:** at `7a776e7a4`, the commit `@a2ui/web_core` 0.16.1 was released from: `MessageProcessor.validateTargetVersion` (line 955) and `processUpdateComponentsOp` (line 1750) in `typescript/core/web_core/src/processing/message-processor.ts`.
+
+**Severity:** a renderer applies messages of two protocol versions to one surface. The v0.9 update is judged and drawn by the v1.0 surface's rules, and nothing says that the agent changed versions.
+
+**Reported:** not filed.
+
+### Issue
+
+A surface takes its protocol version from its `createSurface`. The evolution guide asks renderers to inspect "the `version` property (e.g., `"1.0"`) to route payloads to version-specific controllers", and v1.0 requires every catalog mixed on a surface to use the same specification version.
+
+The processor checks a message's `version` against nothing but `ValidationConfig.targetVersion`. Without it, even under `STRICT_VALIDATION`, an `updateComponents` stamped `v0.9` for a surface created at `1.0` is applied to that surface.
+
+### Reproduction
+
+`MessageProcessor` with the v1 `basicCatalog` and `version: '1.0'`, a `createSurface` at `1.0`, then an `updateComponents` at `v0.9` setting a root `Text`. Run on 2026-11-28.
+
+| Rules                                           | The `v0.9` update                                                                   |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------- |
+| no `validationConfig`                           | applied, the surface still at `1.0`                                                 |
+| `STRICT_VALIDATION`                             | applied, the surface still at `1.0`                                                 |
+| `STRICT_VALIDATION` with `targetVersion: '1.0'` | refused: `Message version 'v0.9' does not match expected target version '1.0'`      |
+
+### Fix
+
+Refuse a message for an existing surface whose `version` is not the surface's own, whatever the validation config. `targetVersion` would still state the one version a processor accepts at all.
+
+A2UIVerse's validator sets `targetVersion` to `1.0`, so every message stamped otherwise is a finding (task-21.10 decision 8).
+
+### Prior art
+
+Pull request [#2997](https://github.com/a2ui-project/a2ui/pull/2997) (merged) added a version adapter registry to the Dart core. No issue or pull request reports a message applied to a surface of another version (searched "targetVersion", "version mismatch surface", "v0.9 message on v1.0 surface", "mixed version surface", "protocolVersion surface message version", "message version differs surface", on 2026-11-28).

@@ -29,3 +29,12 @@ Each step compiles and its tests pass before the next. The commits are made in t
 10. **The documents.** The sdk's two READMEs, the contract files, and the sentences decision 19 names.
 11. **On `main`.** The three findings in `_dev/a2ui-findings.md`, each with its reproduction. The notes of decision 21 on the lines of other sub-tasks.
 12. **The proof.** Decision 23.9's search, then the sdk package's build, typecheck and tests, with ESLint and Prettier on what changed.
+
+## Found while building
+
+1. The v1.0 protocol requires every component instance id to be a UAX #31 identifier, and 0.16.1 refuses `go-label`. The evolution guide's migration steps don't name the rule, so the converter sub-task 21.11's line carries it, as do the lines of the sub-tasks whose paints write ids.
+2. Under `STRICT_VALIDATION` the release judges the graph after every batch, so it refuses two of upstream's own v1 basic catalog examples that stream a tree in batches. The validator judges each surface's tree once, where the payload leaves it. A component its parent stopped referencing in a later copy is left out of that tree, as the renderer holds it and draws nothing, so it is not an orphan. A component nothing ever referenced stays an orphan, as upstream's case has it. The records sub-task 21.22's line carries the row.
+3. Each component is judged by a fresh processor under the real surface id, so the release's words name the surface as the payload does. A finding the payload's pass repeats word for word is said once.
+4. Upstream's v1 basic catalog passes `catalog_definition.json`, so the gate keeps all four checks.
+5. Of the 67 names the shell catalog and the nine catalog packages import from the three v0.9 entry points, 51 are lent at runtime and seven are types. The other nine were renamed: the GitHub catalog's five validation implementations, now `RequiredV1Point0Implementation` and its siblings, and the shell catalog's `V09_SPEC_FUNCTIONS`, now `BASIC_FUNCTIONS` of the v1 basic catalog. The lines of 21.12 and 21.18 carry them.
+6. In a fresh worktree, `write:host-exports` needs `@a2uiverse/card` built, since the client's Vite config loads the registry snapshot. From a worktree, the sync script needs `A2UI_REPO`, since its default path to the fork assumes the main checkout.
