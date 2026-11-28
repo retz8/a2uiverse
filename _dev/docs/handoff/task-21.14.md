@@ -4,15 +4,7 @@
 
 Part one is done on `phase-21/14-client-on-v1-0`, branched off `phase-21/flip` at `33d35677`, in three commits: `022cad3c` (the client's code on v1.0), `2f6344d7` (the proofs), `fcd290ee` (README and design records). The worktree is `.claude/worktrees/21-14-client`.
 
-Not yet done: the merge into `phase-21/flip` and the push of the flip branch (spec decision 20). Both were blocked by the session's permission rules; they wait on the user:
-
-```bash
-cd .claude/worktrees/21-14-client
-git checkout phase-21/flip
-git merge --no-ff phase-21/14-client-on-v1-0 -m "Merge branch 'phase-21/14-client-on-v1-0' into phase-21/flip"
-git push origin phase-21/flip
-git checkout phase-21/14-client-on-v1-0
-```
+Part one landed on `phase-21/flip` at `a2b0e59e` and the flip branch is pushed (spec decision 20).
 
 Part one's proofs, decision 22 items 1 to 11:
 
