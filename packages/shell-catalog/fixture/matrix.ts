@@ -126,6 +126,9 @@ const IMAGE_URL =
     '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100" viewBox="0 0 160 100"><rect width="160" height="100" fill="#6e56cf"/><circle cx="110" cy="40" r="22" fill="#ffd166"/><path d="M0 100 L60 45 L95 80 L120 60 L160 100Z" fill="#3e63dd"/></svg>',
   );
 
+/** The words of the `Text` samples, a heading's among them. */
+const TEXT_SEED = 'The quick brown fox jumps over the lazy dog.';
+
 const text = (id: string, content: string): TreeComponent => ({
   id,
   component: 'Text',
@@ -137,7 +140,7 @@ const SEEDS: Record<
   string,
   {props: Record<string, unknown>; extra?: TreeComponent[]; data?: Record<string, unknown>}
 > = {
-  Text: {props: {text: 'The quick brown fox jumps over the lazy dog.'}},
+  Text: {props: {text: TEXT_SEED}},
   Image: {props: {url: IMAGE_URL, description: 'A hill under a yellow sun'}},
   Icon: {props: {name: 'star'}},
   Video: {props: {url: 'https://example.invalid/clip.mp4'}},
@@ -264,7 +267,7 @@ const SEEDS: Record<
 const SAMPLES: Record<string, Array<{label: string; props: Record<string, unknown>}>> = {
   Text: [1, 2, 3, 4, 5].map(level => {
     const markers = '#'.repeat(level);
-    return {label: `text=${markers}`, props: {text: `${markers} A heading of level ${level}`}};
+    return {label: `text=${markers}`, props: {text: `${markers} ${TEXT_SEED}`}};
   }),
   Video: [{label: 'posterUrl', props: {posterUrl: IMAGE_URL}}],
   TextField: [
