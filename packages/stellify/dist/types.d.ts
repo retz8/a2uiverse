@@ -3,7 +3,7 @@
 export interface StellifyConfig {
     /** The built entry, relative to the package root. Default: what `exports["."]` (then `main`) names. */
     entry?: string;
-    /** The catalog schema, relative to the package root. Default: `catalogs/v0.9.1/catalog.json`. */
+    /** The catalog schema, relative to the package root. Default: `catalogs/v1.0/catalog.json`. */
     schema?: string;
     /** The catalog's id; must equal the schema's `catalogId` when set. */
     catalogId?: string;

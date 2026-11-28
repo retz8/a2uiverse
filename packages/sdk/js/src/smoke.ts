@@ -6,7 +6,7 @@
  */
 import {Catalog, type CatalogApi} from '@a2ui/web_core/catalog';
 import {getComponentReferences} from '@a2ui/web_core/validation';
-import {readA2uiStamp, A2UI_VERSION} from './a2ui/stamp.js';
+import {readA2uiStamp, A2UI_VERSION, type A2uiStamp} from './a2ui/stamp.js';
 import type {A2uiCatalogSchema} from './a2ui/types.js';
 import type {A2uiMessage} from './a2uiPart.js';
 import {createA2uiValidator, formatA2uiFinding, type A2uiValidator} from './a2ui/validator.js';
@@ -122,6 +122,22 @@ export interface PaintJudgement {
 }
 
 /**
+ * The finding for a paint stamped other than 1.0 (task-21.15 decision 3), by what the stamp reads
+ * as — an older version, a newer one, or no version — the stamp quoted as the agent wrote it.
+ */
+function stampFinding({stamp, older, newer}: A2uiStamp): string {
+  const quoted = JSON.stringify(stamp);
+  const reads = `A2UIVerse reads only what is stamped "${A2UI_VERSION}"`;
+  if (older) {
+    return `the answer is stamped A2UI ${quoted}, an older version A2UIVerse no longer supports: ${reads}`;
+  }
+  if (newer) {
+    return `the answer is stamped A2UI ${quoted}, a newer version than this A2UIVerse supports: ${reads}`;
+  }
+  return `the answer is stamped ${quoted}, which is no A2UI version: ${reads}`;
+}
+
+/**
  * The check over a paint, the live one and a captured one alike (task-21.10 decisions 7 and 8).
  * The stamp is judged first: a paint stamped other than 1.0 is in another version, one finding
  * per stamp, and nothing else is judged. Then at least one `createSurface`; every catalog the
@@ -132,22 +148,12 @@ export interface PaintJudgement {
  * empty when the paint passes. The paint judged is handed back settled beside them.
  */
 export function checkPaint(messages: readonly A2uiMessage[], check: PaintCheck): PaintJudgement {
-  const stamps = [
-    ...new Set(
-      messages
-        .map(message => readA2uiStamp(message))
-        .filter(stamp => stamp !== undefined && !stamp.current)
-        .map(stamp => stamp!.stamp),
-    ),
-  ];
-  if (stamps.length > 0) {
-    return {
-      findings: stamps.map(
-        stamp => `the answer paints in A2UI ${JSON.stringify(stamp)}, not "${A2UI_VERSION}"`,
-      ),
-      paint: [],
-    };
+  const stamps = new Map<string, A2uiStamp>();
+  for (const message of messages) {
+    const stamp = readA2uiStamp(message);
+    if (stamp && !stamp.current && !stamps.has(stamp.stamp)) stamps.set(stamp.stamp, stamp);
   }
+  if (stamps.size > 0) return {findings: [...stamps.values()].map(stampFinding), paint: []};
 
   const findings: string[] = [];
   const surfaces = new Map<string, {catalogId?: string; own: Placed[]}>();

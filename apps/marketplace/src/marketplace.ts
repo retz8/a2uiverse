@@ -30,17 +30,16 @@ import {
   checkPublisherToken,
   checkSignInAnswer,
   coverageErrors,
-  entitlementByVersionOf,
+  entitlementOf,
   gateArtifact,
   hashPublisherToken,
   mintPublisherToken,
   PUBLIC_CATALOG_IDS,
   publishedVersionOf,
-  readCatalogIdsByVersion,
   readSupportedCatalogIds,
-  type CatalogIdsByVersion,
   retiredLines,
   smokeWords,
+  SUPPORTED_HOST_INTERFACES,
   type A2uiCatalogSchema,
   type A2uiMessage,
   type ArtifactDescriptor,
@@ -359,7 +358,17 @@ export class Marketplace {
       return 'unchanged';
     }
     const drift = aheadOfStore(entry, card);
-    if (!drift.ok) return 'unchanged';
+    if (!drift.ok) {
+      // A live card that declares A2UI and not v1.0 leaves the flag as it was, and says so
+      // (task-21.15 decision 6).
+      if ('otherVersions' in drift) {
+        logLine(
+          `the live card of ${appId} declares A2UI ${drift.otherVersions.versions.join(', ')} and not v1.0: its ahead-of-the-Store flag is left as it was`,
+          this.#clock(),
+        );
+      }
+      return 'unchanged';
+    }
     return this.#serial(async (): Promise<FlagChange> => {
       const current = this.#entries.get(appId);
       if (!current) return 'unchanged';
@@ -427,6 +436,8 @@ export class Marketplace {
     }
     // Nothing runs after a card that does not read (task-20.3 decision 8): its one finding.
     let card: AgentCard | undefined;
+    let declared: string[] = [];
+    let declarationRead = false;
     if (served) {
       try {
         card = readCard(served);
@@ -437,32 +448,27 @@ export class Marketplace {
           findings: [`the card at ${cardUrl} could not be read: ${(err as Error).message}`],
         };
       }
-    }
-    if (card) {
+      // A card that declares A2UI and not v1.0 answers alone, its one line as the sdk writes it,
+      // nothing sent to the agent (task-21.15 decisions 1, 2); a malformed v1.0 declaration is
+      // collected beside the others.
+      const read = readSupportedCatalogIds(card);
+      if (!read.ok && read.otherVersions) {
+        return {ok: false, kind: 'refused', findings: read.errors};
+      }
       if (!card.version) {
         findings.push("the card has no version: the card's `version` is the app's version");
       }
       if (!card.description) findings.push('the card has no description');
       // An agent the platform cannot reach is never listed (task-20.3 decision 15).
       if (spokenInterfaces(card).length === 0) findings.push(noInterfaceFinding(card));
-    }
-
-    let declared: string[] = [];
-    // The card's declaration per A2UI version, what the smoke test advertises and judges by
-    // (task-19.2 decision 6); `declared` is its union, what every other check reads.
-    let declaredByVersion: CatalogIdsByVersion = {'v0.9': [], 'v0.9.1': []};
-    let declarationRead = false;
-    if (card) {
-      const read = readCatalogIdsByVersion(card);
       if (read.ok) {
-        declaredByVersion = read.value;
-        const union = readSupportedCatalogIds(card);
-        if (union.ok) declared = union.value;
+        declared = read.value;
         declarationRead = true;
       } else {
         findings.push(...read.errors.map(e => `the card's ${e}`));
       }
     }
+
     // A catalog id is owner-only (phase-13 decision 5): another's on the card answers alone,
     // whether or not an artifact was handed for it.
     for (const id of declared) {
@@ -502,14 +508,25 @@ export class Marketplace {
       }
     }
 
-    // Coverage, a held row the publisher owns counting as covered (phase-13 decision 5).
+    // Coverage, a held row the publisher owns counting as covered (phase-13 decision 5) when its
+    // build is packed for a host-module interface the platform supplies; one packed for another is
+    // a finding of its own (task-21.15 decision 4).
     const held = this.#heldRows();
     const ownedHeld = publisher.catalogs.filter(id => held.has(id));
     if (declarationRead) {
+      const stale = ownedHeld.flatMap(id => {
+        const packedFor = this.#descriptors.get(held.get(id)!)?.hostInterface;
+        return packedFor !== undefined && !SUPPORTED_HOST_INTERFACES.includes(packedFor)
+          ? [{id, packedFor}]
+          : [];
+      });
       findings.push(
         ...coverageErrors(
           checkCoverage(declared, [...counted.keys()], [...PUBLIC_CATALOG_IDS, ...ownedHeld]),
         ),
+        ...stale
+          .filter(({id}) => declared.includes(id) && !counted.has(id))
+          .map(({id, packedFor}) => staleHeldFinding(id, packedFor)),
       );
     }
 
@@ -577,9 +594,9 @@ export class Marketplace {
     if (findings.length > 0 || !card || !served) return {ok: false, kind: 'refused', findings};
 
     // The smoke test (phase-13 decisions 12, 13; task-13.3 decisions 6, 17): the entitlement the
-    // app will have, per version as the hub advertises it, each surface judged by its stamp
-    // (task-19.2 decision 6).
-    const entitlement = entitlementByVersionOf(declaredByVersion);
+    // app will have, as the hub advertises it, the paint judged by the validator (task-21.15
+    // decision 7).
+    const entitlement = entitlementOf(declared);
     const schemas = await this.#schemasFor(declared, gated, held);
     const check = {entitlement, schemaFor: (id: string) => schemas.get(id)};
     const words = smokeWords(card);
@@ -799,6 +816,15 @@ export class Marketplace {
     }
     return schemas;
   }
+}
+
+/**
+ * The coverage finding for a held catalog row whose build is packed for a host-module interface
+ * the platform no longer supplies, with no artifact handed for it (task-21.15 decision 4).
+ */
+function staleHeldFinding(catalogId: string, packedFor: string): string {
+  const supplied = SUPPORTED_HOST_INTERFACES.map(name => JSON.stringify(name)).join(', ');
+  return `the card declares catalog ${JSON.stringify(catalogId)} but no artifact for it was handed, and the build the marketplace holds for it is packed for host interface ${JSON.stringify(packedFor)}, while the platform supplies ${supplied}`;
 }
 
 /** A stored card read; one that does not read is damaged state, naming the app and the reason. */
