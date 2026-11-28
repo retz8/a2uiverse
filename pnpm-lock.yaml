@@ -11,6 +11,9 @@ importers:
       '@a2uiverse/card':
         specifier: workspace:*
         version: link:packages/card
+      '@a2uiverse/sdk':
+        specifier: workspace:*
+        version: link:packages/sdk/js
       '@a2uiverse/stellify':
         specifier: workspace:*
         version: link:packages/stellify

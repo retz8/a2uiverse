@@ -20,6 +20,7 @@ pnpm agents:list [--tier <tiers>] [--publish]   # what a launch would run; exits
 pnpm sweep:secrets [flags]    # after a sitting: every token and key searched for in what it left, counts only
 pnpm test:scripts             # the scripts' own tests
 node scripts/upstream-readings.mjs --upstream <clone>   # each @a2ui and @a2a-js package on npm beside the version used
+node scripts/recorded-verdicts.mjs [--agents-dir <path>]  # the validator's verdict on every recorded surface of both repos, into recorded-verdicts.json
 ```
 
 The `<clone>` is a clone of `a2ui-project/a2ui`; the workflow makes one with `git clone --filter=blob:none --no-checkout`.
