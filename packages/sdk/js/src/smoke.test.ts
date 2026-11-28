@@ -64,12 +64,34 @@ describe('checkPaint', () => {
   test('the stamp is judged first: a paint in another version is one finding per stamp, nothing else', () => {
     const old = paint(VENDOR).map(message => ({...message, version: 'v0.9'}));
     expect(checkPaint(old, check)).toEqual({
-      findings: ['the answer paints in A2UI "v0.9", not "1.0"'],
+      findings: [
+        'the answer is stamped A2UI "v0.9", an older version A2UIVerse no longer supports: A2UIVerse reads only what is stamped "1.0"',
+      ],
       paint: [],
     });
     const mixed = [paint(VENDOR)[0]!, {...paint(VENDOR)[1]!, version: 'v0.9.1'}];
     expect(checkPaint(mixed, check).findings).toEqual([
-      'the answer paints in A2UI "v0.9.1", not "1.0"',
+      'the answer is stamped A2UI "v0.9.1", an older version A2UIVerse no longer supports: A2UIVerse reads only what is stamped "1.0"',
+    ]);
+  });
+
+  test('a stamp above 1.0, and one that is no version, each a finding of its own (task-21.15 decision 3)', () => {
+    const stamped = (version: string) => paint(VENDOR).map(message => ({...message, version}));
+    expect(checkPaint(stamped('1.1'), check).findings).toEqual([
+      'the answer is stamped A2UI "1.1", a newer version than this A2UIVerse supports: A2UIVerse reads only what is stamped "1.0"',
+    ]);
+    expect(checkPaint(stamped('abc'), check).findings).toEqual([
+      'the answer is stamped "abc", which is no A2UI version: A2UIVerse reads only what is stamped "1.0"',
+    ]);
+  });
+
+  test('an answer in v0.8, whose messages carry no version, paints nothing', () => {
+    const v08 = [
+      {beginRendering: {surfaceId: 'main', root: 'root'}},
+      {surfaceUpdate: {surfaceId: 'main', components: []}},
+    ] as unknown as A2uiMessage[];
+    expect(checkPaint(v08, check).findings).toEqual([
+      'the answer paints nothing: no createSurface',
     ]);
   });
 

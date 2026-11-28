@@ -11,7 +11,12 @@ import {join} from 'node:path';
 import {afterEach, describe, expect, test} from 'vitest';
 import type {AgentCard as LegacyAgentCard} from '@a2a-js/sdk-v0_3';
 import {FakeEmbedder} from '@a2uiverse/embedder';
-import {ARTIFACT_DESCRIPTOR_FILE, artifactIdOf, BASIC_CATALOG_ID} from '@a2uiverse/sdk';
+import {
+  ARTIFACT_DESCRIPTOR_FILE,
+  artifactIdOf,
+  BASIC_CATALOG_ID,
+  OLDER_VERSION_HELD,
+} from '@a2uiverse/sdk';
 import {textPart, userMessage} from '../src/a2a/parts.js';
 import {AgentsPool, type UpdateGate} from '../src/agentsPool/agentsPool.js';
 import type {DispatchTurn} from '../src/agentsPool/types.js';
@@ -192,5 +197,27 @@ describe('a registry left from before the flip (task-21.13 decision 13)', () => 
     expect(shopC.requests[0]!.message.metadata?.a2uiRendererCapabilities).toEqual({
       '1.0': {supportedCatalogIds: [BASIC_CATALOG_ID]},
     });
+  });
+});
+
+describe('a v1.0 build for an id held as an older-version catalog (task-21.15 decision 5)', () => {
+  test('installed from the computer, another app following: one finding from the sdk, no walk', async () => {
+    const shopC = await startFakeVendor({script: basicPaint, catalogs: []});
+    vendors.push(shopC);
+    const {stateDir, cards} = await leftFromMain(shopC);
+    const registry = new Registry({stateDir, fetchCard: cards.fetch, embedder: new FakeEmbedder()});
+    await registry.load();
+    const result = await registry.install({
+      appId: 'shop-x',
+      cardUrl: cards.serve(
+        cardFor('http://127.0.0.1:12009', {name: 'Shop X', catalogs: [OLD_SHOP_A]}),
+      ),
+      catalogs: [await fixtureArtifact(OLD_SHOP_A)],
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.findings).toEqual([
+      `catalog ${JSON.stringify(OLD_SHOP_A)} at its new build is not an additive evolution of the build shop-a renders in: ${OLDER_VERSION_HELD}`,
+    ]);
   });
 });

@@ -1,29 +1,33 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.com/star/catalog.json",
+  "protocolVersion": "1.0",
   "catalogId": "https://example.com/star/catalog.json",
   "$defs": {
     "anyComponent": {
       "oneOf": [{"$ref": "#/components/StarText"}, {"$ref": "#/components/StarButton"}]
     },
+    "anyFunction": false,
     "tone": {"type": "string", "enum": ["calm", "bright"]}
   },
   "components": {
     "StarText": {
       "type": "object",
       "properties": {
-        "text": {"type": "string"},
+        "component": {"const": "StarText"},
+        "text": {"$ref": "common_types.json#/$defs/DynamicString"},
         "tone": {"$ref": "#/$defs/tone"}
       },
-      "required": ["text"]
+      "required": ["component", "text"]
     },
     "StarButton": {
       "type": "object",
       "properties": {
-        "label": {"type": "string"},
-        "action": {"$ref": "#/$defs/tone"}
+        "component": {"const": "StarButton"},
+        "label": {"$ref": "common_types.json#/$defs/DynamicString"},
+        "action": {"$ref": "common_types.json#/$defs/Action"}
       },
-      "required": ["label"]
+      "required": ["component", "label"]
     }
   }
 }

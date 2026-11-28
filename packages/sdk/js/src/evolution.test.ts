@@ -1,6 +1,7 @@
 import {describe, expect, test} from 'vitest';
+import {BASIC_CATALOG_SCHEMA} from './a2ui/spec.generated';
 import type {A2uiCatalogSchema} from './a2ui/types';
-import {checkAdditiveEvolution} from './evolution';
+import {checkAdditiveEvolution, OLDER_VERSION_HELD} from './evolution';
 
 const COMMON = 'common_types.json#/$defs/ComponentCommon';
 
@@ -362,5 +363,19 @@ describe('checkAdditiveEvolution — refused', () => {
     expect(checkAdditiveEvolution(held, {...held, catalogId: 'cat/v2'})).toEqual([
       'catalogId: "cat/v2" is not the held "cat/v1"',
     ]);
+  });
+});
+
+describe('checkAdditiveEvolution — a v1.0 document for an id held at an older version (task-21.15 decision 5)', () => {
+  const v1 = BASIC_CATALOG_SCHEMA as A2uiCatalogSchema;
+  const {protocolVersion: _v1, ...older} = v1;
+
+  test('one finding, judged before the walk, which does not run', () => {
+    const removed = {...older, components: {}} as A2uiCatalogSchema;
+    expect(checkAdditiveEvolution(removed, v1)).toEqual([OLDER_VERSION_HELD]);
+  });
+
+  test('a v1.0 document over a v1.0 document is walked', () => {
+    expect(checkAdditiveEvolution(v1, v1)).toEqual([]);
   });
 });

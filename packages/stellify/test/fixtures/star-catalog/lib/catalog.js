@@ -1,6 +1,6 @@
-import {Catalog} from '@a2ui/web_core/v0_9';
-import {BASIC_FUNCTIONS} from '@a2ui/web_core/v0_9/basic_catalog';
-import {createComponentImplementation} from '@a2ui/react/v0_9';
+import {Catalog} from '@a2ui/web_core/v1_0';
+import {BASIC_FUNCTIONS} from '@a2ui/web_core/catalogs/basic/v1';
+import {createComponentImplementation} from '@a2ui/react';
 import {z} from 'zod';
 import {jsx} from 'react/jsx-runtime';
 import {createPortal} from 'react-dom';
@@ -26,7 +26,7 @@ const StarButton = createComponentImplementation(StarButtonApi, ({props}) =>
 export {createPortal};
 export const CATALOG = new Catalog(
   'https://example.com/star/catalog.json',
-  'v0.9.1',
+  '1.0',
   [StarText, StarButton],
   BASIC_FUNCTIONS,
 );

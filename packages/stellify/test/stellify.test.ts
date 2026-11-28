@@ -20,15 +20,16 @@ const toolVersion = (
 const reasons = (result: StellifyResult) => result.findings.map(f => f.reason);
 
 describe('packing the fixture catalog', () => {
-  test('no findings, the descriptor, the files', async () => {
+  test('no findings, the descriptor, the files: packed with no configuration from catalogs/v1.0/catalog.json (task-21.15 decisions 8, 10)', async () => {
     const dir = copyFixture();
     const result = await stellify(dir);
     expect(result.findings).toEqual([]);
+    expect(toolVersion).toBe('0.14.0');
     expect(result.descriptor).toEqual({
       catalogId: CATALOG_ID,
       entry: 'index.js',
       schema: 'catalog.json',
-      hostInterface: '0.16.1',
+      hostInterface: '0.16.1-v1.0',
       files: expect.any(Object),
       package: {name: 'star-catalog', version: '1.2.3'},
       packedBy: {tool: '@a2uiverse/stellify', version: toolVersion},
@@ -45,7 +46,7 @@ describe('packing the fixture catalog', () => {
     expect(validateArtifactDescriptor(descriptor).ok).toBe(true);
     expect(await verifyArtifactFiles(descriptor, result.files)).toEqual([]);
     expect(decode(result.files.get('catalog.json')!)).toBe(
-      readFileSync(join(dir, 'catalogs/v0.9.1/catalog.json'), 'utf8'),
+      readFileSync(join(dir, 'catalogs/v1.0/catalog.json'), 'utf8'),
     );
     expect(decode(result.files.get('lib/theme.css')!)).toBe(
       readFileSync(join(dir, 'lib/theme.css'), 'utf8'),
@@ -55,7 +56,7 @@ describe('packing the fixture catalog', () => {
   test('host imports become reads from the interface, stylesheet imports loads through it', async () => {
     const result = await stellify(copyFixture());
     const entry = decode(result.files.get('index.js')!);
-    expect(HOST_SPECIFIERS).toContain('@a2ui/web_core/v0_9/basic_catalog');
+    expect(HOST_SPECIFIERS).toContain('@a2ui/web_core/catalogs/basic/v1');
     for (const specifier of HOST_SPECIFIERS) {
       expect(entry).toContain(`__a2uiverse_host__.modules[${JSON.stringify(specifier)}]`);
     }
@@ -85,7 +86,7 @@ describe('packing the fixture catalog', () => {
         : await import(specifier);
     }
     (globalThis as Record<string, unknown>).__a2uiverse_host__ = {
-      version: '0.16.1',
+      version: HOST_INTERFACE_VERSION,
       modules,
       loadStylesheet: async (url: string) => {
         await new Promise(resolve => setTimeout(resolve, 5));
@@ -126,7 +127,7 @@ describe('packing the fixture catalog', () => {
     const asked: string[] = [];
     const finish = new Map<string, () => void>();
     (globalThis as Record<string, unknown>).__a2uiverse_host__ = {
-      version: '0.16.1',
+      version: HOST_INTERFACE_VERSION,
       modules,
       loadStylesheet: (url: string) =>
         new Promise<void>(resolve => {
@@ -197,7 +198,7 @@ describe('the config', () => {
         "import {defineConfig} from '@a2uiverse/stellify';",
         'export default defineConfig({',
         "  entry: 'lib/index.js',",
-        "  schema: 'catalogs/v0.9.1/catalog.json',",
+        "  schema: 'catalogs/v1.0/catalog.json',",
         `  catalogId: ${JSON.stringify(CATALOG_ID)},`,
         "  outDir: 'out/star',",
         '});',
@@ -257,17 +258,50 @@ describe('refusals', () => {
     for (const specifier of HOST_SPECIFIERS) expect(found[0]).toContain(specifier);
   });
 
-  test('a named import a lent module does not export as the host lends it, as basicCatalog from @a2ui/react/v0_9, gone since 0.13.0', async () => {
+  test('a named import a lent module does not export as the host lends it, as basicCatalog from @a2ui/react', async () => {
     const dir = copyFixture();
     edit(
       dir,
       'lib/catalog.js',
-      s => `import {basicCatalog} from '@a2ui/react/v0_9';\nexport const OLD = basicCatalog;\n${s}`,
+      s => `import {basicCatalog} from '@a2ui/react';\nexport const OLD = basicCatalog;\n${s}`,
     );
     const found = reasons(await stellify(dir));
     expect(found).toEqual([
-      `"basicCatalog" is not exported by "@a2ui/react/v0_9" as the host lends it, at host interface ${HOST_INTERFACE_VERSION}`,
+      `"basicCatalog" is not exported by "@a2ui/react" as the host lends it, at host interface ${HOST_INTERFACE_VERSION}`,
     ]);
+  });
+
+  test.each(['@a2ui/web_core/v0_9', '@a2ui/react/v0_9', '@a2ui/web_core/v0_9/basic_catalog'])(
+    'an import of the v0.9 entry point %s, which the host does not lend (task-21.15 decision 8)',
+    async specifier => {
+      const dir = copyFixture();
+      edit(dir, 'lib/catalog.js', s => `import * as Old from '${specifier}';\nexport {Old};\n${s}`);
+      const found = reasons(await stellify(dir));
+      expect(found).toHaveLength(1);
+      expect(found[0]).toContain(`"${specifier}" is not lent by the host`);
+    },
+  );
+
+  test('a v0.9 catalog document at the default place: the catalog gate says why', async () => {
+    const dir = copyFixture();
+    edit(dir, 'catalogs/v1.0/catalog.json', s => s.replace('  "protocolVersion": "1.0",\n', ''));
+    expect(reasons(await stellify(dir))).toContainEqual(
+      'declares no protocolVersion; a catalog for A2UI 1.0 declares "1.0"',
+    );
+  });
+
+  test('a package still on v0.9, its schema at catalogs/v0.9.1/catalog.json: the schema missing at the default place', async () => {
+    const dir = copyFixture();
+    mkdirSync(join(dir, 'catalogs/v0.9.1'));
+    writeFileSync(
+      join(dir, 'catalogs/v0.9.1/catalog.json'),
+      readFileSync(join(dir, 'catalogs/v1.0/catalog.json')),
+    );
+    rmSync(join(dir, 'catalogs/v1.0'), {recursive: true});
+    expect((await stellify(dir)).findings).toContainEqual({
+      file: 'catalogs/v1.0/catalog.json',
+      reason: 'the catalog schema is missing',
+    });
   });
 
   test('a read through a whole-module import of a name the lent module does not export', async () => {
@@ -276,11 +310,11 @@ describe('refusals', () => {
       dir,
       'lib/catalog.js',
       s =>
-        `import * as A2uiReact from '@a2ui/react/v0_9';\nexport const OLD = A2uiReact.basicCatalog;\n${s}`,
+        `import * as A2uiReact from '@a2ui/react';\nexport const OLD = A2uiReact.basicCatalog;\n${s}`,
     );
     const found = reasons(await stellify(dir));
     expect(found).toEqual([
-      `"basicCatalog" is not exported by "@a2ui/react/v0_9" as the host lends it, at host interface ${HOST_INTERFACE_VERSION}`,
+      `"basicCatalog" is not exported by "@a2ui/react" as the host lends it, at host interface ${HOST_INTERFACE_VERSION}`,
     ]);
   });
 
@@ -339,15 +373,15 @@ describe('refusals', () => {
 
   test('a schema that does not compile', async () => {
     const dir = copyFixture();
-    edit(dir, 'catalogs/v0.9.1/catalog.json', s => s.replace('#/$defs/tone', '#/$defs/nowhere'));
-    const found = reasons(await stellify(dir));
-    expect(found.length).toBeGreaterThan(0);
-    for (const reason of found) expect(reason).toMatch(/^components\//);
+    edit(dir, 'catalogs/v1.0/catalog.json', s => s.replace('#/$defs/tone', '#/$defs/nowhere'));
+    expect(reasons(await stellify(dir))).toContainEqual(
+      expect.stringMatching(/^components\/StarText: /),
+    );
   });
 
   test('a schema whose id is not the package id it says', async () => {
     const dir = copyFixture();
-    edit(dir, 'catalogs/v0.9.1/catalog.json', s =>
+    edit(dir, 'catalogs/v1.0/catalog.json', s =>
       s.replace('"catalogId": "https://example.com/star/catalog.json"', '"catalogId": ""'),
     );
     expect(reasons(await stellify(dir))).toContainEqual(expect.stringMatching(/catalogId/));
@@ -356,7 +390,7 @@ describe('refusals', () => {
   test('every finding carries a file', async () => {
     const dir = copyFixture();
     edit(dir, 'lib/index.js', s => s.replace("export {CATALOG} from './catalog.js';", ''));
-    edit(dir, 'catalogs/v0.9.1/catalog.json', s => s.replace('#/$defs/tone', '#/$defs/nowhere'));
+    edit(dir, 'catalogs/v1.0/catalog.json', s => s.replace('#/$defs/tone', '#/$defs/nowhere'));
     const result = await stellify(dir);
     expect(result.findings.length).toBeGreaterThan(1);
     for (const finding of result.findings) expect(finding.file).toBeTruthy();

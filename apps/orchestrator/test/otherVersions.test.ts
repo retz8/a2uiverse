@@ -78,7 +78,14 @@ describe('the install refused for the A2UI version (task-21.13 decision 12)', ()
       cardUrl: cards.serveAt('http://localhost:11006/.well-known/agent-card.json', ADK_FINDER),
       catalogs: [],
     });
-    expect(result).toMatchObject({ok: false, cause: 'older'});
+    // The sdk's line, as publish and Stellify's preview print it (task-21.15 decision 2).
+    expect(result).toMatchObject({
+      ok: false,
+      cause: 'older',
+      findings: [
+        'the card declares A2UI v0.8 and v0.9, which A2UIVerse no longer supports: A2UIVerse speaks A2UI v1.0',
+      ],
+    });
     expect(registry.installed()).toEqual([]);
   });
 
@@ -89,7 +96,13 @@ describe('the install refused for the A2UI version (task-21.13 decision 12)', ()
     const cardUrl = cards.serveAt('http://localhost:11006/.well-known/agent-card.json', ADK_FINDER);
     await marketplace.publish('restaurants', {card: ADK_FINDER, cardUrl});
     const result = await registry.installFromMarketplace('restaurants');
-    expect(result).toMatchObject({ok: false, cause: 'older'});
+    expect(result).toMatchObject({
+      ok: false,
+      cause: 'older',
+      findings: [
+        'the card declares A2UI v0.8 and v0.9, which A2UIVerse no longer supports: A2UIVerse speaks A2UI v1.0',
+      ],
+    });
     expect(registry.installed()).toEqual([]);
   });
 
@@ -100,7 +113,13 @@ describe('the install refused for the A2UI version (task-21.13 decision 12)', ()
       cardUrl: cards.serve(newerOnly('http://127.0.0.1:12002')),
       catalogs: [],
     });
-    expect(result).toMatchObject({ok: false, cause: 'newer'});
+    expect(result).toMatchObject({
+      ok: false,
+      cause: 'newer',
+      findings: [
+        'the card declares A2UI v1.1, which is newer than this A2UIVerse supports: A2UIVerse speaks A2UI v1.0',
+      ],
+    });
   });
 
   test('upstream’s Node restaurant finder, declaring no A2UI, installs on the basic catalog', async () => {

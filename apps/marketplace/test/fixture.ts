@@ -4,9 +4,14 @@
  */
 import {
   ARTIFACT_DESCRIPTOR_FILE,
+  BASIC_CATALOG_ID,
+  BASIC_CATALOG_SCHEMA,
+  createSchemaFormCheck,
+  formatA2uiFinding,
   HOST_INTERFACE_VERSION,
   artifactIdOf,
   hashArtifactFile,
+  type A2uiCatalogSchema,
   type IndexEntry,
   type PreviewDocument,
 } from '@a2uiverse/sdk';
@@ -54,13 +59,51 @@ export interface ArtifactOptions {
   version?: string;
 }
 
-/** The one-component schema the fixture artifact carries by default. */
-export const schemaFor = (catalogId: string, components?: Record<string, unknown>) => ({
+/** The one component the fixture artifact's schema carries by default, as a v1.0 catalog writes it. */
+export const TEXT_COMPONENT = {
+  type: 'object',
+  properties: {
+    component: {const: 'Text'},
+    text: {$ref: 'common_types.json#/$defs/DynamicString'},
+  },
+  required: ['component', 'text'],
+};
+
+/** A v1.0 catalog document under the id: one Text component by default, no functions. */
+export const schemaFor = (
+  catalogId: string,
+  components: Record<string, unknown> = {Text: TEXT_COMPONENT},
+): A2uiCatalogSchema => ({
+  protocolVersion: '1.0',
   catalogId,
-  components: components ?? {
-    Text: {type: 'object', properties: {text: {type: 'string'}}, required: ['text']},
+  components,
+  $defs: {
+    anyComponent: {oneOf: Object.keys(components).map(name => ({$ref: `#/components/${name}`}))},
+    anyFunction: false,
   },
 });
+
+/** A catalog's document as the tests know it: the basic catalog's, else the fixture's under the id. */
+export const catalogFor = (catalogId: string): A2uiCatalogSchema =>
+  catalogId === BASIC_CATALOG_ID
+    ? (BASIC_CATALOG_SCHEMA as A2uiCatalogSchema)
+    : schemaFor(catalogId);
+
+/**
+ * A paint the tests author, held to the sdk's schema-form check as it is built (task-21.15
+ * decision 7): its messages handed back, or a throw naming each place that fails.
+ */
+export function authored<T>(catalogId: string, messages: T[]): T[] {
+  const findings = createSchemaFormCheck({catalog: catalogFor(catalogId)}).agentToRenderer(
+    messages,
+  );
+  if (findings.length > 0) {
+    throw new Error(
+      `a paint the tests author fails the schema-form check: ${findings.map(formatA2uiFinding).join('; ')}`,
+    );
+  }
+  return messages;
+}
 
 /** A catalog artifact as Stellify writes one: the entry, the schema, the descriptor listing both. */
 export async function fixtureArtifact(
@@ -123,16 +166,16 @@ export function previewFor(
     appId,
     version,
     words: 'Hello! Show me what you can do.',
-    messages: [
-      {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId}},
+    messages: authored(catalogId, [
+      {version: '1.0', createSurface: {surfaceId: 's1', catalogId}},
       {
-        version: 'v0.9',
+        version: '1.0',
         updateComponents: {
           surfaceId: 's1',
           components: [{id: 'root', component: 'Text', text: 'hi'}],
         },
       },
-    ],
+    ]),
     capturedBy,
     capturedAt: '2026-10-10T00:00:00.000Z',
   };

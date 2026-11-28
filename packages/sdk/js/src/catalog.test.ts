@@ -116,7 +116,9 @@ describe('readSupportedCatalogIds: the cards as their agents serve them (task-21
   test('the ADK restaurant finder declares v0.8 and v0.9: a finding of its own, all older', () => {
     expect(readSupportedCatalogIds(fixture('adk-restaurant-finder.json'))).toEqual({
       ok: false,
-      errors: ['the card declares A2UI v0.8 and v0.9, not v1.0'],
+      errors: [
+        'the card declares A2UI v0.8 and v0.9, which A2UIVerse no longer supports: A2UIVerse speaks A2UI v1.0',
+      ],
       otherVersions: {versions: ['v0.8', 'v0.9'], allOlder: true},
     });
   });
@@ -138,7 +140,9 @@ describe('readSupportedCatalogIds: the cards as their agents serve them (task-21
   test('a card declaring only a newer version: a finding of its own, not all older', () => {
     expect(readSupportedCatalogIds(fixture('newer-only.json'))).toEqual({
       ok: false,
-      errors: ['the card declares A2UI v1.1, not v1.0, among them a version after it'],
+      errors: [
+        'the card declares A2UI v1.1, which is newer than this A2UIVerse supports: A2UIVerse speaks A2UI v1.0',
+      ],
       otherVersions: {versions: ['v1.1'], allOlder: false},
     });
   });
@@ -216,14 +220,36 @@ describe('readSupportedCatalogIds: the rule (task-21.10 decisions 5 and 6)', () 
   test('older entries alone, in any number: their versions once each, all older', () => {
     expect(readSupportedCatalogIds(cardOf([V08], [V09, {}], [V09]))).toEqual({
       ok: false,
-      errors: ['the card declares A2UI v0.8 and v0.9, not v1.0'],
+      errors: [
+        'the card declares A2UI v0.8 and v0.9, which A2UIVerse no longer supports: A2UIVerse speaks A2UI v1.0',
+      ],
       otherVersions: {versions: ['v0.8', 'v0.9'], allOlder: true},
     });
   });
 
-  test('an older and a newer one: not all older', () => {
-    const read = readSupportedCatalogIds(cardOf([V09], [V11]));
-    expect(!read.ok && read.otherVersions).toEqual({versions: ['v0.9', 'v1.1'], allOlder: false});
+  test('an older and a newer one: not all older, the newer named (task-21.15 decision 2)', () => {
+    expect(readSupportedCatalogIds(cardOf([V09], [V11]))).toEqual({
+      ok: false,
+      errors: [
+        'the card declares A2UI v0.9 and v1.1, not v1.0: v1.1 is newer than this A2UIVerse supports, and A2UIVerse speaks A2UI v1.0',
+      ],
+      otherVersions: {versions: ['v0.9', 'v1.1'], allOlder: false},
+    });
+  });
+
+  test('three versions listed in a sentence, two newer ones named together', () => {
+    const read = readSupportedCatalogIds(
+      cardOf([V08], [V11], ['https://a2ui.org/a2a-extension/a2ui/v2.0']),
+    );
+    expect(!read.ok && read.errors).toEqual([
+      'the card declares A2UI v0.8, v1.1 and v2.0, not v1.0: v1.1 and v2.0 are newer than this A2UIVerse supports, and A2UIVerse speaks A2UI v1.0',
+    ]);
+    const newer = readSupportedCatalogIds(
+      cardOf([V11], ['https://a2ui.org/a2a-extension/a2ui/v2.0']),
+    );
+    expect(!newer.ok && newer.errors).toEqual([
+      'the card declares A2UI v1.1 and v2.0, which are newer than this A2UIVerse supports: A2UIVerse speaks A2UI v1.0',
+    ]);
   });
 });
 
